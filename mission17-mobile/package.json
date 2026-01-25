@@ -25,5 +25,10 @@
     "react-native-screens": "^4.20.0",
     "react-native-web": "^0.21.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "^19.2.9",
+    "@types/react-native": "^0.72.8",
+    "typescript": "^5.9.3"
+  }
 }

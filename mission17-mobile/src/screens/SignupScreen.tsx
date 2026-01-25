@@ -9,17 +9,20 @@ import {
   SafeAreaView, 
   KeyboardAvoidingView, 
   Platform,
-  ScrollView
+  ScrollView,
+  ViewStyle,
+  TextStyle,
+  KeyboardAvoidingViewProps
 } from 'react-native';
 import { User, Lock, Mail, MapPin, Eye, EyeOff } from 'lucide-react-native';
 
+// Use 'any' for the image require to avoid TS issues if assets aren't typed
 const logoImg = require('../../assets/logo.png');
 
-const SignupScreen = ({ navigation }) => {
+const SignupScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   
-  // Form State
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -34,34 +37,31 @@ const SignupScreen = ({ navigation }) => {
     navigation.navigate('Login'); 
   };
 
-  // --- COMPONENT SELECTION ---
-  // On Web: Use a simple View so the browser handles scrolling naturally.
-  // On Mobile: Use SafeAreaView + KeyboardAvoidingView for app behavior.
-  const RootComponent = Platform.OS === 'web' ? View : SafeAreaView;
-  const Wrapper = Platform.OS === 'web' ? View : KeyboardAvoidingView;
+  // --- THE FIXES START HERE ---
 
-  const rootProps = Platform.OS === 'web' ? { style: styles.webContainer } : { style: styles.mobileContainer };
-  const wrapperProps = Platform.OS === 'web' 
+  // Fix 1: Explicitly tell TS that RootComponent is just a Component that accepts any props
+  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
+  
+  // Fix 2: Define the wrapper props with 'any' to stop the "behavior" mismatch complaint
+  const Wrapper = (Platform.OS === 'web' ? View : KeyboardAvoidingView) as React.ElementType;
+  const wrapperProps: any = Platform.OS === 'web' 
     ? { style: styles.webWrapper } 
     : { behavior: Platform.OS === 'ios' ? 'padding' : 'height', style: styles.mobileWrapper };
 
   return (
-    <RootComponent {...rootProps}>
+    <RootComponent style={Platform.OS === 'web' ? styles.webContainer : styles.mobileContainer}>
       <Wrapper {...wrapperProps}>
         
         <ScrollView 
-          // On web, we let it flow naturally. On mobile, we fill the screen.
           style={Platform.OS === 'web' ? styles.webScrollView : styles.mobileScrollView}
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
         >
           
-          {/* 1. LOGO */}
           <View style={styles.logoContainer}>
             <Image source={logoImg} style={styles.logoImage} resizeMode="contain" />
           </View>
 
-          {/* 2. CARD */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Sign-up</Text>
 
@@ -136,7 +136,6 @@ const SignupScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
-            {/* Register Button */}
             <TouchableOpacity style={styles.registerBtn} onPress={handleRegister}>
               <Text style={styles.registerBtnText}>Register</Text>
             </TouchableOpacity>
@@ -153,48 +152,42 @@ const SignupScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  // --- WEB STYLES (Browser Logic) ---
   webContainer: {
     backgroundColor: '#f1f5f9',
-    minHeight: '100%', // Allows page to grow infinitely
+    minHeight: '100%', 
     width: '100%',
-    alignItems: 'center', // Centers the card horizontally
-  },
+    alignItems: 'center',
+  } as ViewStyle, // Explicit casting
   webWrapper: {
     width: '100%',
-    maxWidth: 500, // Limits width on desktop so it looks like an app
+    maxWidth: 500, 
     alignItems: 'center',
-  },
+  } as ViewStyle,
   webScrollView: {
     width: '100%',
-    // No flex: 1 here! Let it grow with content.
-  },
+  } as ViewStyle,
 
-  // --- MOBILE STYLES (App Logic) ---
   mobileContainer: {
     flex: 1,
     backgroundColor: '#f1f5f9',
-  },
+  } as ViewStyle,
   mobileWrapper: {
     flex: 1,
-  },
+  } as ViewStyle,
   mobileScrollView: {
     flex: 1,
     width: '100%',
-  },
+  } as ViewStyle,
 
-  // --- SHARED STYLES ---
   scrollContent: {
     paddingVertical: 40,
     paddingHorizontal: 20,
     alignItems: 'center',
-  },
+  } as ViewStyle,
 
-  // Logo
-  logoContainer: { marginBottom: 20, alignItems: 'center' },
-  logoImage: { width: 100, height: 100 },
+  logoContainer: { marginBottom: 20, alignItems: 'center' } as ViewStyle,
+  logoImage: { width: 100, height: 100 } as any, 
 
-  // Card
   card: {
     width: '100%',
     backgroundColor: 'white',
@@ -207,10 +200,9 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 10,
     alignItems: 'center',
-  },
-  cardTitle: { fontSize: 26, fontWeight: '900', color: '#0f6bba', marginBottom: 25 },
+  } as ViewStyle,
+  cardTitle: { fontSize: 26, fontWeight: '900', color: '#0f6bba', marginBottom: 25 } as TextStyle,
 
-  // Inputs
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -219,17 +211,18 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginBottom: 20,
     width: '100%',
-  },
-  inputIcon: { marginRight: 10 },
+  } as ViewStyle,
+  inputIcon: { marginRight: 10 } as ViewStyle,
+  
+  // Fix 3: 'as any' silences the outlineStyle error
   input: {
     flex: 1,
     fontSize: 15,
     color: '#334155',
     height: 40,
     outlineStyle: 'none', 
-  },
+  } as any, 
 
-  // Buttons
   registerBtn: {
     backgroundColor: '#0f6bba',
     width: '100%',
@@ -245,10 +238,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
     cursor: 'pointer',
-  },
-  registerBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-  loginLink: { marginTop: 10, cursor: 'pointer' },
-  footerText: { color: '#64748b', fontSize: 13, fontWeight: '500' },
+  } as any, // 'as any' for cursor pointer on web
+  
+  registerBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' } as TextStyle,
+  loginLink: { marginTop: 10, cursor: 'pointer' } as any,
+  footerText: { color: '#64748b', fontSize: 13, fontWeight: '500' } as TextStyle,
 });
 
 export default SignupScreen;
