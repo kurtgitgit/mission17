@@ -1,0 +1,23 @@
+/* src/index.css */
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-width: 100vw;
+  min-height: 100vh;
+  background-color: #f0f2f5; /* Matches your dashboard background */
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  max-width: none; /* This fixes the "centered box" issue */
+  margin: 0;
+  padding: 0;
+  text-align: left; /* Fixes text centering */
+}

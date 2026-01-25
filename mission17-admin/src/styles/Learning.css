@@ -1,0 +1,79 @@
+/* src/styles/Learning.css */
+
+.learning-container {
+  padding: 1rem;
+}
+
+.learning-header {
+  margin-bottom: 2rem;
+}
+
+.sdg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.sdg-card {
+  border-radius: 12px;
+  overflow: hidden;
+  color: white;
+  transition: transform 0.2s;
+  position: relative;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.sdg-card:hover {
+  transform: translateY(-5px);
+}
+
+.sdg-content {
+  padding: 20px;
+  height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sdg-number {
+  font-size: 32px;
+  font-weight: 800;
+  opacity: 0.8;
+}
+
+.sdg-title {
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1.2;
+}
+
+.sdg-actions {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.resource-count {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.edit-btn {
+  background: white;
+  color: #333;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.edit-btn:hover {
+  background: #f0f0f0;
+}

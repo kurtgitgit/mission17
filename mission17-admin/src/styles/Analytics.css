@@ -1,0 +1,27 @@
+/* src/styles/Analytics.css */
+
+.analytics-container {
+  padding: 1rem;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-top: 2rem;
+}
+
+.chart-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.chart-title {
+  margin-bottom: 1.5rem;
+  font-size: 18px;
+  color: #333;
+  border-bottom: 2px solid #f0f2f5;
+  padding-bottom: 10px;
+}
