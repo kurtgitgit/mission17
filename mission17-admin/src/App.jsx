@@ -7,6 +7,8 @@ import Missions from './pages/Missions/Missions';
 import Users from './pages/Users/Users';
 import Analytics from './pages/Analytics/Analytics';
 import Learning from './pages/Learning/Learning';
+import Settings from './pages/Settings/Settings';
+import Verify from './pages/Verify/Verify';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/users" element={<Users />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/learning" element={<Learning />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/verify" element={<Verify />} />
       </Routes>
     </Router>
   );

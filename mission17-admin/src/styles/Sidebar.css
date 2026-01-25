@@ -1,0 +1,130 @@
+/* src/styles/Sidebar.css */
+
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  background-color: #3F66A5; 
+  color: white;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+}
+
+/* --- NEW CLICKABLE HEADER --- */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 10px;
+  text-decoration: none; /* Removes underline from link */
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* Hover effect so users know it's clickable */
+.sidebar-header:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.logo-box {
+  width: 45px;  /* Made it slightly bigger */
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* background: white;  <-- REMOVED THIS */
+  /* padding: 4px;       <-- REMOVED THIS */
+  border-radius: 8px;    /* Optional: Keeps the shape if you add hover effects later */
+}
+
+/* Ensure the image fills the space */
+.sidebar-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); /* Adds a tiny shadow for pop */
+}
+
+
+
+.logo-text-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  line-height: 1.2;
+}
+
+.brand-sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+/* --- (Keep the rest of your CSS below) --- */
+.nav-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1; 
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px 25px;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  font-size: 15px;
+}
+
+.nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  padding-left: 30px;
+}
+
+.nav-link.active {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: white;
+  border-left: 4px solid white;
+  font-weight: 700;
+}
+
+.logout-btn {
+  margin: 20px;
+  padding: 12px 20px;
+  background: transparent;
+  border: 1px solid rgba(199, 11, 11, 0.3);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  border-color: #fca5a5;
+  color: white;
+}

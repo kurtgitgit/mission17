@@ -1,104 +1,214 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  Image, 
+  StyleSheet, 
+  SafeAreaView, 
+  KeyboardAvoidingView, 
+  Platform,
+  Dimensions
+} from 'react-native';
+import { User, Lock, Eye, EyeOff } from 'lucide-react-native';
+
+// Import Logo (Adjusted for your folder structure)
+const logoImg = require('../../assets/logo.png');
 
 const LoginScreen = ({ navigation }) => {
+  const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = () => {
-    // TODO: Add backend connection later
-    console.log("Logging in:", email);
-    navigation.replace('Main'); // Navigate to Home and prevent going back to Login
+    // Navigate to your HomeScreen
+    // We use 'replace' so the user can't go back to login
+    navigation.replace('Home'); 
+  };
+
+  const handleSignup = () => {
+     navigation.navigate('Signup');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Mission17</Text>
-        <Text style={styles.subtitle}>Gamified Community Action</Text>
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email Address"
-            placeholderTextColor="#666"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#666"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.contentContainer}
+      >
+        
+        {/* 1. LOGO SECTION */}
+        <View style={styles.logoContainer}>
+          <Image source={logoImg} style={styles.logoImage} resizeMode="contain" />
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Start Mission</Text>
-        </TouchableOpacity>
+        {/* 2. WHITE FLOATING CARD */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Login</Text>
 
-        <TouchableOpacity onPress={() => console.log("Sign Up")}>
-          <Text style={styles.link}>Create a Student Account</Text>
-        </TouchableOpacity>
-      </View>
+          {/* Username Input */}
+          <View style={styles.inputWrapper}>
+            <User size={20} color="#64748b" style={styles.inputIcon} />
+            <TextInput 
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor="#94a3b8"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+            />
+          </View>
+
+          {/* Password Input */}
+          <View style={styles.inputWrapper}>
+            <Lock size={20} color="#64748b" style={styles.inputIcon} />
+            <TextInput 
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#94a3b8"
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              {showPassword ? (
+                <EyeOff size={20} color="#64748b" />
+              ) : (
+                <Eye size={20} color="#64748b" />
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Login Button (Blue Pill) */}
+          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+            <Text style={styles.loginBtnText}>Login</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. FOOTER (Sign Up) */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>Don't have an account? Sign Up</Text>
+          
+          <TouchableOpacity style={styles.signupBtn} onPress={handleSignup}>
+            <Text style={styles.signupBtnText}>Sign up</Text>
+          </TouchableOpacity>
+        </View>
+
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
+// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1e293b', // Dark theme to match "Mission" vibe
+    backgroundColor: '#f1f5f9', // Light gray background
   },
-  content: {
+  contentContainer: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
-  title: {
-    fontSize: 40,
-    fontWeight: 'bold',
-    color: '#38bdf8', // Light blue
-    textAlign: 'center',
-    marginBottom: 10,
+
+  // Logo
+  logoContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
   },
-  subtitle: {
-    fontSize: 18,
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginBottom: 50,
+  logoImage: {
+    width: 140, 
+    height: 140,
   },
-  inputContainer: {
-    marginBottom: 30,
+
+  // Card
+  card: {
+    width: '100%',
+    backgroundColor: 'white',
+    borderRadius: 25,
+    paddingVertical: 30,
+    paddingHorizontal: 25,
+    // Shadows
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#0f6bba', // Blue title
+    marginBottom: 25,
+  },
+
+  // Inputs
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#cbd5e1', // Light gray underline
+    paddingVertical: 10,
+    marginBottom: 20,
+    width: '100%',
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
-    backgroundColor: '#334155',
-    color: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+    flex: 1,
     fontSize: 16,
+    color: '#334155',
+    height: 40,
   },
-  button: {
-    backgroundColor: '#38bdf8',
-    padding: 16,
-    borderRadius: 12,
+
+  // Login Button
+  loginBtn: {
+    backgroundColor: '#0f6bba', // Main Blue
+    width: '100%',
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 15,
+    shadowColor: '#0f6bba',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  buttonText: {
-    color: '#0f172a',
-    fontWeight: 'bold',
+  loginBtnText: {
+    color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
   },
-  link: {
-    color: '#94a3b8',
-    textAlign: 'center',
-    marginTop: 10,
+
+  // Footer
+  footer: {
+    marginTop: 30,
+    alignItems: 'center',
+    width: '100%',
+  },
+  footerText: {
+    color: '#64748b',
+    fontSize: 14,
+    marginBottom: 15,
+  },
+  signupBtn: {
+    backgroundColor: '#0f6bba',
+    width: '60%', // Smaller button for signup
+    height: 45,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

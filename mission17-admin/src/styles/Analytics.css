@@ -2,26 +2,103 @@
 
 .analytics-container {
   padding: 1rem;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
 }
 
-.charts-grid {
+.analytics-header { margin-bottom: 30px; }
+.page-title { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 5px 0; }
+.page-subtitle { color: #64748b; font-size: 14px; margin: 0; }
+
+/* --- STATS GRID (Top Row) --- */
+.stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
-  margin-top: 2rem;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: flex-start; /* Aligns icon to top */
+  gap: 15px;
+}
+
+/* Icons */
+.icon-wrapper {
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.yellow-icon { background: #fef9c3; color: #ca8a04; }
+.green-icon  { background: #dcfce7; color: #16a34a; }
+.blue-icon   { background: #dbeafe; color: #2563eb; }
+.purple-icon { background: #f3e8ff; color: #9333ea; }
+
+/* Text Content */
+.stat-content { display: flex; flex-direction: column; }
+.stat-label { font-size: 12px; color: #64748b; font-weight: 600; margin-bottom: 5px; }
+.stat-value { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2; }
+.stat-trend { font-size: 11px; color: #64748b; font-weight: 500; margin-top: 4px; }
+.trend-up { color: #16a34a; font-weight: 700; }
+.trend-purple { color: #9333ea; font-weight: 700; }
+
+/* --- CHARTS SECTION (Bottom Row) --- */
+.charts-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr; /* Bar chart takes 2/3 space */
+  gap: 20px;
 }
 
 .chart-card {
   background: white;
-  padding: 1.5rem;
+  padding: 25px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
 }
 
-.chart-title {
-  margin-bottom: 1.5rem;
-  font-size: 18px;
-  color: #333;
-  border-bottom: 2px solid #f0f2f5;
-  padding-bottom: 10px;
+.chart-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+  margin: 0 0 25px 0;
+}
+
+.chart-wrapper {
+  flex: 1;
+  min-height: 250px; /* Ensures charts have height */
+  position: relative;
+}
+
+/* Donut Chart Specifics */
+.donut-center-text {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none; /* Allows hovering over the chart segments */
+}
+
+.center-number {
+  font-size: 28px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.chart-footer {
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 10px;
 }

@@ -1,23 +1,34 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Target, Users, BarChart3, LogOut, BookOpen } from 'lucide-react';
-import '../styles/Layout.css';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, Target, Users, BarChart3, LogOut, BookOpen, Settings } from 'lucide-react';
+import '../styles/Sidebar.css';
+import { CheckCircle } from 'lucide-react';
+
+// IMPORT YOUR LOGO
+import logoImg from '../assets/logo.png'; 
 
 const Sidebar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // Clear user session logic here
     navigate('/');
   };
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Target size={28} />
-        <span>Mission17 Admin</span>
-      </div>
+      
+      {/* CLICKABLE LOGO AREA (Goes to Settings) */}
+      <Link to="/settings" className="sidebar-header">
+        <div className="logo-box">
+          <img src={logoImg} alt="M17 Logo" className="sidebar-logo-img" />
+        </div>
+        <div className="logo-text-col">
+          <span className="brand-name">Mission17</span>
+          <span className="brand-sub">Admin Settings</span>
+        </div>
+      </Link>
 
+      {/* Navigation Menu */}
       <ul className="nav-list">
         <li className="nav-item">
           <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
@@ -44,12 +55,19 @@ const Sidebar = () => {
           </NavLink>
         </li>
         <li className="nav-item">
+          <NavLink to="/verify" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+          <CheckCircle size={20} />
+          <span>Verify Proofs</span>
+          </NavLink>
+        </li>
+        <li className="nav-item">
           <NavLink to="/analytics" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <BarChart3 size={20} />
             <span>Analytics</span>
           </NavLink>
         </li>
       </ul>
+      
 
       <button onClick={handleLogout} className="logout-btn">
         <LogOut size={20} />

@@ -1,0 +1,109 @@
+/* Page Layout */
+.verify-container {
+  padding: 1rem;
+  font-family: 'Inter', sans-serif;
+  max-width: 1000px; /* Keeps cards from getting too wide */
+}
+
+.verify-header { margin-bottom: 30px; }
+.page-title { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 5px; }
+.page-subtitle { color: #64748b; font-size: 14px; }
+
+/* The Card Style */
+.verify-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 15px; /* Space between cards */
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s;
+}
+
+.verify-card:hover {
+  transform: translateY(-2px); /* Slight lift on hover */
+  box-shadow: 0 8px 12px rgba(0,0,0,0.05);
+}
+
+/* 1. Info Section */
+.info-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 2; /* Takes up most space */
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #eff6ff;
+  color: #3b82f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text-details { display: flex; flex-direction: column; gap: 2px; }
+.user-name { margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; }
+.mission-name { margin: 0; font-size: 13px; color: #475569; }
+.date-badge { 
+  display: flex; align-items: center; gap: 4px; 
+  font-size: 11px; color: #94a3b8; margin-top: 4px; 
+}
+
+/* 2. Proof Section */
+.proof-section { flex: 1; display: flex; justify-content: center; }
+
+.view-proof-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: #f1f5f9; color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-proof-btn:hover { background: #e2e8f0; color: #0f172a; }
+
+/* 3. Action Section */
+.action-section {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-approve, .btn-reject {
+  display: flex; align-items: center; gap: 6px;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-approve { background-color: #dcfce7; color: #166534; }
+.btn-approve:hover { background-color: #16a34a; color: white; }
+
+.btn-reject { background-color: #fee2e2; color: #991b1b; }
+.btn-reject:hover { background-color: #ef4444; color: white; }
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 50px;
+  background: white;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+.empty-state h3 { margin: 10px 0 5px 0; color: #0f172a; }
+.empty-state p { color: #64748b; margin: 0; font-size: 14px; }
