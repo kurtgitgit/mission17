@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
-  Image, 
   TouchableOpacity, 
   Platform, 
   ViewStyle, 
-  SafeAreaView
+  SafeAreaView,
+  Alert,
+  ActivityIndicator
 } from 'react-native';
+import { GlobalState } from '../config/api';
 
-// --- DATA: The 17 SDGs ---
-const SDG_DATA = [
+// --- FALLBACK DATA: The 17 SDGs (Used if database is empty) ---
+const FALLBACK_SDG_DATA = [
   { id: '1', title: 'No Poverty', color: '#e5243b' },
   { id: '2', title: 'Zero Hunger', color: '#dda63a' },
   { id: '3', title: 'Good Health and Well-Being', color: '#4c9f38' },
@@ -32,24 +34,59 @@ const SDG_DATA = [
   { id: '17', title: 'Partnerships for the Goals', color: '#19486a' },
 ];
 
-// 1. ADD 'navigation' TO THE PROPS
-const MissionsScreen = ({ navigation }: any) => {
-  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
+const MissionsScreen = ({ navigation, route }: any) => {
+  const [missions, setMissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const renderItem = ({ item }: { item: typeof SDG_DATA[0] }) => (
+  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
+  const userId = route.params?.userId || GlobalState.userId;
+
+  // 👇 FETCH DYNAMIC MISSIONS FROM BACKEND
+  useEffect(() => {
+    const fetchMissions = async () => {
+      try {
+        const response = await fetch("http://localhost:5001/api/auth/all-missions");
+        const data = await response.json();
+        
+        // If we have missions in the DB, use them. Otherwise, use fallback.
+        if (data && data.length > 0) {
+          setMissions(data);
+        } else {
+          setMissions(FALLBACK_SDG_DATA);
+        }
+      } catch (error) {
+        console.error("Failed to load missions:", error);
+        setMissions(FALLBACK_SDG_DATA); // Show fallback on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMissions();
+  }, []);
+
+  const handlePressMission = (item: any) => {
+    if (!userId) {
+      Alert.alert("Notice", "Please log in to save points.");
+    }
+    
+    navigation.navigate('MissionDetail', { 
+      mission: item,
+      userId: userId 
+    });
+  };
+
+  const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity 
       style={styles.card}
-      // 2. ADD THE ONPRESS EVENT HERE
-      onPress={() => navigation.navigate('MissionDetail', { mission: item })}
+      onPress={() => handlePressMission(item)}
     >
-      {/* Left: Image Placeholder (Color Box) */}
-      <View style={[styles.cardImage, { backgroundColor: item.color }]}>
-        <Text style={styles.imgPlaceholderText}>IMG</Text>
+      <View style={[styles.cardImage, { backgroundColor: item.color || '#3b82f6' }]}>
+        <Text style={styles.imgPlaceholderText}>SDG</Text>
       </View>
       
-      {/* Right: Text */}
       <View style={styles.textContainer}>
-        <Text style={styles.sdgNumber}>SDG {item.id}</Text>
+        <Text style={styles.sdgNumber}>Goal {item.sdgNumber || item.id}</Text>
         <Text style={styles.sdgTitle}>{item.title}</Text>
       </View>
     </TouchableOpacity>
@@ -58,17 +95,21 @@ const MissionsScreen = ({ navigation }: any) => {
   return (
     <RootComponent style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>17 SDG Missions</Text>
-        <Text style={styles.subTitle}>Select one SDG to start the challenges.</Text>
+        <Text style={styles.pageTitle}>SDG Missions</Text>
+        <Text style={styles.subTitle}>Select a mission to earn points.</Text>
       </View>
 
-      <FlatList
-        data={SDG_DATA}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={missions}
+          renderItem={renderItem}
+          keyExtractor={(item) => item._id || item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </RootComponent>
   );
 };
@@ -79,7 +120,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9', 
     alignItems: 'center',
   } as ViewStyle,
-
   header: {
     marginTop: 20,
     marginBottom: 15,
@@ -95,15 +135,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
   } as ViewStyle,
-
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 40,
     width: '100%',
     maxWidth: 600,
   } as ViewStyle,
-
-  // --- CARD STYLES ---
   card: {
     flexDirection: 'row',
     backgroundColor: 'white',
@@ -111,8 +148,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 15,
     alignItems: 'center',
-    
-    // Shadow / Elevation
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -120,9 +155,7 @@ const styles = StyleSheet.create({
     elevation: 3, 
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    cursor: 'pointer', // Makes it look clickable on web
   } as any,
-
   cardImage: {
     width: 80,
     height: 60,
@@ -134,10 +167,8 @@ const styles = StyleSheet.create({
   imgPlaceholderText: {
     color: 'white',
     fontWeight: 'bold',
-    fontSize: 10,
-    opacity: 0.8,
+    fontSize: 12,
   } as ViewStyle,
-
   textContainer: {
     flex: 1,
     justifyContent: 'center',

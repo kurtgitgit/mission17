@@ -1,225 +1,188 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
-  Platform,
-  Dimensions,
-  ViewStyle,
-  TextStyle,
-  ImageStyle
-} from 'react-native';
-import { User, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { Mail, Lock } from 'lucide-react-native';
+import { endpoints, GlobalState } from '../config/api';
 
-// Use 'any' to avoid asset type errors
-const logoImg = require('../../assets/logo.png');
-
-// Define the Props type so TypeScript knows 'navigation' exists
-interface LoginScreenProps {
-  navigation: any;
-}
-
-const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
-  const [showPassword, setShowPassword] = useState(false);
+export default function LoginScreen() {
+  const navigation = useNavigation<any>();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Navigate to your HomeScreen
-    navigation.replace('Home'); 
-  };
+  const handleLogin = async () => {
+    if (!email || !password) {
+      const msg = 'Please enter both email and password';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      return; 
+    }
 
-  const handleSignup = () => {
-    navigation.navigate('Signup');
+    setLoading(true);
+
+    try {
+      const response = await fetch(endpoints.auth.login, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('Login Token:', data.token); 
+        console.log('User ID:', data.user.id);
+         GlobalState.userId = data.user.id;
+        navigation.replace('Home', { 
+          screen: 'HomeTab', // (Or just 'Home' if you aren't using tabs yet)
+          params: { userId: data.user.id } 
+        }); 
+      } else {
+        const msg = data.message || 'Invalid credentials';
+        Platform.OS === 'web' ? alert(msg) : Alert.alert('Login Failed', msg);
+      }
+    } catch (error) {
+      const msg = 'Could not connect to server.';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.contentContainer}
-      >
-        
-        {/* 1. LOGO SECTION */}
-        <View style={styles.logoContainer}>
-          <Image source={logoImg} style={styles.logoImage} resizeMode="contain" />
+    <View style={styles.container}>
+      
+      {/* HEADER WITH LOGO */}
+      <View style={styles.header}>
+        {/* 👇 CHECK YOUR FILENAME HERE! Is it logo.png? icon.png? */}
+        <Image 
+          source={require('../../assets/logo.png')} 
+          style={styles.logo} 
+          resizeMode="contain"
+        />
+        <Text style={styles.title}>Login</Text>
+      </View>
+
+      <View style={styles.form}>
+        <View style={styles.inputContainer}>
+          <Mail color="#94a3b8" size={20} style={styles.icon} />
+          <TextInput 
+            placeholder="Email Address" 
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
         </View>
 
-        {/* 2. WHITE FLOATING CARD */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Login</Text>
-
-          {/* Username Input */}
-          <View style={styles.inputWrapper}>
-            <User size={20} color="#64748b" style={styles.inputIcon} />
-            <TextInput 
-              style={styles.input}
-              placeholder="Username"
-              placeholderTextColor="#94a3b8"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-            />
-          </View>
-
-          {/* Password Input */}
-          <View style={styles.inputWrapper}>
-            <Lock size={20} color="#64748b" style={styles.inputIcon} />
-            <TextInput 
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#94a3b8"
-              secureTextEntry={!showPassword}
-              value={password}
-              onChangeText={setPassword}
-            />
-            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              {showPassword ? (
-                <EyeOff size={20} color="#64748b" />
-              ) : (
-                <Eye size={20} color="#64748b" />
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Login Button (Blue Pill) */}
-          <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-            <Text style={styles.loginBtnText}>Login</Text>
-          </TouchableOpacity>
+        <View style={styles.inputContainer}>
+          <Lock color="#94a3b8" size={20} style={styles.icon} />
+          <TextInput 
+            placeholder="Password" 
+            style={styles.input} 
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
         </View>
 
-        {/* 3. FOOTER (Sign Up) */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? Sign Up</Text>
-          
-          <TouchableOpacity style={styles.signupBtn} onPress={handleSignup}>
-            <Text style={styles.signupBtnText}>Sign up</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={handleLogin} 
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.loginButtonText}>Log In</Text>
+          )}
+        </TouchableOpacity>
+      </View>
 
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Don't have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+          <Text style={styles.linkText}>Sign Up</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
-};
+}
 
-// --- STYLES ---
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f1f5f9', 
-  } as ViewStyle,
-  contentContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  } as ViewStyle,
-
-  // Logo
-  logoContainer: {
-    marginBottom: 20,
-    alignItems: 'center',
-  } as ViewStyle,
-  logoImage: {
-    width: 140, 
-    height: 140,
-  } as ImageStyle,
-
-  // Card
-  card: {
-    width: '100%',
-    backgroundColor: 'white',
-    borderRadius: 25,
-    paddingVertical: 30,
-    paddingHorizontal: 25,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 10,
-    alignItems: 'center',
-  } as ViewStyle,
-  cardTitle: {
-    fontSize: 26,
-    fontWeight: '900',
-    color: '#0f6bba', // Blue title
-    marginBottom: 25,
-  } as TextStyle,
-
-  // Inputs
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#cbd5e1', 
-    paddingVertical: 10,
-    marginBottom: 20,
-    width: '100%',
-  } as ViewStyle,
-  inputIcon: {
-    marginRight: 10,
-  } as ViewStyle,
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#334155',
-    height: 40,
-    // @ts-ignore - Ignore the web-only prop warning if it appears
-    outlineStyle: 'none', 
-  } as any,
-
-  // Login Button
-  loginBtn: {
-    backgroundColor: '#0f6bba', // Main Blue
-    width: '100%',
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 15,
-    shadowColor: '#0f6bba',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-    cursor: 'pointer',
-  } as any,
-  loginBtnText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  } as TextStyle,
-
-  // Footer
-  footer: {
-    marginTop: 30,
-    alignItems: 'center',
-    width: '100%',
-  } as ViewStyle,
-  footerText: {
-    color: '#64748b',
-    fontSize: 14,
-    marginBottom: 15,
-  } as TextStyle,
-  signupBtn: {
-    backgroundColor: '#0f6bba',
-    width: '60%', 
-    height: 45,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    cursor: 'pointer',
-  } as any,
-  signupBtnText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  } as TextStyle,
+  container: { 
+    flex: 1, 
+    backgroundColor: '#f8fafc', 
+    padding: 24, 
+    justifyContent: 'center' 
+  },
+  header: { 
+    alignItems: 'center', 
+    marginBottom: 32 
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 16
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+     
+    color: '#0ea5e9' // Added a nice blue color to match your previous screenshot
+  },
+  form: { 
+    gap: 16 
+  },
+  inputContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: 'white', 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0', 
+    paddingHorizontal: 16, 
+    height: 56 
+  },
+  icon: { 
+    marginRight: 12 
+  },
+  input: { 
+    flex: 1, 
+    fontSize: 16, 
+    color: '#1e293b',
+    // TypeScript Fix
+    ...Platform.select({
+      web: { outlineStyle: 'none' as any }
+    }) 
+  },
+  loginButton: { 
+    backgroundColor: '#0ea5e9', // Updated to match your logo blue
+    height: 56, 
+    borderRadius: 12, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    marginTop: 8 
+  },
+  loginButtonText: { 
+    color: 'white', 
+    fontSize: 16, 
+    fontWeight: 'bold' 
+  },
+  footer: { 
+    flexDirection: 'row', 
+    justifyContent: 'center', 
+    marginTop: 32 
+  },
+  footerText: { 
+    color: '#64748b', 
+    fontSize: 14 
+  },
+  linkText: { 
+    color: '#0ea5e9', 
+    fontSize: 14, 
+    fontWeight: '600' 
+  },
 });
-
-export default LoginScreen;

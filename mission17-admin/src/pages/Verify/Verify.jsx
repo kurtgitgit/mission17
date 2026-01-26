@@ -1,29 +1,81 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { CheckCircle, XCircle, Clock, FileImage, User } from 'lucide-react';
 import '../../styles/Verify.css';
 
 const Verify = () => {
-  // Dummy Data: This simulates pending missions from users
-  const [submissions, setSubmissions] = useState([
-    { id: 1, user: 'Juan Dela Cruz', mission: 'Coastal Clean-up', date: 'Jan 25, 2026', status: 'Pending', proof: 'image_url_here' },
-    { id: 2, user: 'Maria Clara', mission: 'Tree Planting', date: 'Jan 24, 2026', status: 'Pending', proof: 'image_url_here' },
-    { id: 3, user: 'Jose Rizal', mission: 'Donation Drive', date: 'Jan 23, 2026', status: 'Pending', proof: 'image_url_here' },
-  ]);
+  // 1. Initialize with an empty array to be filled by the backend
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Handle Approve Action
-  const handleApprove = (id) => {
-    alert(`Mission #${id} Approved!`);
-    // In real app, you would send this to backend. For now, we remove it from list.
-    setSubmissions(submissions.filter(sub => sub.id !== id));
+  const API_BASE = "http://localhost:5001/api/auth";
+
+  // 2. Fetch pending missions on load
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+
+  const fetchSubmissions = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/pending-submissions`);
+      const data = await response.json();
+      if (response.ok) {
+        setSubmissions(data);
+      }
+    } catch (error) {
+      console.error("Error fetching submissions:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  // 3. Updated Approve Action (Sends to Backend)
+  const handleApprove = async (id) => {
+    try {
+      const response = await fetch(`${API_BASE}/approve-mission`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ submissionId: id })
+      });
+
+      if (response.ok) {
+        alert(`Mission Approved and points awarded!`);
+        // Remove from the local list so it disappears instantly
+        setSubmissions(submissions.filter(sub => sub._id !== id));
+      } else {
+        alert("Failed to approve mission.");
+      }
+    } catch (error) {
+      console.error("Approval error:", error);
+    }
+  };
+
+  // Handle Reject Action (UI only for now)
   // Handle Reject Action
-  const handleReject = (id) => {
+  const handleReject = async (id) => {
     const reason = prompt("Enter reason for rejection:");
+    
     if (reason) {
-      alert(`Mission #${id} Rejected. Reason: ${reason}`);
-      setSubmissions(submissions.filter(sub => sub.id !== id));
+      try {
+        const response = await fetch(`${API_BASE}/reject-mission`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            submissionId: id,
+            reason: reason 
+          })
+        });
+
+        if (response.ok) {
+          alert(`Mission Rejected. Reason: ${reason}`);
+          // Remove from local list
+          setSubmissions(submissions.filter(sub => sub._id !== id));
+        } else {
+          alert("Failed to send rejection to server.");
+        }
+      } catch (error) {
+        console.error("Rejection error:", error);
+      }
     }
   };
 
@@ -35,7 +87,9 @@ const Verify = () => {
           <p className="page-subtitle">Review and approve agent mission submissions.</p>
         </div>
 
-        {submissions.length === 0 ? (
+        {loading ? (
+          <p style={{ textAlign: 'center', marginTop: '40px' }}>Loading submissions...</p>
+        ) : submissions.length === 0 ? (
           <div className="empty-state">
             <CheckCircle size={48} color="#16a34a" />
             <h3>All caught up!</h3>
@@ -44,7 +98,7 @@ const Verify = () => {
         ) : (
           <div className="submissions-list">
             {submissions.map((sub) => (
-              <div key={sub.id} className="verify-card">
+              <div key={sub._id} className="verify-card">
                 
                 {/* Left: User Info */}
                 <div className="info-section">
@@ -52,15 +106,20 @@ const Verify = () => {
                     <User size={20} />
                   </div>
                   <div className="text-details">
-                    <h3 className="user-name">{sub.user}</h3>
-                    <p className="mission-name">Completed: <strong>{sub.mission}</strong></p>
-                    <span className="date-badge"><Clock size={12} /> {sub.date}</span>
+                    <h3 className="user-name">{sub.username}</h3>
+                    <p className="mission-name">Completed: <strong>{sub.missionTitle}</strong></p>
+                    <span className="date-badge">
+                      <Clock size={12} /> {new Date(sub.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
                 </div>
 
                 {/* Middle: Proof Button */}
                 <div className="proof-section">
-                  <button className="view-proof-btn">
+                  <button 
+                    className="view-proof-btn" 
+                    onClick={() => sub.imageUri && window.open(sub.imageUri, '_blank')}
+                  >
                     <FileImage size={16} />
                     View Proof
                   </button>
@@ -68,10 +127,10 @@ const Verify = () => {
 
                 {/* Right: Actions */}
                 <div className="action-section">
-                  <button onClick={() => handleApprove(sub.id)} className="btn-approve">
+                  <button onClick={() => handleApprove(sub._id)} className="btn-approve">
                     <CheckCircle size={18} /> Approve
                   </button>
-                  <button onClick={() => handleReject(sub.id)} className="btn-reject">
+                  <button onClick={() => handleReject(sub._id)} className="btn-reject">
                     <XCircle size={18} /> Reject
                   </button>
                 </div>

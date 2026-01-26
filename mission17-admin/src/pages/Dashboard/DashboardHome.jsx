@@ -1,74 +1,125 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { Users, Activity, AlertCircle, CheckSquare } from 'lucide-react';
-import '../../styles/DashboardHome.css'; // We will create this next
+import { Users, Activity, AlertCircle, CheckSquare, Trophy, User as UserIcon } from 'lucide-react';
+import '../../styles/DashboardHome.css';
 
 const DashboardHome = () => {
+  const [stats, setStats] = useState({
+    volunteers: 0,
+    activeMissions: 0,
+    pending: 0,
+    completed: 0
+  });
+  const [leaders, setLeaders] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // 1. Fetch Users & Submissions
+        const [userRes, subRes, missionRes] = await Promise.all([
+          fetch("http://localhost:5001/api/auth/users"),
+          fetch("http://localhost:5001/api/auth/pending-submissions"),
+          fetch("http://localhost:5001/api/auth/all-missions")
+        ]);
+
+        const users = await userRes.json();
+        const subs = await subRes.json();
+        const missions = await missionRes.json();
+
+        // 2. Calculate Stats
+        setStats({
+          volunteers: users.length,
+          activeMissions: missions.length,
+          pending: subs.filter(s => s.status === 'Pending').length,
+          completed: subs.filter(s => s.status === 'Approved').length
+        });
+
+        // 3. Set Leaderboard (Top 5)
+        setLeaders([...users].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 5));
+
+        // 4. Set Recent Activity (Last 5 submissions)
+        setRecentActivity(subs.slice(0, 5));
+
+      } catch (error) {
+        console.error("Dashboard Load Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <Layout>
       <div className="dashboard-container">
         
-        {/* Section 1: Stats Overview */}
         <h2 className="section-title">Dashboard Overview</h2>
         
         <div className="stats-grid">
-          {/* Blue Card */}
           <div className="stat-card blue-card">
-            <div className="stat-icon-box">
-              <Users size={24} color="#2563eb" />
-            </div>
+            <div className="stat-icon-box"><Users size={24} color="#2563eb" /></div>
             <div className="stat-info">
-              <span className="stat-value">124</span>
+              <span className="stat-value">{stats.volunteers}</span>
               <span className="stat-label">Total Volunteers</span>
             </div>
           </div>
 
-          {/* Green Card */}
           <div className="stat-card green-card">
-            <div className="stat-icon-box">
-              <Activity size={24} color="#16a34a" />
-            </div>
+            <div className="stat-icon-box"><Activity size={24} color="#16a34a" /></div>
             <div className="stat-info">
-              <span className="stat-value">12</span>
+              <span className="stat-value">{stats.activeMissions}</span>
               <span className="stat-label">Active Missions</span>
             </div>
           </div>
 
-          {/* Yellow Card */}
           <div className="stat-card yellow-card">
-            <div className="stat-icon-box">
-              <AlertCircle size={24} color="#ca8a04" />
-            </div>
+            <div className="stat-icon-box"><AlertCircle size={24} color="#ca8a04" /></div>
             <div className="stat-info">
-              <span className="stat-value">8</span>
+              <span className="stat-value">{stats.pending}</span>
               <span className="stat-label">Pending Verifications</span>
             </div>
           </div>
 
-          {/* Purple Card */}
           <div className="stat-card purple-card">
-            <div className="stat-icon-box">
-              <CheckSquare size={24} color="#9333ea" />
-            </div>
+            <div className="stat-icon-box"><CheckSquare size={24} color="#9333ea" /></div>
             <div className="stat-info">
-              <span className="stat-value">1,042</span>
+              <span className="stat-value">{stats.completed}</span>
               <span className="stat-label">Missions Completed</span>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Recent Activity */}
-        <h2 className="section-title" style={{ marginTop: '40px' }}>Recent Activity</h2>
-        
-        <div className="activity-list">
-          <div className="activity-item">
-            <p><strong>Juan Dela Cruz</strong> joined <strong>Coastal Clean-up</strong></p>
+        <div className="dashboard-lower-section">
+          {/* Recent Activity List */}
+          <div className="activity-section">
+            <h2 className="section-title">Recent Activity</h2>
+            <div className="activity-list">
+              {recentActivity.length === 0 ? <p className="empty-msg">No recent activity found.</p> : 
+                recentActivity.map((act) => (
+                <div key={act._id} className="activity-item">
+                  <p><strong>{act.username}</strong> submitted proof for <strong>{act.missionTitle}</strong></p>
+                  <span className="activity-status">{act.status}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="activity-item">
-            <p><strong>Maria Clara</strong> uploaded proof for <strong>Tree Planting</strong></p>
-          </div>
-          <div className="activity-item">
-            <p>System verified <strong>Barangay Clean-up</strong></p>
+
+          {/* Leaderboard Widget */}
+          <div className="leaderboard-section">
+            <h2 className="section-title">Top Agents</h2>
+            <div className="leaderboard-widget">
+              {leaders.map((agent, index) => (
+                <div key={agent._id} className="leader-row">
+                  <span className={`rank-tag rank-${index + 1}`}>{index + 1}</span>
+                  <div className="leader-avatar"><UserIcon size={14} /></div>
+                  <span className="leader-name">{agent.username}</span>
+                  <span className="leader-pts">{agent.points || 0} pts</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
