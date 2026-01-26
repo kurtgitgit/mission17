@@ -10,32 +10,33 @@ import {
   ViewStyle, 
   SafeAreaView,
   Alert,
-  ImageStyle
+  ImageStyle,
+  ActivityIndicator
 } from 'react-native';
 import { Camera, ArrowLeft, CheckCircle } from 'lucide-react-native';
-// 1. IMPORT THE IMAGE PICKER
 import * as ImagePicker from 'expo-image-picker';
+// 👇 1. IMPORT API CONFIG
+import { endpoints } from '../config/api'; 
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
-  const { mission } = route.params; 
+  // 👇 2. EXTRACT userId FROM PARAMS
+  const { mission, userId } = route.params; 
   
-  // 2. STATE TO STORE THE REAL IMAGE URI
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  // 3. REAL IMAGE PICKER FUNCTION
   const handlePickImage = async () => {
-    // Request permission to access media library
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Sorry, we need camera roll permissions to make this work!');
+      const msg = 'Sorry, we need camera roll permissions to make this work!';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Permission needed', msg);
       return;
     }
 
-    // Launch the gallery
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -44,17 +45,68 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     });
 
     if (!result.canceled) {
-      // Save the URI of the selected image
       setImageUri(result.assets[0].uri);
     }
   };
 
-  const handleSubmit = () => {
-    setSubmitted(true);
-    setTimeout(() => {
-      Alert.alert("Success!", "Mission submitted for review.");
-      navigation.goBack(); 
-    }, 1500);
+  // 👇 3. REAL SUBMIT FUNCTION (WITH VISIBLE ALERTS)
+  const handleSubmit = async () => {
+    // A. Safety Check: Is the User ID there?
+    if (!userId) {
+      const msg = "User ID missing. Please log in again.";
+      Platform.OS === 'web' ? alert(msg) : Alert.alert("Error", msg);
+      return;
+    }
+    
+    setLoading(true);
+
+    try {
+      console.log(`🚀 Submitting Mission: User[${userId}] -> Mission[${mission.title}]`);
+
+      // B. Send to Backend
+      const response = await fetch(endpoints.auth.submitMission, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: userId,
+          missionId: mission.id,
+          missionTitle: mission.title
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // ✅ SUCCESS: Show Points!
+        setSubmitted(true);
+        const msg = `Mission Verified! You earned 100 Points.\nNew Total: ${data.newPoints}`;
+        
+        // Show the alert (Web vs Mobile)
+        Platform.OS === 'web' ? alert(msg) : Alert.alert("🎉 Mission Complete!", msg);
+
+        // Go back to Home and Refresh
+        setTimeout(() => {
+          navigation.navigate('Home', { 
+             screen: 'HomeTab', 
+             params: { userId: userId, refresh: true } 
+          });
+        }, 1500);
+
+      } else {
+        // ❌ SERVER ERROR: Show the specific error message
+        const errorMsg = data.message || "Submission failed";
+        console.error("Server Error:", errorMsg);
+        Platform.OS === 'web' ? alert(`Error: ${errorMsg}`) : Alert.alert("Error", errorMsg);
+      }
+
+    } catch (error) {
+      // ❌ NETWORK ERROR: Show connection failure
+      console.error("Submission Error:", error);
+      const msg = "Could not connect to server. Check your backend terminal!";
+      Platform.OS === 'web' ? alert(msg) : Alert.alert("Connection Error", msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -91,7 +143,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         <Text style={styles.sectionTitle}>Proof of Work</Text>
         
         {!imageUri ? (
-          // STATE A: NO IMAGE SELECTED
           <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage}>
             <View style={styles.uploadIconCircle}>
               <Camera size={32} color="#64748b" />
@@ -100,10 +151,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
             <Text style={styles.uploadSubtitle}>or upload from gallery</Text>
           </TouchableOpacity>
         ) : (
-          // STATE B: IMAGE SELECTED (SHOW PREVIEW)
           <View style={styles.previewContainer}>
             <Image source={{ uri: imageUri }} style={styles.previewImage} />
-            
             <TouchableOpacity onPress={() => setImageUri(null)}>
               <Text style={styles.reselectText}>Retake Photo</Text>
             </TouchableOpacity>
@@ -116,10 +165,12 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
             styles.submitBtn, 
             { backgroundColor: imageUri ? mission.color : '#cbd5e1' } 
           ]}
-          disabled={!imageUri || submitted}
+          disabled={!imageUri || submitted || loading}
           onPress={handleSubmit}
         >
-          {submitted ? (
+          {loading ? (
+             <ActivityIndicator color="white" />
+          ) : submitted ? (
             <View style={{flexDirection: 'row', alignItems: 'center', gap: 8}}>
                <CheckCircle size={20} color="white" />
                <Text style={styles.submitBtnText}>Submitted!</Text>
@@ -177,7 +228,7 @@ const styles = StyleSheet.create({
   } as ViewStyle,
   bulletPoint: {
     backgroundColor: 'white', padding: 15, borderRadius: 12,
-  } as ViewStyle,
+  },
   bulletText: {
     fontSize: 14, color: '#64748b', marginBottom: 8,
   } as ViewStyle,

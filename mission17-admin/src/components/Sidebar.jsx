@@ -1,8 +1,17 @@
 import React from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Target, Users, BarChart3, LogOut, BookOpen, Settings } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Target, 
+  PlusCircle, // 👈 ADDED ICON
+  Users, 
+  BarChart3, 
+  LogOut, 
+  BookOpen, 
+  Settings, 
+  CheckCircle 
+} from 'lucide-react';
 import '../styles/Sidebar.css';
-import { CheckCircle } from 'lucide-react';
 
 // IMPORT YOUR LOGO
 import logoImg from '../assets/logo.png'; 
@@ -39,7 +48,14 @@ const Sidebar = () => {
         <li className="nav-item">
           <NavLink to="/missions" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <Target size={20} />
-            <span>Missions</span>
+            <span>Missions List</span>
+          </NavLink>
+        </li>
+        {/* 👇 NEW NAV ITEM */}
+        <li className="nav-item">
+          <NavLink to="/add-mission" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+            <PlusCircle size={20} />
+            <span>Add Mission</span>
           </NavLink>
         </li>
         <li className="nav-item">
@@ -56,8 +72,8 @@ const Sidebar = () => {
         </li>
         <li className="nav-item">
           <NavLink to="/verify" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-          <CheckCircle size={20} />
-          <span>Verify Proofs</span>
+            <CheckCircle size={20} />
+            <span>Verify Proofs</span>
           </NavLink>
         </li>
         <li className="nav-item">
@@ -67,7 +83,6 @@ const Sidebar = () => {
           </NavLink>
         </li>
       </ul>
-      
 
       <button onClick={handleLogout} className="logout-btn">
         <LogOut size={20} />
