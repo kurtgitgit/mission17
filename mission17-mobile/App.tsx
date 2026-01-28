@@ -14,6 +14,8 @@ import MissionDetailScreen from './src/screens/MissionDetailScreen';
 import RankScreen from './src/screens/RankScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LearningScreen from './src/screens/LearningScreen'; 
+import EditProfileScreen from './src/screens/EditProfileScreen'; // 👈 Imported
+import SettingsScreen from './src/screens/SettingsScreen';
 
 // --- ASSETS ---
 const missionLogo = require('./assets/logo.png');
@@ -53,7 +55,6 @@ function MainTabs() {
         }
       }}
     >
-      {/* 1. HOME */}
       <Tab.Screen 
         name="HomeTab" 
         component={HomeScreen} 
@@ -62,8 +63,6 @@ function MainTabs() {
           tabBarIcon: ({ color }: any) => <Home size={24} color={color} />,
         }}
       />
-      
-      {/* 2. MISSIONS */}
       <Tab.Screen 
         name="MissionsTab" 
         component={MissionsScreen} 
@@ -72,8 +71,6 @@ function MainTabs() {
           tabBarIcon: ({ color }: any) => <Target size={24} color={color} />,
         }}
       />
-
-      {/* 3. CENTER LOGO (LEARNING HUB) */}
       <Tab.Screen 
         name="LearningTab" 
         component={LearningScreen} 
@@ -81,25 +78,19 @@ function MainTabs() {
           tabBarLabel: () => null,
           tabBarIcon: ({ focused }: any) => (
             <View style={{
-              top: -20, // Keep the float effect
+              top: -20,
               justifyContent: 'center',
               alignItems: 'center',
-              // REMOVED: Shadow, Elevation, Background
             }}>
               <Image 
                 source={missionLogo} 
-                style={{
-                  width: 80, // Slightly bigger to look nice
-                  height: 80,
-                }} 
+                style={{ width: 80, height: 80 }} 
                 resizeMode="contain"
               />
             </View>
           ),
         }}
       />
-
-      {/* 4. RANK */}
       <Tab.Screen 
         name="RankTab" 
         component={RankScreen} 
@@ -108,8 +99,6 @@ function MainTabs() {
           tabBarIcon: ({ color }: any) => <Trophy size={24} color={color} />,
         }}
       />
-
-      {/* 5. PROFILE */}
       <Tab.Screen 
         name="ProfileTab" 
         component={ProfileScreen} 
@@ -133,6 +122,8 @@ export default function App() {
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="Home" component={MainTabs} />
         <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
       </StackNavigator>
     </NavigationContainer>
   );

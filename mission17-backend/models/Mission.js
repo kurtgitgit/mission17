@@ -2,10 +2,15 @@ import mongoose from 'mongoose';
 
 const MissionSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  sdgNumber: { type: String, required: true },
+  sdgNumber: { type: Number, required: true },
+  points: { type: Number, required: true },
   description: { type: String },
-  points: { type: Number, default: 100 },
-  color: { type: String, default: '#3b82f6' },
+  color: { type: String },
+  
+  // 👇 THIS IS THE MISSING FIELD!
+  // Without this line, Mongoose deletes the image URL before saving.
+  image: { type: String }, 
+  
   createdAt: { type: Date, default: Date.now }
 });
 

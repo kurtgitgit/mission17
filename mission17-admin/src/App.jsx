@@ -4,7 +4,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 import Missions from './pages/Missions/Missions';
-import AddMission from './pages/Missions/AddMission'; // 👈 NEW IMPORT
+
 import Users from './pages/Users/Users';
 import Analytics from './pages/Analytics/Analytics';
 import Learning from './pages/Learning/Learning';
@@ -22,7 +22,7 @@ function App() {
         {/* Protected Admin Routes */}
         <Route path="/dashboard" element={<DashboardHome />} />
         <Route path="/missions" element={<Missions />} />
-        <Route path="/add-mission" element={<AddMission />} /> {/* 👈 NEW ROUTE */}
+       
         <Route path="/users" element={<Users />} />
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/learning" element={<Learning />} />
