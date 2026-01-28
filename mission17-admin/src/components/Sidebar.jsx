@@ -51,13 +51,6 @@ const Sidebar = () => {
             <span>Missions List</span>
           </NavLink>
         </li>
-        {/* 👇 NEW NAV ITEM */}
-        <li className="nav-item">
-          <NavLink to="/add-mission" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <PlusCircle size={20} />
-            <span>Add Mission</span>
-          </NavLink>
-        </li>
         <li className="nav-item">
           <NavLink to="/users" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <Users size={20} />
