@@ -15,6 +15,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // 👇 ROLE FIELD (Critical for Teacher/LGU login)
+  role: {
+    type: String,
+    default: 'Student' 
+  },
   // Gamification Fields
   points: {
     type: Number,

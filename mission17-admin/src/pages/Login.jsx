@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import '../styles/Auth.css';
 import logoImg from '../assets/logo.png';
 
@@ -15,69 +15,93 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Add your actual login logic here later
     navigate('/dashboard');
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        
-        {/* Logo Header */}
-        <div className="login-logo">
-          <div className="logo-icon-box">
-              <img src={logoImg} alt="Mission17 Logo" className="actual-logo" />
-            <ShieldCheck size={28} />
+    <div className="auth-container">
+      
+      {/* LEFT SIDE: BRANDING PANEL */}
+      <div className="auth-sidebar">
+        <div className="sidebar-content">
+          <div className="brand-box">
+            <img src={logoImg} alt="Mission17 Logo" className="sidebar-logo" />
+            <h1 className="brand-title">MISSION17</h1>
+            <p className="brand-tagline">Gamified Community Action</p>
           </div>
-          <div className="logo-text-box">
-            <h2>MISSION17</h2>
-            <p>Gamified Community Action</p>
+          <div className="sidebar-footer">
+            <p>© 2026 Admin Console</p>
           </div>
         </div>
+        {/* Abstract shapes for visual interest */}
+        <div className="circle-decoration circle-1"></div>
+        <div className="circle-decoration circle-2"></div>
+      </div>
 
-        <h1 className="welcome-title">Welcome back!</h1>
-        <p className="welcome-subtitle">Ready to monitor the progress?</p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <User className="input-icon" size={20} />
-            <input 
-              type="text" 
-              name="email"
-              placeholder="Username/Email" 
-              className="login-input"
-              value={formData.email}
-              onChange={handleChange}
-              required 
-            />
+      {/* RIGHT SIDE: LOGIN FORM */}
+      <div className="auth-main">
+        <div className="form-wrapper">
+          <div className="form-header">
+            <h2>Welcome back</h2>
+            <p>Please enter your details to sign in.</p>
           </div>
 
-          <div className="input-group">
-            <Lock className="input-icon" size={20} />
-            <input 
-              type={showPassword ? "text" : "password"} 
-              name="password"
-              placeholder="Password" 
-              className="login-input"
-              value={formData.password}
-              onChange={handleChange}
-              required 
-            />
-            <div 
-              className="password-toggle" 
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+          <form onSubmit={handleSubmit} className="auth-form">
+            
+            {/* EMAIL INPUT */}
+            <div className="form-group">
+              <label>Email Address</label>
+              <div className="input-wrapper">
+                <Mail className="field-icon" size={18} />
+                <input 
+                  type="text" 
+                  name="email"
+                  placeholder="admin@mission17.com" 
+                  value={formData.email}
+                  onChange={handleChange}
+                  required 
+                />
+              </div>
             </div>
-          </div>
 
-          <a href="#" className="forgot-password">Forgot Password?</a>
+            {/* PASSWORD INPUT */}
+            <div className="form-group">
+              <label>Password</label>
+              <div className="input-wrapper">
+                <Lock className="field-icon" size={18} />
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  name="password"
+                  placeholder="••••••••" 
+                  value={formData.password}
+                  onChange={handleChange}
+                  required 
+                />
+                <button 
+                  type="button"
+                  className="eye-btn" 
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
 
-          <button type="submit" className="signin-btn">
-            Sign in
-          </button>
-        </form>
+            <div className="form-extras">
+              <label className="checkbox-container">
+                <input type="checkbox" />
+                <span className="checkmark"></span>
+                Remember me
+              </label>
+              <a href="#" className="forgot-link">Forgot Password?</a>
+            </div>
 
-        <p className="footer-text">Together we can achieve the Global Goals.</p>
+            <button type="submit" className="submit-btn">
+              Sign In <ArrowRight size={18} />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
