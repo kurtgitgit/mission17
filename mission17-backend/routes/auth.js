@@ -9,7 +9,7 @@ const router = express.Router();
 
 // 1. REGISTER
 router.post('/signup', async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body; // 👈 Extract role
   try {
     const cleanEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -21,7 +21,9 @@ router.post('/signup', async (req, res) => {
     const newUser = new User({
       username,
       email: cleanEmail,
-      password: hashedPassword
+      password: hashedPassword,
+      role: role || 'Student', // 👈 Save role (or default)
+      points: 0
     });
 
     await newUser.save();
@@ -43,9 +45,16 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: "Wrong password" });
 
     const token = jwt.sign({ id: user._id }, "secretKey123", { expiresIn: "1h" });
+    
+    // 👇 Return role so frontend knows who logged in
     res.json({ 
       token, 
-      user: { id: user._id, username: user.username, points: user.points } 
+      user: { 
+        id: user._id, 
+        username: user.username, 
+        points: user.points,
+        role: user.role 
+      } 
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -62,7 +71,8 @@ router.get('/user/:id', async (req, res) => {
       username: user.username,
       email: user.email,
       points: user.points || 0,
-      bio: user.bio || "" // Include bio if it exists
+      role: user.role || 'Student',
+      bio: user.bio || "" 
     });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -79,7 +89,7 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// 5. SUBMIT MISSION (User uploads proof)
+// 5. SUBMIT MISSION
 router.post('/submit-mission', async (req, res) => {
   const { userId, missionId, missionTitle, imageUri } = req.body;
   try {
@@ -104,7 +114,7 @@ router.post('/submit-mission', async (req, res) => {
   }
 });
 
-// 6. ADMIN: GET ALL PENDING SUBMISSIONS
+// 6. ADMIN: GET PENDING SUBMISSIONS
 router.get('/pending-submissions', async (req, res) => {
   try {
     const pending = await Submission.find({ status: 'Pending' });
@@ -121,14 +131,12 @@ router.post('/approve-mission', async (req, res) => {
     const sub = await Submission.findById(submissionId);
     if (!sub) return res.status(404).json({ message: "Submission not found" });
 
-    // 1. Award points to the user
     const user = await User.findById(sub.userId);
     if (user) {
-      user.points = (user.points || 0) + 100; // You might want to fetch actual mission points later
+      user.points = (user.points || 0) + 100; 
       await user.save();
     }
 
-    // 2. Mark as Approved
     sub.status = 'Approved';
     await sub.save();
 
@@ -150,52 +158,35 @@ router.post('/reject-mission', async (req, res) => {
     sub.rejectionReason = reason || "No reason provided"; 
     
     await sub.save();
-
-    console.log(`❌ Rejected mission for ID: ${submissionId}. Reason: ${reason}`);
-    res.json({ message: "Mission rejected and user notified." });
+    res.json({ message: "Mission rejected." });
   } catch (error) {
     res.status(500).json({ message: "Rejection Error" });
   }
 });
 
-// 9. MOBILE: GET USER'S MISSION HISTORY
+// 9. MOBILE: USER MISSION HISTORY
 router.get('/user-submissions/:userId', async (req, res) => {
   try {
-    const submissions = await Submission.find({ userId: req.params.userId })
-      .sort({ createdAt: -1 }); 
+    const submissions = await Submission.find({ userId: req.params.userId }).sort({ createdAt: -1 }); 
     res.json(submissions);
   } catch (error) {
     res.status(500).json({ message: "Error fetching history" });
   }
 });
 
-// 10. ADMIN: CREATE NEW MISSION (UPDATED!)
+// 10. ADMIN: CREATE MISSION
 router.post('/add-mission', async (req, res) => {
-  // 👇 ADDED 'image' here so it actually gets read from the request
   const { title, sdgNumber, description, color, points, image } = req.body;
-
-  console.log("🔥 SAVING MISSION:", title);
-  console.log("📸 IMAGE URL:", image);
-  
   try {
-    const newMission = new Mission({ 
-      title, 
-      sdgNumber, 
-      description, 
-      color, 
-      points,
-      image // 👈 ADDED 'image' here so it saves to MongoDB
-    });
-    
+    const newMission = new Mission({ title, sdgNumber, description, color, points, image });
     await newMission.save();
     res.status(201).json({ message: "Mission created!", mission: newMission });
   } catch (error) {
-    console.error("Error creating mission:", error);
     res.status(500).json({ message: "Error creating mission" });
   }
 });
 
-// 11. MOBILE: FETCH ALL DYNAMIC MISSIONS
+// 11. MOBILE: FETCH MISSIONS
 router.get('/all-missions', async (req, res) => {
   try {
     const missions = await Mission.find().sort({ sdgNumber: 1 });
@@ -205,13 +196,10 @@ router.get('/all-missions', async (req, res) => {
   }
 });
 
-// 12. MOBILE: GET LEADERBOARD
+// 12. MOBILE: LEADERBOARD
 router.get('/leaderboard', async (req, res) => {
   try {
-    const topUsers = await User.find()
-      .select('username points')
-      .sort({ points: -1 })
-      .limit(10);
+    const topUsers = await User.find().select('username points').sort({ points: -1 }).limit(10);
     res.json(topUsers);
   } catch (error) {
     res.status(500).json({ message: "Error fetching leaderboard" });
@@ -228,20 +216,73 @@ router.delete('/delete-mission/:id', async (req, res) => {
   }
 });
 
-// 14. MOBILE: UPDATE USER PROFILE
+// 14. MOBILE: UPDATE PROFILE
 router.put('/update-profile/:id', async (req, res) => {
   try {
     const { username, bio } = req.body;
-    
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, { username, bio }, { new: true });
+    if (!updatedUser) return res.status(404).json({ message: "User not found" });
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: "Update failed" });
+  }
+});
+
+// 15. ADMIN: ADD USER
+router.post('/add-user', async (req, res) => {
+  const { username, email, password, role } = req.body;
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(400).json({ message: "User already exists" });
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      username,
+      email,
+      password: hashedPassword,
+      role: role || 'Student', // 👈 Save role
+      points: 0
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: "User created successfully", user: newUser });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating user" });
+  }
+});
+
+// 16. ADMIN: UPDATE USER
+router.put('/admin-update-user/:id', async (req, res) => {
+  try {
+    const { username, email, role, points } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { username, bio }, 
-      { new: true }
+      { username, email, role, points },
+      { new: true } 
     );
-
-    if (!updatedUser) return res.status(404).json({ message: "User not found" });
-
     res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: "Update failed" });
+  }
+});
+
+// 17. ADMIN: DELETE USER
+router.delete('/delete-user/:id', async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
+
+// 18. ADMIN: UPDATE MISSION
+router.put('/update-mission/:id', async (req, res) => {
+  try {
+    const updatedMission = await Mission.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedMission);
   } catch (error) {
     res.status(500).json({ message: "Update failed" });
   }
