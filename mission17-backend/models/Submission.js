@@ -5,7 +5,10 @@ const SubmissionSchema = new mongoose.Schema({
   username: String,
   missionTitle: String,
   missionId: String,
-  imageUri: String, // We will store the URI for now
+  
+  // 👇 This is the correct field for the image string
+  imageUri: String, 
+  
   status: { type: String, default: 'Pending' }, // Pending, Approved, Rejected
   createdAt: { type: Date, default: Date.now }
 });
