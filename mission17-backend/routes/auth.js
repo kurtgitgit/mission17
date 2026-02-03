@@ -9,7 +9,7 @@ const router = express.Router();
 
 // 1. REGISTER
 router.post('/signup', async (req, res) => {
-  const { username, email, password, role } = req.body; // 👈 Extract role
+  const { username, email, password, role } = req.body; 
   try {
     const cleanEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -22,7 +22,7 @@ router.post('/signup', async (req, res) => {
       username,
       email: cleanEmail,
       password: hashedPassword,
-      role: role || 'Student', // 👈 Save role (or default)
+      role: role || 'Student', 
       points: 0
     });
 
@@ -46,7 +46,6 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, "secretKey123", { expiresIn: "1h" });
     
-    // 👇 Return role so frontend knows who logged in
     res.json({ 
       token, 
       user: { 
@@ -89,9 +88,10 @@ router.get('/users', async (req, res) => {
   }
 });
 
-// 5. SUBMIT MISSION
+// 5. SUBMIT MISSION (👇 FIXED THIS ROUTE)
 router.post('/submit-mission', async (req, res) => {
-  const { userId, missionId, missionTitle, imageUri } = req.body;
+  // Mobile sends 'image', NOT 'imageUri'
+  const { userId, missionId, missionTitle, image } = req.body; 
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -101,7 +101,8 @@ router.post('/submit-mission', async (req, res) => {
       username: user.username,
       missionId,
       missionTitle,
-      imageUri, 
+      // 👇 We map the incoming 'image' to the database's 'imageUri'
+      imageUri: image, 
       status: 'Pending'
     });
 
@@ -242,7 +243,7 @@ router.post('/add-user', async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      role: role || 'Student', // 👈 Save role
+      role: role || 'Student', 
       points: 0
     });
 

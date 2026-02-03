@@ -3,8 +3,9 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, 
   Platform, ViewStyle, SafeAreaView, Alert, ImageStyle, ActivityIndicator, TextStyle 
 } from 'react-native';
-import { Camera, ArrowLeft, CheckCircle, ChevronLeft } from 'lucide-react-native';
+import { Camera, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system'; 
 import { endpoints } from '../config/api'; 
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
@@ -14,10 +15,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Logic: Check if we have a custom image
   const hasImage = !!mission.image;
-
-  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -26,30 +24,81 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 1,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
+      allowsEditing: true, 
+      aspect: [4, 3], 
+      quality: 0.5, 
     });
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
+  // 👇 HELPER: Converts Image to Base64 (Works on Web & Mobile)
+  const getBase64 = async (uri: string) => {
+    if (Platform.OS === 'web') {
+      // WEB WAY: Fetch blob and read as Data URL
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } else {
+      // MOBILE WAY: Use FileSystem
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+      return `data:image/jpeg;base64,${base64}`;
+    }
+  };
+
   const handleSubmit = async () => {
     if (!userId) { Alert.alert("Error", "User ID missing."); return; }
+    if (!imageUri) { Alert.alert("Error", "Please select an image."); return; }
+
     setLoading(true);
+    console.log("Starting Submission...");
+
     try {
+      // 1. Convert Image (Platform Safe)
+      const imagePayload = await getBase64(imageUri);
+      console.log("Image Converted. Sending to:", endpoints.auth.submitMission);
+
+      // 2. Send to Backend
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, missionId: mission._id, missionTitle: mission.title }),
+        body: JSON.stringify({ 
+            userId, 
+            missionId: mission._id, 
+            missionTitle: mission.title,
+            image: imagePayload 
+        }),
       });
+
       const data = await response.json();
+      console.log("Server Response:", data);
+      
       if (response.ok) {
         setSubmitted(true);
-        Alert.alert("🎉 Mission Complete!", `Verified! +${mission.points} Points`);
-        setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 1500);
+        
+        // 👇 UPDATED: Changed message to "Submitted for Review"
+        const successTitle = "🚀 Mission Submitted!";
+        const successMsg = "Your proof has been sent for review.";
+
+        if (Platform.OS === 'web') {
+             window.alert(`${successTitle}\n${successMsg}`);
+             navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+        } else {
+             Alert.alert(successTitle, successMsg);
+             setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 1500);
+        }
+
       } else {
-        Alert.alert("Error", data.message || "Submission failed");
+        alert(data.message || "Submission failed");
       }
     } catch (error) {
-      Alert.alert("Connection Error", "Check server.");
+      console.error("Submit Error:", error);
+      alert("Connection Error. Check console logs.");
     } finally {
       setLoading(false);
     }
@@ -60,8 +109,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       
       {/* HERO HEADER */}
       <View style={{height: 300, width: '100%'}}>
-        
-        {/* RENDER: Custom Image OR Color Block with Watermark */}
         {hasImage ? (
           <Image source={{ uri: mission.image }} style={{width: '100%', height: '100%'}} />
         ) : (
@@ -78,17 +125,14 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        {/* Dark Overlay for Text Readability */}
         <View style={styles.imageOverlay} />
         
-        {/* Absolute Back Button */}
         <SafeAreaView style={styles.safeAreaOverlay}>
            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnCircle}>
              <ChevronLeft size={24} color="#0f172a" />
            </TouchableOpacity>
         </SafeAreaView>
 
-        {/* Title and Badge */}
         <View style={styles.heroTextContainer}>
           <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
              <Text style={styles.badgeText}>SDG {mission.sdgNumber}</Text>
@@ -150,7 +194,6 @@ const styles = StyleSheet.create({
   badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   badgeText: { color: 'white', fontWeight: '800', fontSize: 12 },
 
-  // New Watermark Style
   placeholderNumber: { fontSize: 120, fontWeight: '900', color: 'rgba(255,255,255,0.15)' } as TextStyle,
 
   content: { padding: 25, paddingBottom: 50 },
