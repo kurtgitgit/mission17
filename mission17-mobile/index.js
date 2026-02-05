@@ -1,3 +1,9 @@
+// --- 1. POLYFILLS (MUST BE AT THE VERY TOP) ---
+import 'react-native-get-random-values';
+import { Buffer } from 'buffer';
+global.Buffer = Buffer;
+
+// --- 2. STANDARD EXPO IMPORTS ---
 import { registerRootComponent } from 'expo';
 
 import App from './App';

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, SafeAreaView, ActivityIndicator, Image } from 'react-native';
-import { User, Mail, Award, Clock, XCircle, CheckCircle, Settings, Edit3 } from 'lucide-react-native'; 
+import { 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
+  SafeAreaView, ActivityIndicator, Image, Linking 
+} from 'react-native';
+// FIXED: Removed 'checkCircle' typo
+import { 
+  User, Settings, Edit3, ShieldCheck, ExternalLink, Clock, XCircle, CheckCircle
+} from 'lucide-react-native'; 
 import { useIsFocused } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
 
@@ -10,6 +16,9 @@ const BADGES = [
   { id: 3, name: 'Social Star', icon: '🤝', desc: 'Invited a Friend', color: '#fef3c7', text: '#b45309' },
   { id: 4, name: 'Streaker', icon: '🔥', desc: '3 Days in a Row', color: '#fee2e2', text: '#991b1b' },
 ];
+
+// YOUR SYSTEM RELAYER ADDRESS
+const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
 
 const ProfileScreen = ({ navigation }: any) => { 
   const [userData, setUserData] = useState<any>(null);
@@ -41,6 +50,12 @@ const ProfileScreen = ({ navigation }: any) => {
     if (userId && isFocused) fetchProfileData();
   }, [userId, isFocused]);
 
+  // 👇 FUNCTION TO OPEN ETHERSCAN
+  const openBlockchainHistory = () => {
+    const url = `https://sepolia.etherscan.io/address/${WALLET_ADDRESS}`;
+    Linking.openURL(url);
+  };
+
   if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color="#3b82f6" /></View>;
 
   return (
@@ -51,13 +66,12 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.headerCard}>
           <View style={styles.headerTopRow}>
              <TouchableOpacity 
-             style={styles.iconBtn} 
-             onPress={() => navigation.navigate('Settings')} // 👈 Added navigation
-            >
-            <Settings size={20} color="#94a3b8" />
+              style={styles.iconBtn} 
+              onPress={() => navigation.navigate('Settings')} 
+             >
+             <Settings size={20} color="#94a3b8" />
              </TouchableOpacity>
              
-             {/* 👇 WIRED UP THE EDIT BUTTON HERE 👇 */}
              <TouchableOpacity 
                style={styles.iconBtn} 
                onPress={() => navigation.navigate('EditProfile')}
@@ -66,11 +80,39 @@ const ProfileScreen = ({ navigation }: any) => {
              </TouchableOpacity>
           </View>
 
-          <View style={styles.avatarCircle}>
-             <User size={40} color="#3b82f6" />
+          {/* AVATAR WITH VERIFIED BADGE */}
+          <View style={styles.avatarContainer}>
+             <View style={styles.avatarCircle}>
+                 <User size={40} color="#3b82f6" />
+             </View>
+             {/* Verified Badge Icon */}
+             <View style={styles.verifiedBadge}>
+                 <ShieldCheck size={16} color="white" />
+             </View>
           </View>
+
           <Text style={styles.name}>{userData?.username || 'Agent'}</Text>
           <Text style={styles.email}>{userData?.email}</Text>
+          
+          {/* 👇 SYSTEM RELAYER BUTTON 👇 */}
+          <TouchableOpacity 
+            onPress={openBlockchainHistory} 
+            activeOpacity={0.7}
+            style={styles.ledgerButton}
+          >
+            <View style={styles.ledgerIconBox}>
+                <ShieldCheck size={14} color="#3b82f6" />
+            </View>
+            <View style={{flex: 1}}>
+                <Text style={styles.ledgerButtonTitle}>Blockchain Verified</Text>
+                <Text style={styles.ledgerButtonSubtitle}>
+                    System Relayer: {WALLET_ADDRESS.substring(0, 6)}...{WALLET_ADDRESS.substring(WALLET_ADDRESS.length - 4)}
+                </Text>
+            </View>
+            <ExternalLink size={14} color="#94a3b8" />
+          </TouchableOpacity>
+          {/* 👆 END BUTTON 👆 */}
+
           {userData?.bio && <Text style={styles.bio}>{userData.bio}</Text>}
           
           <View style={styles.statsRow}>
@@ -106,7 +148,10 @@ const ProfileScreen = ({ navigation }: any) => {
         </ScrollView>
 
         {/* RECENT SUBMISSIONS */}
-        <Text style={styles.sectionTitle}>Mission History</Text>
+        <View style={styles.historyHeader}>
+            <Text style={styles.sectionTitle}>Mission History</Text>
+        </View>
+
         {history.length === 0 ? (
           <View style={styles.emptyState}>
             <Clock size={40} color="#cbd5e1" />
@@ -145,10 +190,42 @@ const styles = StyleSheet.create({
   headerTopRow: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   iconBtn: { padding: 8, borderRadius: 20, backgroundColor: '#f1f5f9' },
   
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  avatarContainer: { position: 'relative', marginBottom: 10 },
+  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center' },
+  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#10b981', padding: 4, borderRadius: 12, borderWidth: 2, borderColor: 'white' },
+
   name: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  email: { fontSize: 14, color: '#64748b', marginBottom: 5 },
-  bio: { fontSize: 13, color: '#3b82f6', fontStyle: 'italic', marginBottom: 15, textAlign: 'center' }, // Added bio style
+  email: { fontSize: 14, color: '#64748b', marginBottom: 15 },
+  
+  // NEW BUTTON STYLES
+  ledgerButton: {
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f8fafc', 
+    borderWidth: 1, 
+    borderColor: '#e2e8f0', 
+    borderRadius: 16, 
+    padding: 12, 
+    width: '100%', 
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  ledgerIconBox: {
+    width: 32, height: 32, borderRadius: 10, backgroundColor: '#eff6ff', 
+    justifyContent: 'center', alignItems: 'center', marginRight: 12
+  },
+  ledgerButtonTitle: {
+    fontSize: 13, fontWeight: '700', color: '#0f172a'
+  },
+  ledgerButtonSubtitle: {
+    fontSize: 11, color: '#64748b', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', marginTop: 2
+  },
+
+  bio: { fontSize: 13, color: '#3b82f6', fontStyle: 'italic', marginBottom: 15, textAlign: 'center' }, 
   
   statsRow: { flexDirection: 'row', width: '100%', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 },
   statItem: { flex: 1, alignItems: 'center' },
@@ -156,8 +233,10 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 12, color: '#64748b', marginTop: 2 },
   statDivider: { width: 1, height: '80%', backgroundColor: '#f1f5f9' },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 15, marginTop: 10 },
-  
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
+  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 10 },
+  viewLedgerLink: { fontSize: 12, color: '#3b82f6', fontWeight: '600' },
+
   badgeScroll: { marginBottom: 25, marginHorizontal: -20, paddingHorizontal: 20 },
   badgeCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginRight: 12, width: 160 },
   badgeIcon: { fontSize: 24, marginRight: 10 },
