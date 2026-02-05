@@ -14,7 +14,7 @@ import MissionDetailScreen from './src/screens/MissionDetailScreen';
 import RankScreen from './src/screens/RankScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LearningScreen from './src/screens/LearningScreen'; 
-import EditProfileScreen from './src/screens/EditProfileScreen'; // 👈 Imported
+import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SDGDetailScreen from './src/screens/SDGDetailScreen';
 
@@ -125,7 +125,7 @@ export default function App() {
         <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Tab.Screen name="Learning" component={LearningScreen} />
+        <Stack.Screen name="Learning" component={LearningScreen} /> 
         <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
       </StackNavigator>
     </NavigationContainer>

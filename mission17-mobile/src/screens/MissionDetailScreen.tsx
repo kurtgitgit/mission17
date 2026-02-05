@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, 
-  Platform, ViewStyle, SafeAreaView, Alert, ImageStyle, ActivityIndicator, TextStyle 
+  Platform, SafeAreaView, Alert, ActivityIndicator, TextStyle 
 } from 'react-native';
 import { Camera, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system'; 
 import { endpoints } from '../config/api'; 
+
+// --- IMPORT BLOCKCHAIN SERVICE ---
+import { saveMissionToBlockchain } from '../../MissionBlockchain';
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
   const { mission, userId } = route.params; 
@@ -15,7 +18,31 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   
+  // 👇 NEW: State to store the real user's name
+  const [username, setUsername] = useState<string>("Agent"); 
+
+  // YOUR SYSTEM RELAYER KEY
+  const PRIVATE_KEY = "10d698830d3664cb60fd8e6ddbcf82831aaad83524b5047ed501d6cee5b81c3f";
+
   const hasImage = !!mission.image;
+
+  // 👇 NEW: Fetch the real username when screen loads
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        if (!userId) return;
+        const response = await fetch(endpoints.auth.getUser(userId));
+        const data = await response.json();
+        if (data && data.username) {
+            setUsername(data.username);
+            console.log("Active Agent identified:", data.username);
+        }
+      } catch (error) {
+        console.error("Could not fetch username:", error);
+      }
+    };
+    fetchUser();
+  }, [userId]);
 
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -32,10 +59,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
-  // 👇 HELPER: Converts Image to Base64 (Works on Web & Mobile)
   const getBase64 = async (uri: string) => {
     if (Platform.OS === 'web') {
-      // WEB WAY: Fetch blob and read as Data URL
       const response = await fetch(uri);
       const blob = await response.blob();
       return new Promise((resolve, reject) => {
@@ -45,25 +70,28 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         reader.readAsDataURL(blob);
       });
     } else {
-      // MOBILE WAY: Use FileSystem
       const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
       return `data:image/jpeg;base64,${base64}`;
     }
   };
 
   const handleSubmit = async () => {
-    if (!userId) { Alert.alert("Error", "User ID missing."); return; }
-    if (!imageUri) { Alert.alert("Error", "Please select an image."); return; }
+    if (!userId) { 
+        Platform.OS === 'web' ? window.alert("User ID missing") : Alert.alert("Error", "User ID missing."); 
+        return; 
+    }
+    if (!imageUri) { 
+        Platform.OS === 'web' ? window.alert("Please select an image") : Alert.alert("Error", "Please select an image."); 
+        return; 
+    }
 
     setLoading(true);
-    console.log("Starting Submission...");
 
     try {
-      // 1. Convert Image (Platform Safe)
+      // Step A: Convert Image
       const imagePayload = await getBase64(imageUri);
-      console.log("Image Converted. Sending to:", endpoints.auth.submitMission);
-
-      // 2. Send to Backend
+      
+      // Step B: Send to Backend
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,22 +104,48 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       });
 
       const data = await response.json();
-      console.log("Server Response:", data);
       
       if (response.ok) {
-        setSubmitted(true);
         
-        // 👇 UPDATED: Changed message to "Submitted for Review"
-        const successTitle = "🚀 Mission Submitted!";
-        const successMsg = "Your proof has been sent for review.";
+        // --- START BLOCKCHAIN SAVE ---
+        try {
+            console.log("Backend success. Now saving to Blockchain...");
+            
+            // 👇 UPDATED: Uses the fetched 'username' variable now!
+            const txHash = await saveMissionToBlockchain(
+                `Agent ${username}`, // e.g. "Agent Luigi" or "Agent Bea"
+                mission.title, 
+                PRIVATE_KEY
+            );
 
-        if (Platform.OS === 'web') {
-             window.alert(`${successTitle}\n${successMsg}`);
-             navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-        } else {
-             Alert.alert(successTitle, successMsg);
-             setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 1500);
+            console.log("Blockchain Success! Hash:", txHash);
+            setSubmitted(true);
+
+            // --- FIXED ALERT FOR WEB & MOBILE ---
+            const msg = `1. Saved to DB.\n2. Verified on Blockchain!\n\nHash:\n${txHash}`;
+            
+            if (Platform.OS === 'web') {
+                window.alert("🚀 Double Success!\n" + msg);
+                navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+            } else {
+                Alert.alert("🚀 Double Success!", msg, [
+                    { text: "Awesome!", onPress: () => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }) }
+                ]);
+            }
+
+        } catch (blockchainError: any) {
+            console.error("Blockchain Failed:", blockchainError);
+            const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
+            
+            if (Platform.OS === 'web') {
+                window.alert(errorMsg);
+            } else {
+                Alert.alert("Saved to DB", errorMsg);
+            }
+            setSubmitted(true);
+            setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
         }
+        // --------------------------------
 
       } else {
         alert(data.message || "Submission failed");
