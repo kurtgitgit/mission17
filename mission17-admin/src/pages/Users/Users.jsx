@@ -22,15 +22,27 @@ const Users = () => {
 
   const API_BASE = "http://localhost:5001/api/auth";
 
+  // Helper to get token
+  const getToken = () => localStorage.getItem('token');
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users`);
-      const data = await response.json();
-      setUsers(data);
+      const response = await fetch(`${API_BASE}/users`, {
+        headers: {
+          'auth-token': getToken() // 🛡️ ADDED TOKEN
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        console.error("Failed to fetch users");
+      }
     } catch (error) {
       console.error("Error fetching users:", error);
     } finally {
@@ -60,7 +72,7 @@ const Users = () => {
     setFormData({ 
       username: user.username, 
       email: user.email, 
-      password: '', 
+      password: '', // Keep empty unless changing
       role: user.role || 'Student',
       points: user.points || 0 
     });
@@ -79,7 +91,10 @@ const Users = () => {
     try {
       const res = await fetch(url, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'auth-token': getToken() // 🛡️ ADDED TOKEN
+        },
         body: JSON.stringify(formData)
       });
 
@@ -99,9 +114,17 @@ const Users = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure? This action cannot be undone.")) {
       try {
-        const res = await fetch(`${API_BASE}/delete-user/${id}`, { method: 'DELETE' });
+        const res = await fetch(`${API_BASE}/delete-user/${id}`, { 
+          method: 'DELETE',
+          headers: {
+            'auth-token': getToken() // 🛡️ ADDED TOKEN
+          }
+        });
+        
         if (res.ok) {
           setUsers(users.filter(u => u._id !== id));
+        } else {
+          alert("Failed to delete user");
         }
       } catch (error) {
         console.error("Delete error:", error);
@@ -121,7 +144,7 @@ const Users = () => {
   };
 
   return (
-    <Layout>
+    <Layout title="User Management">
       <div className="users-container">
         
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px'}}>
@@ -166,14 +189,12 @@ const Users = () => {
                 )}
 
                 <div style={{display: 'flex', gap: '10px'}}>
-                  
-                  {/* 👇 UPDATED ROLE DROPDOWN (Added LGU & NGO) */}
                   <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, flex: 1}}>
-                    <option value="Student">Student</option>
+                    <option value="student">Student</option>
                     <option value="Teacher">Teacher</option>
                     <option value="LGU">LGU (Local Govt)</option>
                     <option value="NGO">NGO (Partner)</option>
-                    <option value="Admin">Admin</option>
+                    <option value="admin">Admin</option>
                   </select>
                   
                   <input type="number" name="points" placeholder="Points" value={formData.points} onChange={handleChange} style={{...styles.input, width: '80px'}} />

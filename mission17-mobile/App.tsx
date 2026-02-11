@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, Image, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -17,6 +17,10 @@ import LearningScreen from './src/screens/LearningScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SDGDetailScreen from './src/screens/SDGDetailScreen';
+
+// --- UTILS & CONFIG ---
+import { getAuthData } from './src/utils/storage';
+import { GlobalState } from './src/config/api';
 
 // --- ASSETS ---
 const missionLogo = require('./assets/logo.png');
@@ -115,10 +119,40 @@ function MainTabs() {
 // --- MAIN APP NAVIGATION ---
 export default function App() {
   const StackNavigator = Stack.Navigator as any;
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialRoute, setInitialRoute] = useState("Login");
+
+  // 🛡️ AUTO-LOGIN LOGIC
+  useEffect(() => {
+    const checkLogin = async () => {
+      const authData = await getAuthData();
+      
+      if (authData?.user?._id) {
+        console.log("✅ Auto-Login as:", authData.user.username);
+        GlobalState.userId = authData.user._id; // Restore session
+        setInitialRoute("Home");
+      } else {
+        console.log("ℹ️ No session found. Showing Login.");
+        setInitialRoute("Login");
+      }
+      setIsLoading(false);
+    };
+
+    checkLogin();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <Image source={missionLogo} style={{ width: 100, height: 100, marginBottom: 20 }} resizeMode="contain" />
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      <StackNavigator id="RootStack" screenOptions={{ headerShown: false }}>
+      <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="Home" component={MainTabs} />

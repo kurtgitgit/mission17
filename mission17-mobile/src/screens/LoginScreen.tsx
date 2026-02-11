@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock } from 'lucide-react-native';
 import { endpoints, GlobalState } from '../config/api';
+import { saveAuthData } from '../utils/storage'; // ✅ 1. Import
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -31,11 +32,23 @@ export default function LoginScreen() {
 
       if (response.ok) {
         console.log('Login Token:', data.token); 
-        console.log('User ID:', data.user.id);
-         GlobalState.userId = data.user.id;
+        
+        // 🚨 CRITICAL FIX: MongoDB uses _id, not id
+        const userId = data.user._id || data.user.id; 
+        console.log('User ID:', userId);
+
+        // Normalize user data to ensure _id is present
+        const userData = { ...data.user, _id: userId };
+
+        // 1. Set Global State (Immediate use)
+        GlobalState.userId = userId;
+
+        // 2. 🛡️ SAVE SECURELY (Future use / Auto-login)
+        await saveAuthData(data.token, userData);
+        
         navigation.replace('Home', { 
-          screen: 'HomeTab', // (Or just 'Home' if you aren't using tabs yet)
-          params: { userId: data.user.id } 
+          screen: 'HomeTab', 
+          params: { userId: userId } 
         }); 
       } else {
         const msg = data.message || 'Invalid credentials';
@@ -55,7 +68,6 @@ export default function LoginScreen() {
       
       {/* HEADER WITH LOGO */}
       <View style={styles.header}>
-        {/* 👇 CHECK YOUR FILENAME HERE! Is it logo.png? icon.png? */}
         <Image 
           source={require('../../assets/logo.png')} 
           style={styles.logo} 
@@ -130,8 +142,7 @@ const styles = StyleSheet.create({
   title: { 
     fontSize: 28, 
     fontWeight: 'bold', 
-     
-    color: '#0ea5e9' // Added a nice blue color to match your previous screenshot
+    color: '#0ea5e9' 
   },
   form: { 
     gap: 16 
@@ -153,13 +164,12 @@ const styles = StyleSheet.create({
     flex: 1, 
     fontSize: 16, 
     color: '#1e293b',
-    // TypeScript Fix
     ...Platform.select({
       web: { outlineStyle: 'none' as any }
     }) 
   },
   loginButton: { 
-    backgroundColor: '#0ea5e9', // Updated to match your logo blue
+    backgroundColor: '#0ea5e9', 
     height: 56, 
     borderRadius: 12, 
     justifyContent: 'center', 

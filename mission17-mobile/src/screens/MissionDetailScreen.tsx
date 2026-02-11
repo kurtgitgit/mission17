@@ -18,15 +18,12 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // 👇 NEW: State to store the real user's name
+  // State to store the real user's name
   const [username, setUsername] = useState<string>("Agent"); 
-
-  // YOUR SYSTEM RELAYER KEY
-  const PRIVATE_KEY = "10d698830d3664cb60fd8e6ddbcf82831aaad83524b5047ed501d6cee5b81c3f";
 
   const hasImage = !!mission.image;
 
-  // 👇 NEW: Fetch the real username when screen loads
+  // Fetch the real username when screen loads
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -111,11 +108,10 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         try {
             console.log("Backend success. Now saving to Blockchain...");
             
-            // 👇 UPDATED: Uses the fetched 'username' variable now!
+            // ✅ FIX: REMOVED THE 3RD ARGUMENT (PRIVATE KEY)
             const txHash = await saveMissionToBlockchain(
-                `Agent ${username}`, // e.g. "Agent Luigi" or "Agent Bea"
-                mission.title, 
-                PRIVATE_KEY
+                `Agent ${username}`, 
+                mission.title
             );
 
             console.log("Blockchain Success! Hash:", txHash);
@@ -202,9 +198,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
              <Text style={styles.sectionTitle}>Mission Brief</Text>
              <Text style={styles.pointsHighlight}>{mission.points} Points</Text>
           </View>
+
           <Text style={styles.description}>
-            This mission contributes to Goal {mission.sdgNumber}. Participate in a local activity to support this goal.
+            {mission.description || `This mission contributes to Goal ${mission.sdgNumber}. Participate in a local activity to support this goal.`}
           </Text>
+
           <View style={styles.bulletPoint}>
             <Text style={styles.bulletText}>• Take a clear photo of your activity.</Text>
             <Text style={styles.bulletText}>• Ensure you are visible.</Text>
