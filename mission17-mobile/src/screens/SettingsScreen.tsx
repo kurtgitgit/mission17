@@ -5,32 +5,54 @@ import {
 } from 'react-native';
 import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText } from 'lucide-react-native';
 import { CommonActions } from '@react-navigation/native';
+import { clearAuthData } from '../utils/storage'; 
+import { GlobalState } from '../config/api';     
 
 const SettingsScreen = ({ navigation }: any) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  const handleLogout = () => {
-    Alert.alert(
-      "Log Out",
-      "Are you sure you want to log out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Log Out", 
-          style: 'destructive',
-          onPress: () => {
-            // Reset navigation stack to Login
-            navigation.dispatch(
-              CommonActions.reset({
+  // 1. Separate the logic into its own function
+  const executeLogout = async () => {
+    try {
+        await clearAuthData();
+        GlobalState.userId = null;
+
+        // Reset navigation to Login
+        navigation.dispatch(
+            CommonActions.reset({
                 index: 0,
                 routes: [{ name: 'Login' }],
-              })
-            );
-          }
+            })
+        );
+    } catch (error) {
+        console.error("Logout failed:", error);
+    }
+  };
+
+  // 2. Handle the User Interface (Web vs Mobile)
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+        // 🌐 WEB: Use browser confirmation
+        const confirmed = window.confirm("Are you sure you want to log out?");
+        if (confirmed) {
+            executeLogout();
         }
-      ]
-    );
+    } else {
+        // 📱 MOBILE: Use Native Alert
+        Alert.alert(
+            "Log Out",
+            "Are you sure you want to log out?",
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Log Out", 
+                    style: 'destructive',
+                    onPress: executeLogout
+                }
+            ]
+        );
+    }
   };
 
   const SettingItem = ({ icon: Icon, label, onPress, isSwitch, value, onValueChange }: any) => (

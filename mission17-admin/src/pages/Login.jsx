@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
 import '../styles/Auth.css';
 import logoImg from '../assets/logo.png';
 
@@ -8,21 +8,59 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
+  
+  // 1. New State for API handling
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error when user starts typing again
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add your actual login logic here later
-    navigate('/dashboard');
+    setLoading(true);
+    setError("");
+
+    try {
+      // 2. The Logic: Connect to your Secure Backend
+      const response = await fetch('http://localhost:5001/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email, 
+          password: formData.password,
+          isAdminLogin: true // 🛡️ CRITICAL: This is the "Secret Handshake"
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // 3. Success: Save the Token
+      console.log("Login Successful:", data.user.role);
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      navigate('/dashboard');
+
+    } catch (err) {
+      console.error("Login Error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="auth-container">
       
-      {/* LEFT SIDE: BRANDING PANEL */}
+      {/* LEFT SIDE: BRANDING PANEL (Your Design) */}
       <div className="auth-sidebar">
         <div className="sidebar-content">
           <div className="brand-box">
@@ -34,7 +72,6 @@ const Login = () => {
             <p>© 2026 Admin Console</p>
           </div>
         </div>
-        {/* Abstract shapes for visual interest */}
         <div className="circle-decoration circle-1"></div>
         <div className="circle-decoration circle-2"></div>
       </div>
@@ -49,6 +86,24 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             
+            {/* 🔴 ERROR MESSAGE DISPLAY */}
+            {error && (
+              <div className="error-banner" style={{ 
+                backgroundColor: '#fee2e2', 
+                color: '#ef4444', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                marginBottom: '20px',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <AlertCircle size={18} />
+                <span>{error}</span>
+              </div>
+            )}
+
             {/* EMAIL INPUT */}
             <div className="form-group">
               <label>Email Address</label>
@@ -97,8 +152,9 @@ const Login = () => {
               <a href="#" className="forgot-link">Forgot Password?</a>
             </div>
 
-            <button type="submit" className="submit-btn">
-              Sign In <ArrowRight size={18} />
+            <button type="submit" className="submit-btn" disabled={loading}>
+              {loading ? "Verifying..." : "Sign In"} 
+              {!loading && <ArrowRight size={18} />}
             </button>
           </form>
         </div>

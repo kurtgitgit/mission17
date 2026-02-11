@@ -4,7 +4,7 @@ const UserSchema = new mongoose.Schema({
   username: {
     type: String, 
     required: true,
-    unique: true // No two users can have the same name
+    unique: true 
   },
   email: {
     type: String,
@@ -15,24 +15,14 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // 👇 ROLE FIELD (Critical for Teacher/LGU login)
+  // 🛡️ NEW SECURITY FIELD
   role: {
     type: String,
-    default: 'Student' 
+    enum: ['student', 'admin'],
+    default: 'student' // Everyone is a student by default
   },
-  // Gamification Fields
-  points: {
-    type: Number,
-    default: 0
-  },
-  rank: {
-    type: String,
-    default: 'Rookie'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});
+  points: { type: Number, default: 0 },
+  completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }]
+}, { timestamps: true });
 
 export default mongoose.model('User', UserSchema);

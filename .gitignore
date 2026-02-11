@@ -1,0 +1,8 @@
+# Ignore the dataset and venv
+dataset/
+venv/
+__pycache__/
+*.pyc
+
+# Ignore the heavy model file
+*.h5

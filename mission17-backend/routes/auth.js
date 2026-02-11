@@ -7,9 +7,35 @@ import Mission from '../models/Mission.js';
 
 const router = express.Router();
 
+// ==========================================
+// 🛡️ SECURITY MIDDLEWARE (The Gatekeeper)
+// ==========================================
+const verifyAdmin = (req, res, next) => {
+  const token = req.header('auth-token') || req.header('Authorization')?.replace('Bearer ', '');
+  
+  if (!token) return res.status(401).json({ message: "⛔ Access Denied: No Token Provided" });
+
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
+    
+    if (verified.role !== 'admin') {
+      return res.status(403).json({ message: "⛔ Forbidden: Admins Only" });
+    }
+    
+    req.user = verified;
+    next();
+  } catch (err) {
+    res.status(400).json({ message: "Invalid Token" });
+  }
+};
+
+// ==========================================
+// 🔓 PUBLIC ROUTES (For Mobile & Login)
+// ==========================================
+
 // 1. REGISTER
 router.post('/signup', async (req, res) => {
-  const { username, email, password, role } = req.body; 
+  const { username, email, password } = req.body; 
   try {
     const cleanEmail = email.toLowerCase().trim();
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -22,7 +48,7 @@ router.post('/signup', async (req, res) => {
       username,
       email: cleanEmail,
       password: hashedPassword,
-      role: role || 'Student', 
+      role: 'student', // Forces lowercase 'student'
       points: 0
     });
 
@@ -35,62 +61,34 @@ router.post('/signup', async (req, res) => {
 
 // 2. LOGIN
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
   try {
-    const cleanEmail = email.toLowerCase().trim();
-    const user = await User.findOne({ email: cleanEmail });
-    if (!user) return res.status(400).json({ message: "Email not found" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Wrong password" });
-
-    const token = jwt.sign({ id: user._id }, "secretKey123", { expiresIn: "1h" });
-    
-    res.json({ 
-      token, 
-      user: { 
-        id: user._id, 
-        username: user.username, 
-        points: user.points,
-        role: user.role 
-      } 
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
-});
-
-// 3. GET USER DETAILS
-router.get('/user/:id', async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findOne({ email: req.body.email });
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      points: user.points || 0,
-      role: user.role || 'Student',
-      bio: user.bio || "" 
-    });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
+
+    const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
+    if (!isPasswordValid) return res.status(400).json({ message: "Invalid Password!" });
+
+    // 🛡️ ADMIN CHECK
+    if (req.body.isAdminLogin && user.role !== 'admin') {
+      return res.status(403).json({ message: "⛔ Access Denied: Admins Only" });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role }, 
+      process.env.JWT_SECRET || 'secretkey', 
+      { expiresIn: "1d" }
+    );
+
+    const { password, ...others } = user._doc;
+    res.status(200).json({ token, user: others });
+
+  } catch (err) {
+    res.status(500).json(err);
   }
 });
 
-// 4. GET ALL USERS (Admin)
-router.get('/users', async (req, res) => {
-  try {
-    const users = await User.find().select('-password'); 
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
-});
-
-// 5. SUBMIT MISSION (👇 FIXED THIS ROUTE)
+// 3. SUBMIT MISSION
 router.post('/submit-mission', async (req, res) => {
-  // Mobile sends 'image', NOT 'imageUri'
   const { userId, missionId, missionTitle, image } = req.body; 
   try {
     const user = await User.findById(userId);
@@ -101,22 +99,90 @@ router.post('/submit-mission', async (req, res) => {
       username: user.username,
       missionId,
       missionTitle,
-      // 👇 We map the incoming 'image' to the database's 'imageUri'
       imageUri: image, 
       status: 'Pending'
     });
 
     await newSubmission.save();
-    console.log(`📩 New Submission from [${user.username}] for [${missionTitle}]`);
     res.json({ message: "Mission submitted for review!" });
   } catch (error) {
-    console.log("❌ Submission Error:", error.message);
     res.status(500).json({ message: "Server Error" });
   }
 });
 
-// 6. ADMIN: GET PENDING SUBMISSIONS
-router.get('/pending-submissions', async (req, res) => {
+// 4. FETCH ALL MISSIONS
+router.get('/all-missions', async (req, res) => {
+  try {
+    const missions = await Mission.find().sort({ sdgNumber: 1 });
+    res.json(missions);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching missions" });
+  }
+});
+
+// 5. LEADERBOARD (Updated: Hides Admins)
+router.get('/leaderboard', async (req, res) => {
+  try {
+    // 🛡️ The { $ne: 'admin' } part means "Not Equal to Admin"
+    const topUsers = await User.find({ role: { $ne: 'admin' } })
+      .select('username points')
+      .sort({ points: -1 })
+      .limit(10);
+    res.json(topUsers);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching leaderboard" });
+  }
+});
+
+// 6. USER HISTORY
+router.get('/user-submissions/:userId', async (req, res) => {
+  try {
+    const submissions = await Submission.find({ userId: req.params.userId }).sort({ createdAt: -1 }); 
+    res.json(submissions);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching history" });
+  }
+});
+
+// 7. GET USER PROFILE
+router.get('/user/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// 8. UPDATE PROFILE
+router.put('/update-profile/:id', async (req, res) => {
+  try {
+    const { username, bio } = req.body;
+    const updatedUser = await User.findByIdAndUpdate(req.params.id, { username, bio }, { new: true });
+    res.json(updatedUser);
+  } catch (error) {
+    res.status(500).json({ message: "Update failed" });
+  }
+});
+
+
+// ==========================================
+// 🔐 PROTECTED ADMIN ROUTES (Token Required)
+// ==========================================
+
+// 9. GET ALL USERS
+router.get('/users', verifyAdmin, async (req, res) => {
+  try {
+    const users = await User.find().select('-password'); 
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// 10. GET PENDING SUBMISSIONS
+router.get('/pending-submissions', verifyAdmin, async (req, res) => {
   try {
     const pending = await Submission.find({ status: 'Pending' });
     res.json(pending);
@@ -125,8 +191,8 @@ router.get('/pending-submissions', async (req, res) => {
   }
 });
 
-// 7. ADMIN: APPROVE MISSION
-router.post('/approve-mission', async (req, res) => {
+// 11. APPROVE MISSION
+router.post('/approve-mission', verifyAdmin, async (req, res) => {
   const { submissionId } = req.body;
   try {
     const sub = await Submission.findById(submissionId);
@@ -140,16 +206,14 @@ router.post('/approve-mission', async (req, res) => {
 
     sub.status = 'Approved';
     await sub.save();
-
-    console.log(`✅ Approved: 100pts awarded to [${user?.username}]`);
     res.json({ message: "Approved and points awarded!" });
   } catch (error) {
     res.status(500).json({ message: "Approval Error" });
   }
 });
 
-// 8. ADMIN: REJECT MISSION
-router.post('/reject-mission', async (req, res) => {
+// 12. REJECT MISSION
+router.post('/reject-mission', verifyAdmin, async (req, res) => {
   const { submissionId, reason } = req.body;
   try {
     const sub = await Submission.findById(submissionId);
@@ -157,7 +221,6 @@ router.post('/reject-mission', async (req, res) => {
 
     sub.status = 'Rejected';
     sub.rejectionReason = reason || "No reason provided"; 
-    
     await sub.save();
     res.json({ message: "Mission rejected." });
   } catch (error) {
@@ -165,18 +228,8 @@ router.post('/reject-mission', async (req, res) => {
   }
 });
 
-// 9. MOBILE: USER MISSION HISTORY
-router.get('/user-submissions/:userId', async (req, res) => {
-  try {
-    const submissions = await Submission.find({ userId: req.params.userId }).sort({ createdAt: -1 }); 
-    res.json(submissions);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching history" });
-  }
-});
-
-// 10. ADMIN: CREATE MISSION
-router.post('/add-mission', async (req, res) => {
+// 13. CREATE MISSION
+router.post('/add-mission', verifyAdmin, async (req, res) => {
   const { title, sdgNumber, description, color, points, image } = req.body;
   try {
     const newMission = new Mission({ title, sdgNumber, description, color, points, image });
@@ -187,28 +240,8 @@ router.post('/add-mission', async (req, res) => {
   }
 });
 
-// 11. MOBILE: FETCH MISSIONS
-router.get('/all-missions', async (req, res) => {
-  try {
-    const missions = await Mission.find().sort({ sdgNumber: 1 });
-    res.json(missions);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching missions" });
-  }
-});
-
-// 12. MOBILE: LEADERBOARD
-router.get('/leaderboard', async (req, res) => {
-  try {
-    const topUsers = await User.find().select('username points').sort({ points: -1 }).limit(10);
-    res.json(topUsers);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching leaderboard" });
-  }
-});
-
-// 13. ADMIN: DELETE MISSION
-router.delete('/delete-mission/:id', async (req, res) => {
+// 14. DELETE MISSION
+router.delete('/delete-mission/:id', verifyAdmin, async (req, res) => {
   try {
     await Mission.findByIdAndDelete(req.params.id);
     res.json({ message: "Mission deleted successfully" });
@@ -217,20 +250,18 @@ router.delete('/delete-mission/:id', async (req, res) => {
   }
 });
 
-// 14. MOBILE: UPDATE PROFILE
-router.put('/update-profile/:id', async (req, res) => {
+// 15. UPDATE MISSION
+router.put('/update-mission/:id', verifyAdmin, async (req, res) => {
   try {
-    const { username, bio } = req.body;
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, { username, bio }, { new: true });
-    if (!updatedUser) return res.status(404).json({ message: "User not found" });
-    res.json(updatedUser);
+    const updatedMission = await Mission.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedMission);
   } catch (error) {
     res.status(500).json({ message: "Update failed" });
   }
 });
 
-// 15. ADMIN: ADD USER
-router.post('/add-user', async (req, res) => {
+// 16. ADMIN ADD USER
+router.post('/add-user', verifyAdmin, async (req, res) => {
   const { username, email, password, role } = req.body;
   try {
     const existingUser = await User.findOne({ email });
@@ -243,7 +274,7 @@ router.post('/add-user', async (req, res) => {
       username,
       email,
       password: hashedPassword,
-      role: role || 'Student', 
+      role: role || 'student', 
       points: 0
     });
 
@@ -254,8 +285,8 @@ router.post('/add-user', async (req, res) => {
   }
 });
 
-// 16. ADMIN: UPDATE USER
-router.put('/admin-update-user/:id', async (req, res) => {
+// 17. ADMIN UPDATE USER
+router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
   try {
     const { username, email, role, points } = req.body;
     const updatedUser = await User.findByIdAndUpdate(
@@ -269,23 +300,13 @@ router.put('/admin-update-user/:id', async (req, res) => {
   }
 });
 
-// 17. ADMIN: DELETE USER
-router.delete('/delete-user/:id', async (req, res) => {
+// 18. ADMIN DELETE USER
+router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: "User deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Delete failed" });
-  }
-});
-
-// 18. ADMIN: UPDATE MISSION
-router.put('/update-mission/:id', async (req, res) => {
-  try {
-    const updatedMission = await Mission.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json(updatedMission);
-  } catch (error) {
-    res.status(500).json({ message: "Update failed" });
   }
 });
 

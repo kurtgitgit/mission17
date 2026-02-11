@@ -3,10 +3,10 @@ import Layout from '../../components/Layout';
 import { 
   CheckCircle, XCircle, Clock, FileImage, User, 
   Sparkles, X, AlertTriangle, ExternalLink, ShieldCheck 
-} from 'lucide-react'; // 👈 Added ExternalLink & ShieldCheck
+} from 'lucide-react'; 
 import '../../styles/Verify.css';
 
-// 🔗 YOUR SMART CONTRACT ADDRESS (From your logs)
+// 🔗 YOUR SMART CONTRACT ADDRESS
 const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x7be6222f43d15D8e3001a7679bf769486F333F18";
 
 const Verify = () => {
@@ -21,7 +21,10 @@ const Verify = () => {
   const [analysisResults, setAnalysisResults] = useState({});
 
   const API_BASE = "http://localhost:5001/api/auth";
-  const AI_URL = "http://127.0.0.1:8000/analyze-image"; 
+  const AI_URL = "http://127.0.0.1:5000/predict"; 
+
+  // Helper to get token
+  const getToken = () => localStorage.getItem('token');
 
   useEffect(() => {
     fetchSubmissions();
@@ -29,17 +32,22 @@ const Verify = () => {
 
   const fetchSubmissions = async () => {
     try {
-      const response = await fetch(`${API_BASE}/pending-submissions`);
-      const data = await response.json();
+      const response = await fetch(`${API_BASE}/pending-submissions`, {
+        headers: { 'auth-token': getToken() }
+      });
+
       if (response.ok) {
+        const data = await response.json();
         setSubmissions(data);
       }
-    } catch (error) { console.error("Error fetching submissions:", error); } 
-    finally { setLoading(false); }
+    } catch (error) { 
+      console.error("Error fetching submissions:", error); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleAnalyze = async (submission) => {
-    // 1. Validation
     if (!submission.imageUri) {
         alert("No image data found for this submission.");
         return;
@@ -48,59 +56,51 @@ const Verify = () => {
     setAnalyzingId(submission._id);
 
     try {
-      // 2. Prepare the Image File
       const res = await fetch(submission.imageUri);
       const blob = await res.blob();
       const file = new File([blob], "proof.jpg", { type: "image/jpeg" });
 
-      // 3. Prepare Form Data for Python
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('labels', submission.missionTitle || "community service"); 
 
-      // 4. Send to Python AI Server
-      console.log(`Sending to AI Brain at ${AI_URL}...`);
       const aiResponse = await fetch(AI_URL, {
           method: 'POST',
           body: formData
       });
 
       const data = await aiResponse.json();
-      console.log("AI Verdict:", data);
 
-      // 5. Interpret Results
-      let score = 0;
       let reasons = [];
-      let status = "Low";
+      let status = data.verdict || "ANALYSIS COMPLETE";
+      let isPositive = data.is_planting || data.is_recyclable;
 
-      if (!data.valid) {
-          reasons.push(`❌ ${data.message}`);
-          if (data.deepfake_confidence > 0.8) {
-              reasons.push(`⚠️ HIGH RISK: ${Math.round(data.deepfake_confidence * 100)}% likely AI-generated.`);
-          }
-          status = "FAKE / INVALID";
+      if (data.error) {
+          status = "AI ERROR";
+          reasons.push(`❌ ${data.error}`);
       } else {
-          const aiConfidence = Math.round((data.sdg_score || 0) * 100);
-          score = aiConfidence;
+          reasons.push(`🏷️ Detected: ${data.prediction}`);
+          reasons.push(`🎯 Confidence: ${data.confidence}`);
           
-          reasons.push(`✅ Verified Activity: ${data.sdg_label}`);
-          reasons.push(`Confidence: ${aiConfidence}%`);
-          
-          if (data.deepfake_confidence < 0.5) {
-              reasons.push("✅ Authenticity Check Passed (Real Photo)");
+          if (data.is_planting) {
+            reasons.push("🌳 SDG 13/15: Climate Action Verified");
+          } else if (data.is_recyclable) {
+            reasons.push("♻️ SDG 12: Sustainable Materials Verified");
           }
-
-          status = aiConfidence > 75 ? "High Confidence" : "Medium Confidence";
       }
 
       setAnalysisResults(prev => ({
           ...prev,
-          [submission._id]: { score, status, reasons }
+          [submission._id]: { 
+            status, 
+            reasons, 
+            isPositive, 
+            isPlanting: data.is_planting 
+          }
       }));
 
     } catch (error) {
       console.error("AI Server Error:", error);
-      alert("Could not connect to AI Server. Is the Python script running on Port 8000?");
+      alert("AI Server Offline. Ensure Port 5000 is running.");
     } finally {
       setAnalyzingId(null);
     }
@@ -109,31 +109,40 @@ const Verify = () => {
   const handleApprove = async (id) => {
     if (!window.confirm("Approve mission?")) return;
     try {
-      const res = await fetch(`${API_BASE}/approve-mission`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({submissionId: id}) });
-      if (res.ok) {
-        setSubmissions(submissions.filter(s => s._id !== id));
-      }
+      const res = await fetch(`${API_BASE}/approve-mission`, { 
+        method: 'POST', 
+        headers: {
+            'Content-Type':'application/json',
+            'auth-token': getToken()
+        }, 
+        body: JSON.stringify({submissionId: id}) 
+      });
+      if (res.ok) setSubmissions(submissions.filter(s => s._id !== id));
     } catch (e) { console.error(e); }
   };
 
   const handleReject = async (id) => {
-    const reason = prompt("Reason:");
+    const reason = prompt("Reason for rejection:");
     if (!reason) return;
     try {
-      const res = await fetch(`${API_BASE}/reject-mission`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({submissionId: id, reason}) });
-      if (res.ok) {
-        setSubmissions(submissions.filter(s => s._id !== id));
-      }
+      const res = await fetch(`${API_BASE}/reject-mission`, { 
+        method: 'POST', 
+        headers: {
+            'Content-Type':'application/json',
+            'auth-token': getToken()
+        }, 
+        body: JSON.stringify({submissionId: id, reason}) 
+      });
+      if (res.ok) setSubmissions(submissions.filter(s => s._id !== id));
     } catch (e) { console.error(e); }
   };
 
-  // 👇 NEW: Helper to open Blockchain
   const openBlockchain = () => {
     window.open(CONTRACT_URL, '_blank');
   };
 
   return (
-    <Layout>
+    <Layout title="Verify Proofs">
       <div className="verify-container">
         <div className="verify-header">
           <h1 className="page-title">Verify Proofs</h1>
@@ -153,7 +162,11 @@ const Verify = () => {
         )}
 
         {loading ? <p>Loading...</p> : submissions.length === 0 ? (
-          <div className="empty-state"><CheckCircle size={48} color="#16a34a" /><h3>All caught up!</h3></div>
+          <div className="empty-state">
+            <CheckCircle size={48} color="#16a34a" />
+            <h3>All caught up!</h3>
+            <p>No pending submissions to review.</p>
+          </div>
         ) : (
           <div className="submissions-list">
             {submissions.map((sub) => {
@@ -169,45 +182,46 @@ const Verify = () => {
                       <h3 className="user-name">{sub.username}</h3>
                       <p className="mission-name">Mission: <strong>{sub.missionTitle}</strong></p>
                       
-                      {/* 👇 NEW: Blockchain Tag */}
                       <div className="blockchain-tag">
                         <ShieldCheck size={12} color="#10b981" /> 
                         <span style={{color: '#10b981', fontSize: '0.75rem', fontWeight: 'bold', marginLeft: 4}}>Blockchain Verified</span>
                       </div>
-
                       <span className="date-badge"><Clock size={12} /> {new Date(sub.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
 
                   <div className="proof-section">
-                    {/* View Proof Button */}
-                    <button 
-                      className={`view-proof-btn ${!hasImage ? 'disabled' : ''}`}
-                      onClick={() => hasImage && setViewImage(sub.imageUri)}
-                      disabled={!hasImage}
-                      style={{ opacity: hasImage ? 1 : 0.5, cursor: hasImage ? 'pointer' : 'not-allowed' }}
-                    >
-                      {hasImage ? <FileImage size={16} /> : <AlertTriangle size={16} />} 
-                      {hasImage ? 'View Proof' : 'No Image'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                        <button 
+                          className={`view-proof-btn ${!hasImage ? 'disabled' : ''}`}
+                          onClick={() => hasImage && setViewImage(sub.imageUri)}
+                          disabled={!hasImage}
+                        >
+                          {hasImage ? <FileImage size={16} /> : <AlertTriangle size={16} />} 
+                          {hasImage ? 'View Proof' : 'No Image'}
+                        </button>
 
-                    {/* 👇 NEW: View Blockchain Ledger Button */}
-                    <button 
-                        className="view-proof-btn" // Reusing style for consistency
-                        onClick={openBlockchain}
-                        style={{ backgroundColor: '#fff', color: '#334155', border: '1px solid #cbd5e1', marginLeft: '8px' }}
-                        title="View Public Ledger on Sepolia Network"
-                    >
-                        <ExternalLink size={16} color="#3b82f6" />
-                        <span style={{marginLeft: 6}}>Ledger</span>
-                    </button>
+                        <button 
+                            className="view-proof-btn" 
+                            onClick={openBlockchain}
+                            style={{ backgroundColor: '#fff', color: '#334155', border: '1px solid #cbd5e1' }}
+                            title="View Public Ledger"
+                        >
+                            <ExternalLink size={16} color="#3b82f6" />
+                            <span style={{marginLeft: 6}}>Ledger</span>
+                        </button>
+                    </div>
 
-
-                    {/* AI Button or Result Badge */}
                     {aiResult ? (
-                        <div className="ai-result-box">
-                            <div className={`ai-badge ${aiResult.status.includes('High') ? 'high' : aiResult.status.includes('FAKE') ? 'low' : 'med'}`}>
-                               <Sparkles size={12} /> <span>{aiResult.status}</span>
+                        <div className="ai-result-box" style={{ 
+                            borderLeft: `4px solid ${aiResult.isPlanting ? '#065f46' : aiResult.isPositive ? '#16a34a' : '#ef4444'}`,
+                            backgroundColor: aiResult.isPlanting ? '#ecfdf5' : aiResult.isPositive ? '#f0fdf4' : '#fef2f2'
+                        }}>
+                            <div className="ai-badge" style={{ 
+                                color: aiResult.isPlanting ? '#065f46' : aiResult.isPositive ? '#16a34a' : '#ef4444',
+                                fontWeight: 'bold'
+                            }}>
+                               <Sparkles size={14} /> <span>{aiResult.status}</span>
                             </div>
                             <ul className="ai-reasons">
                                 {aiResult.reasons.map((r, i) => <li key={i}>{r}</li>)}
@@ -218,9 +232,8 @@ const Verify = () => {
                             className="ai-scan-btn" 
                             onClick={() => handleAnalyze(sub)} 
                             disabled={analyzingId === sub._id || !hasImage}
-                            style={{ opacity: hasImage ? 1 : 0.5, cursor: hasImage ? 'pointer' : 'not-allowed' }}
                         >
-                            {analyzingId === sub._id ? 'Scanning...' : <><Sparkles size={14} /> AI Scan</>}
+                            {analyzingId === sub._id ? 'Analyzing...' : <><Sparkles size={14} /> Run AI Scan</>}
                         </button>
                     )}
                   </div>
