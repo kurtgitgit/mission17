@@ -14,8 +14,11 @@ export const endpoints = {
     getUser: (id: string) => `${API_URL}/auth/user/${id}`,
     submitMission: `${API_URL}/auth/submit-mission`, 
     
-    // ✅ ADDED THIS LINE TO FIX THE ERROR:
+    // ✅ Existing fix for user submissions:
     getUserSubmissions: (id: string) => `${API_URL}/auth/user-submissions/${id}`,
+
+    // ✅ NEW: Added this line for SettingsScreen.tsx
+    changePassword: `${API_URL}/auth/change-password`,
   },
   // Updated to match your backend route (/auth/all-missions)
   missions: `${API_URL}/auth/all-missions`,

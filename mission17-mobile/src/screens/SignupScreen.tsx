@@ -11,7 +11,8 @@ import {
   Image,
   KeyboardAvoidingView,
   ScrollView,
-  SafeAreaView
+  SafeAreaView,
+  Keyboard
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
@@ -32,9 +33,18 @@ export default function SignupScreen() {
   const roles = ['Student', 'Teacher', 'LGU', 'NGO'];
 
   const handleSignup = async () => {
+    Keyboard.dismiss(); // 📱 UX Fix
+
     if (!username || !email || !password) {
       const msg = 'Please fill in all fields';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Missing Info', msg);
+      return;
+    }
+
+    // 🔒 PASSWORD VALIDATION: Check length
+    if (password.length < 8) {
+      const msg = 'Password must be at least 8 characters long.';
+      Platform.OS === 'web' ? alert(msg) : Alert.alert('Weak Password', msg);
       return;
     }
 
@@ -43,15 +53,20 @@ export default function SignupScreen() {
     try {
       console.log("Attempting signup to:", endpoints.auth.signup);
 
+      // 🛡️ DATA CLEANING:
+      // 1. Trim email spaces
+      // 2. Lowercase role ('Student' -> 'student') to match Database Enums
+      const payload = { 
+        username: username.trim(), 
+        email: email.trim(), 
+        password,
+        role: role.toLowerCase() 
+      };
+
       const response = await fetch(endpoints.auth.signup, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          username, 
-          email, 
-          password,
-          role 
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -96,7 +111,6 @@ export default function SignupScreen() {
           </TouchableOpacity>
 
           <View style={styles.header}>
-            {/* Using a web URL for the logo to prevent crashes if file is missing */}
             <Image 
               source={{ uri: 'https://cdn-icons-png.flaticon.com/512/6182/6182992.png' }}
               style={styles.logo}
@@ -112,7 +126,7 @@ export default function SignupScreen() {
               <User color="#94a3b8" size={20} style={styles.icon} />
               <TextInput 
                 placeholder="Full Name / Username" 
-                style={[styles.input, webInputStyle as any]} // 👈 Fix applied here
+                style={[styles.input, webInputStyle as any]} 
                 value={username}
                 onChangeText={setUsername}
                 placeholderTextColor="#94a3b8"
@@ -124,7 +138,7 @@ export default function SignupScreen() {
               <Mail color="#94a3b8" size={20} style={styles.icon} />
               <TextInput 
                 placeholder="Email Address" 
-                style={[styles.input, webInputStyle as any]} // 👈 Fix applied here
+                style={[styles.input, webInputStyle as any]} 
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -137,8 +151,8 @@ export default function SignupScreen() {
             <View style={styles.inputContainer}>
               <Lock color="#94a3b8" size={20} style={styles.icon} />
               <TextInput 
-                placeholder="Password" 
-                style={[styles.input, webInputStyle as any]} // 👈 Fix applied here
+                placeholder="Password (min 8 chars)" 
+                style={[styles.input, webInputStyle as any]} 
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
@@ -207,7 +221,6 @@ const styles = StyleSheet.create({
   },
   icon: { marginRight: 12 },
   
-  // 👇 FIXED: Removed 'outlineStyle' from here to stop the crash
   input: { flex: 1, fontSize: 16, color: '#1e293b', height: '100%' },
   
   roleSection: { marginTop: 8, marginBottom: 8 },
