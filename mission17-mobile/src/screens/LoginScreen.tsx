@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock } from 'lucide-react-native';
 import { endpoints, GlobalState } from '../config/api';
-import { saveAuthData } from '../utils/storage'; // ✅ 1. Import
+import { saveAuthData } from '../utils/storage'; 
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -13,6 +13,8 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
+    Keyboard.dismiss(); // 📱 UX Fix: Hide keyboard on press
+
     if (!email || !password) {
       const msg = 'Please enter both email and password';
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
@@ -22,10 +24,13 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
+      // 🛡️ DATA CLEANING: Trim spaces before sending
+      const cleanEmail = email.trim();
+
       const response = await fetch(endpoints.auth.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: cleanEmail, password }),
       });
 
       const data = await response.json();
@@ -33,17 +38,16 @@ export default function LoginScreen() {
       if (response.ok) {
         console.log('Login Token:', data.token); 
         
-        // 🚨 CRITICAL FIX: MongoDB uses _id, not id
+        // 🚨 SAFETY CHECK: Ensure we get an ID
         const userId = data.user._id || data.user.id; 
-        console.log('User ID:', userId);
-
+        
         // Normalize user data to ensure _id is present
         const userData = { ...data.user, _id: userId };
 
-        // 1. Set Global State (Immediate use)
+        // 1. Set Global State
         GlobalState.userId = userId;
 
-        // 2. 🛡️ SAVE SECURELY (Future use / Auto-login)
+        // 2. Save Securely
         await saveAuthData(data.token, userData);
         
         navigation.replace('Home', { 
@@ -68,6 +72,7 @@ export default function LoginScreen() {
       
       {/* HEADER WITH LOGO */}
       <View style={styles.header}>
+        {/* Make sure this image exists, or remove if not needed */}
         <Image 
           source={require('../../assets/logo.png')} 
           style={styles.logo} 
