@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, ActivityIndicator } from 'react-native';
+import { View, Text, Image, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Target, Trophy, User } from 'lucide-react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 👈 IMPORT THIS
 
 // --- IMPORT YOUR SCREENS ---
 import LoginScreen from './src/screens/LoginScreen';
@@ -48,10 +49,16 @@ function MainTabs() {
           borderTopWidth: 1,
           borderTopColor: '#f1f5f9',
           elevation: 10, 
-          shadowColor: '#000', 
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.05,
-          shadowRadius: 4,
+          // 🛡️ Web Compatibility for Shadows
+          ...Platform.select({
+            web: { boxShadow: '0px -2px 10px rgba(0,0,0,0.05)' },
+            default: {
+              shadowColor: '#000', 
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 4,
+            }
+          })
         },
         tabBarLabelStyle: {
           fontSize: 11,
@@ -82,10 +89,13 @@ function MainTabs() {
         options={{
           tabBarLabel: () => null,
           tabBarIcon: ({ focused }: any) => (
+            // 🛠️ FIX: 'pointerEvents' moved inside 'style'
+            // This prevents the "deprecated prop" warning and lets clicks pass through to the button
             <View style={{
               top: -20,
               justifyContent: 'center',
               alignItems: 'center',
+              pointerEvents: 'none', 
             }}>
               <Image 
                 source={missionLogo} 
@@ -151,17 +161,20 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
-      <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Signup" component={SignupScreen} />
-        <Stack.Screen name="Home" component={MainTabs} />
-        <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
-        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
-        <Stack.Screen name="Learning" component={LearningScreen} /> 
-        <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
-      </StackNavigator>
-    </NavigationContainer>
+    // 🛠️ FIX: Wrapped in GestureHandlerRootView to fix "touch end" errors
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <NavigationContainer>
+        <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+          <Stack.Screen name="Home" component={MainTabs} />
+          <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+          <Stack.Screen name="Learning" component={LearningScreen} /> 
+          <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
+        </StackNavigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }

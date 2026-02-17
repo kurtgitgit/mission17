@@ -163,35 +163,60 @@ const Missions = () => {
     setAiSuggestion(null);
   };
 
+  // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
   const handleSubmit = async (e) => {
     e.preventDefault();
     const url = isEditing ? `${API_BASE}/update-mission/${currentId}` : `${API_BASE}/add-mission`;
     const method = isEditing ? 'PUT' : 'POST';
 
+    // 1. Get Token from Local Storage
+    const token = localStorage.getItem('token'); 
+
+    if (!token) {
+        alert("You are not logged in! Please log in again.");
+        return;
+    }
+
     try {
       const res = await fetch(url, {
         method: method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'auth-token': token // 2. Send Token
+        },
         body: JSON.stringify(formData)
       });
       
+      const data = await res.json(); // Get the error message if any
+
       if (res.ok) {
         fetchMissions();
         setShowForm(false);
         alert(isEditing ? "Mission updated successfully!" : "Mission created successfully!");
       } else {
-        alert("Failed to save mission. Please check the backend console.");
+        alert(`Failed: ${data.message || "Unknown error"}`);
       }
     } catch (error) {
       console.error("Save error:", error);
     }
   };
 
+  // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this mission?")) {
+      const token = localStorage.getItem('token'); // Get Token
+
       try {
-        const res = await fetch(`${API_BASE}/delete-mission/${id}`, { method: 'DELETE' });
-        if (res.ok) setMissions(missions.filter(m => m._id !== id));
+        const res = await fetch(`${API_BASE}/delete-mission/${id}`, { 
+            method: 'DELETE',
+            headers: { 'auth-token': token } // Send Token
+        });
+
+        if (res.ok) {
+            setMissions(missions.filter(m => m._id !== id));
+        } else {
+            alert("Failed to delete. You might not be an admin.");
+        }
       } catch (error) {
         console.error("Delete error:", error);
       }
@@ -259,33 +284,33 @@ const Missions = () => {
                   <input type="url" name="image" value={formData.image} onChange={handleInputChange} placeholder="https://..." style={{...styles.input, paddingLeft: '40px'}} />
                 </div>
                 {formData.image && (
-                   <div style={{marginTop: '10px', width: '100px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
-                     <img src={formData.image} alt="Preview" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                   </div>
+                    <div style={{marginTop: '10px', width: '100px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
+                      <img src={formData.image} alt="Preview" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                    </div>
                 )}
               </div>
 
               {/* 👇 DESCRIPTION + AI SUGGESTION AREA */}
               <div style={{marginBottom: '20px'}}>
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
-                   <label style={styles.label}>Description</label>
-                   
-                   {/* ✨ AI BADGE */}
-                   {aiSuggestion && (
-                     <button 
-                       type="button" 
-                       onClick={applyAiSuggestion}
-                       style={{
-                         backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb',
-                         borderRadius: '20px', padding: '4px 12px', fontSize: '11px', fontWeight: 'bold',
-                         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                         transition: 'all 0.2s'
-                       }}
-                       title="Click to auto-fill SDG and Color"
-                     >
-                       <Sparkles size={12} fill="#2563eb" /> AI Detected: SDG {aiSuggestion} (Click to Apply)
-                     </button>
-                   )}
+                    <label style={styles.label}>Description</label>
+                    
+                    {/* ✨ AI BADGE */}
+                    {aiSuggestion && (
+                      <button 
+                        type="button" 
+                        onClick={applyAiSuggestion}
+                        style={{
+                          backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb',
+                          borderRadius: '20px', padding: '4px 12px', fontSize: '11px', fontWeight: 'bold',
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                          transition: 'all 0.2s'
+                        }}
+                        title="Click to auto-fill SDG and Color"
+                      >
+                        <Sparkles size={12} fill="#2563eb" /> AI Detected: SDG {aiSuggestion} (Click to Apply)
+                      </button>
+                    )}
                 </div>
 
                 <textarea 
