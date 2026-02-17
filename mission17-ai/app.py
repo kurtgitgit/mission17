@@ -9,78 +9,131 @@ import io
 app = Flask(__name__)
 CORS(app)
 
-print("🧠 Loading the NEW AI Brain (13 Classes)...")
-# Make sure your model file name is correct!
-model = load_model('mission17_trash_classifier.h5')
+print("🧠 Loading the MISSION 17 AI Brain...")
 
+# 1. LOAD THE MODEL
+MODEL_PATH = 'mission_model.h5' 
+if not os.path.exists(MODEL_PATH):
+    print(f"❌ ERROR: {MODEL_PATH} not found. Did you run train_ai.py?")
+    model = None
+else:
+    model = load_model(MODEL_PATH)
+    print("✅ Model loaded successfully!")
+
+# 2. LOAD LABELS
 try:
     with open('labels.txt', 'r') as f:
-        class_names = f.read().splitlines()
-    print(f"✅ Ready to verify: {class_names}")
+        class_names = [line.strip() for line in f.readlines()]
+    print(f"🏷️  Labels loaded: {class_names}")
 except FileNotFoundError:
-    print("❌ ERROR: labels.txt not found. Please make sure it exists.")
+    print("❌ ERROR: labels.txt not found.")
     class_names = []
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    if not model:
+        return jsonify({'error': 'AI Model is offline'}), 500
+
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
     file = request.files['file']
     
     try:
-        # Preprocessing the image
+        # Preprocessing
         img = image.load_img(io.BytesIO(file.read()), target_size=(224, 224))
         img_array = image.img_to_array(img)
         img_array = np.expand_dims(img_array, axis=0)
         img_array /= 255.0  # Normalize to [0,1]
 
-        # AI Prediction
+        # Prediction
         predictions = model.predict(img_array)
         score = predictions[0]
 
         top_index = np.argmax(score)
-        label = class_names[top_index].lower()
+        label = class_names[top_index] 
         
-        # 🛡️ SECURITY FIX 1: Sanitize Output (Risk #3)
-        # We round to an integer so users can't see the exact decimal (e.g., 98.234%)
+        # Confidence Calculation
         raw_confidence = float(np.max(score) * 100)
         sanitized_confidence = int(raw_confidence)
 
-        # --- SMART MISSION LOGIC ---
-        is_planting = "planting" in label
-        is_recyclable = any(x in label for x in ["glass", "plastic", "metal", "paper", "cardboard"])
+        # --- 🤖 MISSION VERIFICATION LOGIC ---
         
-        # 🛡️ SECURITY FIX 2: Confidence Threshold (Risk #1)
-        # If AI is unsure (< 60%), we don't trust the label.
-        if sanitized_confidence < 60:
-            verdict = "UNCERTAIN - IMAGE UNCLEAR"
-            label = "Unknown" # Hide the guess if it's bad
-            is_planting = False
-            is_recyclable = False
+        verdict = "REJECT" # Default assumption
+        is_verified = False
+        message = "Unknown Image"
+
+        # 1. CHECK FOR ANTI-CHEAT (The "Invalid" Class)
+        if "Non_SDG" in label or "Invalid" in label:
+            verdict = "REJECTED"
+            message = "⚠️ Image Rejected: Does not match any mission criteria."
+        
+        # 2. CHECK FOR LOW CONFIDENCE
+        elif sanitized_confidence < 40:
+            verdict = "UNCERTAIN"
+            message = f"❓ Unclear Image ({sanitized_confidence}%). Please take a clearer photo."
+        
+        # 3. VERIFY SPECIFIC MISSIONS
         else:
-            # Only trust the verdict if confidence is high
-            verdict = "REJECT" # Default
+            # 🌍 EXISTING MISSIONS
+            if "Planting" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Planting Mission (SDG 13/15)"
+                is_verified = True
             
-            if is_planting:
-                verdict = "VALID MISSION (SDG 13/15)"
-            elif is_recyclable:
-                verdict = "VALID RECYCLABLE (SDG 12)"
-            elif "trash" in label:
-                verdict = "GENERAL TRASH - REQUIRES REVIEW"
+            elif "Recycling" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Recycling Mission (SDG 12)"
+                is_verified = True
+
+            elif "Cleanup" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Cleanup Mission (SDG 6/14)"
+                is_verified = True
+            
+            elif "Donation" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Donation Mission (SDG 1/2)"
+                is_verified = True
+
+            # 🚀 NEW MISSIONS (LIFESTYLE) -- ADDED THESE 👇
+            elif "Health" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Health & Wellness Activity (SDG 3)"
+                is_verified = True
+
+            elif "Education" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Education Activity (SDG 4)"
+                is_verified = True
+
+            elif "Energy" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Energy Saving Action (SDG 7)"
+                is_verified = True
+            
+            elif "Cities" in label or "Sustainable" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Sustainable Commute (SDG 11)"
+                is_verified = True
+            
+            elif "Support_Local" in label or "Decent_Work" in label:
+                verdict = "VERIFIED"
+                message = "✅ Valid Support for Local Business (SDG 8)"
+                is_verified = True
 
         response = {
-            'prediction': label.upper(),
-            'confidence': f"{sanitized_confidence}%",  # Sending clean integer
-            'is_planting': is_planting,
-            'is_recyclable': is_recyclable,
-            'verdict': verdict
+            'prediction': label,
+            'confidence': f"{sanitized_confidence}%",
+            'verdict': verdict,
+            'message': message,
+            'is_verified': is_verified
         }
         return jsonify(response)
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return jsonify({'error': "Processing failed"}), 500  # Generic error to hide details
+        print(f"❌ Processing Error: {str(e)}")
+        return jsonify({'error': "Processing failed"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

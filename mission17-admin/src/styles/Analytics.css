@@ -74,9 +74,10 @@
   margin: 0 0 25px 0;
 }
 
+/* 🛠️ FIXED: Replaced flex/min-height with explicit width/height */
 .chart-wrapper {
-  flex: 1;
-  min-height: 250px; /* Ensures charts have height */
+  width: 100%;
+  height: 300px; 
   position: relative;
 }
 

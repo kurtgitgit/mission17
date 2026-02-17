@@ -1,13 +1,10 @@
-0 battery
-1 biological
-2 brown-glass
-3 cardboard
-4 clothes
-5 green-glass
-6 metal
-7 paper
-8 planting
-9 plastic
-10 shoes
-11 trash
-12 white-glass
+Non_SDG_Invalid
+SDG11_Sustainable_Cities
+SDG12_Recycling
+SDG13_15_Planting
+SDG1_2_Donation
+SDG3_Health_Wellbeing
+SDG4_Quality_Education
+SDG6_14_Cleanup
+SDG7_Clean_Energy
+SDG8_Support_Local
