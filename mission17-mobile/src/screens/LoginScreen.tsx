@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Mail, Lock } from 'lucide-react-native';
+import { Mail, Lock, Key } from 'lucide-react-native';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage'; 
 
@@ -12,8 +12,13 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 🛡️ MFA STATE
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [tempUserId, setTempUserId] = useState('');
+
   const handleLogin = async () => {
-    Keyboard.dismiss(); // 📱 UX Fix: Hide keyboard on press
+    Keyboard.dismiss(); 
 
     if (!email || !password) {
       const msg = 'Please enter both email and password';
@@ -24,7 +29,6 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      // 🛡️ DATA CLEANING: Trim spaces before sending
       const cleanEmail = email.trim();
 
       const response = await fetch(endpoints.auth.login, {
@@ -35,25 +39,18 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
+      // CASE 1: MFA REQUIRED (Status 202)
+      if (response.status === 202) {
+        setMfaRequired(true);
+        setTempUserId(data.userId);
+        Alert.alert("Security Check", "We sent a 6-digit code to your email.");
+        setLoading(false);
+        return;
+      }
+
+      // CASE 2: SUCCESS (Status 200)
       if (response.ok) {
-        console.log('Login Token:', data.token); 
-        
-        // 🚨 SAFETY CHECK: Ensure we get an ID
-        const userId = data.user._id || data.user.id; 
-        
-        // Normalize user data to ensure _id is present
-        const userData = { ...data.user, _id: userId };
-
-        // 1. Set Global State
-        GlobalState.userId = userId;
-
-        // 2. Save Securely
-        await saveAuthData(data.token, userData);
-        
-        navigation.replace('Home', { 
-          screen: 'HomeTab', 
-          params: { userId: userId } 
-        }); 
+        await processLoginSuccess(data);
       } else {
         const msg = data.message || 'Invalid credentials';
         Platform.OS === 'web' ? alert(msg) : Alert.alert('Login Failed', msg);
@@ -63,8 +60,50 @@ export default function LoginScreen() {
       Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
       console.error(error);
     } finally {
+      if (!mfaRequired) setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6) {
+        Alert.alert("Invalid Code", "Please enter the full 6-digit code.");
+        return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: tempUserId, otp }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        await processLoginSuccess(data);
+      } else {
+        Alert.alert("Invalid Code", "Please try again.");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not verify code.");
+    } finally {
       setLoading(false);
     }
+  };
+
+  // Helper to handle saving and navigation
+  const processLoginSuccess = async (data: any) => {
+    const userId = data.user._id || data.user.id; 
+    const userData = { ...data.user, _id: userId };
+
+    GlobalState.userId = userId;
+    await saveAuthData(data.token, userData);
+    
+    navigation.replace('Home', { 
+        screen: 'HomeTab', 
+        params: { userId: userId } 
+    });
   };
 
   return (
@@ -72,50 +111,91 @@ export default function LoginScreen() {
       
       {/* HEADER WITH LOGO */}
       <View style={styles.header}>
-        {/* Make sure this image exists, or remove if not needed */}
         <Image 
           source={require('../../assets/logo.png')} 
           style={styles.logo} 
           resizeMode="contain"
         />
-        <Text style={styles.title}>Login</Text>
+        <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Login'}</Text>
       </View>
 
       <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <Mail color="#94a3b8" size={20} style={styles.icon} />
-          <TextInput 
-            placeholder="Email Address" 
-            style={styles.input}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-        </View>
+        
+        {/* 🛡️ CONDITIONAL RENDERING */}
+        {!mfaRequired ? (
+            // STANDARD LOGIN UI
+            <>
+                <View style={styles.inputContainer}>
+                    <Mail color="#94a3b8" size={20} style={styles.icon} />
+                    <TextInput 
+                        placeholder="Email Address" 
+                        style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
+                </View>
 
-        <View style={styles.inputContainer}>
-          <Lock color="#94a3b8" size={20} style={styles.icon} />
-          <TextInput 
-            placeholder="Password" 
-            style={styles.input} 
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
+                <View style={styles.inputContainer}>
+                    <Lock color="#94a3b8" size={20} style={styles.icon} />
+                    <TextInput 
+                        placeholder="Password" 
+                        style={styles.input} 
+                        value={password}
+                        onChangeText={setPassword}
+                        secureTextEntry
+                    />
+                </View>
 
-        <TouchableOpacity 
-          style={styles.loginButton} 
-          onPress={handleLogin} 
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.loginButtonText}>Log In</Text>
-          )}
-        </TouchableOpacity>
+                <TouchableOpacity 
+                    style={styles.loginButton} 
+                    onPress={handleLogin} 
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text style={styles.loginButtonText}>Log In</Text>
+                    )}
+                </TouchableOpacity>
+            </>
+        ) : (
+            // MFA OTP UI
+            <>
+                <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
+                <View style={styles.inputContainer}>
+                    <Key color="#94a3b8" size={20} style={styles.icon} />
+                    <TextInput 
+                        placeholder="123456" 
+                        style={[styles.input, styles.otpInput]} 
+                        value={otp}
+                        onChangeText={setOtp}
+                        keyboardType="number-pad"
+                        maxLength={6}
+                    />
+                </View>
+
+                <TouchableOpacity 
+                    style={styles.loginButton} 
+                    onPress={handleVerifyOtp} 
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="white" />
+                    ) : (
+                        <Text style={styles.loginButtonText}>Verify Code</Text>
+                    )}
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={() => {
+                    setMfaRequired(false);
+                    setOtp('');
+                }}>
+                    <Text style={styles.cancelLink}>Cancel</Text>
+                </TouchableOpacity>
+            </>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -173,6 +253,18 @@ const styles = StyleSheet.create({
       web: { outlineStyle: 'none' as any }
     }) 
   },
+  // OTP SPECIFIC STYLE
+  otpInput: {
+    letterSpacing: 8,
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center'
+  },
+  mfaInstruction: {
+    textAlign: 'center',
+    color: '#64748b',
+    marginBottom: 10
+  },
   loginButton: { 
     backgroundColor: '#0ea5e9', 
     height: 56, 
@@ -185,6 +277,12 @@ const styles = StyleSheet.create({
     color: 'white', 
     fontSize: 16, 
     fontWeight: 'bold' 
+  },
+  cancelLink: {
+    textAlign: 'center',
+    color: '#ef4444',
+    marginTop: 10,
+    fontWeight: '600'
   },
   footer: { 
     flexDirection: 'row', 

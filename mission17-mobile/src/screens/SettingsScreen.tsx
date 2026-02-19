@@ -1,15 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, 
   Platform, SafeAreaView, Alert, Modal, TextInput, Linking, ActivityIndicator 
 } from 'react-native';
-import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText, X, Mail } from 'lucide-react-native';
+import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText, X, Mail, Shield } from 'lucide-react-native';
 import { CommonActions } from '@react-navigation/native';
-import { clearAuthData } from '../utils/storage'; 
+import { clearAuthData, getAuthData } from '../utils/storage'; 
 import { GlobalState, endpoints } from '../config/api';     
 
 const SettingsScreen = ({ navigation }: any) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [mfaEnabled, setMfaEnabled] = useState(false); // 🛡️ MFA STATE
   
   // Modal States
   const [activeModal, setActiveModal] = useState<null | 'password' | 'privacy' | 'help'>(null);
@@ -20,6 +21,50 @@ const SettingsScreen = ({ navigation }: any) => {
   const [loading, setLoading] = useState(false);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
+
+  // --- 🆕 LOAD INITIAL SETTINGS ---
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    const data = await getAuthData();
+    if (data && data.user) {
+        // If your login response includes mfaEnabled, use it.
+        // Otherwise, you might need a dedicated /me endpoint.
+        setMfaEnabled(data.user.mfaEnabled || false);
+    }
+  };
+
+  // --- 🛡️ TOGGLE MFA ACTION ---
+  const toggleMFA = async (value: boolean) => {
+    const data = await getAuthData();
+    if (!data || !data.token) return;
+
+    try {
+        const response = await fetch(`${endpoints.auth.baseUrl}/toggle-mfa`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`
+            },
+            body: JSON.stringify({ userId: GlobalState.userId, enable: value })
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            setMfaEnabled(value);
+            Alert.alert("Success", `Two-Factor Authentication is now ${value ? 'ON' : 'OFF'}`);
+        } else {
+            setMfaEnabled(!value); // Revert switch if failed
+            Alert.alert("Error", result.message || "Failed to update MFA settings");
+        }
+    } catch (error) {
+        setMfaEnabled(!value);
+        Alert.alert("Error", "Network error updating security settings");
+    }
+  };
 
   // --- ACTIONS ---
 
@@ -61,7 +106,6 @@ const SettingsScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-        // ✅ FIXED: Now using the correct endpoint from api.ts
         const response = await fetch(endpoints.auth.changePassword, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -153,6 +197,15 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.sectionCard}>
           <SettingItem icon={Lock} label="Change Password" onPress={() => setActiveModal('password')} />
           <View style={styles.divider} />
+          {/* 🛡️ NEW MFA TOGGLE */}
+          <SettingItem 
+            icon={Shield} 
+            label="Two-Factor Auth (Email)" 
+            isSwitch 
+            value={mfaEnabled} 
+            onValueChange={toggleMFA} 
+          />
+          <View style={styles.divider} />
           <SettingItem icon={FileText} label="Privacy Policy" onPress={() => setActiveModal('privacy')} />
         </View>
 
@@ -172,9 +225,8 @@ const SettingsScreen = ({ navigation }: any) => {
 
       </ScrollView>
 
-      {/* --- MODALS --- */}
-
-      {/* 1. PASSWORD MODAL */}
+      {/* --- MODALS (Password, Privacy, Help) --- */}
+      {/* (Kept your existing modal code exactly as is below) */}
       <Modal visible={activeModal === 'password'} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
@@ -207,7 +259,6 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* 2. PRIVACY MODAL */}
       <Modal visible={activeModal === 'privacy'} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
             <View style={[styles.modalCard, { height: '70%' }]}>
@@ -231,7 +282,6 @@ const SettingsScreen = ({ navigation }: any) => {
         </View>
       </Modal>
 
-      {/* 3. HELP MODAL */}
       <Modal visible={activeModal === 'help'} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
             <View style={styles.modalCard}>
