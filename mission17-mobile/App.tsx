@@ -18,6 +18,7 @@ import LearningScreen from './src/screens/LearningScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SDGDetailScreen from './src/screens/SDGDetailScreen';
+import AuditLogScreen from './src/screens/AuditLogScreen';
 
 // --- UTILS & CONFIG ---
 import { getAuthData } from './src/utils/storage';
@@ -173,6 +174,7 @@ export default function App() {
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Learning" component={LearningScreen} /> 
           <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
+          <Stack.Screen name="AuditLogs" component={AuditLogScreen} />
         </StackNavigator>
       </NavigationContainer>
     </GestureHandlerRootView>

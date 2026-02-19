@@ -1,15 +1,26 @@
 import os
 import numpy as np
+import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
-import io
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 CORS(app)
 
 print("🧠 Loading the MISSION 17 AI Brain...")
+
+# 🔒 SECURITY CONFIGURATION (Rubric Category 2)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # Limit upload to 5MB
+
+app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # 1. LOAD THE MODEL
 MODEL_PATH = 'mission_model.h5' 
@@ -32,13 +43,22 @@ except FileNotFoundError:
 @app.route('/predict', methods=['POST'])
 def predict():
     if not model:
-        return jsonify({'error': 'AI Model is offline'}), 500
+        return jsonify({'error': 'AI Model is offline'}), 503
 
+    # 🔒 CHECK 1: File Presence
     if 'file' not in request.files:
         return jsonify({'error': 'No file uploaded'}), 400
     
     file = request.files['file']
-    
+
+    # 🔒 CHECK 2: Empty Filename
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+
+    # 🔒 CHECK 3: File Type Validation
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'Invalid file type. Only JPG/PNG allowed.'}), 400
+
     try:
         # Preprocessing
         img = image.load_img(io.BytesIO(file.read()), target_size=(224, 224))
@@ -96,7 +116,7 @@ def predict():
                 message = "✅ Valid Donation Mission (SDG 1/2)"
                 is_verified = True
 
-            # 🚀 NEW MISSIONS (LIFESTYLE) -- ADDED THESE 👇
+            # 🚀 NEW MISSIONS (LIFESTYLE)
             elif "Health" in label:
                 verdict = "VERIFIED"
                 message = "✅ Valid Health & Wellness Activity (SDG 3)"
