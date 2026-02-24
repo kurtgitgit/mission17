@@ -11,6 +11,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
+  const [num1, setNum1] = useState(Math.floor(Math.random() * 10) + 1);
+  const [num2, setNum2] = useState(Math.floor(Math.random() * 10) + 1);
 
   // 🛡️ MFA STATE
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -19,6 +22,21 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     Keyboard.dismiss(); 
+
+    if (!captchaAnswer.trim()) {
+      const msg = "Please answer the math question.";
+      Platform.OS === 'web' ? alert(msg) : Alert.alert("Security Check", msg);
+      return;
+    }
+
+    if (parseInt(captchaAnswer) !== num1 + num2) {
+      const msg = "Incorrect math answer. Please try again.";
+      Platform.OS === 'web' ? alert(msg) : Alert.alert("Verification Failed", msg);
+      setNum1(Math.floor(Math.random() * 10) + 1);
+      setNum2(Math.floor(Math.random() * 10) + 1);
+      setCaptchaAnswer('');
+      return;
+    }
 
     if (!email || !password) {
       const msg = 'Please enter both email and password';
@@ -145,6 +163,19 @@ export default function LoginScreen() {
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry
+                    />
+                </View>
+
+                {/* CAPTCHA SECTION */}
+                <View style={styles.captchaContainer}>
+                    <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
+                    <TextInput
+                        style={styles.captchaInput}
+                        placeholder="#"
+                        value={captchaAnswer}
+                        onChangeText={setCaptchaAnswer}
+                        keyboardType="numeric"
+                        maxLength={2}
                     />
                 </View>
 
@@ -298,4 +329,8 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     fontWeight: '600' 
   },
+  // Captcha Styles
+  captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: 15, backgroundColor: '#f0f8ff', borderRadius: 12, borderWidth: 1, borderColor: '#cce4ff' },
+  captchaText: { fontSize: 16, fontWeight: '600', color: '#0056b3' },
+  captchaInput: { width: 50, height: 40, borderColor: '#0056b3', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff' },
 });

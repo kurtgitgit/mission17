@@ -1,91 +1,99 @@
+import os
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D, Dropout
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-import os
 
-# 👇 CONFIGURATION
-# We point to the folder containing BOTH old trash and NEW SDG folders
-DATASET_DIR = os.path.join("dataset", "mission_dataset") 
-IMG_SIZE = (224, 224)
+# --- CONFIGURATION ---
+# Paths relative to this script
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATASET_DIR = os.path.join(BASE_DIR, '..', 'dataset', 'mission_dataset')
+MODEL_SAVE_PATH = os.path.join(BASE_DIR, 'mission_model.h5')
+LABELS_SAVE_PATH = os.path.join(BASE_DIR, 'labels.txt')
+
+# Hyperparameters
+IMG_SIZE = (224, 224) # Matches app.py target_size
 BATCH_SIZE = 32
-EPOCHS = 10 
+EPOCHS = 25
+LEARNING_RATE = 0.0001
 
-print(f"🔍 Loading dataset from: {DATASET_DIR}")
+def train_brain():
+    print("🚀 Initializing Mission 17 AI Training...")
+    
+    # 1. CHECK DATASET
+    if not os.path.exists(DATASET_DIR):
+        print(f"❌ ERROR: Dataset not found at {DATASET_DIR}")
+        print("   Please create a 'dataset' folder in the project root.")
+        print("   Inside, create folders for each class (e.g., 'Planting', 'Recycling').")
+        return
 
-if not os.path.exists(DATASET_DIR):
-    print("❌ ERROR: Dataset folder not found!")
-    exit()
+    # 2. DATA PREPARATION (Augmentation)
+    print("📸 Preparing Image Generators...")
+    train_datagen = ImageDataGenerator(
+        rescale=1./255,         # Normalize pixel values
+        rotation_range=20,      # Random rotations
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        horizontal_flip=True,
+        validation_split=0.2    # Use 20% of data for validation
+    )
 
-# 1. SETUP DATA GENERATORS (Augmentation)
-train_datagen = ImageDataGenerator(
-    rescale=1./255,
-    rotation_range=30,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    fill_mode='nearest',
-    validation_split=0.2 # Use 20% for testing
-)
+    try:
+        train_generator = train_datagen.flow_from_directory(
+            DATASET_DIR,
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='categorical',
+            subset='training'
+        )
 
-# Load Training Data
-train_generator = train_datagen.flow_from_directory(
-    DATASET_DIR,
-    target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    class_mode='categorical',
-    subset='training'
-)
+        validation_generator = train_datagen.flow_from_directory(
+            DATASET_DIR,
+            target_size=IMG_SIZE,
+            batch_size=BATCH_SIZE,
+            class_mode='categorical',
+            subset='validation'
+        )
+    except Exception as e:
+        print(f"❌ Error loading data: {e}")
+        return
 
-# Load Validation Data
-validation_generator = train_datagen.flow_from_directory(
-    DATASET_DIR,
-    target_size=IMG_SIZE,
-    batch_size=BATCH_SIZE,
-    class_mode='categorical',
-    subset='validation'
-)
+    if train_generator.samples == 0:
+        print("❌ No images found! Check your dataset structure.")
+        return
 
-# 2. SAVE LABELS (Crucial Step!)
-# We save them as a clean list so app.py can read them easily
-labels = {v: k for k, v in train_generator.class_indices.items()}
-print(f"🏷️  Classes detected: {list(labels.values())}")
+    # 3. SAVE LABELS
+    class_names = list(train_generator.class_indices.keys())
+    print(f"🏷️  Classes Detected: {class_names}")
+    with open(LABELS_SAVE_PATH, 'w') as f:
+        for name in class_names:
+            f.write(name + '\n')
+    print(f"✅ Labels saved to {LABELS_SAVE_PATH}")
 
-with open("labels.txt", "w") as f:
-    for i in range(len(labels)):
-        f.write(labels[i] + "\n")
-print("✅ Saved 'labels.txt'")
+    # 4. BUILD MODEL (MobileNetV2 Transfer Learning)
+    print("🧠 Building Model (MobileNetV2)...")
+    base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=IMG_SIZE + (3,))
+    base_model.trainable = False # Freeze base layers
 
-# 3. BUILD MODEL (MobileNetV2)
-base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-base_model.trainable = False # Freeze base model
+    x = base_model.output
+    x = GlobalAveragePooling2D()(x)
+    x = Dropout(0.2)(x) # Prevent overfitting
+    predictions = Dense(len(class_names), activation='softmax')(x)
 
-x = base_model.output
-x = GlobalAveragePooling2D()(x)
-x = Dense(128, activation='relu')(x)
-x = Dropout(0.3)(x) # Drop 30% to prevent overfitting
-predictions = Dense(train_generator.num_classes, activation='softmax')(x)
+    model = Model(inputs=base_model.input, outputs=predictions)
+    model.compile(optimizer=Adam(learning_rate=LEARNING_RATE),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
 
-model = Model(inputs=base_model.input, outputs=predictions)
+    # 5. TRAIN
+    print("🏋️ Training Started...")
+    model.fit(train_generator, epochs=EPOCHS, validation_data=validation_generator)
 
-# 4. COMPILE & TRAIN
-model.compile(optimizer=Adam(learning_rate=0.0001), loss='categorical_crossentropy', metrics=['accuracy'])
+    # 6. SAVE
+    model.save(MODEL_SAVE_PATH)
+    print(f"✅ Model saved successfully to {MODEL_SAVE_PATH}")
 
-print(f"🚀 Starting training for {EPOCHS} epochs...")
-history = model.fit(
-    train_generator,
-    steps_per_epoch=train_generator.samples // BATCH_SIZE,
-    validation_data=validation_generator,
-    validation_steps=validation_generator.samples // BATCH_SIZE,
-    epochs=EPOCHS
-)
-
-# 5. SAVE THE MODEL
-# We save as 'mission_model.h5' to distinguish from the old one
-print("✅ Training Complete! Saving model...")
-model.save("mission_model.h5")
-print("🎉 SUCCESS! New Brain saved as 'mission_model.h5'")
+if __name__ == '__main__':
+    train_brain()

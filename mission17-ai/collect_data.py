@@ -5,7 +5,7 @@ import shutil
 # 👇 CONFIGURATION
 # We point to your EXISTING folder. 
 # This script will just ADD the new folders next to the old ones.
-BASE_DIR = os.path.join("dataset", "mission_dataset")
+BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'dataset', 'mission_dataset')
 
 # 🚀 NEW MISSIONS ONLY (SDG 3, 4, 7, 8, 11)
 CLASSES = {
@@ -52,6 +52,15 @@ CLASSES = {
         "handshake business meeting", 
         "artisan crafting handmade goods", 
         "small bakery shop front"
+    ],
+
+    # 🚫 ANTI-CHEAT: Things that are NOT missions
+    "Non_SDG_Invalid": [
+        "random selfie photo",
+        "blurry image",
+        "sleeping cat",
+        "luxury sports car",
+        "video game screenshot"
     ]
 }
 

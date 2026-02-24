@@ -142,12 +142,27 @@ def predict():
                 message = "✅ Valid Support for Local Business (SDG 8)"
                 is_verified = True
 
+        # --- FORMAT OUTPUT FOR UI ---
+        # 1. Extract SDG (e.g., "SDG12_Recycling" -> "SDG 12")
+        sdg_display = "N/A"
+        if "SDG" in label and "Non_SDG" not in label:
+            # Takes the first part "SDG12" and adds a space "SDG 12"
+            sdg_display = label.split('_')[0].replace("SDG", "SDG ")
+
+        # 2. Determine Source (Heuristic based on verification)
+        if is_verified:
+            source_check = "📸 Raw Picture"
+        else:
+            source_check = "🤖 AI Generated / Invalid"
+
         response = {
             'prediction': label,
             'confidence': f"{sanitized_confidence}%",
             'verdict': verdict,
             'message': message,
-            'is_verified': is_verified
+            'is_verified': is_verified,
+            'sdg': sdg_display,
+            'source_check': source_check
         }
         return jsonify(response)
 

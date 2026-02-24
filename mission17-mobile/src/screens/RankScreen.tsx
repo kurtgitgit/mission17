@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { User, Crown, Target, Medal } from 'lucide-react-native';
 import { useIsFocused } from '@react-navigation/native';
-import { GlobalState } from '../config/api';
+import { GlobalState, endpoints } from '../config/api';
 
 const RankScreen = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
@@ -23,7 +23,7 @@ const RankScreen = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch("http://localhost:5001/api/auth/leaderboard");
+      const res = await fetch(`${endpoints.auth.baseUrl}/leaderboard`);
       const data = await res.json();
       setLeaders(data);
     } catch (error) {
@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    zIndex: 1,
   },
   headerTitle: { 
     textAlign: 'center', 
@@ -201,7 +202,7 @@ const styles = StyleSheet.create({
   podiumPointsWrapper: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
   podiumPoints: { color: '#fff', fontWeight: '700', fontSize: 12 },
   
-  body: { flex: 1, backgroundColor: '#f8fafc', marginTop: -20, zIndex: -1, paddingTop: 30 },
+  body: { flex: 1, backgroundColor: '#f8fafc', marginTop: -20, paddingTop: 30 },
   listHeaderTitle: { paddingHorizontal: 25, fontSize: 13, fontWeight: '800', color: '#94a3b8', textTransform: 'uppercase', marginBottom: 15, letterSpacing: 1 },
   listContent: { paddingHorizontal: 20, paddingBottom: 40 },
   row: { 

@@ -15,6 +15,9 @@ const EditProfileScreen = ({ navigation }: any) => {
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
+  // ⚠️ REPLACE 'localhost' with your computer's IP (e.g. 192.168.1.5) if using a physical device
+  const API_URL = "http://192.168.1.101:5001";
+
   // 1. Load current data
   useEffect(() => {
     const fetchCurrentData = async () => {
@@ -41,7 +44,7 @@ const EditProfileScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/update-profile/${userId}`, {
+      const res = await fetch(`${API_URL}/api/auth/update-profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, bio })

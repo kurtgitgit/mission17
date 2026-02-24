@@ -6,3 +6,9 @@ __pycache__/
 
 # Ignore the heavy model file
 *.h5
+
+node_modules/
+
+# OS metadata and secrets
+.DS_Store
+.env

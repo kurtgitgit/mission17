@@ -2,7 +2,7 @@
 
 // 👇 REPLACE 'localhost' WITH YOUR PC'S IP IF USING A REAL PHONE
 // Example: const API_URL = "http://192.168.1.5:5001/api";
-const API_URL = "http://localhost:5001/api"; 
+const API_URL = "http://192.168.1.101:5001/api"; 
 
 // 1. GLOBAL MEMORY
 export const GlobalState = {

@@ -7,6 +7,7 @@ import User from '../models/User.js';
 import Submission from '../models/Submission.js'; 
 import Mission from '../models/Mission.js';
 import AuditLog from '../models/AuditLog.js'; 
+import Event from '../models/Event.js'; // 👈 Import the new model
 
 const router = express.Router();
 
@@ -478,6 +479,51 @@ router.get('/audit-logs', verifyAdmin, async (req, res) => {
       res.json(logs);
     } catch (error) {
       res.status(500).json({ message: "Error fetching logs" });
+    }
+});
+
+// ==========================================
+// 📅 EVENT ROUTES (Consolidated)
+// ==========================================
+
+// GET Events
+router.get('/events', async (req, res) => {
+    try {
+        const events = await Event.find().sort({ date: 1 });
+        res.json(events);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching events" });
+    }
+});
+
+// POST Event
+router.post('/events', async (req, res) => {
+    try {
+        const newEvent = new Event(req.body);
+        await newEvent.save();
+        res.status(201).json(newEvent);
+    } catch (error) {
+        res.status(500).json({ message: "Error creating event" });
+    }
+});
+
+// DELETE Event
+router.delete('/events/:id', async (req, res) => {
+    try {
+        await Event.findByIdAndDelete(req.params.id);
+        res.json({ message: "Event deleted successfully" });
+    } catch (error) {
+        res.status(500).json({ message: "Error deleting event" });
+    }
+});
+
+// UPDATE Event
+router.put('/events/:id', async (req, res) => {
+    try {
+        const updatedEvent = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+        res.json(updatedEvent);
+    } catch (error) {
+        res.status(500).json({ message: "Error updating event" });
     }
 });
 

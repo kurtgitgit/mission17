@@ -9,7 +9,8 @@ import {
   LogOut, 
   BookOpen, 
   Settings, 
-  CheckCircle 
+  CheckCircle,
+  Calendar
 } from 'lucide-react';
 import '../styles/Sidebar.css';
 
@@ -49,6 +50,12 @@ const Sidebar = () => {
           <NavLink to="/missions" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <Target size={20} />
             <span>Missions List</span>
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/events" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+            <Calendar size={20} />
+            <span>Events</span>
           </NavLink>
         </li>
         <li className="nav-item">

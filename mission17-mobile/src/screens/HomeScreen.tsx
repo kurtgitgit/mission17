@@ -8,9 +8,10 @@ import {
   TouchableOpacity,
   Platform,
   RefreshControl,
-  StatusBar
+  StatusBar,
+  Alert,
 } from 'react-native';
-import { Bell, ScanLine, Trophy, History, TrendingUp, CheckCircle, Clock, Globe, MapPin } from 'lucide-react-native';
+import { Bell, TrendingUp, CheckCircle, Clock, Globe, Lightbulb, ArrowRight, Target, MapPin } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native'; 
 import { endpoints, GlobalState } from '../config/api'; 
 
@@ -21,10 +22,11 @@ const getRank = (points: number) => {
   return { title: "Rookie Scout", color: "#94a3b8", next: 200 };
 };
 
-const MOCK_EVENTS = [
-    { id: 1, title: "Barangay Clean-up Drive", date: "Feb 24", time: "8:00 AM", location: "Brgy. Hall Plaza", color: "#16a34a" },
-    { id: 2, title: "Youth Leadership Seminar", date: "Feb 28", time: "1:00 PM", location: "City Library", color: "#3b82f6" },
-    { id: 3, title: "Tree Planting Activity", date: "Mar 05", time: "7:00 AM", location: "Eco Park", color: "#ca8a04" },
+const ECO_TIPS = [
+  "Recycling one aluminum can saves enough energy to run a TV for three hours.",
+  "27,000 trees are cut down each day for toilet paper.",
+  "Glass is 100% recyclable and can be recycled endlessly without loss in quality.",
+  "Rainforests are cut down at a rate of 100 acres per minute."
 ];
 
 const HomeScreen: React.FC = () => {
@@ -40,6 +42,12 @@ const HomeScreen: React.FC = () => {
   
   const [activeMissions, setActiveMissions] = useState<any[]>([]);
   const [stats, setStats] = useState({ completed: 0, pending: 0, rank: '--' }); // Added rank to state
+  const [featuredMission, setFeaturedMission] = useState<any>(null);
+  const [dailyTip, setDailyTip] = useState(ECO_TIPS[0]);
+  const [events, setEvents] = useState<any[]>([]);
+
+  // ⚠️ REPLACE 'localhost' with your computer's IP (e.g. 192.168.1.5) if using a physical device
+  const API_URL = "http://192.168.1.101:5001";
 
   const fetchUserData = async () => {
     if (!userId) return;
@@ -86,6 +94,22 @@ const HomeScreen: React.FC = () => {
         }
       }
 
+      // 4. Get Featured Mission (Random)
+      const missionsRes = await fetch(`${API_URL}/api/auth/all-missions`);
+      if (missionsRes.ok) {
+        const missions = await missionsRes.json();
+        if (missions.length > 0) {
+            setFeaturedMission(missions[Math.floor(Math.random() * missions.length)]);
+        }
+      }
+
+      // 5. Get Events
+      const eventsRes = await fetch(`${API_URL}/api/auth/events`);
+      if (eventsRes.ok) {
+        const eventsData = await eventsRes.json();
+        setEvents(eventsData);
+      }
+
       setStats({ 
         completed: completedCount, 
         pending: pendingCount,
@@ -101,6 +125,7 @@ const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     if (isFocused && userId) fetchUserData(); 
+    setDailyTip(ECO_TIPS[Math.floor(Math.random() * ECO_TIPS.length)]);
   }, [userId, isFocused]);
 
   const onRefresh = useCallback(() => {
@@ -133,13 +158,21 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.username}>{username}</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.bellButton}>
+          <TouchableOpacity 
+            style={styles.bellButton}
+            onPress={() => navigation.navigate('Notifications')}
+          >
             <Bell size={22} color="#1e293b" />
+            <View style={styles.redDot} />
           </TouchableOpacity>
         </View>
 
         {/* RANK CARD */}
-        <View style={styles.rankCard}>
+        <TouchableOpacity 
+          style={styles.rankCard}
+          activeOpacity={0.9}
+          onPress={() => navigation.navigate('RankTab')}
+        >
           <View style={styles.cardPatternCircle} /> 
           <View style={styles.rankCardContent}>
             <View style={styles.rankTopRow}>
@@ -162,7 +195,7 @@ const HomeScreen: React.FC = () => {
               </View>
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
 
         {/* IMPACT STATS ROW */}
         <View style={styles.statsRow}>
@@ -187,77 +220,82 @@ const HomeScreen: React.FC = () => {
             </View>
         </View>
 
-        {/* BARANGAY EVENTS SECTION */}
-        <Text style={styles.sectionTitle}>Happening Nearby</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.eventsScroll}>
-            {MOCK_EVENTS.map((event) => (
-                <TouchableOpacity key={event.id} style={styles.eventCard}>
-                    <View style={[styles.dateBadge, { backgroundColor: event.color }]}>
-                        <Text style={styles.dateText}>{event.date.split(' ')[0]}</Text>
-                        <Text style={styles.dateNum}>{event.date.split(' ')[1]}</Text>
+        {/* FEATURED MISSION */}
+        {featuredMission && (
+          <>
+            <Text style={styles.sectionTitle}>Daily Challenge</Text>
+            <TouchableOpacity 
+              style={[styles.featuredCard, { backgroundColor: featuredMission.color || '#3b82f6' }]}
+              onPress={() => navigation.navigate('MissionDetail', { mission: featuredMission, userId })}
+            >
+              <View style={styles.featuredContent}>
+                <View style={styles.featuredBadge}>
+                  <Target size={16} color={featuredMission.color || '#3b82f6'} />
+                  <Text style={[styles.featuredBadgeText, { color: featuredMission.color || '#3b82f6' }]}>
+                    {featuredMission.points} PTS
+                  </Text>
+                </View>
+                <Text style={styles.featuredTitle}>{featuredMission.title}</Text>
+                <Text style={styles.featuredDesc} numberOfLines={2}>{featuredMission.description}</Text>
+                <View style={styles.featuredBtn}>
+                  <Text style={styles.featuredBtnText}>Start Mission</Text>
+                  <ArrowRight size={16} color="white" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* HAPPENING NEARBY */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Happening Nearby</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MissionsTab', { initialTab: 'events' })}>
+            <Text style={styles.seeAllText}>See All</Text>
+          </TouchableOpacity>
+        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.eventsScroll}
+        >
+            {events.length > 0 ? events.map((event) => {
+                const dateObj = new Date(event.date);
+                const month = dateObj.toLocaleString('default', { month: 'short' });
+                const day = dateObj.getDate();
+                const timeStr = event.time || dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                return (
+                  <TouchableOpacity 
+                    key={event._id || event.id} 
+                    style={styles.eventCard}
+                    activeOpacity={0.8}
+                    onPress={() => navigation.navigate('MissionsTab', { initialTab: 'events' })}
+                  >
+                    <View style={[styles.dateBadge, { backgroundColor: event.color || '#3b82f6' }]}>
+                        <Text style={styles.dateText}>{month}</Text>
+                        <Text style={styles.dateNum}>{day}</Text>
                     </View>
                     <View style={styles.eventInfo}>
                         <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
                         <View style={styles.eventRow}>
-                            <Clock size={12} color="#64748b" />
-                            <Text style={styles.eventDetail}>{event.time}</Text>
+                            <Clock size={12} color="#64748b" /><Text style={styles.eventDetail}>{timeStr}</Text>
                         </View>
                         <View style={styles.eventRow}>
-                            <MapPin size={12} color="#64748b" />
-                            <Text style={styles.eventDetail}>{event.location}</Text>
+                            <MapPin size={12} color="#64748b" /><Text style={styles.eventDetail}>{event.location}</Text>
                         </View>
                     </View>
-                </TouchableOpacity>
-            ))}
-            <View style={{width: 20}} />
+                  </TouchableOpacity>
+                );
+            }) : (
+              <Text style={{ color: '#94a3b8', fontStyle: 'italic' }}>No upcoming events found.</Text>
+            )}
         </ScrollView>
 
-        {/* QUICK ACTIONS */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
-        <View style={styles.quickGrid}>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => navigation.navigate('MissionsTab', { userId })}>
-             <View style={[styles.quickIcon, { backgroundColor: '#e0f2fe' }]}>
-               <ScanLine size={24} color="#0284c7" />
-             </View>
-             <Text style={styles.quickText}>Scan QR</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => navigation.navigate('RankTab', { userId })}>
-             <View style={[styles.quickIcon, { backgroundColor: '#fef9c3' }]}>
-               <Trophy size={24} color="#ca8a04" />
-             </View>
-             <Text style={styles.quickText}>Leaderboard</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => navigation.navigate('ProfileTab', { userId })}>
-             <View style={[styles.quickIcon, { backgroundColor: '#dcfce7' }]}>
-               <History size={24} color="#16a34a" />
-             </View>
-             <Text style={styles.quickText}>History</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* PENDING MISSIONS */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Pending Reviews</Text>
-        </View>
-        <View style={styles.missionsList}>
-          {activeMissions.length > 0 ? activeMissions.map((sub) => (
-            <View key={sub._id} style={styles.missionCard}>
-              <View style={[styles.missionLeftStripe, { backgroundColor: '#eab308' }]} />
-              <View style={styles.missionContent}>
-                <Text style={styles.missionTitle}>{sub.missionTitle}</Text>
-                <Text style={styles.missionSdg}>Waiting for Admin Approval</Text>
-                <View style={styles.miniProgressContainer}>
-                  {/* Changed ActivityIndicator to just a simple icon/text to save space if needed */}
-                  <Clock size={14} color="#ca8a04" />
-                  <Text style={[styles.miniProgressText, {marginLeft: 8, color: '#ca8a04'}]}>Processing...</Text>
-                </View>
-              </View>
-            </View>
-          )) : (
-            <View style={styles.emptyState}>
-              <Text style={{color: '#94a3b8', marginBottom: 8}}>No pending missions.</Text>
-            </View>
-          )}
+        {/* DID YOU KNOW? */}
+        <Text style={styles.sectionTitle}>Did You Know?</Text>
+        <View style={styles.tipCard}>
+          <Lightbulb size={24} color="#eab308" style={{ marginBottom: 10 }} />
+          <Text style={styles.tipText}>"{dailyTip}"</Text>
         </View>
 
         <View style={{ height: 50 }} />
@@ -278,6 +316,7 @@ const styles = StyleSheet.create({
   greeting: { fontSize: 13, color: '#64748b', fontWeight: '500' },
   username: { fontSize: 20, fontWeight: '800', color: '#0f172a' },
   bellButton: { width: 45, height: 45, backgroundColor: 'white', borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+  redDot: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#ef4444', borderWidth: 1, borderColor: 'white' },
 
   // RANK CARD
   rankCard: { 
@@ -308,9 +347,24 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 11, color: '#64748b', marginTop: 2 },
   statDivider: { width: 1, backgroundColor: '#f1f5f9', height: '80%', alignSelf: 'center' },
 
+  // SECTIONS
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a' },
+  seeAllText: { fontSize: 13, fontWeight: '600', color: '#3b82f6' },
+
+  // FEATURED CARD
+  featuredCard: { borderRadius: 20, padding: 20, marginBottom: 30, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5 },
+  featuredContent: { },
+  featuredBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, marginBottom: 10, gap: 5 },
+  featuredBadgeText: { fontWeight: '800', fontSize: 12 },
+  featuredTitle: { fontSize: 22, fontWeight: '800', color: 'white', marginBottom: 5 },
+  featuredDesc: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginBottom: 15, lineHeight: 20 },
+  featuredBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  featuredBtnText: { color: 'white', fontWeight: '700', fontSize: 14 },
+
   // EVENTS SECTION
-  eventsScroll: { marginHorizontal: -20, paddingHorizontal: 20, marginBottom: 30 },
-  eventCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 16, padding: 10, marginRight: 15, width: 260, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  eventsScroll: { marginHorizontal: -20, paddingHorizontal: 20, marginBottom: 15 },
+  eventCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 16, padding: 10, marginRight: 15, width: 280, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
   dateBadge: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   dateText: { color: 'white', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
   dateNum: { color: 'white', fontSize: 18, fontWeight: '800' },
@@ -319,26 +373,9 @@ const styles = StyleSheet.create({
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 },
   eventDetail: { fontSize: 11, color: '#64748b' },
 
-  // SECTIONS
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 15 },
-  
-  // QUICK ACTIONS
-  quickGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 30 },
-  quickActionItem: { flex: 1, alignItems: 'center', backgroundColor: 'white', padding: 15, borderRadius: 16, marginHorizontal: 4, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 5, elevation: 2 },
-  quickIcon: { width: 45, height: 45, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  quickText: { fontSize: 12, fontWeight: '600', color: '#475569' },
-
-  // MISSIONS LIST
-  missionsList: { marginBottom: 30 },
-  missionCard: { backgroundColor: 'white', borderRadius: 16, marginBottom: 12, flexDirection: 'row', alignItems: 'center', paddingRight: 15, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', elevation: 1 },
-  missionLeftStripe: { width: 6, height: '100%' },
-  missionContent: { flex: 1, padding: 15, paddingLeft: 12 },
-  missionTitle: { fontSize: 15, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
-  missionSdg: { fontSize: 12, color: '#64748b', fontWeight: '500', marginBottom: 10 },
-  miniProgressContainer: { flexDirection: 'row', alignItems: 'center' },
-  miniProgressText: { fontSize: 11, color: '#64748b', fontWeight: '600' },
-  emptyState: { padding: 30, alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', borderStyle: 'dashed' },
+  // TIP CARD
+  tipCard: { backgroundColor: '#fefce8', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#fef08a', alignItems: 'center' },
+  tipText: { fontSize: 14, color: '#854d0e', fontStyle: 'italic', textAlign: 'center', lineHeight: 22, fontWeight: '500' },
 });
 
 export default HomeScreen;
