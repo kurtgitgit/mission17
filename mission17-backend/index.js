@@ -27,10 +27,10 @@ app.use(helmet());
 // Limits each IP to 100 requests every 15 minutes.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, 
-  max: 100,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
-  message: "Too many requests from this IP, please try again later."
+  message: { message: "Too many requests from this IP, please try again later." }
 });
 app.use('/api', limiter);
 
