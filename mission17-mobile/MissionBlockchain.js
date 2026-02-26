@@ -1,51 +1,36 @@
-import 'react-native-get-random-values';
-import "@ethersproject/shims";
-import { ethers } from 'ethers';
+// SECURE CODE: This file has been refactored to remove all private keys and blockchain logic.
+// It now communicates with a secure, server-side endpoint to record missions.
+// This prevents attackers from stealing the wallet key from the mobile app.
 
-// 1. CONFIGURATION
-// Use the "System Relayer" wallet to pay gas fees automatically for the demo.
-// (Replace this with a throwaway Sepolia private key)
-const RELAYER_PRIVATE_KEY = "10d698830d3664cb60fd8e6ddbcf82831aaad83524b5047ed501d6cee5b81c3f"; 
-const CONTRACT_ADDRESS = "0x7be6222f43d15D8e3001a7679bf769486F333F18"; // Your address
+// IMPORTANT: Replace with your backend server's IP address. For local development, this is often your computer's IP.
+const API_URL = 'http://localhost:5001/api/blockchain/record'; 
 
-const CONTRACT_ABI = [
-  "function verifyMission(string memory _userId, string memory _missionTitle) public",
-  "event MissionVerified(string userId, string missionTitle, uint256 timestamp)"
-];
-
-// 2. CONNECT
-// We detect the version to prevent crashes (works for v5 AND v6)
-const getProvider = () => {
-    // Try v6 syntax first, fallback to v5
-    if (ethers.JsonRpcProvider) {
-        return new ethers.JsonRpcProvider("https://ethereum-sepolia.publicnode.com");
-    }
-    return new ethers.providers.JsonRpcProvider("https://ethereum-sepolia.publicnode.com");
-};
-
-// 3. THE MAIN FUNCTION
-// We simplified the arguments so your UI doesn't need to pass a key.
 export const saveMissionToBlockchain = async (userId, missionTitle) => {
-    console.log("🔗 Blockchain: Initializing...");
+    console.log("🔗 Blockchain: Securely submitting to backend...");
     
     try {
-        const provider = getProvider();
-        const wallet = new ethers.Wallet(RELAYER_PRIVATE_KEY, provider);
-        const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ userId, missionTitle }),
+        });
 
-        console.log(`📤 Sending Transaction for ${userId}...`);
-        
-        // Send the transaction
-        const tx = await contract.verifyMission(userId, missionTitle);
-        console.log("✅ Transaction Hash:", tx.hash);
+        const result = await response.json();
 
-        // For the demo, we return the Hash immediately so the UI is fast.
-        // We don't wait for mining (it takes too long for a live presentation).
-        return tx.hash;
+        if (!response.ok) {
+            // If the server responded with an error, log it and use the fallback hash.
+            console.error("❌ Backend Error:", result.error || 'Unknown error');
+            return result.hash || `0xCLIENT_ERROR_${Date.now()}`;
+        }
+
+        console.log("✅ Transaction submitted by backend. Hash:", result.hash);
+        return result.hash;
 
     } catch (error) {
-        console.error("❌ Blockchain Error:", error);
-        // Fallback: If it fails (e.g., no gas), return a fake hash so the presentation continues!
-        return "0xDEMO_HASH_" + Math.floor(Math.random() * 1000000000);
+        console.error("❌ Network or Fetch Error:", error);
+        // Fallback: If the fetch call itself fails (e.g., network error), return a fake hash.
+        return "0xNETWORK_ERROR_" + Math.floor(Math.random() * 1000000000);
     }
 };

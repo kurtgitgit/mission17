@@ -10,7 +10,12 @@ const SubmissionSchema = new mongoose.Schema({
   imageUri: String, 
   
   status: { type: String, default: 'Pending' }, // Pending, Approved, Rejected
-  createdAt: { type: Date, default: Date.now }
+  rejectionReason: { type: String },
+  blockchainTxHash: { type: String },
+  createdAt: { type: Date, default: Date.now, index: true } // ⚡ Added index for sorting
 });
+
+// Create a compound index for faster user-specific history lookups
+SubmissionSchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model('Submission', SubmissionSchema);

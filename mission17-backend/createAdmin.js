@@ -16,18 +16,19 @@ const createAdmin = async () => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash("admin123", salt); // CHANGE THIS PASSWORD IF YOU WANT
 
-    // 3. Create the Admin User
-    const newAdmin = new User({
-      username: "SuperAdmin",
-      email: "admin@mission17.com",
-      password: hashedPassword,
-      role: "admin", // <--- This grants the power
-      points: 9999
-    });
+    // 3. Create OR Update the Admin User (Upsert)
+    await User.findOneAndUpdate(
+      { email: "admin@mission17.com" },
+      {
+        username: "SuperAdmin",
+        password: hashedPassword,
+        role: "admin",
+        points: 9999
+      },
+      { upsert: true, new: true }
+    );
 
-    // 4. Save to DB
-    await newAdmin.save();
-    console.log("🚀 Admin Account Created Successfully!");
+    console.log("🚀 Admin Account Created/Updated Successfully!");
     console.log("📧 Email: admin@mission17.com");
     console.log("🔑 Pass: admin123");
     
@@ -35,11 +36,7 @@ const createAdmin = async () => {
     process.exit();
     
   } catch (err) {
-    if (err.code === 11000) {
-      console.log("⚠️  Admin already exists.");
-    } else {
-      console.log("❌ Error:", err);
-    }
+    console.log("❌ Error:", err);
     process.exit();
   }
 };

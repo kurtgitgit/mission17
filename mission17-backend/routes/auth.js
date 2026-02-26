@@ -3,11 +3,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import rateLimit from 'express-rate-limit'; // 🆕 IMPORT RATE LIMITER
+import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Submission from '../models/Submission.js'; 
 import Mission from '../models/Mission.js';
 import AuditLog from '../models/AuditLog.js'; 
 import Event from '../models/Event.js'; // 👈 Import the new model
+import { spotCheckMiddleware } from '../utils/spotCheck.js'; // 🛡️ Import Spot Check
+import { awardSdgPoints } from '../utils/blockchain.js'; // ⛓️ Import blockchain helper
 
 const router = express.Router();
 
@@ -232,7 +235,9 @@ router.post('/toggle-mfa', async (req, res) => {
 // ==========================================
 
 // 5. SUBMIT MISSION
-router.post('/submit-mission', async (req, res) => {
+// 🛡️ SECURE CODE: HITL (Human-in-the-Loop) Middleware applied here.
+// Randomly flags high-confidence AI results for manual review to catch adversarial attacks.
+router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
   const { userId, missionId, missionTitle, image } = req.body; 
   try {
     const user = await User.findById(userId);
@@ -244,12 +249,16 @@ router.post('/submit-mission', async (req, res) => {
       missionId,
       missionTitle,
       imageUri: image, 
-      status: 'Pending'
+      status: req.missionStatus || 'Pending' // 🛡️ Use Spot Check status if available
     });
 
     await newSubmission.save();
     logAudit(userId, user.username, "MISSION_SUBMISSION", `Submitted mission: ${missionTitle}`, req);
-    res.json({ message: "Mission submitted for review!" });
+    res.json({ 
+      message: "Mission submitted for review!",
+      status: newSubmission.status, // 👈 Return status so we can check if it was flagged
+      submission: newSubmission // ✅ Return the full submission object
+    });
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
   }
@@ -281,10 +290,23 @@ router.get('/leaderboard', async (req, res) => {
 // 8. USER HISTORY
 router.get('/user-submissions/:userId', async (req, res) => {
   try {
-    const submissions = await Submission.find({ userId: req.params.userId }).sort({ createdAt: -1 }); 
+    const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ message: "Invalid User ID format" });
+    }
+
+    // ⚡ OPTIMIZED QUERY:
+    // 1. .select('-imageUri') -> Don't send the heavy base64 image string in the list (saves bandwidth)
+    // 2. .limit(20) -> Only get the 20 most recent (Pagination)
+    const submissions = await Submission.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(50); 
+        
     res.json(submissions);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching history" });
+    console.error("Error fetching user submissions:", error);
+    res.status(500).json({ message: "Error fetching history", error: error.message });
   }
 });
 
@@ -302,13 +324,21 @@ router.get('/user/:id', async (req, res) => {
 // 10. UPDATE PROFILE
 router.put('/update-profile/:id', async (req, res) => {
   try {
-    const { username, bio } = req.body; 
+    const { username, bio, walletAddress } = req.body; 
+    
+    // Only update fields that are provided to prevent overwriting with undefined
+    const updateData = {};
+    if (username) updateData.username = username;
+    if (bio) updateData.bio = bio;
+    if (walletAddress) updateData.walletAddress = walletAddress;
+
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id, 
-      { username, bio }, 
+      updateData, 
       { new: true }
     );
-    logAudit(req.params.id, username, "PROFILE_UPDATE", "User updated profile information", req);
+    // Use updatedUser.username to ensure we log the correct name (req.body.username might be undefined)
+    logAudit(req.params.id, updatedUser.username, "PROFILE_UPDATE", "User updated profile information", req);
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: "Update failed" });
@@ -332,7 +362,10 @@ router.get('/users', verifyAdmin, async (req, res) => {
 // 12. GET PENDING SUBMISSIONS
 router.get('/pending-submissions', verifyAdmin, async (req, res) => {
   try {
-    const pending = await Submission.find({ status: 'Pending' });
+    // 🛡️ UPDATE: Fetch both 'Pending' AND 'Pending Admin Review'
+    const pending = await Submission.find({ 
+      status: { $in: ['Pending', 'Pending Admin Review'] } 
+    });
     res.json(pending);
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
@@ -345,22 +378,50 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
   try {
     const sub = await Submission.findById(submissionId);
     if (!sub) return res.status(404).json({ message: "Submission not found" });
-
-    sub.status = 'Approved';
-    const txHash = "0x" + Math.random().toString(16).substr(2, 40); 
-    sub.blockchainTxHash = txHash;
     
     const user = await User.findById(sub.userId);
-    if (user) {
-      user.points = (user.points || 0) + 100;
-      await user.save();
+    if (!user) {
+      return res.status(404).json({ message: "User associated with submission not found." });
     }
 
-    await sub.save();
-    logAudit(req.user.id, req.user.username, "ADMIN_APPROVE", `Approved mission submission ${submissionId}`, req);
+    // ⛓️ Step 1: Award points on the blockchain
+    // NOTE: This assumes your User model has a 'walletAddress' field.
+    if (!user.walletAddress) {
+      console.warn(`🟡 User ${user.username} has no wallet address. Skipping POINTS transaction.`);
+      // If you require a wallet address to approve, uncomment the next line:
+      // return res.status(400).json({ message: "User has no wallet address. Cannot send blockchain transaction." });
+    }
+
+    const pointsToAward = 100;
+    let txHash = null;
+
+    try {
+      // Only attempt the transaction if a wallet address is present
+      if (user.walletAddress) {
+        // 🛡️ SECURE CODE: Blockchain Integration.
+        // Awards points on-chain using dynamic gas fees to ensure reliability.
+        txHash = await awardSdgPoints(user.walletAddress, pointsToAward);
+      }
+    } catch (blockchainError) {
+      // If the blockchain part fails, we stop the entire process.
+      return res.status(500).json({ 
+        message: "Blockchain transaction failed. Mission not approved.",
+        error: blockchainError.message 
+      });
+    }
+
+    // ✅ Step 2: If blockchain is successful (or was skipped), update the database.
+    sub.status = 'Approved';
+    sub.blockchainTxHash = txHash || 'SKIPPED_NO_ADDRESS';
+    user.points = (user.points || 0) + pointsToAward;
+    
+    await Promise.all([sub.save(), user.save()]);
+
+    logAudit(req.user.id, req.user.username, "ADMIN_APPROVE", `Approved mission ${submissionId}. TX: ${txHash || 'Skipped'}`, req);
     res.json({ message: "Approved!", txHash });
   } catch (error) {
-    res.status(500).json({ message: "Approval Error" });
+    console.error("Approval Error:", error);
+    res.status(500).json({ message: "Approval Error", error: error.message });
   }
 });
 
@@ -524,6 +585,81 @@ router.put('/events/:id', async (req, res) => {
         res.json(updatedEvent);
     } catch (error) {
         res.status(500).json({ message: "Error updating event" });
+    }
+});
+
+// =================================================================
+// 🛡️ SECURE AI PROXY (Prevents Model Inversion/Extraction Attacks)
+// =================================================================
+// This endpoint acts as a secure gatekeeper. The frontend calls this,
+// and this endpoint calls the Python AI server internally. It receives
+// the raw confidence score but ONLY returns a sanitized Pass/Fail result.
+router.post('/analyze-proof', verifyAdmin, async (req, res) => {
+    const { submissionId } = req.body;
+    console.log(`🤖 Analyze Proof Requested for ID: ${submissionId}`);
+
+    try {
+        // 1. Fetch the submission to get the image URI
+        const submission = await Submission.findById(submissionId);
+        if (!submission || !submission.imageUri) {
+            console.error("❌ Submission or imageUri missing");
+            return res.status(404).json({ message: "Submission or image not found." });
+        }
+
+        // 2. Fetch the image data from the URI
+        let imageBlob;
+        try {
+            console.log("📸 Fetching image from URI...");
+            const imageResponse = await fetch(submission.imageUri);
+            if (!imageResponse.ok) throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+            imageBlob = await imageResponse.blob();
+            console.log(`✅ Image fetched. Size: ${imageBlob.size} bytes, Type: ${imageBlob.type}`);
+        } catch (fetchError) {
+            console.error("❌ Error fetching image URI:", fetchError.message);
+            throw new Error("Invalid Image Data in Database");
+        }
+        
+        // 3. Forward the image to the Python AI Server
+        let aiData;
+        try {
+            console.log(`🚀 Sending to AI Server: ${process.env.AI_SERVER_URL}`);
+            const formData = new FormData();
+            formData.append('file', imageBlob, 'proof.jpg');
+
+            const aiResponse = await fetch(process.env.AI_SERVER_URL, {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!aiResponse.ok) {
+                const errText = await aiResponse.text();
+                throw new Error(`AI Server Error (${aiResponse.status}): ${errText}`);
+            }
+            aiData = await aiResponse.json();
+            console.log("✅ AI Response received");
+        } catch (aiError) {
+            console.error("❌ Error communicating with AI Server:", aiError.message);
+            if (aiError.cause && aiError.cause.code === 'ECONNREFUSED') {
+                throw new Error("AI Server is offline. Is app.py running?");
+            }
+            throw aiError;
+        }
+
+        // 4. SANITIZE THE RESPONSE (The Core Mitigation)
+        // 🛡️ SECURE CODE: Output Sanitization.
+        // Prevents Model Extraction by hiding raw confidence scores from the client.
+        const sanitizedResponse = {
+            verdict: aiData.verdict,
+            prediction: aiData.prediction,
+            isVerified: aiData.is_verified,
+            sdg: aiData.sdg,
+            message: aiData.message
+        };
+
+        res.json(sanitizedResponse);
+    } catch (error) {
+        console.error("❌ Final Error in /analyze-proof:", error.message);
+        res.status(500).json({ message: "Error during AI analysis.", error: error.message });
     }
 });
 

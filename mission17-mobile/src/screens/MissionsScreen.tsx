@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image, 
   Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal 
 } from 'react-native';
-import { GlobalState } from '../config/api';
+import { GlobalState, endpoints } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import { MapPin, Clock, X, Calendar, Target } from 'lucide-react-native';
 
@@ -17,17 +17,14 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
   const userId = route.params?.userId || GlobalState.userId;
 
-  // ⚠️ REPLACE 'localhost' with your computer's IP (e.g. 192.168.1.5) if using a physical device
-  const API_URL = "http://192.168.1.101:5001";
-
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const missionRes = await fetch(`${API_URL}/api/auth/all-missions`);
+        const missionRes = await fetch(endpoints.missions);
         const missionData = await missionRes.json();
         setMissions(missionData);
 
-        const eventRes = await fetch(`${API_URL}/api/auth/events`);
+        const eventRes = await fetch(endpoints.events);
         const eventData = await eventRes.json();
         setEvents(eventData);
       } catch (error) {

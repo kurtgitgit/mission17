@@ -25,6 +25,12 @@ const UserSchema = new mongoose.Schema({
   completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],
 
   // ==================================================
+  // ⛓️ NEW FIELD FOR BLOCKCHAIN INTEGRATION
+  // ==================================================
+  walletAddress: { type: String, default: null },
+
+
+  // ==================================================
   // 🛡️ NEW FIELDS FOR MFA (Multi-Factor Auth)
   // ==================================================
   mfaEnabled: { 

@@ -29,15 +29,12 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  // ⚠️ REPLACE 'localhost' with your computer's IP (e.g. 192.168.1.5) if using a physical device
-  const API_URL = "http://192.168.1.101:5001";
-
   const fetchProfileData = async () => {
     try {
       const userRes = await fetch(endpoints.auth.getUser(userId));
       const userJson = await userRes.json();
       
-      const histRes = await fetch(`${API_URL}/api/auth/user-submissions/${userId}`);
+      const histRes = await fetch(endpoints.auth.getUserSubmissions(userId));
       const histJson = await histRes.json();
 
       setUserData(userJson);
