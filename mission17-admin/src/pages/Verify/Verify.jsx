@@ -6,8 +6,9 @@ import {
 } from 'lucide-react'; 
 import '../../styles/Verify.css';
 
-// 🔗 YOUR SMART CONTRACT ADDRESS
-const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x7be6222f43d15D8e3001a7679bf769486F333F18";
+// 🔗 YOUR SMART CONTRACT ADDRESS (POINTS LEDGER)
+// ✅ UPDATED: Your confirmed Proxy Address
+const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x79f116E8e42788C07B384615872A1aD1c24b2e40";
 
 const Verify = () => {
   const [submissions, setSubmissions] = useState([]);
@@ -21,7 +22,6 @@ const Verify = () => {
   const [analysisResults, setAnalysisResults] = useState({});
 
   const API_BASE = "http://localhost:5001/api/auth";
-  const AI_URL = "http://127.0.0.1:5000/predict"; 
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
@@ -56,37 +56,35 @@ const Verify = () => {
     setAnalyzingId(submission._id);
 
     try {
-      const res = await fetch(submission.imageUri);
-      const blob = await res.blob();
-      const file = new File([blob], "proof.jpg", { type: "image/jpeg" });
-
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const aiResponse = await fetch(AI_URL, {
+      // 🔒 SECURE: Call Backend Proxy instead of Python AI directly
+      // 🛡️ SECURE CODE: Secure Proxy Call.
+      // The frontend never talks to the AI directly, preventing Model Inversion attacks.
+      const backendResponse = await fetch(`${API_BASE}/analyze-proof`, {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+            'auth-token': getToken()
+          },
+          body: JSON.stringify({ submissionId: submission._id })
       });
 
-      const data = await aiResponse.json();
+      const data = await backendResponse.json();
+
+      if (!backendResponse.ok) throw new Error(data.message || "Analysis failed");
 
       let reasons = [];
-      let status = data.verdict || "ANALYSIS COMPLETE";
-      let isPositive = data.is_planting || data.is_recyclable;
+      // Backend now returns sanitized data matching app.py's new logic
+      let status = data.verdict; 
+      let isPositive = data.isVerified;
 
-      if (data.error) {
-          status = "AI ERROR";
-          reasons.push(`❌ ${data.error}`);
-      } else {
-          reasons.push(`🏷️ Detected: ${data.prediction}`);
-          reasons.push(`🎯 Confidence: ${data.confidence}`);
-          
-          if (data.is_planting) {
-            reasons.push("🌳 SDG 13/15: Climate Action Verified");
-          } else if (data.is_recyclable) {
-            reasons.push("♻️ SDG 12: Sustainable Materials Verified");
-          }
+      reasons.push(`🏷️ Detected: ${data.prediction}`);
+      
+      if (data.sdg && data.sdg !== "N/A") {
+        reasons.push(`🌍 ${data.sdg} Verified`);
       }
+      
+      // Note: Confidence score is HIDDEN from frontend for security
+      reasons.push(`📝 ${data.message}`);
 
       setAnalysisResults(prev => ({
           ...prev,
@@ -94,13 +92,13 @@ const Verify = () => {
             status, 
             reasons, 
             isPositive, 
-            isPlanting: data.is_planting 
+            isPlanting: data.sdg && data.sdg.includes("13") // Simple check for UI styling
           }
       }));
 
     } catch (error) {
-      console.error("AI Server Error:", error);
-      alert("AI Server Offline. Ensure Port 5000 is running.");
+      console.error("AI Analysis Error:", error);
+      alert(`AI Analysis Failed: ${error.message}`);
     } finally {
       setAnalyzingId(null);
     }
@@ -172,6 +170,7 @@ const Verify = () => {
             {submissions.map((sub) => {
               const aiResult = analysisResults[sub._id];
               const hasImage = sub.imageUri && sub.imageUri.length > 5; 
+              const isFlagged = sub.status === 'Pending Admin Review';
 
               return (
                 <div key={sub._id} className="verify-card">
@@ -181,6 +180,19 @@ const Verify = () => {
                     <div className="text-details">
                       <h3 className="user-name">{sub.username}</h3>
                       <p className="mission-name">Mission: <strong>{sub.missionTitle}</strong></p>
+                      
+                      {isFlagged && (
+                        <div style={{ 
+                          display: 'inline-flex', alignItems: 'center', gap: '4px', 
+                          backgroundColor: '#fff7ed', color: '#c2410c', 
+                          padding: '2px 8px', borderRadius: '4px', 
+                          fontSize: '0.75rem', fontWeight: 'bold', border: '1px solid #fdba74',
+                          marginBottom: '6px'
+                        }}>
+                          <AlertTriangle size={12} />
+                          <span>Security Spot Check</span>
+                        </div>
+                      )}
                       
                       <div className="blockchain-tag">
                         <ShieldCheck size={12} color="#10b981" /> 

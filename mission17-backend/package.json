@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "ethers": "^6.16.0",
     "express": "^4.21.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
@@ -26,6 +28,7 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "jest": "^30.2.0",
     "nodemon": "^3.1.9"
   }
 }

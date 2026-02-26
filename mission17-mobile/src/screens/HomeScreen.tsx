@@ -46,9 +46,6 @@ const HomeScreen: React.FC = () => {
   const [dailyTip, setDailyTip] = useState(ECO_TIPS[0]);
   const [events, setEvents] = useState<any[]>([]);
 
-  // ⚠️ REPLACE 'localhost' with your computer's IP (e.g. 192.168.1.5) if using a physical device
-  const API_URL = "http://192.168.1.101:5001";
-
   const fetchUserData = async () => {
     if (!userId) return;
 
@@ -79,8 +76,7 @@ const HomeScreen: React.FC = () => {
 
       // 3. 👇 NEW: Calculate Global Rank
       // We fetch the leaderboard (which is already sorted by points) and find our index
-      const leaderboardRes = await fetch(`${endpoints.auth.signup.replace('/signup', '')}/leaderboard`); 
-      // (Using a trick to get base URL, or you can add 'leaderboard' to api.ts)
+      const leaderboardRes = await fetch(endpoints.auth.leaderboard); 
       
       let globalRank = '--';
       if (leaderboardRes.ok) {
@@ -95,7 +91,7 @@ const HomeScreen: React.FC = () => {
       }
 
       // 4. Get Featured Mission (Random)
-      const missionsRes = await fetch(`${API_URL}/api/auth/all-missions`);
+      const missionsRes = await fetch(endpoints.missions);
       if (missionsRes.ok) {
         const missions = await missionsRes.json();
         if (missions.length > 0) {
@@ -104,7 +100,7 @@ const HomeScreen: React.FC = () => {
       }
 
       // 5. Get Events
-      const eventsRes = await fetch(`${API_URL}/api/auth/events`);
+      const eventsRes = await fetch(endpoints.events);
       if (eventsRes.ok) {
         const eventsData = await eventsRes.json();
         setEvents(eventsData);
