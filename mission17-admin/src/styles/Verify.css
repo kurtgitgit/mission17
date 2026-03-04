@@ -1,10 +1,353 @@
-/* Page Layout */
+/* ============================================================
+   VERIFY PAGE — full redesign
+   ============================================================ */
+
 .verify-container {
-  padding: 1rem;
+  padding: 1.5rem 1.5rem 3rem;
   font-family: 'Inter', sans-serif;
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
 }
+
+/* ── Header ── */
+.verify-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-title  { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px 0; }
+.page-subtitle { color: #64748b; font-size: 13px; margin: 0; }
+
+.header-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 20px;
+  min-width: 72px;
+}
+.header-stat-number { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; }
+.header-stat-label  { font-size: 11px; color: #64748b; font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Card ── */
+.submissions-list { display: flex; flex-direction: column; gap: 14px; }
+
+.verify-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #e2e8f0; /* overridden inline by verdict color */
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  padding: 18px 20px;
+  display: grid;
+  grid-template-columns: 220px 1fr auto;
+  align-items: center;
+  gap: 20px;
+  transition: box-shadow 0.18s, transform 0.18s;
+}
+.verify-card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.07);
+  transform: translateY(-1px);
+}
+
+/* ── Info section ── */
+.info-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 38px; height: 38px;
+  min-width: 38px;
+  background: #eff6ff;
+  color: #3b82f6;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.text-details { display: flex; flex-direction: column; gap: 3px; }
+.user-name    { margin: 0; font-size: 14px; font-weight: 700; color: #0f172a; }
+.mission-name { margin: 0; font-size: 12px; color: #475569; font-weight: 500; }
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.badge-spot  { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.badge-chain { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.badge-date  { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+
+/* ── AI Result card (centre) ── */
+.proof-section {
+  min-width: 0;
+}
+
+.ai-result-card {
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Verdict header */
+.ai-verdict-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ai-verdict-label { flex: none; }
+
+.sdg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  margin-left: auto;
+}
+
+/* Prediction row */
+.ai-prediction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.ai-label {
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.ai-class {
+  background: rgba(0,0,0,0.06);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 11px;
+  color: #0f172a;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.ai-message {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.rescan-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(0,0,0,0.06);
+  color: #475569;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s;
+}
+.rescan-btn:hover    { background: rgba(0,0,0,0.1); }
+.rescan-btn:disabled { opacity: 0.5; cursor: wait; }
+
+/* No-analysis state */
+.ai-pending-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ai-pending-msg {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.ai-scan-btn {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.3);
+}
+.ai-scan-btn:hover    { opacity: 0.9; transform: scale(1.03); }
+.ai-scan-btn:disabled { opacity: 0.65; cursor: wait; transform: none; }
+
+.btn-spinner {
+  width: 11px; height: 11px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Action section (right) ── */
+.action-section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 110px;
+}
+
+.action-divider {
+  height: 1px;
+  background: #e2e8f0;
+  margin: 2px 0;
+}
+
+.btn-view, .btn-ledger, .btn-approve, .btn-reject {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.btn-view   { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.btn-view:hover   { background: #e2e8f0; color: #0f172a; }
+.btn-view:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-ledger { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.btn-ledger:hover { background: #dbeafe; }
+
+.btn-approve { background: #dcfce7; color: #166534; }
+.btn-approve:hover { background: #16a34a; color: #fff; }
+
+.btn-reject  { background: #fee2e2; color: #991b1b; }
+.btn-reject:hover  { background: #ef4444; color: #fff; }
+
+/* ── Empty / Loading states ── */
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 14px;
+  border: 1px dashed #cbd5e1;
+}
+.empty-state h3 { margin: 12px 0 6px; color: #0f172a; font-size: 18px; }
+.empty-state p  { color: #64748b; margin: 0; font-size: 14px; }
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 80px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+.loading-spinner {
+  width: 32px; height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* ── Image Modal ── */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.88);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(6px);
+}
+.modal-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+.close-modal {
+  position: absolute;
+  top: -40px; right: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.modal-image {
+  display: block;
+  max-width: 100%;
+  max-height: 85vh;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .verify-card {
+    grid-template-columns: 1fr;
+  }
+  .action-section {
+    flex-direction: row;
+    flex-wrap: wrap;
+    min-width: auto;
+  }
+  .action-section .btn-view,
+  .action-section .btn-ledger,
+  .action-section .btn-approve,
+  .action-section .btn-reject { width: auto; flex: 1; }
+  .action-divider { display: none; }
+}
+
 
 .verify-header { margin-bottom: 30px; }
 .page-title { font-size: 24px; font-weight: 800; color: #0f172a; margin-bottom: 5px; }

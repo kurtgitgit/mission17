@@ -10,9 +10,12 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 
 // IMPORTS
-import authRoutes from './routes/auth.js';      
-import blockchainRoutes from './routes/blockchain.js';
-//import missionRoutes from './routes/missions.js'; 
+import authRoutes       from './routes/auth.js';          // signup, login, otp, mfa, password, audit-logs
+import submissionRoutes from './routes/submissions.js';   // submit, pending, approve, reject, analyze-proof
+import missionRoutes    from './routes/missions.js';      // mission CRUD
+import eventRoutes      from './routes/events.js';         // event CRUD
+import userRoutes       from './routes/users.js';          // user management
+import blockchainRoutes from './routes/blockchain.js';    // on-chain record endpoint
 
 // dotenv.config(); // Removed because we used import 'dotenv/config' at the top
 
@@ -67,9 +70,13 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cors());
 
 // --- ROUTES ---
-app.use('/api/auth', authRoutes);         
-app.use('/api/blockchain', blockchainRoutes);
-//app.use('/api/missions', missionRoutes);  
+// All route files share the /api/auth prefix — zero breaking changes for existing clients.
+app.use('/api/auth', authRoutes);        // Auth & security
+app.use('/api/auth', submissionRoutes);  // Submissions (incl. pending-submissions, analyze-proof)
+app.use('/api/auth', missionRoutes);     // Missions
+app.use('/api/auth', eventRoutes);       // Events
+app.use('/api/auth', userRoutes);        // Users & leaderboard
+app.use('/api/blockchain', blockchainRoutes); // Blockchain proxy
 
 // DATABASE
 const connectDB = async () => {
