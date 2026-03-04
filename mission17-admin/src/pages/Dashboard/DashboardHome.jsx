@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { Users, Activity, AlertCircle, CheckSquare, Trophy, User as UserIcon } from 'lucide-react';
 import '../../styles/DashboardHome.css';
+import { endpoints } from '../../config/api';
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({
@@ -16,41 +17,39 @@ const DashboardHome = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
-      // 🛡️ GET TOKEN FROM STORAGE
       const token = localStorage.getItem('token');
       const headers = { 'auth-token': token };
 
       try {
-        // 1. Fetch Users & Submissions (WITH HEADERS)
-        const [userRes, subRes, missionRes] = await Promise.all([
-          fetch("http://localhost:5001/api/auth/users", { headers }), // Protected
-          fetch("http://localhost:5001/api/auth/pending-submissions", { headers }), // Protected
-          fetch("http://localhost:5001/api/auth/all-missions") // Public
+        // Fetch all sources in parallel — use real approved count
+        const [userRes, pendingRes, approvedRes, missionRes] = await Promise.all([
+          fetch(endpoints.users.getAll,          { headers }),
+          fetch(endpoints.submissions.pending,   { headers }),
+          fetch(endpoints.submissions.approved,  { headers }),
+          fetch(endpoints.missions.getAll)  // Public
         ]);
 
-        if (!userRes.ok || !subRes.ok || !missionRes.ok) {
+        if (!userRes.ok || !pendingRes.ok || !approvedRes.ok || !missionRes.ok) {
            throw new Error("Failed to fetch dashboard data");
         }
 
-        const users = await userRes.json();
-        const subs = await subRes.json();
+        const users    = await userRes.json();
+        const pending  = await pendingRes.json();
+        const approved = await approvedRes.json();
         const missions = await missionRes.json();
 
-        // 2. Calculate Stats
         setStats({
-          volunteers: users.length,
+          volunteers:     users.length,
           activeMissions: missions.length,
-          pending: subs.length, // Pending API returns only pending
-          completed: users.reduce((acc, user) => acc + (user.completedMissions?.length || 0), 0) // Estimate completed
+          pending:        pending.length,
+          completed:      approved.length  // Real approved count
         });
 
-        // 3. Set Leaderboard (Top 5)
+        // Top 5 by points
         setLeaders([...users].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 5));
 
-        // 4. Set Recent Activity (Last 5 submissions)
-        // Since pending-submissions endpoint only returns pending, 
-        // this list will show items waiting for review.
-        setRecentActivity(subs.slice(0, 5));
+        // Last 5 pending submissions (no imageUri — already stripped from list)
+        setRecentActivity(pending.slice(0, 5));
 
       } catch (error) {
         console.error("Dashboard Load Error:", error);
