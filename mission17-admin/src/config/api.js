@@ -2,6 +2,9 @@
 const API_URL = "http://localhost:5001/api"; 
 
 export const endpoints = {
+  dashboard: {
+    summary: `${API_URL}/auth/dashboard-summary`,
+  },
   auth: {
     baseUrl: `${API_URL}/auth`,
     login: `${API_URL}/auth/login`,

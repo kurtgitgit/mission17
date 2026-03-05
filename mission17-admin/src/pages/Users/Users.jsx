@@ -181,23 +181,44 @@ const Users = () => {
               </div>
               
               <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
-                <input type="text" name="username" placeholder="Full Name / Org Name" value={formData.username} onChange={handleChange} required style={styles.input} />
-                <input type="email" name="email" placeholder="Email Address" value={formData.email} onChange={handleChange} required style={styles.input} />
-                
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Full Name / Org Name</label>
+                  <input type="text" name="username" placeholder="e.g. Juan dela Cruz" value={formData.username} onChange={handleChange} required style={styles.input} />
+                </div>
+
+                <div style={styles.fieldGroup}>
+                  <label style={styles.label}>Email Address</label>
+                  <input type="email" name="email" placeholder="e.g. juan@email.com" value={formData.email} onChange={handleChange} required style={styles.input} />
+                </div>
+
                 {!isEditing && (
-                   <input type="password" name="password" placeholder="Password" value={formData.password} onChange={handleChange} required style={styles.input} />
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Password</label>
+                    <input type="password" name="password" placeholder="Set initial password" value={formData.password} onChange={handleChange} required style={styles.input} />
+                  </div>
                 )}
 
                 <div style={{display: 'flex', gap: '10px'}}>
-                  <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, flex: 1}}>
-                    <option value="student">Student</option>
-                    <option value="Teacher">Teacher</option>
-                    <option value="LGU">LGU (Local Govt)</option>
-                    <option value="NGO">NGO (Partner)</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                  
-                  <input type="number" name="points" placeholder="Points" value={formData.points} onChange={handleChange} style={{...styles.input, width: '80px'}} />
+                  <div style={{...styles.fieldGroup, flex: 1}}>
+                    <label style={styles.label}>Role</label>
+                    <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, width: '100%'}}>
+                      <option value="student">Student</option>
+                      <option value="Teacher">Teacher</option>
+                      <option value="LGU">LGU (Local Govt)</option>
+                      <option value="NGO">NGO (Partner)</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+
+                  <div style={styles.fieldGroup}>
+                    <label style={styles.label}>Points</label>
+                    {isEditing
+                      ? <div style={{...styles.input, width: '80px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', userSelect: 'none'}}>
+                          {formData.points}
+                        </div>
+                      : <input type="number" name="points" placeholder="0" value={formData.points} onChange={handleChange} style={{...styles.input, width: '80px'}} />
+                    }
+                  </div>
                 </div>
 
                 <button type="submit" style={styles.submitBtn}>
@@ -274,6 +295,8 @@ const styles = {
   addBtn: { backgroundColor: '#3b82f6', color: 'white', padding: '10px 20px', borderRadius: '8px', border: 'none', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: '600' },
   th: { padding: '16px', textAlign: 'left', fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
   td: { padding: '16px', fontSize: '14px', color: '#334155' },
+  fieldGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
+  label: { fontSize: '12px', fontWeight: '600', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' },
   input: { padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', width: '100%', boxSizing: 'border-box' },
   submitBtn: { marginTop: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
   actionBtn: (color) => ({ background: 'none', border: 'none', color: color, cursor: 'pointer', padding: '4px' }),
