@@ -17,6 +17,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import Submission from '../models/Submission.js';
 import User from '../models/User.js';
+import Mission from '../models/Mission.js';
 import AnalysisReport from '../models/AnalysisReport.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
@@ -411,6 +412,57 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
   } catch (error) {
     console.error('❌ Error in /analyze-proof:', error.message);
     res.status(500).json({ message: 'Error during AI analysis.', error: error.message });
+  }
+});
+
+// DASHBOARD SUMMARY — single endpoint for the admin dashboard
+// Runs all queries in parallel, returns only the fields the UI actually needs.
+router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
+  try {
+    const PENDING_STATUSES = ['Pending', 'Pending Admin Review'];
+
+    const [
+      volunteerCount,
+      missionCount,
+      pendingCount,
+      completedCount,
+      topAgents,
+      recentPending,
+    ] = await Promise.all([
+      // Stats — countDocuments is O(1) with indexes, no docs loaded into memory
+      User.countDocuments(),
+      Mission.countDocuments(),
+      Submission.countDocuments({ status: { $in: PENDING_STATUSES } }),
+      Submission.countDocuments({ status: 'Approved' }),
+
+      // Top 5 by points — only username + points fetched
+      User.find()
+        .select('username points')
+        .sort({ points: -1 })
+        .limit(5)
+        .lean(),
+
+      // Last 5 pending submissions — only display fields, no imageUri
+      Submission.find({ status: { $in: PENDING_STATUSES } })
+        .select('username missionTitle createdAt')
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
+
+    res.json({
+      stats: {
+        volunteers:     volunteerCount,
+        activeMissions: missionCount,
+        pending:        pendingCount,
+        completed:      completedCount,
+      },
+      topAgents,
+      recentPending,
+    });
+  } catch (error) {
+    console.error('❌ Error in /dashboard-summary:', error.message);
+    res.status(500).json({ message: 'Failed to load dashboard summary.' });
   }
 });
 
