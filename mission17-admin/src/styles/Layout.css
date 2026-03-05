@@ -8,7 +8,10 @@
 .main-content {
   margin-left: 260px; /* Must match Sidebar width */
   width: calc(100% - 260px);
-  min-height: 100vh;
+  height: 100vh;
   background-color: #f8fafc; /* Light gray background */
   padding: 20px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
 }

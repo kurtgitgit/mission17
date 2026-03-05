@@ -1,15 +1,15 @@
-﻿/**
+/**
  * Auth Routes
  * Location: routes/auth.js
  * Prefix:   /api/auth  (mounted in index.js)
  *
  * Handles ONLY authentication & account security:
- *  POST /signup          â€” Register new student
- *  POST /login           â€” Login (with MFA check)
- *  POST /verify-otp      â€” Submit MFA OTP code
- *  POST /toggle-mfa      â€” Enable / disable MFA
- *  PUT  /change-password â€” Change own password
- *  GET  /audit-logs      â€” Admin: view audit trail
+ *  POST /signup          — Register new student
+ *  POST /login           — Login (with MFA check)
+ *  POST /verify-otp      — Submit MFA OTP code
+ *  POST /toggle-mfa      — Enable / disable MFA
+ *  PUT  /change-password — Change own password
+ *  GET  /audit-logs      — Admin: view audit trail
  *
  * All other domains (submissions, missions, events, users)
  * are handled in their own route files.
@@ -27,12 +27,12 @@ import { logAudit, verifyAdmin } from '../utils/authMiddleware.js';
 const router = express.Router();
 
 // ==========================================
-// ðŸ“§ EMAIL HELPER (OTP)
+// 🔧 EMAIL HELPER (OTP)
 // ==========================================
 const sendOTP = async (user) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  console.log(`ðŸ” DEBUG OTP for ${user.email}: ${otp}`);
+  console.log(`🔍 DEBUG OTP for ${user.email}: ${otp}`);
 
   user.otpCode = otp;
   user.otpExpires = Date.now() + 10 * 60 * 1000;
@@ -49,26 +49,26 @@ const sendOTP = async (user) => {
       subject: 'Your Login Code',
       text: `Your Mission 17 verification code is: ${otp}. It expires in 10 minutes.`,
     });
-    console.log('âœ… Email sent successfully!');
+    console.log('✅ Email sent successfully!');
   } catch (error) {
-    console.error('âŒ Email Send Failed:', error);
+    console.error('❌ Email Send Failed:', error);
   }
 };
 
 // ==========================================
-// ðŸš¦ RATE LIMITER (Brute Force Protection)
+// 🚦 RATE LIMITER (Brute Force Protection)
 // ==========================================
-// ðŸ›¡ï¸ SECURE CODE: Rate Limiting for logins â€” max 5 attempts per 15 min per IP.
+// 🛡️ SECURE CODE: Rate Limiting for logins — max 5 attempts per 15 min per IP.
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
-  message: { message: 'â›” Too many login attempts, please try again after 15 minutes' },
+  message: { message: '⛔ Too many login attempts, please try again after 15 minutes' },
   standardHeaders: true,
   legacyHeaders: false,
 });
 
 // ==========================================
-// ðŸ”“ PUBLIC ROUTES
+// 🔓 PUBLIC ROUTES
 // ==========================================
 
 // 1. REGISTER
@@ -97,7 +97,7 @@ router.post('/signup', async (req, res) => {
     });
 
     await newUser.save();
-    // ðŸ“ LOG ACTION
+    // 🔒 LOG ACTION
     logAudit(newUser._id, newUser.username, "SIGNUP", "New user account created", req);
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
@@ -105,8 +105,8 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// 2. LOGIN (ðŸ›¡ï¸ UPDATED WITH MFA, AUDIT & RATE LIMITER)
-// ðŸ†• Added 'loginLimiter' middleware here
+// 2. LOGIN (🛡️ UPDATED WITH MFA, AUDIT & RATE LIMITER)
+// 🆕 Added 'loginLimiter' middleware here
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const email = req.body.email.toLowerCase().trim();
@@ -122,7 +122,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     if (req.body.isAdminLogin && user.role !== 'admin') {
       logAudit(user._id, user.username, "LOGIN_DENIED", "Unauthorized Admin login attempt", req);
-      return res.status(403).json({ message: "â›” Access Denied: Admins Only" });
+      return res.status(403).json({ message: "⛔ Access Denied: Admins Only" });
     }
 
     if (user.mfaEnabled) {
@@ -140,7 +140,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    // ðŸ“ LOG ACTION
+    // 🔒 LOG ACTION
     logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in successfully", req);
 
     const { password, ...others } = user._doc;
