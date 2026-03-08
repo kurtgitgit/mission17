@@ -72,10 +72,14 @@ def predict():
         # 2. Resize & Apply Histogram Equalization (Mitigate low-light bias)
         # 🛡️ SECURE CODE: Bias Mitigation.
         # Histogram Equalization normalizes lighting to prevent bias against low-light/indoor photos.
+        # 🛡️ SECURE CODE: ALGORITHMIC BIAS MITIGATION
         img = cv2.resize(img, (224, 224))
         img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
         img_rgb = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+
+        # 🛠️ DEBUG: Save the equalized image to verify bias mitigation
+        cv2.imwrite('debug_bias_mitigation.jpg', cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
 
         # 3. Normalize & Batch
         img_array = img_rgb.astype(np.float32) / 255.0

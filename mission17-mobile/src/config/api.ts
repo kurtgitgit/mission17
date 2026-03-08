@@ -1,8 +1,19 @@
 // src/config/api.ts
+import { Platform } from 'react-native';
 
-// 👇 REPLACE 'localhost' WITH YOUR PC'S IP IF USING A REAL PHONE
-// Example: const API_URL = "http://192.168.1.5:5001/api";
-const API_URL = "http://10.13.157.98:5001/api"; 
+// 1. CONFIGURATION
+// ⚠️ IMPORTANT: Update this IP address whenever your computer's network IP changes.
+// On Windows, run 'ipconfig' in a terminal to find your IPv4 Address.
+const LAN_IP = "10.13.157.98"; 
+
+// 👇 Automatically switch between localhost (for Web) and your IP (for Mobile)
+const API_URL = Platform.OS === 'web' 
+  ? "http://localhost:5001/api" 
+  : `http://${LAN_IP}:5001/api`; 
+
+if (Platform.OS !== 'web') {
+  console.log(`🚀 Mobile API URL: ${API_URL}`);
+}
 
 // 1. GLOBAL MEMORY
 export const GlobalState = {
@@ -26,3 +37,5 @@ export const endpoints = {
   missions: `${API_URL}/auth/all-missions`,
   events: `${API_URL}/auth/events`,
 };
+
+export default API_URL;

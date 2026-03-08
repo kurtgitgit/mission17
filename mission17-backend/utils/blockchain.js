@@ -38,6 +38,7 @@ export async function awardSdgPoints(recipientAddress, points) {
         console.log("⛽ Fetching current gas prices from Sepolia...");
         // 🛡️ SECURE CODE: Dynamic Gas Estimation (EIP-1559).
         // Prevents transactions from getting stuck by fetching real-time network fees.
+        // 🛡️ SECURE CODE: DYNAMIC GAS PRICING
         const feeData = await provider.getFeeData();
 
         console.log(`   - Max Fee Per Gas: ${ethers.formatUnits(feeData.maxFeePerGas, "gwei")} Gwei`);

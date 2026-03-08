@@ -112,7 +112,7 @@ const Login = () => {
                 <input 
                   type="text" 
                   name="email"
-                  placeholder="admin@mission17.com" 
+                  placeholder="Email Address" 
                   value={formData.email}
                   onChange={handleChange}
                   required 
@@ -128,7 +128,7 @@ const Login = () => {
                 <input 
                   type={showPassword ? "text" : "password"} 
                   name="password"
-                  placeholder="••••••••" 
+                  placeholder="Password" 
                   value={formData.password}
                   onChange={handleChange}
                   required 
