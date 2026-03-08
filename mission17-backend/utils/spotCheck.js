@@ -22,6 +22,7 @@ export const evaluateMissionStatus = (confidenceScore) => {
         // < 0.05 means the bottom 5% of probability.
         // 🛡️ SECURE CODE: Adversarial Attack Mitigation.
         // Randomly selects 5% of high-confidence submissions for manual review.
+        // 🛡️ SECURE CODE: HUMAN-IN-THE-LOOP
         if (Math.random() < 0.05) {
             console.log(`🛡️ HITL Triggered: High confidence (${confidenceScore}%) mission flagged for review.`);
             status = 'Pending Admin Review';

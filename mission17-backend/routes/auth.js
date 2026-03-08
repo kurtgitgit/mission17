@@ -11,6 +11,7 @@ import AuditLog from '../models/AuditLog.js';
 import Event from '../models/Event.js'; // 👈 Import the new model
 import { spotCheckMiddleware } from '../utils/spotCheck.js'; // 🛡️ Import Spot Check
 import { awardSdgPoints } from '../utils/blockchain.js'; // ⛓️ Import blockchain helper
+import { sanitizeAiResponse } from '../utils/privacy.js'; // 🛡️ Import Privacy Masking
 
 const router = express.Router();
 
@@ -94,6 +95,7 @@ const verifyAdmin = (req, res, next) => {
 // 🚦 RATE LIMITER (Prevents Brute Force)
 // ==========================================
 // 🆕 Added to satisfy "Rate limiting for logins"
+// 🛡️ SECURE CODE: NETWORK THROTTLING
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // Limit each IP to 5 login requests per window
@@ -648,13 +650,8 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
         // 4. SANITIZE THE RESPONSE (The Core Mitigation)
         // 🛡️ SECURE CODE: Output Sanitization.
         // Prevents Model Extraction by hiding raw confidence scores from the client.
-        const sanitizedResponse = {
-            verdict: aiData.verdict,
-            prediction: aiData.prediction,
-            isVerified: aiData.is_verified,
-            sdg: aiData.sdg,
-            message: aiData.message
-        };
+        // 🛡️ SECURE CODE: RESPONSE MASKING
+        const sanitizedResponse = sanitizeAiResponse(aiData);
 
         res.json(sanitizedResponse);
     } catch (error) {
