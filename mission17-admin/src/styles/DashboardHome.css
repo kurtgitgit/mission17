@@ -155,3 +155,38 @@
   margin-top: 4px;
   display: block;
 }
+
+/* --- SKELETON LOADING --- */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.stat-skeleton,
+.skeleton-line,
+.skeleton-circle {
+  display: inline-block;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
+.stat-skeleton {
+  width: 60px;
+  height: 28px;
+  border-radius: 6px;
+  margin-bottom: 4px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.skeleton-line.wide  { width: 140px; height: 14px; }
+.skeleton-line.narrow { width: 60px;  height: 14px; }
+.skeleton-circle      { width: 28px;  height: 28px; border-radius: 50%; flex-shrink: 0; }
