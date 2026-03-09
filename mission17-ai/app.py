@@ -1,4 +1,5 @@
 import os
+import traceback
 import numpy as np
 import cv2
 import io
@@ -68,6 +69,11 @@ def predict():
         # 1. Read image using OpenCV
         file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
         img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+        # 🔒 CHECK 4: Valid image content (catches corrupt or non-image files that
+        # pass the extension check)
+        if img is None:
+            return jsonify({'error': 'Uploaded file is not a valid or readable image.'}), 400
 
         # 2. Resize & Apply Histogram Equalization (Mitigate low-light bias)
         # 🛡️ SECURE CODE: Bias Mitigation.
@@ -187,7 +193,8 @@ def predict():
 
     except Exception as e:
         print(f"❌ Processing Error: {str(e)}")
-        return jsonify({'error': "Processing failed"}), 500
+        traceback.print_exc()
+        return jsonify({'error': "Processing failed", 'detail': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

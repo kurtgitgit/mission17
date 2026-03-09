@@ -6,11 +6,13 @@ import {
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 import '../../styles/Analytics.css'; 
+import { endpoints } from '../../config/api';
 
 const Analytics = () => {
   const [stats, setStats] = useState({
     pending: 0,
-    completed: 0,
+    approved: 0,
+    rejected: 0,
     activeAgents: 0,
     rate: 0,
     totalSubmissions: 0
@@ -26,39 +28,42 @@ const Analytics = () => {
       try {
         const headers = { 'auth-token': getToken() };
 
-        // 1. Fetch Data with Security Headers
-        const [subRes, userRes] = await Promise.all([
-          fetch("http://localhost:5001/api/auth/pending-submissions", { headers }),
-          fetch("http://localhost:5001/api/auth/users", { headers })
+        // Fetch all four data sources in parallel
+        const [pendingRes, approvedRes, rejectedRes, userRes] = await Promise.all([
+          fetch(endpoints.submissions.pending,  { headers }),
+          fetch(endpoints.submissions.approved, { headers }),
+          fetch(endpoints.submissions.rejected, { headers }),
+          fetch(endpoints.users.getAll,         { headers })
         ]);
 
-        if (!subRes.ok || !userRes.ok) throw new Error("Failed to fetch data");
+        if (!pendingRes.ok || !approvedRes.ok || !rejectedRes.ok || !userRes.ok)
+          throw new Error("Failed to fetch analytics data");
 
-        const pendingSubmissions = await subRes.json();
-        const allUsers = await userRes.json();
+        const pendingData  = await pendingRes.json();
+        const approvedData = await approvedRes.json();
+        const rejectedData = await rejectedRes.json();
+        const allUsers     = await userRes.json();
 
-        // 2. Calculate Logic (Fixed)
-        // Note: The pending-submissions endpoint ONLY gives us pending items.
-        // We calculate 'Completed' by summing up the completed missions from all users.
-        const p = pendingSubmissions.length; 
-        const a = allUsers.reduce((acc, user) => acc + (user.completedMissions?.length || 0), 0);
-        const r = 0; // We would need a specific endpoint to track rejected history reliably
-        
-        const totalProcessed = p + a;
-        const successRate = totalProcessed > 0 ? Math.round((a / totalProcessed) * 100) : 0;
+        const p = pendingData.length;
+        const a = approvedData.length;
+        const r = rejectedData.length;
+
+        const total = p + a + r;
+        const successRate = total > 0 ? Math.round((a / total) * 100) : 0;
 
         setStats({
-          pending: p,
-          completed: a,
-          activeAgents: allUsers.length,
-          rate: successRate,
-          totalSubmissions: totalProcessed
+          pending:          p,
+          approved:         a,
+          rejected:         r,
+          activeAgents:     allUsers.length,
+          rate:             successRate,
+          totalSubmissions: total
         });
 
         setPieData([
-          { name: 'Completed', value: a, color: '#22c55e' },
-          { name: 'Pending', value: p, color: '#f59e0b' },
-          // { name: 'Rejected', value: r, color: '#ef4444' }, // Hidden until backend supports history
+          { name: 'Approved',  value: a, color: '#22c55e' },
+          { name: 'Pending',   value: p, color: '#f59e0b' },
+          { name: 'Rejected',  value: r, color: '#ef4444' },
         ]);
 
       } catch (error) {
@@ -110,9 +115,19 @@ const Analytics = () => {
           <div className="stat-card">
             <div className="icon-wrapper green-icon"><CheckCircle size={24} /></div>
             <div className="stat-content">
-              <span className="stat-label">Missions Completed</span>
-              <h2 className="stat-value">{stats.completed}</h2>
+              <span className="stat-label">Missions Approved</span>
+              <h2 className="stat-value">{stats.approved}</h2>
               <span className="stat-trend trend-up">Verified & Points Awarded</span>
+            </div>
+          </div>
+
+          {/* Live Rejected Card */}
+          <div className="stat-card">
+            <div className="icon-wrapper" style={{background:'#fee2e2'}}><AlertTriangle size={24} color="#ef4444" /></div>
+            <div className="stat-content">
+              <span className="stat-label">Missions Rejected</span>
+              <h2 className="stat-value">{stats.rejected}</h2>
+              <span className="stat-trend" style={{color:'#ef4444'}}>Flagged Invalid</span>
             </div>
           </div>
 

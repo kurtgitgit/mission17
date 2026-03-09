@@ -48,6 +48,8 @@ const Events = () => {
         setFormData({ ...formData, [name]: value });
     };
 
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
     const openAddForm = () => {
         setIsEditing(false);
         setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6' });
@@ -69,6 +71,13 @@ const Events = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // Hard-block past dates regardless of what the picker allowed through
+        if (formData.date < today) {
+            alert("⚠️ Event date cannot be in the past. Please select today or a future date.");
+            return;
+        }
+
         const url = isEditing ? `${API_BASE}/events/${currentId}` : `${API_BASE}/events`;
         const method = isEditing ? 'PUT' : 'POST';
 
@@ -168,7 +177,7 @@ const Events = () => {
                             <div style={{display: 'flex', gap: '20px', marginBottom: '15px'}}>
                                 <div style={{flex: 1}}>
                                     <label style={styles.label}>Date</label>
-                                    <input type="date" name="date" value={formData.date} onChange={handleInputChange} required style={styles.input} />
+                                    <input type="date" name="date" value={formData.date} onChange={handleInputChange} required min={today} style={styles.input} />
                                 </div>
                                 <div style={{flex: 1}}>
                                     <label style={styles.label}>Time</label>
