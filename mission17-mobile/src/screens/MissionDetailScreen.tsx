@@ -1,25 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, 
-  Platform, SafeAreaView, Alert, ActivityIndicator, TextStyle 
+import {
+  View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
+  Platform, SafeAreaView, Alert, ActivityIndicator, TextStyle
 } from 'react-native';
 import { Camera, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy'; 
-import { endpoints } from '../config/api'; 
+import * as FileSystem from 'expo-file-system/legacy';
+import { endpoints } from '../config/api';
 
 // --- IMPORT BLOCKCHAIN SERVICE ---
 import { saveMissionToBlockchain } from '../../MissionBlockchain';
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
-  const { mission, userId } = route.params; 
-  
+  const { mission, userId } = route.params;
+
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
+  // 🎯 MODULE 10 FIX: Distinct state for AI Bottleneck latency
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
   // State to store the real user's name
-  const [username, setUsername] = useState<string>("Agent"); 
+  const [username, setUsername] = useState<string>("Agent");
 
   const hasImage = !!mission.image;
 
@@ -31,8 +34,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         const response = await fetch(endpoints.auth.getUser(userId));
         const data = await response.json();
         if (data && data.username) {
-            setUsername(data.username);
-            console.log("Active Agent identified:", data.username);
+          setUsername(data.username);
+          console.log("Active Agent identified:", data.username);
         }
       } catch (error) {
         console.error("Could not fetch username:", error);
@@ -48,10 +51,10 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, 
-      allowsEditing: true, 
-      aspect: [4, 3], 
-      quality: 0.5, 
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
     });
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
@@ -73,73 +76,115 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   };
 
   const handleSubmit = async () => {
-    if (!userId) { 
-        Platform.OS === 'web' ? window.alert("User ID missing") : Alert.alert("Error", "User ID missing."); 
-        return; 
+    if (!userId) {
+      Platform.OS === 'web' ? window.alert("User ID missing") : Alert.alert("Error", "User ID missing.");
+      return;
     }
-    if (!imageUri) { 
-        Platform.OS === 'web' ? window.alert("Please select an image") : Alert.alert("Error", "Please select an image."); 
-        return; 
+    if (!imageUri) {
+      Platform.OS === 'web' ? window.alert("Please select an image") : Alert.alert("Error", "Please select an image.");
+      return;
     }
 
     setLoading(true);
 
     try {
-      // Step A: Convert Image
+      // 🎯 MODULE 10 FIX: 1. Send to Python AI First
+      setIsAnalyzing(true);
+      // Step A: Convert Image to Base64 (Do this BEFORE AI upload)
       const imagePayload = await getBase64(imageUri);
       
-      // Step B: Send to Backend
+      const formData = new FormData();
+      if (Platform.OS === 'web') {
+        // Safe conversion of base64 to Blob for web
+        const base64Data = (imagePayload as string).split(',')[1];
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/jpeg' });
+        formData.append('file', blob, 'photo.jpg');
+      } else {
+        formData.append('file', {
+          uri: imageUri,
+          type: 'image/jpeg',
+          name: 'photo.jpg',
+        } as any);
+      }
+
+      // Note: 10.0.2.2 points to localhost on an Android Emulator. 
+      // If testing on a real phone, change this to your computer's IPv4 address (e.g. 192.168.1.5)
+      const aiIp = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+
+      // 👈 FETCH FIX: Removed headers so the browser/phone handles the boundary string
+      const aiResponse = await fetch(`http://${aiIp}:5000/predict`, {
+        method: 'POST',
+        body: formData
+      });
+
+      const aiResult = await aiResponse.json();
+      setIsAnalyzing(false); // Turn off AI spinner
+
+      // If AI rejects it, stop the submission process!
+      if (aiResult.verdict !== 'VERIFIED') {
+        Alert.alert('AI Verification Failed', 'The AI could not confidently identify a seedling. Please retake the photo.');
+        setLoading(false);
+        return;
+      }
+
+      // (imagePayload is already generated above)
+
+      // Step B: Send to Node.js Backend
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            userId, 
-            missionId: mission._id, 
-            missionTitle: mission.title,
-            image: imagePayload 
+        body: JSON.stringify({
+          userId,
+          missionId: mission._id,
+          missionTitle: mission.title,
+          image: imagePayload
         }),
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
-        
+
         // --- START BLOCKCHAIN SAVE ---
         try {
-            console.log("Backend success. Now saving to Blockchain...");
-            
-            // ✅ FIX: REMOVED THE 3RD ARGUMENT (PRIVATE KEY)
-            const txHash = await saveMissionToBlockchain(
-                `Agent ${username}`, 
-                mission.title
-            );
+          console.log("Backend success. Now saving to Blockchain...");
 
-            console.log("Blockchain Success! Hash:", txHash);
-            setSubmitted(true);
+          const txHash = await saveMissionToBlockchain(
+            `Agent ${username}`,
+            mission.title
+          );
 
-            // --- FIXED ALERT FOR WEB & MOBILE ---
-            const msg = `1. Saved to DB.\n2. Verified on Blockchain!\n\nHash:\n${txHash}`;
-            
-            if (Platform.OS === 'web') {
-                window.alert("🚀 Double Success!\n" + msg);
-                navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-            } else {
-                Alert.alert("🚀 Double Success!", msg, [
-                    { text: "Awesome!", onPress: () => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }) }
-                ]);
-            }
+          console.log("Blockchain Success! Hash:", txHash);
+          setSubmitted(true);
+
+          const msg = `1. Verified by AI!\n2. Saved to DB.\n3. Verified on Blockchain!\n\nHash:\n${txHash}`;
+
+          if (Platform.OS === 'web') {
+            window.alert("🚀 Triple Success!\n" + msg);
+            navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+          } else {
+            Alert.alert("🚀 Triple Success!", msg, [
+              { text: "Awesome!", onPress: () => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }) }
+            ]);
+          }
 
         } catch (blockchainError: any) {
-            console.error("Blockchain Failed:", blockchainError);
-            const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
-            
-            if (Platform.OS === 'web') {
-                window.alert(errorMsg);
-            } else {
-                Alert.alert("Saved to DB", errorMsg);
-            }
-            setSubmitted(true);
-            setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
+          console.error("Blockchain Failed:", blockchainError);
+          const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
+
+          if (Platform.OS === 'web') {
+            window.alert(errorMsg);
+          } else {
+            Alert.alert("Saved to DB", errorMsg);
+          }
+          setSubmitted(true);
+          setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
         }
         // --------------------------------
 
@@ -151,41 +196,42 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       alert("Connection Error. Check console logs.");
     } finally {
       setLoading(false);
+      setIsAnalyzing(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      
+
       {/* HERO HEADER */}
-      <View style={{height: 300, width: '100%'}}>
+      <View style={{ height: 300, width: '100%' }}>
         {hasImage ? (
-          <Image source={{ uri: mission.image }} style={{width: '100%', height: '100%'}} />
+          <Image source={{ uri: mission.image }} style={{ width: '100%', height: '100%' }} />
         ) : (
           <View style={{
-             width: '100%', 
-             height: '100%', 
-             backgroundColor: mission.color || '#3b82f6', 
-             justifyContent: 'center', 
-             alignItems: 'center'
+            width: '100%',
+            height: '100%',
+            backgroundColor: mission.color || '#3b82f6',
+            justifyContent: 'center',
+            alignItems: 'center'
           }}>
-             <Text style={styles.placeholderNumber}>
-               {mission.sdgNumber}
-             </Text>
+            <Text style={styles.placeholderNumber}>
+              {mission.sdgNumber}
+            </Text>
           </View>
         )}
 
         <View style={styles.imageOverlay} />
-        
+
         <SafeAreaView style={styles.safeAreaOverlay}>
-           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnCircle}>
-             <ChevronLeft size={24} color="#0f172a" />
-           </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnCircle}>
+            <ChevronLeft size={24} color="#0f172a" />
+          </TouchableOpacity>
         </SafeAreaView>
 
         <View style={styles.heroTextContainer}>
           <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-             <Text style={styles.badgeText}>SDG {mission.sdgNumber}</Text>
+            <Text style={styles.badgeText}>SDG {mission.sdgNumber}</Text>
           </View>
           <Text style={styles.heroTitle}>{mission.title}</Text>
         </View>
@@ -194,9 +240,9 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* BRIEF */}
         <View style={styles.section}>
-          <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15}}>
-             <Text style={styles.sectionTitle}>Mission Brief</Text>
-             <Text style={styles.pointsHighlight}>{mission.points} Points</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+            <Text style={styles.sectionTitle}>Mission Brief</Text>
+            <Text style={styles.pointsHighlight}>{mission.points} Points</Text>
           </View>
 
           <Text style={styles.description}>
@@ -224,12 +270,25 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        <TouchableOpacity 
+        {/* 🎯 MODULE 10 FIX: Dynamic AI Loading Button */}
+        <TouchableOpacity
           style={[styles.submitBtn, { backgroundColor: imageUri ? (mission.color || '#3b82f6') : '#cbd5e1' }]}
-          disabled={!imageUri || submitted || loading}
+          disabled={!imageUri || submitted || loading || isAnalyzing}
           onPress={handleSubmit}
         >
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.submitBtnText}>{submitted ? "Submitted!" : "Submit Mission"}</Text>}
+          {isAnalyzing ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.submitBtnText}>Analyzing AI...</Text>
+            </View>
+          ) : loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+              <Text style={styles.submitBtnText}>Saving to Blockchain...</Text>
+            </View>
+          ) : (
+            <Text style={styles.submitBtnText}>{submitted ? "Verified & Submitted!" : "Verify Seedling"}</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -259,7 +318,7 @@ const styles = StyleSheet.create({
   uploadBox: { borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed', borderRadius: 20, height: 180, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc', marginBottom: 30 },
   uploadIconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   uploadTitle: { color: '#64748b', fontWeight: '600' },
-  
+
   previewContainer: { alignItems: 'center', marginBottom: 30 },
   previewImage: { width: '100%', height: 200, borderRadius: 16, marginBottom: 10 },
   reselectText: { color: '#ef4444', fontWeight: '600' },

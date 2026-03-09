@@ -54,6 +54,12 @@ def predict():
     
     file = request.files['file']
 
+    # 👇 ADD THIS CHECK: Stop empty files from crashing the AI math!
+    file.seek(0, os.SEEK_END) # Go to end of file
+    if file.tell() == 0:      # If end of file is 0 bytes
+        return jsonify({"error": "Processing failed: Empty file"}), 400
+    file.seek(0)              # Reset back to start of file for reading
+
     # 🔒 CHECK 2: Empty Filename
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
@@ -194,7 +200,7 @@ def predict():
     except Exception as e:
         print(f"❌ Processing Error: {str(e)}")
         traceback.print_exc()
-        return jsonify({'error': "Processing failed", 'detail': str(e)}), 500
+        return jsonify({'error': "Processing failed", 'detail': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
