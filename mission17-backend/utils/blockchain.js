@@ -49,8 +49,8 @@ export async function awardSdgPoints(recipientAddress, points) {
         
         const tx = await contract.awardPoints(recipientAddress, points, {
             maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-            gasLimit: 500000 // 🛠️ FIX: Hardcode gas limit to prevent estimation errors
+            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
+            // 🛠️ OPTIMIZED: Removed artificial 500,000 gasLimit
         });
 
         console.log(`⏳ Transaction sent! Hash: ${tx.hash}. Waiting for confirmation...`);

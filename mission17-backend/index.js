@@ -66,6 +66,13 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.use(cors());
 
+// Serve the uploads directory statically so the frontend can access the images
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // --- ROUTES ---
 // All route files share the /api/auth prefix — zero breaking changes for existing clients.
 app.use('/api/auth', authRoutes);        // Auth & security

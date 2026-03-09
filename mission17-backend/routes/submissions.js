@@ -15,6 +15,9 @@
 
 import express from 'express';
 import mongoose from 'mongoose';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import Submission from '../models/Submission.js';
 import User from '../models/User.js';
 import Mission from '../models/Mission.js';
@@ -25,31 +28,43 @@ import { awardSdgPoints } from '../utils/blockchain.js';
 
 const router = express.Router();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+
+// Ensure uploads directory exists
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
 // ==========================================
 // 🤖 INTERNAL AI HELPER
 // ==========================================
 
 /**
- * Returns true only if imageUri is a real base64 data URL or a remote http(s) URL.
+ * Returns true only if imageUri is a real base64 data URL, a remote http(s) URL, or a local file path.
  * Rejects sentinel values like "base64placeholder" that the mobile app stored.
  */
 function isValidImageUri(uri) {
   if (!uri || typeof uri !== 'string') return false;
-  return uri.startsWith('data:image') || uri.startsWith('http://') || uri.startsWith('https://');
+  return uri.startsWith('data:image') || uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('/uploads/');
 }
 
 /**
- * Converts an imageUri (base64 data URL or remote URL) into a FormData
+ * Converts an imageUri (base64 data URL, remote URL, or local file) into a FormData
  * object ready to POST to the Python AI server.
  * Fixes the original fetch(base64) bug in analyze-proof.
  */
 async function buildAIFormData(imageUri) {
   if (!isValidImageUri(imageUri)) {
-    throw new Error(`Invalid imageUri — not a data URL or http(s) URL: "${imageUri?.slice(0, 40)}"`);
+    throw new Error(`Invalid imageUri — not a valid URL or path: "${imageUri?.slice(0, 40)}"`);
   }
   let imageBuffer;
 
-  if (imageUri.startsWith('data:image')) {
+  if (imageUri.startsWith('/uploads/')) {
+     const filePath = path.join(__dirname, '..', imageUri);
+     imageBuffer = fs.readFileSync(filePath);
+  } else if (imageUri.startsWith('data:image')) {
     // 🛡️ Base64 path — no network fetch needed
     const base64Data = imageUri.split(',')[1];
     imageBuffer = Buffer.from(base64Data, 'base64');
@@ -122,15 +137,25 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    // Reject placeholder images from test scripts
-    const validatedImage = isValidImageUri(image) ? image : null;
+    let finalImageUri = null;
+    
+    // Save base64 images to local filesystem to prevent DB bloat
+    if (image && image.startsWith('data:image')) {
+      const base64Data = image.split(',')[1];
+      const filename = `proof_${Date.now()}_${userId}.jpg`;
+      const filepath = path.join(UPLOADS_DIR, filename);
+      fs.writeFileSync(filepath, base64Data, 'base64');
+      finalImageUri = `/uploads/${filename}`;
+    } else if (isValidImageUri(image)) {
+        finalImageUri = image;
+    }
 
     const newSubmission = new Submission({
       userId: user._id,
       username: user.username,
       missionId,
       missionTitle,
-      imageUri: validatedImage,
+      imageUri: finalImageUri,
       status: req.missionStatus || 'Pending',
     });
 
@@ -177,14 +202,25 @@ router.get('/user-submissions/:userId', async (req, res) => {
 // 3. GET PENDING SUBMISSIONS (+ auto-run AI for unanalyzed ones)
 router.get('/pending-submissions', verifyAdmin, async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     // Step 1: Fetch ALL fields for pending submissions (including imageUri needed for AI + View Proof)
     // We do NOT strip imageUri here — the admin Verify panel needs it for image display
     // and the auto-AI batch reuses it without a second DB round-trip.
     const submissions = await Submission.find({
       status: { $in: ['Pending', 'Pending Admin Review'] },
-    }).sort({ createdAt: -1 });
+    })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    if (submissions.length === 0) return res.json([]);
+    const totalCount = await Submission.countDocuments({
+      status: { $in: ['Pending', 'Pending Admin Review'] }
+    });
+
+    if (submissions.length === 0) return res.json({ submissions: [], totalPages: 0, currentPage: page, totalCount });
 
     // Step 2: Find which ones already have an analysis report
     const submissionIds = submissions.map(s => s._id);
@@ -202,21 +238,20 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
       s => !reportMap[s._id.toString()] && isValidImageUri(s.imageUri)
     );
 
-    // Step 4: For missing ones, run AI in parallel (imageUri already in memory)
+    // Step 4: For missing ones, run AI sequentially (imageUri already in memory)
+    // 🛡️ SECURE CODE: Fixes Concurrency/OOM crash by hitting the AI server consecutively
+    // instead of paralyzing it with Promise.all() parallel bursts.
     if (missingAnalysis.length > 0) {
-      await Promise.all(
-        missingAnalysis.map(async sub => {
-          try {
-            const aiData = await callAIServer(sub.imageUri);
-            const report = await saveAnalysisReport(sub._id, sub.userId, aiData);
-            reportMap[sub._id.toString()] = report;
-            console.log(`✅ Auto-analyzed submission ${sub._id}: ${aiData.verdict}`);
-          } catch (e) {
-            // Don't crash the whole response if one AI call fails
-            console.warn(`⚠️ Auto-AI skipped for submission ${sub._id}: ${e.message}`);
-          }
-        })
-      );
+      for (const sub of missingAnalysis) {
+        try {
+          const aiData = await callAIServer(sub.imageUri);
+          const report = await saveAnalysisReport(sub._id, sub.userId, aiData);
+          reportMap[sub._id.toString()] = report;
+          console.log(`✅ Auto-analyzed submission ${sub._id}: ${aiData.verdict}`);
+        } catch (e) {
+          console.warn(`⚠️ Auto-AI skipped for submission ${sub._id}: ${e.message}`);
+        }
+      }
     }
 
     // Step 5: Build response — strip imageUri from list items (bandwidth fix) but
@@ -241,7 +276,12 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
       };
     });
 
-    res.json(result);
+    res.json({
+      submissions: result,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: page,
+      totalCount
+    });
   } catch (error) {
     console.error('Error fetching pending submissions:', error);
     res.status(500).json({ message: 'Server Error' });

@@ -35,6 +35,8 @@ ADMIN_PASSWORD = "admin123"
 # Pause between actions so MongoDB has time to write before we read
 WRITE_DELAY_SEC = 1.5
 
+# 👈 NEW: Header to bypass the rate limiter during tests
+BYPASS_HEADERS = {'X-Test-Bypass-Rate-Limit': 'true'}
 
 # ─────────────────────────────────────────────
 #  HELPERS
@@ -50,7 +52,7 @@ def random_suffix() -> str:
 def check_server():
     print("  🔌 Checking backend connectivity...", end="  ", flush=True)
     try:
-        requests.post(f"{BASE_URL}/login", json={}, timeout=5)
+        requests.post(f"{BASE_URL}/login", json={}, headers=BYPASS_HEADERS, timeout=5)
         print("✅ Server is reachable.\n")
     except requests.exceptions.ConnectionError:
         print()
@@ -88,6 +90,7 @@ def stage_register(suffix: str) -> dict:
     resp = requests.post(
         f"{BASE_URL}/signup",
         json={"username": username, "email": email, "password": password},
+        headers=BYPASS_HEADERS,
         timeout=15,
     )
     if resp.status_code == 201:
@@ -105,6 +108,7 @@ def stage_failed_login(credentials: dict) -> dict:
     resp = requests.post(
         f"{BASE_URL}/login",
         json={"email": credentials["email"], "password": "deliberatelyWrong!!"},
+        headers=BYPASS_HEADERS,
         timeout=15,
     )
     if resp.status_code == 400:
@@ -121,6 +125,7 @@ def stage_successful_login(credentials: dict) -> dict:
     resp = requests.post(
         f"{BASE_URL}/login",
         json={"email": credentials["email"], "password": credentials["password"]},
+        headers=BYPASS_HEADERS,
         timeout=15,
     )
     if resp.status_code == 200:
@@ -142,6 +147,7 @@ def stage_get_admin_token() -> str:
     resp = requests.post(
         f"{BASE_URL}/login",
         json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD, "isAdminLogin": True},
+        headers=BYPASS_HEADERS,
         timeout=15,
     )
     if resp.status_code == 200:
@@ -159,7 +165,10 @@ def stage_verify_logs(admin_token: str, username: str) -> dict:
     step("Stage 5 — Fetching audit logs and verifying events")
     time.sleep(WRITE_DELAY_SEC)  # Let MongoDB finish writing
 
-    headers = {"auth-token": admin_token}
+    headers = {
+        "auth-token": admin_token,
+        "X-Test-Bypass-Rate-Limit": "true"
+    }
     resp    = requests.get(f"{BASE_URL}/audit-logs", headers=headers, timeout=15)
 
     if resp.status_code != 200:

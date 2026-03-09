@@ -54,21 +54,32 @@ const Verify = () => {
   const [viewImage, setViewImage]       = useState(null);
   const [analyzingId, setAnalyzingId]   = useState(null);
   const [analysisResults, setAnalysisResults] = useState({});
+  const [page, setPage]                 = useState(1);
+  const [totalCount, setTotalCount]     = useState(0);
+  const [totalPages, setTotalPages]     = useState(0);
 
   const getToken = () => localStorage.getItem('token');
 
-  useEffect(() => { fetchSubmissions(); }, []);
+  useEffect(() => { 
+    fetchSubmissions(); 
+  }, [page]);
 
   const fetchSubmissions = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(endpoints.submissions.pending, {
+      const response = await fetch(`${endpoints.submissions.pending}?page=${page}&limit=10`, {
         headers: { 'auth-token': getToken() }
       });
       if (response.ok) {
         const data = await response.json();
-        setSubmissions(data);
+        // ⚡ FIX: API now returns an object { submissions, totalCount, totalPages }
+        const subs = data.submissions || [];
+        setSubmissions(subs);
+        setTotalCount(data.totalCount || 0);
+        setTotalPages(data.totalPages || 0);
+
         const preloaded = {};
-        data.forEach(sub => {
+        subs.forEach(sub => {
           if (sub.analysisReport) preloaded[sub._id] = shapeReport(sub.analysisReport);
         });
         setAnalysisResults(preloaded);
@@ -133,7 +144,10 @@ const Verify = () => {
         headers: { 'Content-Type': 'application/json', 'auth-token': getToken() },
         body: JSON.stringify({ submissionId: id })
       });
-      if (res.ok) setSubmissions(submissions.filter(s => s._id !== id));
+      if (res.ok) {
+        setSubmissions(submissions.filter(s => s._id !== id));
+        setTotalCount(prev => Math.max(0, prev - 1));
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -146,7 +160,10 @@ const Verify = () => {
         headers: { 'Content-Type': 'application/json', 'auth-token': getToken() },
         body: JSON.stringify({ submissionId: id, reason })
       });
-      if (res.ok) setSubmissions(submissions.filter(s => s._id !== id));
+      if (res.ok) {
+        setSubmissions(submissions.filter(s => s._id !== id));
+        setTotalCount(prev => Math.max(0, prev - 1));
+      }
     } catch (e) { console.error(e); }
   };
 
@@ -163,7 +180,7 @@ const Verify = () => {
             <p className="page-subtitle">AI-Powered Verification Panel - Python Engine</p>
           </div>
           <div className="header-stat">
-            <span className="header-stat-number">{submissions.length}</span>
+            <span className="header-stat-number">{totalCount}</span>
             <span className="header-stat-label">Pending</span>
           </div>
         </div>
@@ -313,6 +330,29 @@ const Verify = () => {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* PAGINATION CONTROLS */}
+        {!loading && totalPages > 1 && (
+          <div className="pagination-controls">
+            <button 
+              className="page-btn" 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </button>
+            <span className="page-info">
+              Page <strong>{page}</strong> of <strong>{totalPages}</strong>
+            </span>
+            <button 
+              className="page-btn" 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

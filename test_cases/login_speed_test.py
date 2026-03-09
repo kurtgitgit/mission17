@@ -33,6 +33,8 @@ THRESH_FAST        = 600    # bcrypt adds ~200–400 ms on top of network
 THRESH_ACCEPTABLE  = 1500
 THRESH_SLOW        = 3000
 
+# 👈 NEW: Header to bypass the rate limiter during tests
+BYPASS_HEADERS = {'X-Test-Bypass-Rate-Limit': 'true'}
 
 # ─────────────────────────────────────────────
 #  HELPERS
@@ -60,7 +62,7 @@ def check_server():
     print("  🔌 Checking backend connectivity...", end="  ", flush=True)
     try:
         # Send one request; any HTTP response (even 400) means the server is up
-        requests.post(SERVER_URL, json={}, timeout=5)
+        requests.post(SERVER_URL, json={}, headers=BYPASS_HEADERS, timeout=5)
         print("✅ Server is reachable.\n")
     except requests.exceptions.ConnectionError:
         print()
@@ -99,7 +101,7 @@ def run_login_speed_test():
 
         try:
             t_start = time.perf_counter()
-            response = requests.post(SERVER_URL, json=payload, timeout=30)
+            response = requests.post(SERVER_URL, json=payload, headers=BYPASS_HEADERS, timeout=30)
             t_end = time.perf_counter()
 
             elapsed_ms = (t_end - t_start) * 1000

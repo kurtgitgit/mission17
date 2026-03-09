@@ -18,4 +18,7 @@ const SubmissionSchema = new mongoose.Schema({
 // Create a compound index for faster user-specific history lookups
 SubmissionSchema.index({ userId: 1, createdAt: -1 });
 
+// Added index for faster queries on the dashboard and pending lists
+SubmissionSchema.index({ status: 1 });
+
 export default mongoose.model('Submission', SubmissionSchema);

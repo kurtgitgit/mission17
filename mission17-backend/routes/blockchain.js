@@ -49,9 +49,7 @@ router.post('/record', async (req, res) => {
 
         console.log(`📤 Sending VERIFICATION transaction for ${userId}...`);
         
-        const tx = await contract.verifyMission(userId, missionTitle, {
-            gasLimit: 500000 // 🛠️ FIX: Hardcode gas limit for reliability
-        });
+        const tx = await contract.verifyMission(userId, missionTitle); // 🛠️ OPTIMIZED: Removed artificial gasLimit so Ethers.js computes the true dynamic gas
         
         console.log("✅ Transaction Hash:", tx.hash);
         res.json({ hash: tx.hash });
