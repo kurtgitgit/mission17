@@ -5,6 +5,7 @@ const SubmissionSchema = new mongoose.Schema({
   username: String,
   missionTitle: String,
   missionId: String,
+  type: { type: String, enum: ['Mission', 'Event'], default: 'Mission' }, // Added type
   
   // 👇 This is the correct field for the image string
   imageUri: String, 

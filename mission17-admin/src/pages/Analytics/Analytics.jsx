@@ -17,6 +17,7 @@ const Analytics = () => {
     rate: 0,
     totalSubmissions: 0
   });
+  const [barData, setBarData] = useState([]);
   const [pieData, setPieData] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,25 +29,37 @@ const Analytics = () => {
       try {
         const headers = { 'auth-token': getToken() };
 
-        // Fetch all four data sources in parallel
-        const [pendingRes, approvedRes, rejectedRes, userRes] = await Promise.all([
-          fetch(endpoints.submissions.pending,  { headers }),
-          fetch(endpoints.submissions.approved, { headers }),
-          fetch(endpoints.submissions.rejected, { headers }),
-          fetch(endpoints.users.getAll,         { headers })
+        // Fetch user count and all submissions stats
+        const [statsRes, userRes] = await Promise.all([
+          fetch(endpoints.submissions.stats, { headers }),
+          fetch(endpoints.users.getAll,      { headers })
         ]);
 
-        if (!pendingRes.ok || !approvedRes.ok || !rejectedRes.ok || !userRes.ok)
+        if (!statsRes.ok || !userRes.ok)
           throw new Error("Failed to fetch analytics data");
 
-        const pendingData  = await pendingRes.json();
-        const approvedData = await approvedRes.json();
-        const rejectedData = await rejectedRes.json();
-        const allUsers     = await userRes.json();
+        const submissions = await statsRes.json();
+        const allUsers    = await userRes.json();
 
-        const p = pendingData.length;
-        const a = approvedData.length;
-        const r = rejectedData.length;
+        let p = 0; let a = 0; let r = 0;
+        
+        // Initialize day counts for the last 7 days (or Mon-Sun)
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const weeklyCounts = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
+
+        submissions.forEach(sub => {
+          // Status counts
+          if (sub.status.includes('Pending')) p++;
+          else if (sub.status === 'Approved') a++;
+          else if (sub.status === 'Rejected') r++;
+
+          // Day of week counts (using createdAt date)
+          if (sub.createdAt) {
+            const date = new Date(sub.createdAt);
+            const dayName = daysOfWeek[date.getDay()];
+            weeklyCounts[dayName]++;
+          }
+        });
 
         const total = p + a + r;
         const successRate = total > 0 ? Math.round((a / total) * 100) : 0;
@@ -66,6 +79,19 @@ const Analytics = () => {
           { name: 'Rejected',  value: r, color: '#ef4444' },
         ]);
 
+        // Build array from weeklyCounts in Mon-Sun order
+        const formattedBarData = [
+          { day: 'Mon', proofs: weeklyCounts.Mon },
+          { day: 'Tue', proofs: weeklyCounts.Tue },
+          { day: 'Wed', proofs: weeklyCounts.Wed },
+          { day: 'Thu', proofs: weeklyCounts.Thu },
+          { day: 'Fri', proofs: weeklyCounts.Fri },
+          { day: 'Sat', proofs: weeklyCounts.Sat },
+          { day: 'Sun', proofs: weeklyCounts.Sun },
+        ];
+        
+        setBarData(formattedBarData);
+
       } catch (error) {
         console.error("Analytics fetch error:", error);
       } finally {
@@ -75,13 +101,6 @@ const Analytics = () => {
 
     fetchAnalytics();
   }, []);
-
-  // Mock Bar Data (Can be replaced with real history data later)
-  const barData = [
-    { day: 'Mon', proofs: 4 }, { day: 'Tue', proofs: 7 }, { day: 'Wed', proofs: 5 },
-    { day: 'Thu', proofs: 11 }, { day: 'Fri', proofs: 9 }, { day: 'Sat', proofs: 15 },
-    { day: 'Sun', proofs: 12 },
-  ];
 
   if (loading) return (
     <Layout>

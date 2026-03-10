@@ -12,8 +12,8 @@ const router = express.Router();
 // 1. CONFIGURATION
 const CONTRACT_ADDRESS = process.env.VERIFY_CONTRACT_ADDRESS; // 👈 Use the new, separate address
 const CONTRACT_ABI = [
-  "function verifyMission(string memory _userId, string memory _missionTitle) public",
-  "event MissionVerified(string userId, string missionTitle, uint256 timestamp)"
+    "function verifyMission(string memory _userId, string memory _missionTitle) public",
+    "event MissionVerified(string userId, string missionTitle, uint256 timestamp)"
 ];
 
 const getProvider = () => {
@@ -48,16 +48,16 @@ router.post('/record', async (req, res) => {
         const contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, wallet);
 
         console.log(`📤 Sending VERIFICATION transaction for ${userId}...`);
-        
+
         const tx = await contract.verifyMission(userId, missionTitle); // 🛠️ OPTIMIZED: Removed artificial gasLimit so Ethers.js computes the true dynamic gas
-        
+
         console.log("✅ Transaction Hash:", tx.hash);
         res.json({ hash: tx.hash });
 
     } catch (error) {
         console.error("❌ Blockchain Error:", error);
         // Fallback for demo purposes if transaction fails (e.g., out of gas)
-        res.status(500).json({ 
+        res.status(500).json({
             error: "Failed to record transaction on the blockchain.",
             hash: "0xFAILED_TRANSACTION_" + Math.floor(Math.random() * 1000000000)
         });

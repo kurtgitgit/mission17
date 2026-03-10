@@ -18,7 +18,7 @@ const UserSchema = new mongoose.Schema({
   // 🛡️ ROLE-BASED ACCESS CONTROL
   role: {
     type: String,
-    enum: ['student', 'admin'],
+    enum: ['student', 'resident', 'lgu', 'ngo', 'admin'],
     default: 'student' 
   },
   points: { type: Number, default: 0 },

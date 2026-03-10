@@ -15,6 +15,7 @@ import submissionRoutes from './routes/submissions.js';   // submit, pending, ap
 import missionRoutes    from './routes/missions.js';      // mission CRUD
 import eventRoutes      from './routes/events.js';         // event CRUD
 import userRoutes       from './routes/users.js';          // user management
+import notificationRoutes from './routes/notifications.js'; // user notifications
 import blockchainRoutes from './routes/blockchain.js';    // on-chain record endpoint
 
 // ✅ NEW: Check for required environment variables on startup
@@ -80,6 +81,7 @@ app.use('/api/auth', submissionRoutes);  // Submissions (incl. pending-submissio
 app.use('/api/auth', missionRoutes);     // Missions
 app.use('/api/auth', eventRoutes);       // Events
 app.use('/api/auth', userRoutes);        // Users & leaderboard
+app.use('/api/auth', notificationRoutes);// Notifications
 app.use('/api/blockchain', blockchainRoutes); // Blockchain proxy
 
 // DATABASE

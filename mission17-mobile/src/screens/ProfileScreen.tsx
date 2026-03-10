@@ -10,11 +10,15 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
 
-const BADGES = [
-  { id: 1, name: 'First Step', icon: '🌱', desc: 'Completed 1st Mission', color: '#dcfce7', text: '#166534' },
-  { id: 2, name: 'Eco Warrior', icon: '🌍', desc: '3 Environmental Missions', color: '#e0f2fe', text: '#075985' },
-  { id: 3, name: 'Social Star', icon: '🤝', desc: 'Invited a Friend', color: '#fef3c7', text: '#b45309' },
-  { id: 4, name: 'Streaker', icon: '🔥', desc: '3 Days in a Row', color: '#fee2e2', text: '#991b1b' },
+const ALL_BADGES = [
+  { id: 1, name: 'First Step', icon: '🌱', desc: 'Completed 1st Mission', color: '#dcfce7', text: '#166534', condition: (p, h) => h >= 1 },
+  { id: 2, name: 'Eco Warrior', icon: '🌍', desc: '5 Missions Done', color: '#e0f2fe', text: '#075985', condition: (p, h) => h >= 5 },
+  { id: 5, name: 'Action Taker', icon: '🏃', desc: '10 Missions Done', color: '#f3e8ff', text: '#6b21a8', condition: (p, h) => h >= 10 },
+  { id: 6, name: 'Impact Maker', icon: '🌟', desc: '25 Missions Done', color: '#ffedd5', text: '#c2410c', condition: (p, h) => h >= 25 },
+  { id: 7, name: 'Sustainability Pro', icon: '🏆', desc: '50 Missions Done', color: '#fce7f3', text: '#be185d', condition: (p, h) => h >= 50 },
+  { id: 8, name: 'SDG Master', icon: '👑', desc: '100 Missions Done', color: '#fef08a', text: '#854d0e', condition: (p, h) => h >= 100 },
+  { id: 9, name: 'Point Hunter', icon: '🎯', desc: 'Earn 1000 Points', color: '#cffafe', text: '#0f766e', condition: (p, h) => p >= 1000 },
+  { id: 10, name: 'Elite Agent', icon: '⚡', desc: 'Earn 5000 Points', color: '#e0e7ff', text: '#4338ca', condition: (p, h) => p >= 5000 },
 ];
 
 // YOUR SYSTEM RELAYER ADDRESS
@@ -38,7 +42,7 @@ const ProfileScreen = ({ navigation }: any) => {
       const histJson = await histRes.json();
 
       setUserData(userJson);
-      setHistory(histJson);
+      setHistory(histJson.filter((item: any) => item.status === 'Approved'));
     } catch (error) {
       console.error(error);
     } finally {
@@ -49,6 +53,8 @@ const ProfileScreen = ({ navigation }: any) => {
   useEffect(() => {
     if (userId && isFocused) fetchProfileData();
   }, [userId, isFocused]);
+
+  const earnedBadges = ALL_BADGES.filter(b => b.condition(userData?.points || 0, history.length));
 
   // 👇 FUNCTION TO OPEN ETHERSCAN
   const openBlockchainHistory = () => {
@@ -127,7 +133,7 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{BADGES.length}</Text>
+              <Text style={styles.statValue}>{earnedBadges.length}</Text>
               <Text style={styles.statLabel}>Badges</Text>
             </View>
           </View>
@@ -136,15 +142,21 @@ const ProfileScreen = ({ navigation }: any) => {
         {/* ACHIEVEMENTS */}
         <Text style={styles.sectionTitle}>Achievements</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.badgeScroll}>
-          {BADGES.map((badge) => (
-            <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color }]}>
-              <Text style={styles.badgeIcon}>{badge.icon}</Text>
-              <View>
-                <Text style={[styles.badgeName, { color: badge.text }]}>{badge.name}</Text>
-                <Text style={[styles.badgeDesc, { color: badge.text }]}>{badge.desc}</Text>
+          {earnedBadges.length === 0 ? (
+             <Text style={{ marginLeft: 30, marginTop: 10, color: '#94a3b8', fontStyle: 'italic' }}>
+               Complete missions to earn badges!
+             </Text>
+          ) : (
+            earnedBadges.map((badge) => (
+              <View key={badge.id} style={[styles.badgeCard, { backgroundColor: badge.color }]}>
+                <Text style={styles.badgeIcon}>{badge.icon}</Text>
+                <View>
+                  <Text style={[styles.badgeName, { color: badge.text }]}>{badge.name}</Text>
+                  <Text style={[styles.badgeDesc, { color: badge.text }]}>{badge.desc}</Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </ScrollView>
 
         {/* RECENT SUBMISSIONS */}

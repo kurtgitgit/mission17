@@ -14,6 +14,7 @@ export const endpoints = {
     pending:     `${API_URL}/auth/pending-submissions`,
     approved:    `${API_URL}/auth/submissions?status=Approved`,
     rejected:    `${API_URL}/auth/submissions?status=Rejected`,
+    stats:       `${API_URL}/auth/analytics-stats`,
     approve:     `${API_URL}/auth/approve-mission`,
     reject:      `${API_URL}/auth/reject-mission`,
     analyzeProof:`${API_URL}/auth/analyze-proof`,

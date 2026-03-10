@@ -79,7 +79,7 @@ const loginLimiter = rateLimit({
 
 // 1. REGISTER
 router.post('/signup', async (req, res) => {
-  let { username, email, password } = req.body;
+  let { username, email, password, role } = req.body;
   try {
     // Basic validation to stop XSS/Empty fields before hitting the DB
     if (!username || !email || !password) {
@@ -102,7 +102,7 @@ router.post('/signup', async (req, res) => {
       username: cleanUsername,
       email: cleanEmail,
       password: hashedPassword,
-      role: 'student',
+      role: role ? role.toLowerCase() : 'student',
       points: 0
     });
 

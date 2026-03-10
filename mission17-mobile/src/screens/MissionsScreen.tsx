@@ -12,7 +12,6 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'missions' | 'events'>('missions');
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
   const userId = route.params?.userId || GlobalState.userId;
@@ -100,7 +99,10 @@ const MissionsScreen = ({ navigation, route }: any) => {
     return (
       <TouchableOpacity 
         style={styles.eventCard}
-        onPress={() => setSelectedEvent(item)}
+        onPress={() => {
+          if (!userId) Alert.alert("Notice", "Please log in to participate.");
+          navigation.navigate('EventDetail', { event: item, userId: userId });
+        }}
       >
           <View style={[styles.dateBadge, { backgroundColor: item.color || '#3b82f6' }]}>
               <Text style={styles.dateText}>{month}</Text>
@@ -117,6 +119,11 @@ const MissionsScreen = ({ navigation, route }: any) => {
                   <Text style={styles.eventDetail}>{item.location}</Text>
               </View>
           </View>
+          {item.points && (
+             <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#10b981' }}>+{item.points} PTS</Text>
+             </View>
+          )}
       </TouchableOpacity>
     );
   };
@@ -160,43 +167,6 @@ const MissionsScreen = ({ navigation, route }: any) => {
         />
       )}
 
-      {/* EVENT DETAILS MODAL */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={!!selectedEvent}
-        onRequestClose={() => setSelectedEvent(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            {selectedEvent && (
-              <>
-                  <View style={[styles.modalHeader, { backgroundColor: selectedEvent.color || '#3b82f6' }]}>
-                      <View style={{flex: 1}}>
-                          <Text style={styles.modalHeaderDate}>
-                              {new Date(selectedEvent.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-                          </Text>
-                          <Text style={styles.modalHeaderTime}>{selectedEvent.time}</Text>
-                      </View>
-                      <TouchableOpacity onPress={() => setSelectedEvent(null)} style={styles.closeButton}>
-                          <X size={24} color="white" />
-                      </TouchableOpacity>
-                  </View>
-                  
-                  <View style={styles.modalBody}>
-                      <Text style={styles.modalTitle}>{selectedEvent.title}</Text>
-                      <View style={styles.modalInfoRow}><MapPin size={20} color="#64748b" /><Text style={styles.modalInfoText}>{selectedEvent.location}</Text></View>
-                      <View style={styles.modalInfoRow}><Clock size={20} color="#64748b" /><Text style={styles.modalInfoText}>{selectedEvent.time}</Text></View>
-                      <Text style={styles.modalDescription}>Join us for this event! Make sure to arrive 15 minutes early.</Text>
-                      <TouchableOpacity style={[styles.modalActionBtn, { backgroundColor: selectedEvent.color || '#3b82f6' }]} onPress={() => Alert.alert("Interested", "Event saved!")}>
-                          <Text style={styles.modalActionBtnText}>I'm Interested</Text>
-                      </TouchableOpacity>
-                  </View>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
     </RootComponent>
   );
 };
@@ -241,20 +211,6 @@ const styles = StyleSheet.create({
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 } as ViewStyle,
   eventDetail: { fontSize: 11, color: '#64748b' } as TextStyle,
 
-  // MODAL STYLES
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 } as ViewStyle,
-  modalContainer: { backgroundColor: 'white', width: '100%', borderRadius: 20, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 5 } as ViewStyle,
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20 } as ViewStyle,
-  modalHeaderDate: { color: 'white', fontSize: 18, fontWeight: '700' } as TextStyle,
-  modalHeaderTime: { color: 'rgba(255,255,255,0.9)', fontSize: 14, marginTop: 2 } as TextStyle,
-  closeButton: { padding: 5, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 20 } as ViewStyle,
-  modalBody: { padding: 24 } as ViewStyle,
-  modalTitle: { fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 20 } as TextStyle,
-  modalInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 } as ViewStyle,
-  modalInfoText: { fontSize: 16, color: '#475569' } as TextStyle,
-  modalDescription: { marginTop: 10, marginBottom: 25, color: '#64748b', lineHeight: 22, fontSize: 14 } as TextStyle,
-  modalActionBtn: { paddingVertical: 16, borderRadius: 12, alignItems: 'center', justifyContent: 'center' } as ViewStyle,
-  modalActionBtnText: { color: 'white', fontSize: 16, fontWeight: '700' } as TextStyle,
 });
 
 export default MissionsScreen;

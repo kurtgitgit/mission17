@@ -14,12 +14,17 @@ import {
 import { Bell, TrendingUp, CheckCircle, Clock, Globe, Lightbulb, ArrowRight, Target, MapPin } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native'; 
 import { endpoints, GlobalState } from '../config/api'; 
+import { getAuthData } from '../utils/storage';
 
 const getRank = (points: number) => {
-  if (points >= 1000) return { title: "SDG Champion", color: "#8b5cf6", next: 5000 };
-  if (points >= 500) return { title: "SDG Advocate", color: "#3b82f6", next: 1000 };
-  if (points >= 200) return { title: "Active Agent", color: "#10b981", next: 500 };
-  return { title: "Rookie Scout", color: "#94a3b8", next: 200 };
+  if (points >= 10000) return { title: "Sustainability Legend", color: "#f59e0b", next: 20000 }; // Amber
+  if (points >= 5000) return { title: "SDG Champion", color: "#8b5cf6", next: 10000 }; // Violet
+  if (points >= 2500) return { title: "Eco Master", color: "#ec4899", next: 5000 }; // Pink
+  if (points >= 1000) return { title: "Global Guardian", color: "#6366f1", next: 2500 }; // Indigo
+  if (points >= 500) return { title: "SDG Advocate", color: "#3b82f6", next: 1000 }; // Blue
+  if (points >= 250) return { title: "Active Agent", color: "#10b981", next: 500 }; // Emerald
+  if (points >= 100) return { title: "Impact Trainee", color: "#14b8a6", next: 250 }; // Teal
+  return { title: "Rookie Scout", color: "#94a3b8", next: 100 }; // Slate
 };
 
 const ECO_TIPS = [
@@ -45,6 +50,7 @@ const HomeScreen: React.FC = () => {
   const [featuredMission, setFeaturedMission] = useState<any>(null);
   const [dailyTip, setDailyTip] = useState(ECO_TIPS[0]);
   const [events, setEvents] = useState<any[]>([]);
+  const [hasUnreadNotifs, setHasUnreadNotifs] = useState(false);
 
   const fetchUserData = async () => {
     if (!userId) return;
@@ -112,6 +118,18 @@ const HomeScreen: React.FC = () => {
         rank: globalRank 
       });
 
+      // 6. Notifications
+      const auth = await getAuthData();
+      if (auth?.token) {
+        const notifRes = await fetch(endpoints.auth.getNotifications(userId), {
+          headers: { 'auth-token': auth.token }
+        });
+        if (notifRes.ok) {
+          const notifs = await notifRes.json();
+          setHasUnreadNotifs(notifs.some((n: any) => !n.read));
+        }
+      }
+
     } catch (error) {
       console.error("Failed to fetch home data:", error);
     } finally {
@@ -159,7 +177,7 @@ const HomeScreen: React.FC = () => {
             onPress={() => navigation.navigate('Notifications')}
           >
             <Bell size={22} color="#1e293b" />
-            <View style={styles.redDot} />
+            {hasUnreadNotifs && <View style={styles.redDot} />}
           </TouchableOpacity>
         </View>
 
