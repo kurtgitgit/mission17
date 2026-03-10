@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
   Platform, SafeAreaView, Alert, ActivityIndicator, TextStyle
 } from 'react-native';
-import { Camera, ChevronLeft } from 'lucide-react-native';
+import { Camera, ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { endpoints } from '../config/api';
@@ -11,20 +11,18 @@ import { endpoints } from '../config/api';
 // --- IMPORT BLOCKCHAIN SERVICE ---
 import { saveMissionToBlockchain } from '../../MissionBlockchain';
 
-const MissionDetailScreen = ({ route, navigation }: any) => {
-  const { mission, userId } = route.params;
+const EventDetailScreen = ({ route, navigation }: any) => {
+  const { event, userId } = route.params;
 
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // 🎯 MODULE 10 FIX: Distinct state for AI Bottleneck latency
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // State to store the real user's name
   const [username, setUsername] = useState<string>("Agent");
 
-  const hasImage = !!mission.image;
+  const hasImage = !!event.image;
 
   // Fetch the real username when screen loads
   useEffect(() => {
@@ -35,7 +33,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         const data = await response.json();
         if (data && data.username) {
           setUsername(data.username);
-          console.log("Active Agent identified:", data.username);
         }
       } catch (error) {
         console.error("Could not fetch username:", error);
@@ -88,14 +85,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
-      // 🎯 MODULE 10 FIX: 1. Send to Python AI First
       setIsAnalyzing(true);
-      // Step A: Convert Image to Base64 (Do this BEFORE AI upload)
       const imagePayload = await getBase64(imageUri);
 
       const formData = new FormData();
       if (Platform.OS === 'web') {
-        // Safe conversion of base64 to Blob for web
         const base64Data = (imagePayload as string).split(',')[1];
         const byteCharacters = atob(base64Data);
         const byteNumbers = new Array(byteCharacters.length);
@@ -113,11 +107,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         } as any);
       }
 
-      // Note: 10.0.2.2 points to localhost on an Android Emulator. 
-      // If testing on a real phone, change this to your computer's IPv4 address (e.g. 192.168.1.5)
       const aiIp = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
 
-      // 👈 FETCH FIX: Removed headers so the browser/phone handles the boundary string
       const aiResponse = await fetch(`http://${aiIp}:5000/predict`, {
         method: 'POST',
         body: formData
@@ -141,7 +132,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         setLoading(false);
         return;
       }
-      setIsAnalyzing(false); // Turn off AI spinner
+
+      setIsAnalyzing(false);
 
       // 🎯 MODULE 11: Display specific Anti-Cheat notification
       // Look for the specific error property returned by the backend on duplicate.
@@ -168,7 +160,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
       // If AI rejects it, stop the submission process!
       if (aiResult?.verdict !== 'VERIFIED') {
-        const msg = aiResult?.message || 'The AI could not confidently identify a seedling. Please retake the photo.';
+        const msg = aiResult?.message || 'The AI could not confidently identify a valid proof. Please retake the photo.';
         if (Platform.OS === 'web') {
           window.alert(`AI Verification Failed:\n\n${msg}`);
         } else {
@@ -178,31 +170,27 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         return;
       }
 
-      // (imagePayload is already generated above)
-
-      // Step B: Send to Node.js Backend
+      // Re-using the submitMission endpoint!
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          missionId: mission._id,
-          missionTitle: mission.title,
-          image: imagePayload
+          missionId: event._id,
+          missionTitle: event.title,
+          image: imagePayload,
+          type: 'Event'
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-
-        // --- START BLOCKCHAIN SAVE ---
         try {
           console.log("Backend success. Now saving to Blockchain...");
-
           const txHash = await saveMissionToBlockchain(
             `Agent ${username}`,
-            mission.title
+            event.title
           );
 
           console.log("Blockchain Success! Hash:", txHash);
@@ -231,8 +219,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           setSubmitted(true);
           setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
         }
-        // --------------------------------
-
       } else {
         alert(data.message || "Submission failed");
       }
@@ -245,24 +231,25 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     }
   };
 
+  const dateObj = new Date(event.date);
+  const prettyDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
   return (
     <View style={styles.container}>
 
       {/* HERO HEADER */}
       <View style={{ height: 300, width: '100%' }}>
         {hasImage ? (
-          <Image source={{ uri: mission.image }} style={{ width: '100%', height: '100%' }} />
+          <Image source={{ uri: event.image }} style={{ width: '100%', height: '100%' }} />
         ) : (
           <View style={{
             width: '100%',
             height: '100%',
-            backgroundColor: mission.color || '#3b82f6',
+            backgroundColor: event.color || '#3b82f6',
             justifyContent: 'center',
             alignItems: 'center'
           }}>
-            <Text style={styles.placeholderNumber}>
-              {mission.sdgNumber}
-            </Text>
+            <Calendar size={100} color="rgba(255,255,255,0.15)" />
           </View>
         )}
 
@@ -275,34 +262,34 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         </SafeAreaView>
 
         <View style={styles.heroTextContainer}>
-          <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <Text style={styles.badgeText}>SDG {mission.sdgNumber}</Text>
-          </View>
-          <Text style={styles.heroTitle}>{mission.title}</Text>
+          <Text style={styles.heroTitle}>{event.title}</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* BRIEF */}
+        {/* EVENT DETAILS */}
         <View style={styles.section}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-            <Text style={styles.sectionTitle}>Mission Brief</Text>
-            <Text style={styles.pointsHighlight}>{mission.points} Points</Text>
+            <Text style={styles.sectionTitle}>Event Details</Text>
+            {event.points ? <Text style={styles.pointsHighlight}>{event.points} Points</Text> : null}
           </View>
 
+          <View style={styles.infoRow}><Calendar size={18} color="#64748b" /><Text style={styles.infoText}>{prettyDate}</Text></View>
+          <View style={styles.infoRow}><Clock size={18} color="#64748b" /><Text style={styles.infoText}>{event.time}</Text></View>
+          <View style={styles.infoRow}><MapPin size={18} color="#64748b" /><Text style={styles.infoText}>{event.location}</Text></View>
+
           <Text style={styles.description}>
-            {mission.description || `This mission contributes to Goal ${mission.sdgNumber}. Participate in a local activity to support this goal.`}
+            {event.description || `Join us for this event! Make sure to arrive on time and participate.`}
           </Text>
 
           <View style={styles.bulletPoint}>
-            <Text style={styles.bulletText}>• Take a clear photo of your activity.</Text>
+            <Text style={styles.bulletText}>• Take a clear photo of your participation.</Text>
             <Text style={styles.bulletText}>• Ensure you are visible.</Text>
-            <Text style={styles.bulletText}>• Write a short caption.</Text>
           </View>
         </View>
 
         {/* UPLOAD */}
-        <Text style={styles.sectionTitle}>Proof of Work</Text>
+        <Text style={styles.sectionTitle}>Proof of Participation</Text>
         {!imageUri ? (
           <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage}>
             <View style={styles.uploadIconCircle}><Camera size={32} color="#64748b" /></View>
@@ -315,9 +302,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        {/* 🎯 MODULE 10 FIX: Dynamic AI Loading Button */}
         <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: imageUri ? (mission.color || '#3b82f6') : '#cbd5e1' }]}
+          style={[styles.submitBtn, { backgroundColor: imageUri ? (event.color || '#3b82f6') : '#cbd5e1' }]}
           disabled={!imageUri || submitted || loading || isAnalyzing}
           onPress={handleSubmit}
         >
@@ -332,7 +318,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
               <Text style={styles.submitBtnText}>Saving to Blockchain...</Text>
             </View>
           ) : (
-            <Text style={styles.submitBtnText}>{submitted ? "Verified & Submitted!" : "Verify Seedling"}</Text>
+            <Text style={styles.submitBtnText}>{submitted ? "Verified & Submitted!" : "Verify Participation"}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -347,16 +333,16 @@ const styles = StyleSheet.create({
   backBtnCircle: { marginLeft: 20, marginTop: 10, width: 40, height: 40, backgroundColor: 'white', borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
   heroTextContainer: { position: 'absolute', bottom: 20, left: 20, right: 20 },
   heroTitle: { color: 'white', fontSize: 28, fontWeight: '800', marginTop: 8 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  badgeText: { color: 'white', fontWeight: '800', fontSize: 12 },
-
-  placeholderNumber: { fontSize: 120, fontWeight: '900', color: 'rgba(255,255,255,0.15)' } as TextStyle,
 
   content: { padding: 25, paddingBottom: 50 },
   section: { marginBottom: 30 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
   pointsHighlight: { fontSize: 16, fontWeight: '800', color: '#16a34a' },
   description: { fontSize: 15, color: '#475569', lineHeight: 24, marginBottom: 15, marginTop: 10 },
+
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },
+  infoText: { fontSize: 15, color: '#475569' },
+
   bulletPoint: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12 },
   bulletText: { fontSize: 14, color: '#64748b', marginBottom: 5 },
 
@@ -372,4 +358,4 @@ const styles = StyleSheet.create({
   submitBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
 });
 
-export default MissionDetailScreen;
+export default EventDetailScreen;

@@ -12,6 +12,7 @@ import SignupScreen from './src/screens/SignupScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import MissionsScreen from './src/screens/MissionsScreen';
 import MissionDetailScreen from './src/screens/MissionDetailScreen';
+import EventDetailScreen from './src/screens/EventDetailScreen';
 import RankScreen from './src/screens/RankScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LearningScreen from './src/screens/LearningScreen'; 
@@ -93,7 +94,7 @@ function MainTabs() {
           tabBarIcon: ({ focused }: any) => (
             // 🛠️ FIX: 'pointerEvents' moved inside 'style'
             // This prevents the "deprecated prop" warning and lets clicks pass through to the button
-            <View style={{
+          <View style={{
               top: -20,
               justifyContent: 'center',
               alignItems: 'center',
@@ -171,6 +172,7 @@ export default function App() {
           <Stack.Screen name="Signup" component={SignupScreen} />
           <Stack.Screen name="Home" component={MainTabs} />
           <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+          <Stack.Screen name="EventDetail" component={EventDetailScreen} />
           <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="Settings" component={SettingsScreen} />
           <Stack.Screen name="Learning" component={LearningScreen} /> 

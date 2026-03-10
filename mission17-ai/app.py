@@ -8,9 +8,22 @@ from flask_cors import CORS
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 from werkzeug.utils import secure_filename
+from PIL import Image
+import imagehash
+
+# 🎯 MODULE 11: In-memory database to store hashes of previously uploaded photos
+UPLOADED_HASHES = set()
 
 app = Flask(__name__)
-CORS(app)
+# Enable CORS for all routes and explicitly support error codes
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 print("🧠 Loading the MISSION 17 AI Brain...")
 
@@ -43,6 +56,11 @@ except FileNotFoundError:
     print("❌ ERROR: labels.txt not found.")
     class_names = []
 
+def get_image_hash(file_bytes):
+    """Calculates a unique 64-bit Perceptual Hash (dHash) of an image."""
+    img = Image.open(io.BytesIO(file_bytes))
+    return str(imagehash.phash(img))
+
 @app.route('/predict', methods=['POST'])
 def predict():
     if not model:
@@ -69,6 +87,23 @@ def predict():
     # Ensures only allowed image types are processed to prevent RCE or file upload attacks.
     if not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file type. Only JPG/PNG allowed.'}), 400
+
+    file_bytes = file.read()
+    file.seek(0) # Reset file pointer for the AI to use later
+    
+    # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
+    img_hash = get_image_hash(file_bytes)
+    
+    if img_hash in UPLOADED_HASHES:
+        print(f"🚨 ANTI-CHEAT: Duplicate image detected! Hash: {img_hash}")
+        return jsonify({
+            "status": "REJECTED",
+            "error": "Duplicate image detected. You cannot farm points!"
+        }), 400
+        
+    # If it's a brand new photo, save the hash to memory to block future attempts
+    UPLOADED_HASHES.add(img_hash)
+    print(f"✅ Unique image logged with hash: {img_hash}")
 
     try:
         # Preprocessing

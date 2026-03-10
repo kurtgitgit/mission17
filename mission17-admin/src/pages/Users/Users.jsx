@@ -134,12 +134,13 @@ const Users = () => {
 
   // Helper to color-code roles
   const getRoleBadgeStyle = (role) => {
-    switch (role) {
-      case 'Admin': return { bg: '#fee2e2', text: '#dc2626' }; // Red
-      case 'LGU': return { bg: '#fef3c7', text: '#d97706' };   // Amber
-      case 'NGO': return { bg: '#dcfce7', text: '#16a34a' };   // Green
-      case 'Teacher': return { bg: '#e0e7ff', text: '#4f46e5' }; // Indigo
-      default: return { bg: '#e0f2fe', text: '#0284c7' };      // Blue (Student)
+    switch (role?.toLowerCase()) {
+      case 'admin': return { bg: '#fee2e2', text: '#dc2626' };     // Red
+      case 'lgu': return { bg: '#fef3c7', text: '#d97706' };       // Amber
+      case 'ngo': return { bg: '#dcfce7', text: '#16a34a' };       // Green
+      case 'resident': return { bg: '#e0e7ff', text: '#4f46e5' };  // Indigo
+      case 'student':
+      default: return { bg: '#e0f2fe', text: '#0284c7' };          // Blue
     }
   };
 
@@ -203,9 +204,9 @@ const Users = () => {
                     <label style={styles.label}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, width: '100%'}}>
                       <option value="student">Student</option>
-                      <option value="Teacher">Teacher</option>
-                      <option value="LGU">LGU (Local Govt)</option>
-                      <option value="NGO">NGO (Partner)</option>
+                      <option value="resident">Resident</option>
+                      <option value="lgu">LGU (Local Govt)</option>
+                      <option value="ngo">NGO (Partner)</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>

@@ -1,20 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform 
+  View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator
 } from 'react-native';
 import { ChevronLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2 } from 'lucide-react-native';
+import { GlobalState, endpoints } from '../config/api';
+import { getAuthData } from '../utils/storage';
 
-const INITIAL_NOTIFICATIONS = [
-  { id: '1', title: 'Welcome Agent!', message: 'Welcome to Mission 17. Start your first mission today to earn points.', type: 'info', time: '2h ago', read: false },
-  { id: '2', title: 'Mission Approved', message: 'Your "Tree Planting" mission has been verified by HQ.', type: 'success', time: '1d ago', read: true },
-  { id: '3', title: 'New Event Nearby', message: 'Join the Coastal Cleanup this Saturday at 8:00 AM.', type: 'alert', time: '2d ago', read: true },
-];
-
-export default function NotificationsScreen({ navigation }: any) {
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
+export default function NotificationsScreen({ navigation, route }: any) {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  const userId = route.params?.userId || GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
+  useEffect(() => {
+    fetchNotifications();
+  }, [userId]);
+
+  const fetchNotifications = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    try {
+      const auth = await getAuthData();
+      const token = auth?.token;
+      const res = await fetch(endpoints.auth.getNotifications(userId), {
+        headers: { 'auth-token': token || '' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMarkAsRead = async (notifId: string) => {
+    // Optimistic UI update
+    setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
+    try {
+      const auth = await getAuthData();
+      const token = auth?.token;
+      await fetch(endpoints.auth.markNotificationRead(notifId), {
+        method: 'PUT',
+        headers: { 'auth-token': token || '' }
+      });
+    } catch (error) {
+      console.error('Failed to mark read:', error);
+    }
+  };
+
   const handleClearAll = () => {
+    // Note: If you want to delete them from backend, you'd add a DELETE endpoint.
+    // For now we just clear the list from UI.
     setNotifications([]);
   };
 
@@ -24,17 +66,24 @@ export default function NotificationsScreen({ navigation }: any) {
     let bgColor = '#eff6ff';
 
     if (item.type === 'success') { Icon = CheckCircle; color = '#22c55e'; bgColor = '#f0fdf4'; }
-    if (item.type === 'alert') { Icon = AlertTriangle; color = '#f59e0b'; bgColor = '#fefce8'; }
+    if (item.type === 'error' || item.type === 'alert') { Icon = AlertTriangle; color = '#ef4444'; bgColor = '#fee2e2'; }
+
+    // Format time roughly
+    const dateObj = new Date(item.createdAt);
+    const timeStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
     return (
-      <TouchableOpacity style={[styles.card, !item.read && styles.unreadCard]}>
+      <TouchableOpacity 
+        style={[styles.card, !item.read && styles.unreadCard]}
+        onPress={() => { if (!item.read) handleMarkAsRead(item._id); }}
+      >
         <View style={[styles.iconBox, { backgroundColor: bgColor }]}>
           <Icon size={20} color={color} />
         </View>
         <View style={styles.content}>
           <View style={styles.row}>
             <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.time}>{item.time}</Text>
+            <Text style={styles.time}>{timeStr}</Text>
           </View>
           <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
         </View>
@@ -56,10 +105,13 @@ export default function NotificationsScreen({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={notifications}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
+      {loading ? (
+        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+      ) : (
+        <FlatList
+          data={notifications}
+          keyExtractor={item => item._id || Math.random().toString()}
+          renderItem={renderItem}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -68,6 +120,7 @@ export default function NotificationsScreen({ navigation }: any) {
           </View>
         }
       />
+      )}
     </RootComponent>
   );
 }

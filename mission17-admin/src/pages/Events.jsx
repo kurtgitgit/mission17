@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 /*  */import Layout from '../components/Layout'; // Correct path for src/pages/Events.jsx
-import { Plus, Trash2, Edit, Search, X, Calendar, MapPin, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit, Search, X, Calendar, MapPin, Clock, Image as ImageIcon } from 'lucide-react';
 
 const Events = () => {
     const [showForm, setShowForm] = useState(false);
@@ -17,7 +17,10 @@ const Events = () => {
         date: '', 
         time: '', 
         location: '',
-        color: '#3b82f6'
+        color: '#3b82f6',
+        points: '',
+        description: '',
+        image: ''
     });
 
     const API_BASE = "http://localhost:5001/api/auth";
@@ -52,7 +55,7 @@ const Events = () => {
 
     const openAddForm = () => {
         setIsEditing(false);
-        setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6' });
+        setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6', points: '', description: '', image: '' });
         setShowForm(true);
     };
 
@@ -64,7 +67,10 @@ const Events = () => {
             date: event.date,
             time: event.time,
             location: event.location,
-            color: event.color || '#3b82f6'
+            color: event.color || '#3b82f6',
+            points: event.points || '',
+            description: event.description || '',
+            image: event.image || ''
         });
         setShowForm(true);
     };
@@ -183,14 +189,29 @@ const Events = () => {
                                     <label style={styles.label}>Time</label>
                                     <input type="time" name="time" value={formData.time} onChange={handleInputChange} required style={styles.input} />
                                 </div>
+                                <div style={{flex: 1}}>
+                                    <label style={styles.label}>Points</label>
+                                    <input type="number" name="points" value={formData.points} onChange={handleInputChange} placeholder="100" style={styles.input} />
+                                </div>
                             </div>
 
-                            <div style={{marginBottom: '20px'}}>
-                                <label style={styles.label}>Location</label>
-                                <div style={{position: 'relative'}}>
-                                    <MapPin size={18} color="#94a3b8" style={{position: 'absolute', left: '12px', top: '12px'}} />
-                                    <input type="text" name="location" value={formData.location} onChange={handleInputChange} required placeholder="e.g. City Hall" style={{...styles.input, paddingLeft: '40px'}} />
+                            <div style={{display: 'flex', gap: '20px', marginBottom: '15px'}}>
+                                <div style={{flex: 1}}>
+                                    <label style={styles.label}>Location</label>
+                                    <div style={{position: 'relative'}}>
+                                        <MapPin size={18} color="#94a3b8" style={{position: 'absolute', left: '12px', top: '12px'}} />
+                                        <input type="text" name="location" value={formData.location} onChange={handleInputChange} required placeholder="e.g. City Hall" style={{...styles.input, paddingLeft: '40px'}} />
+                                    </div>
                                 </div>
+                                <div style={{flex: 1}}>
+                                    <label style={styles.label}>Cover Image URL</label>
+                                    <input type="url" name="image" value={formData.image} onChange={handleInputChange} placeholder="https://..." style={styles.input} />
+                                </div>
+                            </div>
+                            
+                            <div style={{marginBottom: '20px'}}>
+                                <label style={styles.label}>Description</label>
+                                <textarea rows="3" name="description" value={formData.description} onChange={handleInputChange} placeholder="Describe the event..." style={{...styles.input, height: 'auto'}}></textarea>
                             </div>
 
                             <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
@@ -206,18 +227,29 @@ const Events = () => {
                     <table style={{width: '100%', borderCollapse: 'collapse'}}>
                         <thead style={{backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
                             <tr>
+                                <th style={styles.th}>Cover Image</th>
                                 <th style={styles.th}>Title</th>
                                 <th style={styles.th}>Date & Time</th>
                                 <th style={styles.th}>Location</th>
+                                <th style={styles.th}>Points</th>
                                 <th style={styles.th}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="4" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
+                                <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
                             ) : filteredEvents.length > 0 ? (
                                 filteredEvents.map((event) => (
                                     <tr key={event._id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                                        <td style={styles.td}>
+                                            {event.image ? (
+                                                <img src={event.image} alt="cover" style={{width: 60, height: 40, borderRadius: 6, objectFit: 'cover'}} />
+                                            ) : (
+                                                <div style={{width: 60, height: 40, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
+                                                    <ImageIcon size={16} color="#cbd5e1" />
+                                                </div>
+                                            )}
+                                        </td>
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                                                 <div style={{width: '10px', height: '10px', borderRadius: '50%', backgroundColor: event.color || '#3b82f6'}}></div>
@@ -233,6 +265,7 @@ const Events = () => {
                                         <td style={styles.td}>
                                             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><MapPin size={14} color="#64748b"/> {event.location}</span>
                                         </td>
+                                        <td style={styles.td}>{event.points ? `${event.points} pts` : '-'}</td>
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', gap: '8px'}}>
                                                 <button onClick={() => openEditForm(event)} style={styles.actionBtn('#3b82f6')} title="Edit"><Edit size={18} /></button>
@@ -242,7 +275,7 @@ const Events = () => {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan="4" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No events found matching "{searchTerm}"</td></tr>
+                                <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No events found matching "{searchTerm}"</td></tr>
                             )}
                         </tbody>
                     </table>

@@ -57,6 +57,7 @@ const Verify = () => {
   const [page, setPage]                 = useState(1);
   const [totalCount, setTotalCount]     = useState(0);
   const [totalPages, setTotalPages]     = useState(0);
+  const [activeTab, setActiveTab]       = useState('Mission'); // 'Mission' or 'Event'
 
   const getToken = () => localStorage.getItem('token');
 
@@ -185,6 +186,22 @@ const Verify = () => {
           </div>
         </div>
 
+        {/* TAB CONTROLS */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <button 
+            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeTab === 'Mission' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'Mission' ? 'white' : '#475569', fontWeight: 'bold', cursor: 'pointer' }}
+            onClick={() => setActiveTab('Mission')}
+          >
+            Missions
+          </button>
+          <button 
+            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeTab === 'Event' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'Event' ? 'white' : '#475569', fontWeight: 'bold', cursor: 'pointer' }}
+            onClick={() => setActiveTab('Event')}
+          >
+            Events
+          </button>
+        </div>
+
         {/* IMAGE MODAL */}
         {viewImage && (
           <div className="modal-overlay" onClick={() => setViewImage(null)}>
@@ -210,7 +227,13 @@ const Verify = () => {
           </div>
         ) : (
           <div className="submissions-list">
-            {submissions.map((sub) => {
+            {submissions.filter(sub => (sub.type || 'Mission') === activeTab).length === 0 ? (
+              <div className="empty-state">
+                <CheckCircle size={48} color="#16a34a" />
+                <h3>All caught up!</h3>
+                <p>No pending {activeTab.toLowerCase()} submissions to review.</p>
+              </div>
+            ) : submissions.filter(sub => (sub.type || 'Mission') === activeTab).map((sub) => {
               const aiResult  = analysisResults[sub._id];
               const hasImage  = sub.hasImage;
               const isFlagged = sub.status === 'Pending Admin Review';

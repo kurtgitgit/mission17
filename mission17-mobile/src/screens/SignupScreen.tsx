@@ -18,6 +18,8 @@ import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
 import { endpoints } from '../config/api'; 
 
+const missionLogo = require('../../assets/logo.png');
+
 export default function SignupScreen() {
   const navigation = useNavigation<any>();
   
@@ -30,7 +32,7 @@ export default function SignupScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Available Roles
-  const roles = ['Student', 'Teacher', 'LGU', 'NGO'];
+  const roles = ['Student', 'Resident', 'LGU', 'NGO'];
 
   const handleSignup = async () => {
     Keyboard.dismiss(); // 📱 UX Fix
@@ -112,7 +114,7 @@ export default function SignupScreen() {
 
           <View style={styles.header}>
             <Image 
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/6182/6182992.png' }}
+              source={missionLogo}
               style={styles.logo}
               resizeMode="contain"
             />

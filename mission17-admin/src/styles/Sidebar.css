@@ -111,20 +111,22 @@
 .logout-btn {
   margin: 20px;
   padding: 12px 20px;
-  background: transparent;
-  border: 1px solid rgba(199, 11, 11, 0.3);
+  background-color: #ef4444; /* Bright red */
+  border: none;
   color: white;
   border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4); /* Red shadow */
 }
 
 .logout-btn:hover {
-  background-color: rgba(255, 0, 0, 0.1);
-  border-color: #fca5a5;
-  color: white;
+  background-color: #dc2626; /* Darker red on hover */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.5);
 }

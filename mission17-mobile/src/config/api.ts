@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // 1. CONFIGURATION
 // ⚠️ IMPORTANT: Update this IP address whenever your computer's network IP changes.
 // On Windows, run 'ipconfig' in a terminal to find your IPv4 Address.
-const LAN_IP = "10.13.157.98"; 
+const LAN_IP = "192.168.1.101"; 
 
 // 👇 Automatically switch between localhost (for Web) and your IP (for Mobile)
 const API_URL = Platform.OS === 'web' 
@@ -32,6 +32,8 @@ export const endpoints = {
     getUserSubmissions: (id: string) => `${API_URL}/auth/user-submissions/${id}`,
     changePassword: `${API_URL}/auth/change-password`,
     leaderboard: `${API_URL}/auth/leaderboard`,
+    getNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
+    markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
   },
   // Updated to match your backend route (/auth/all-missions)
   missions: `${API_URL}/auth/all-missions`,

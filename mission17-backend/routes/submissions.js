@@ -22,6 +22,7 @@ import Submission from '../models/Submission.js';
 import User from '../models/User.js';
 import Mission from '../models/Mission.js';
 import AnalysisReport from '../models/AnalysisReport.js';
+import Notification from '../models/Notification.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
 import { awardSdgPoints } from '../utils/blockchain.js';
@@ -132,7 +133,7 @@ async function saveAnalysisReport(submissionId, userId, aiData) {
 // 🛡️ SECURE CODE: HITL Middleware applied here.
 // Randomly flags high-confidence AI results for manual review to catch adversarial attacks.
 router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
-  const { userId, missionId, missionTitle, image } = req.body;
+  const { userId, missionId, missionTitle, image, type } = req.body;
   try {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -155,6 +156,7 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
       username: user.username,
       missionId,
       missionTitle,
+      type: type || 'Mission',
       imageUri: finalImageUri,
       status: req.missionStatus || 'Pending',
     });
@@ -360,7 +362,15 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     sub.blockchainTxHash = txHash || 'SKIPPED_NO_ADDRESS';
     user.points = (user.points || 0) + pointsToAward;
 
-    await Promise.all([sub.save(), user.save()]);
+    // ✅ Step 3: Create Notification
+    const notification = new Notification({
+      userId: user._id,
+      title: 'Mission Approved',
+      message: `Your proof for "${sub.missionTitle || 'Mission'}" has been verified! You earned ${pointsToAward} points.`,
+      type: 'success'
+    });
+
+    await Promise.all([sub.save(), user.save(), notification.save()]);
 
     logAudit(
       req.user.id, req.user.username,
@@ -386,6 +396,18 @@ router.post('/reject-mission', verifyAdmin, async (req, res) => {
     sub.status = 'Rejected';
     sub.rejectionReason = reason || 'No reason provided';
     await sub.save();
+
+    // Create Notification
+    try {
+      await Notification.create({
+        userId: sub.userId,
+        title: 'Mission Rejected',
+        message: `Your proof for "${sub.missionTitle || 'Mission'}" was rejected. ${reason ? 'Reason: ' + reason : 'Please review the requirements and try again.'}`,
+        type: 'error'
+      });
+    } catch (notifErr) {
+      console.error('Failed to create rejection notification:', notifErr);
+    }
 
     logAudit(
       req.user.id, req.user.username,
@@ -503,6 +525,17 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
   } catch (error) {
     console.error('❌ Error in /dashboard-summary:', error.message);
     res.status(500).json({ message: 'Failed to load dashboard summary.' });
+  }
+});
+
+// 9. ANALYTICS PAGE STATS
+router.get('/analytics-stats', verifyAdmin, async (req, res) => {
+  try {
+    const submissions = await Submission.find().select('status createdAt').lean();
+    res.json(submissions);
+  } catch (error) {
+    console.error('Error fetching analytics stats:', error);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 
