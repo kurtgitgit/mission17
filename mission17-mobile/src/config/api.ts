@@ -1,12 +1,15 @@
 // src/config/api.ts
 import { Platform } from 'react-native';
 
-// ✅ PRODUCTION: Using the live backend URL
-const API_URL = "https://mission17-backend.onrender.com/api";
+// 🏠 LOCALHOST (Change this to your current computer IP for testing)
+const LAN_IP = "192.168.1.101"; 
 
-if (Platform.OS !== 'web') {
-  console.log(`🚀 Mobile API URL: ${API_URL}`);
-}
+// ✅ DYNAMIC: Uses localhost/IP during 'expo start', uses Render in production
+const API_URL = __DEV__ 
+  ? `http://${Platform.OS === 'android' ? LAN_IP : 'localhost'}:5001/api`
+  : "https://mission17-backend.onrender.com/api";
+
+console.log(`🚀 Mission17 (${__DEV__ ? 'DEV' : 'PROD'}) API: ${API_URL}`);
 
 // 1. GLOBAL MEMORY
 export const GlobalState = {

@@ -1,5 +1,7 @@
 // mission17-admin/src/config/api.js
-const API_URL = "https://mission17-backend.onrender.com/api"; 
+const API_URL = import.meta.env.DEV 
+  ? "http://localhost:5001/api" 
+  : "https://mission17-backend.onrender.com/api"; 
 
 export const endpoints = {
   dashboard: {
