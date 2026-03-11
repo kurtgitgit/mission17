@@ -1,9 +1,9 @@
 Flask==2.2.2
 Flask-Cors==3.0.10
-numpy==1.23.5
+numpy
 opencv-python-headless
-tensorflow-cpu==2.11.0
+tensorflow
 Pillow
 imagehash
 gunicorn
-werkzeug==2.2.2
+werkzeug==3.1.5
