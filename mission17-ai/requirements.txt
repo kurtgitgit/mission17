@@ -1,9 +1,10 @@
+setuptools
 Flask==2.2.2
 Flask-Cors==3.0.10
 numpy==1.23.5
-opencv-python-headless==4.7.0.72
-tensorflow-cpu==2.11.0
-Pillow==9.4.0
-imagehash==4.3.1
-gunicorn==20.1.0
+opencv-python-headless
+tensorflow-cpu
+Pillow
+imagehash
+gunicorn
 werkzeug==2.2.2
