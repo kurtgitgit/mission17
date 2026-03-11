@@ -90,14 +90,28 @@ async function buildAIFormData(imageUri) {
 async function callAIServer(imageUri) {
   const formData = await buildAIFormData(imageUri);
 
-  const aiResponse = await fetch(process.env.AI_SERVER_URL, {
+  // ✅ Fix: Ensure we are hitting the /predict endpoint even if the env var is just the domain
+  let aiUrl = process.env.AI_SERVER_URL;
+  if (aiUrl && !aiUrl.endsWith('/predict')) {
+    aiUrl = aiUrl.endsWith('/') ? `${aiUrl}predict` : `${aiUrl}/predict`;
+  }
+
+  const aiResponse = await fetch(aiUrl, {
     method: 'POST',
     body: formData,
   });
 
   if (!aiResponse.ok) {
     const errText = await aiResponse.text();
-    throw new Error(`AI Server Error (${aiResponse.status}): ${errText}`);
+    throw new Error(`AI Server Error (${aiResponse.status}): ${errText.slice(0, 100)}`);
+  }
+
+  // Check if response is actually JSON
+  const contentType = aiResponse.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    const text = await aiResponse.text();
+    console.error("❌ AI Server returned non-JSON response:", text.slice(0, 200));
+    throw new Error("AI Server returned an invalid response (HTML/Text). Is the URL correct?");
   }
 
   return aiResponse.json();
