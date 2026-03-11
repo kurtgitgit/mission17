@@ -113,12 +113,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         } as any);
       }
 
-      // Note: 10.0.2.2 points to localhost on an Android Emulator. 
-      // If testing on a real phone, change this to your computer's IPv4 address (e.g. 192.168.1.5)
-      const aiIp = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-
-      // 👈 FETCH FIX: Removed headers so the browser/phone handles the boundary string
-      const aiResponse = await fetch(`http://${aiIp}:5000/predict`, {
+      // ✅ PRODUCTION: Using the live AI server URL on Render
+      const aiResponse = await fetch(`https://mission17-ai.onrender.com/predict`, {
         method: 'POST',
         body: formData
       });
