@@ -20,7 +20,7 @@ const Users = () => {
     points: 0
   });
 
-  const API_BASE = "http://localhost:5001/api/auth";
+  const API_BASE = "https://mission17-backend.onrender.com/api/auth";
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');

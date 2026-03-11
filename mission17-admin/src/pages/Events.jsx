@@ -23,7 +23,7 @@ const Events = () => {
         image: ''
     });
 
-    const API_BASE = "http://localhost:5001/api/auth";
+    const API_BASE = "https://mission17-backend.onrender.com/api/auth";
 
     useEffect(() => {
         fetchEvents();
