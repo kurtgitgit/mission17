@@ -13,7 +13,14 @@ const Settings = () => {
   // Load Admin MFA status and Logs on mount
   useEffect(() => {
     fetchAuditLogs();
-    // In a real app, fetch initial MFA status here
+    
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        setMfaEnabled(!!user.mfaEnabled);
+      } catch (e) {}
+    }
   }, []);
 
   const fetchAuditLogs = async () => {
@@ -34,9 +41,44 @@ const Settings = () => {
 
   const handleToggleMFA = async (e) => {
     const enabled = e.target.checked;
-    // Call your /toggle-mfa endpoint here
-    setMfaEnabled(enabled);
-    alert(`MFA is now ${enabled ? 'Enabled' : 'Disabled'} for Admin.`);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const savedUserStr = localStorage.getItem('user');
+      
+      if (!savedUserStr) {
+        alert("Could not identify active user session.");
+        return;
+      }
+      
+      const user = JSON.parse(savedUserStr);
+      const userId = user._id || user.id;
+
+      const response = await fetch(`${endpoints.auth.baseUrl}/toggle-mfa`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ userId, enable: enabled })
+      });
+
+      if (response.ok) {
+        setMfaEnabled(enabled);
+        
+        // Persist the change in local storage so the toggle doesn't reset on refresh
+        user.mfaEnabled = enabled;
+        localStorage.setItem('user', JSON.stringify(user));
+        
+        alert(`MFA is now ${enabled ? 'Enabled' : 'Disabled'} for Admin.`);
+      } else {
+        const data = await response.json();
+        alert("Failed to save: " + (data.message || 'Unknown server error'));
+      }
+    } catch (error) {
+      console.error("MFA toggle error:", error);
+      alert("Failed to communicate with server.");
+    }
   };
 
   return (
