@@ -113,8 +113,13 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         } as any);
       }
 
-      // ✅ PRODUCTION: Using the live AI server URL on Render
-      const aiResponse = await fetch(`https://mission17-ai.onrender.com/predict`, {
+      // 🤖 AI SERVER URL: Dynamic switching!
+      const DEV_AI_IP = "192.168.1.101"; // Change to your IP for real phone dev
+      const AI_URL = __DEV__
+        ? `http://${Platform.OS === 'android' ? '10.0.2.2' : 'localhost'}:5000/predict`
+        : "https://mission17-ai.onrender.com/predict";
+
+      const aiResponse = await fetch(AI_URL, {
         method: 'POST',
         body: formData
       });
