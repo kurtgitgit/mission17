@@ -4,9 +4,9 @@ venv/
 __pycache__/
 *.pyc
 
-# Ignore the heavy model file
-*.h5
-
+# We are un-ignoring .h5 so the AI model can be deployed
+# dataset/
+# venv/
 node_modules/
 
 # OS metadata and secrets
