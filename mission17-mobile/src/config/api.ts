@@ -1,15 +1,8 @@
 // src/config/api.ts
 import { Platform } from 'react-native';
 
-// 1. CONFIGURATION
-// ⚠️ IMPORTANT: Update this IP address whenever your computer's network IP changes.
-// On Windows, run 'ipconfig' in a terminal to find your IPv4 Address.
-const LAN_IP = "192.168.1.101"; 
-
-// 👇 Automatically switch between localhost (for Web) and your IP (for Mobile)
-const API_URL = Platform.OS === 'web' 
-  ? "http://localhost:5001/api" 
-  : `http://${LAN_IP}:5001/api`; 
+// ✅ PRODUCTION: Using the live backend URL
+const API_URL = "https://mission17-backend.onrender.com/api";
 
 if (Platform.OS !== 'web') {
   console.log(`🚀 Mobile API URL: ${API_URL}`);
