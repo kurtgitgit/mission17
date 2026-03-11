@@ -50,7 +50,7 @@ const Login = () => {
 
     try {
       // 2. The Logic: Connect to your Secure Backend
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch('https://mission17-backend.onrender.com/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +94,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/verify-otp', {
+      const response = await fetch('https://mission17-backend.onrender.com/api/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: tempUserId, otp }),

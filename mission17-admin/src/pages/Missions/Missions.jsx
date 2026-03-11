@@ -25,7 +25,7 @@ const Missions = () => {
     image: ''
   });
 
-  const API_BASE = "http://localhost:5001/api/auth";
+  const API_BASE = "https://mission17-backend.onrender.com/api/auth";
 
   // 🧠 AI DATA: Keywords for detection
   const SDG_KEYWORDS = {
