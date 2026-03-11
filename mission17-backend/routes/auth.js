@@ -20,11 +20,17 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import rateLimit from 'express-rate-limit';
+import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { logAudit, verifyAdmin } from '../utils/authMiddleware.js';
 
 const router = express.Router();
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'https://auth.expo.io/@kurtperez/mission17-app'
+);
 
 // ==========================================
 // 🔧 EMAIL HELPER (OTP)
@@ -43,15 +49,82 @@ const sendOTP = async (user) => {
       service: 'gmail',
       auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
     });
+
+    const htmlTemplate = `
+      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #111827; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">MISSION <span style="color: #3b82f6;">17</span></h1>
+          <p style="color: #6b7280; font-size: 14px; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;">Security Verification</p>
+        </div>
+        
+        <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #f3f4f6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.01);">
+          <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Your Login Code</h2>
+          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">To complete your sign in, please use the following verification code:</p>
+          
+          <div style="background: linear-gradient(to right, #eff6ff, #f8fafc); border: 2px dashed #93c5fd; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+            <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #1e40af;">${otp}</span>
+          </div>
+          
+          <p style="color: #ef4444; font-size: 14px; font-weight: 500; margin-bottom: 0;">⏳ This code expires in 10 minutes.</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          <p style="color: #9ca3af; font-size: 12px; line-height: 1.5;">If you didn't request this code, you can safely ignore this email. Your account remains secure.</p>
+        </div>
+      </div>
+    `;
+
     await transporter.sendMail({
       from: `"Mission 17 Security" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: 'Your Login Code',
+      subject: 'Security Verification Code - Mission 17',
       text: `Your Mission 17 verification code is: ${otp}. It expires in 10 minutes.`,
+      html: htmlTemplate,
     });
     console.log('✅ Email sent successfully!');
   } catch (error) {
     console.error('❌ Email Send Failed:', error);
+  }
+};
+
+// ==========================================
+// 💌 EMAIL HELPER (WELCOME)
+// ==========================================
+const sendWelcomeEmail = async (user) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+
+    const htmlTemplate = `
+      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #111827; font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">MISSION <span style="color: #3b82f6;">17</span></h1>
+        </div>
+        
+        <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #f3f4f6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.01);">
+          <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Welcome to Mission 17!</h2>
+          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">Hi <strong>${user.username}</strong>, your account has been successfully created!</p>
+          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">We are thrilled to have you on board. Get ready to start exploring, completing missions, and earning points!</p>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+          <p style="color: #9ca3af; font-size: 12px; line-height: 1.5;">You received this because you registered at Mission 17.</p>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: '"Mission 17" <' + process.env.EMAIL_USER + '>',
+      to: user.email,
+      subject: 'Welcome to Mission 17! 🎉',
+      text: 'Hi ' + user.username + ', welcome to Mission 17! Your account was successfully created.',
+      html: htmlTemplate,
+    });
+    console.log('✅ Welcome email sent successfully to ' + user.email);
+  } catch (error) {
+    console.error('❌ Welcome Email Send Failed:', error);
   }
 };
 
@@ -109,6 +182,9 @@ router.post('/signup', async (req, res) => {
     await newUser.save();
     // 🔒 LOG ACTION
     logAudit(newUser._id, newUser.username, "SIGNUP", "New user account created", req);
+    
+    // 💌 Send welcome email asynchronously
+    sendWelcomeEmail(newUser).catch(err => console.error(err));
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
     // 👇 If mongoose detects a NoSQL injection or strange characters, catch it smoothly!
@@ -204,6 +280,68 @@ router.post('/toggle-mfa', async (req, res) => {
     res.json({ message: `MFA is now ${enable ? 'Enabled' : 'Disabled'}` });
   } catch (error) {
     res.status(500).json({ message: "Error updating MFA" });
+  }
+});
+
+// ==========================================
+// 🌐 GOOGLE AUTHENTICATION
+// ==========================================
+router.post('/google', async (req, res) => {
+  const { idToken, role } = req.body; 
+
+  try {
+    // 1. Verify token with Google
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID, 
+    });
+    
+    const payload = ticket.getPayload();
+    const { email, name, sub: googleId } = payload;  
+    const cleanEmail = email.toLowerCase().trim();
+
+    // 2. Check if user already exists
+    let user = await User.findOne({ email: cleanEmail });
+
+    if (!user) {
+      // 3. User doesn't exist -> Create new account
+      // We generate a random password because Google users don't need a password to login,
+      // but the DB schema requires one.
+      const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-8);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      user = new User({
+        username: name.replace(/\s+/g, '') + Math.floor(Math.random() * 1000), // e.g. JohnDoe42
+        email: cleanEmail,
+        password: hashedPassword,
+        role: role ? role.toLowerCase() : 'student',
+        points: 0,
+        // Optional: you could add a 'isGoogleUser' boolean to the schema later
+      });
+
+      await user.save();
+      logAudit(user._id, user.username, "SIGNUP", "New user signed up via Google", req);
+      
+      // 💌 Send welcome email asynchronously
+      sendWelcomeEmail(user).catch(err => console.error(err));
+    }
+
+    // 4. Existing User Login OR New User Login -> Generate JWT
+    const token = jwt.sign(
+      { id: user._id, role: user.role, username: user.username },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in successfully via Google", req);
+
+    const { password, ...others } = user._doc;
+    res.status(200).json({ token, user: others });
+
+  } catch (error) {
+    console.error("Google Auth Error:", error);
+    res.status(401).json({ message: "Invalid Google Token" });
   }
 });
 

@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image, Keyboard } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Key } from 'lucide-react-native';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { endpoints, GlobalState } from '../config/api';
-import { saveAuthData } from '../utils/storage'; 
+import { saveAuthData } from '../utils/storage';
+
+GoogleSignin.configure({
+  webClientId: '273385582923-o4esb9aj3t3ssnmfm4j1mbq9jp5d1dnm.apps.googleusercontent.com',
+  // Native configuration handles the Android and iOS Client IDs automatically behind the scenes.
+});
 
 export default function LoginScreen() {
   const navigation = useNavigation<any>();
@@ -20,8 +26,60 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
 
+  // 🌐 GOOGLE AUTH STATE
+  const signInWithGoogleAsync = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      
+      // Force sign out first so the user is always presented with the account picker
+      try {
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // Ignore errors if they aren't signed in yet
+      }
+
+      const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens(); // The safest way to guarantee idToken extraction
+      
+      console.log("================ Google Native Sign-in Response ================");
+      console.log("✅ ID Token Received Length:", tokens.idToken.length);
+
+      if (tokens.idToken) {
+        handleGoogleLogin(tokens.idToken);
+      } else {
+        Alert.alert("Google Sign-in", "No ID token received from Google.");
+      }
+    } catch (error: any) {
+      console.error("❌ Google Native Auth Error:", error.message);
+      if (error.code !== 'ASYNC_OP_IN_PROGRESS') { // Ignore user cancellation panics
+          Alert.alert("Google Login Error", "Authentication was cancelled or failed.");
+      }
+    }
+  };
+
+  const handleGoogleLogin = async (idToken: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${endpoints.auth.baseUrl}/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await processLoginSuccess(data);
+      } else {
+        Alert.alert("Google Login Failed", data.message || "Invalid Google token");
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not connect to server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async () => {
-    Keyboard.dismiss(); 
+    Keyboard.dismiss();  
 
     if (!captchaAnswer.trim()) {
       const msg = "Please answer the math question.";
@@ -190,6 +248,21 @@ export default function LoginScreen() {
                         <Text style={styles.loginButtonText}>Log In</Text>
                     )}
                 </TouchableOpacity>
+
+                <View style={styles.dividerContainer}>
+                  <View style={styles.divider} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.divider} />
+                </View>
+
+                {/* GOOGLE SIGN IN BUTTON */}
+                <TouchableOpacity 
+                  style={styles.googleButton}
+                  onPress={signInWithGoogleAsync}
+                  disabled={loading}
+                >
+                  <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                </TouchableOpacity>
             </>
         ) : (
             // MFA OTP UI
@@ -314,6 +387,35 @@ const styles = StyleSheet.create({
     color: '#ef4444',
     marginTop: 10,
     fontWeight: '600'
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+  },
+  dividerText: {
+    marginHorizontal: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  googleButton: {
+    backgroundColor: 'white',
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  googleButtonText: {
+    color: '#1e293b',
+    fontSize: 16,
+    fontWeight: '600',
   },
   footer: { 
     flexDirection: 'row', 

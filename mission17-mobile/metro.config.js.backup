@@ -1,0 +1,20 @@
+// Learn more https://docs.expo.io/guides/customizing-metro
+const { getDefaultConfig } = require('expo/metro-config');
+
+/** @type {import('expo/metro-config').MetroConfig} */
+const config = getDefaultConfig(__dirname);
+
+// Fix Cross-Origin-Opener-Policy for Google Auth Popups on Web
+config.server = {
+  ...config.server,
+  enhanceMiddleware: (middleware) => {
+    return (req, res, next) => {
+      // Allow popups like Google Login to communicate back to the main window
+      res.setHeader('Cross-Origin-Opener-Policy', 'unsafe-none');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+      return middleware(req, res, next);
+    };
+  },
+};
+
+module.exports = config;
