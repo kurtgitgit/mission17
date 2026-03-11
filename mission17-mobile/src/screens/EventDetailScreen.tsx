@@ -107,9 +107,8 @@ const EventDetailScreen = ({ route, navigation }: any) => {
         } as any);
       }
 
-      const aiIp = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
-
-      const aiResponse = await fetch(`http://${aiIp}:5000/predict`, {
+      // ✅ PRODUCTION: Using the live AI server URL on Render
+      const aiResponse = await fetch(`https://mission17-ai.onrender.com/predict`, {
         method: 'POST',
         body: formData
       });
