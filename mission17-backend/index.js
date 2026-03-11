@@ -39,6 +39,8 @@ app.use(helmet());
 
 // 2. Rate Limiting (Stops DoS & Model Inversion Attacks)
 // 🛡️ CAPSTONE MITIGATION: Limits each IP to 10 requests every 1 minute to protect the AI.
+// ✅ Trust Render's proxy so express-rate-limit can correctly identify client IPs
+app.set('trust proxy', 1);
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
   max: 100, // Limit each IP to 10 requests per `window`
