@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
-/*  */import Layout from '../components/Layout'; // Correct path for src/pages/Events.jsx
+import Layout from '../components/Layout';
 import { Plus, Trash2, Edit, Search, X, Calendar, MapPin, Clock, Image as ImageIcon } from 'lucide-react';
+import Modal from '../components/Modal';
+import { useNotification } from '../context/NotificationContext';
+import { endpoints } from '../config/api';
 
 const Events = () => {
+    const { showNotification } = useNotification();
     const [showForm, setShowForm] = useState(false);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -11,6 +15,8 @@ const Events = () => {
     // EDIT MODE STATE
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [eventToDelete, setEventToDelete] = useState(null);
 
     const [formData, setFormData] = useState({
         title: '', 
@@ -23,7 +29,7 @@ const Events = () => {
         image: ''
     });
 
-    const API_BASE = "https://mission17-backend.onrender.com/api/auth";
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         fetchEvents();
@@ -31,7 +37,7 @@ const Events = () => {
 
     const fetchEvents = async () => {
         try {
-            const res = await fetch(`${API_BASE}/events`);
+            const res = await fetch(endpoints.events.getAll);
             const data = await res.json();
             setEvents(data);
         } catch (error) {
@@ -49,6 +55,36 @@ const Events = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
+    };
+
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const uploadData = new FormData();
+        uploadData.append('image', file);
+
+        setUploading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${endpoints.auth.baseUrl}/upload`, {
+                method: 'POST',
+                headers: { 'auth-token': token },
+                body: uploadData
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setFormData({ ...formData, image: data.url });
+                showNotification("Image uploaded successfully!", "success");
+            } else {
+                showNotification(data.message || "Upload failed", "error");
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            showNotification("Server error during upload", "error");
+        } finally {
+            setUploading(false);
+        }
     };
 
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -80,17 +116,17 @@ const Events = () => {
 
         // Hard-block past dates regardless of what the picker allowed through
         if (formData.date < today) {
-            alert("⚠️ Event date cannot be in the past. Please select today or a future date.");
+            showNotification("Event date cannot be in the past. Please select today or a future date.", "error");
             return;
         }
 
-        const url = isEditing ? `${API_BASE}/events/${currentId}` : `${API_BASE}/events`;
+        const url = isEditing ? endpoints.events.update(currentId) : endpoints.events.add;
         const method = isEditing ? 'PUT' : 'POST';
 
         const token = localStorage.getItem('token');
 
         if (!token) {
-            alert("You are not logged in! Please log in again.");
+            showNotification("You are not logged in! Please log in again.", "error");
             return;
         }
 
@@ -109,32 +145,40 @@ const Events = () => {
             if (res.ok) {
                 fetchEvents();
                 setShowForm(false);
-                alert(isEditing ? "Event updated successfully!" : "Event created successfully!");
+                showNotification(isEditing ? "Event updated successfully!" : "Event created successfully!", "success");
             } else {
-                alert(`Failed: ${data.message || "Unknown error"}`);
+                showNotification(data.message || "Failed to save event", "error");
             }
         } catch (error) {
             console.error("Save error:", error);
         }
     };
 
-    const handleDelete = async (id) => {
-        if (window.confirm("Are you sure you want to delete this event?")) {
-            const token = localStorage.getItem('token');
-            try {
-                const res = await fetch(`${API_BASE}/events/${id}`, { 
-                    method: 'DELETE',
-                    headers: { 'auth-token': token }
-                });
+    const handleDeleteClick = (id) => {
+        setEventToDelete(id);
+        setShowDeleteConfirm(true);
+    };
 
-                if (res.ok) {
-                    setEvents(events.filter(e => e._id !== id));
-                } else {
-                    alert("Failed to delete.");
-                }
-            } catch (error) {
-                console.error("Delete error:", error);
+    const executeDelete = async () => {
+        const id = eventToDelete;
+        const token = localStorage.getItem('token');
+        try {
+            const res = await fetch(endpoints.events.delete(id), { 
+                method: 'DELETE',
+                headers: { 'auth-token': token }
+            });
+
+            if (res.ok) {
+                setEvents(events.filter(e => e._id !== id));
+                showNotification("Event deleted successfully", "success");
+            } else {
+                showNotification("Failed to delete event", "error");
             }
+        } catch (error) {
+            console.error("Delete error:", error);
+        } finally {
+            setShowDeleteConfirm(false);
+            setEventToDelete(null);
         }
     };
 
@@ -204,8 +248,40 @@ const Events = () => {
                                     </div>
                                 </div>
                                 <div style={{flex: 1}}>
-                                    <label style={styles.label}>Cover Image URL</label>
-                                    <input type="url" name="image" value={formData.image} onChange={handleInputChange} placeholder="https://..." style={styles.input} />
+                                    <label style={styles.label}>Cover Image</label>
+                                    <div style={{display: 'flex', gap: '10px', alignItems: 'center'}}>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            onChange={handleFileChange} 
+                                            style={{display: 'none'}} 
+                                            id="event-image-upload"
+                                        />
+                                        <label 
+                                            htmlFor="event-image-upload" 
+                                            style={{
+                                                ...styles.input, 
+                                                cursor: 'pointer', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center',
+                                                gap: '8px',
+                                                backgroundColor: '#f8fafc',
+                                                borderStyle: 'dashed'
+                                            }}
+                                        >
+                                            <ImageIcon size={18} color="#64748b" />
+                                            <span>{uploading ? 'Uploading...' : 'Choose Local Photo'}</span>
+                                        </label>
+                                        {formData.image && (
+                                            <div style={{position: 'relative'}}>
+                                                <img src={formData.image.startsWith('http') ? formData.image : `${endpoints.auth.baseUrl.replace('/api/auth', '')}${formData.image}`} alt="preview" style={{width: '42px', height: '42px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0'}} />
+                                                <button type="button" onClick={() => setFormData({...formData, image: ''})} style={{position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px'}}><X size={10}/></button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p style={{fontSize: '11px', color: '#94a3b8', marginTop: '4px'}}>Or paste URL below if preferred</p>
+                                    <input type="text" name="image" value={formData.image} onChange={handleInputChange} placeholder="https:// or /uploads/..." style={styles.input} />
                                 </div>
                             </div>
                             
@@ -243,7 +319,7 @@ const Events = () => {
                                     <tr key={event._id} style={{borderBottom: '1px solid #f1f5f9'}}>
                                         <td style={styles.td}>
                                             {event.image ? (
-                                                <img src={event.image} alt="cover" style={{width: 60, height: 40, borderRadius: 6, objectFit: 'cover'}} />
+                                                <img src={event.image.startsWith('http') ? event.image : `${endpoints.auth.baseUrl.replace('/api/auth', '')}${event.image}`} alt="cover" style={{width: 60, height: 40, borderRadius: 6, objectFit: 'cover'}} />
                                             ) : (
                                                 <div style={{width: 60, height: 40, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                                                     <ImageIcon size={16} color="#cbd5e1" />
@@ -269,7 +345,7 @@ const Events = () => {
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', gap: '8px'}}>
                                                 <button onClick={() => openEditForm(event)} style={styles.actionBtn('#3b82f6')} title="Edit"><Edit size={18} /></button>
-                                                <button onClick={() => handleDelete(event._id)} style={styles.actionBtn('#ef4444')} title="Delete"><Trash2 size={18} /></button>
+                                                <button onClick={() => handleDeleteClick(event._id)} style={styles.actionBtn('#ef4444')} title="Delete"><Trash2 size={18} /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -280,6 +356,16 @@ const Events = () => {
                         </tbody>
                     </table>
                 </div>
+
+                <Modal 
+                    isOpen={showDeleteConfirm}
+                    onClose={() => setShowDeleteConfirm(false)}
+                    onConfirm={executeDelete}
+                    title="Delete Event"
+                    message="Are you sure you want to delete this event? This action cannot be undone."
+                    type="danger"
+                    confirmText="Delete"
+                />
             </div>
         </Layout>
     );

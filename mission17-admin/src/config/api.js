@@ -1,6 +1,5 @@
-// mission17-admin/src/config/api.js
 const API_URL = import.meta.env.DEV 
-  ? "http://localhost:5001/api" 
+  ? `http://${window.location.hostname}:5001/api` 
   : "https://mission17-backend.onrender.com/api"; 
 
 export const endpoints = {
@@ -36,7 +35,7 @@ export const endpoints = {
   },
   events: {
     getAll: `${API_URL}/auth/events`,
-    create: `${API_URL}/auth/events`,
+    add:    `${API_URL}/auth/events`,
     update: (id) => `${API_URL}/auth/events/${id}`,
     delete: (id) => `${API_URL}/auth/events/${id}`,
   },

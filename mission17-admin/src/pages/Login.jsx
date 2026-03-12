@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
+import { useNotification } from '../context/NotificationContext';
+import { endpoints } from '../config/api';
 import '../styles/Auth.css';
 import logoImg from '../assets/logo.png';
 
 const Login = () => {
+  const { showNotification } = useNotification();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -50,7 +53,7 @@ const Login = () => {
 
     try {
       // 2. The Logic: Connect to your Secure Backend
-      const response = await fetch('https://mission17-backend.onrender.com/api/auth/login', {
+      const response = await fetch(endpoints.auth.login, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +97,7 @@ const Login = () => {
     setError("");
 
     try {
-      const response = await fetch('https://mission17-backend.onrender.com/api/auth/verify-otp', {
+      const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: tempUserId, otp }),

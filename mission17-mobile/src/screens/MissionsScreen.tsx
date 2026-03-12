@@ -3,11 +3,13 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image, 
   Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal 
 } from 'react-native';
-import { GlobalState, endpoints } from '../config/api';
+import { GlobalState, endpoints, formatImageUri } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import { MapPin, Clock, X, Calendar, Target } from 'lucide-react-native';
+import { useNotification } from '../context/NotificationContext';
 
 const MissionsScreen = ({ navigation, route }: any) => {
+  const { showNotification } = useNotification();
   const [missions, setMissions] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +46,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
   }, [route.params?.initialTab]);
 
   const handlePressMission = (item: any) => {
-    if (!userId) Alert.alert("Notice", "Please log in to save points.");
+    if (!userId) showNotification("Please log in to save points.", "info");
     navigation.navigate('MissionDetail', { mission: item, userId: userId });
   };
 
@@ -59,7 +61,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       >
         {/* RENDER LOGIC: Custom Image OR Color Block */}
         {hasImage ? (
-          <Image source={{ uri: item.image }} style={styles.cardImage} />
+          <Image source={{ uri: formatImageUri(item.image)! }} style={styles.cardImage} />
         ) : (
           <View style={[styles.cardImage, { backgroundColor: item.color || '#3b82f6', justifyContent: 'center', alignItems: 'center' }]}>
              <Text style={styles.placeholderNumber}>
@@ -100,7 +102,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       <TouchableOpacity 
         style={styles.eventCard}
         onPress={() => {
-          if (!userId) Alert.alert("Notice", "Please log in to participate.");
+          if (!userId) showNotification("Please log in to participate.", "info");
           navigation.navigate('EventDetail', { event: item, userId: userId });
         }}
       >

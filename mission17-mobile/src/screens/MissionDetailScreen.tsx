@@ -6,12 +6,14 @@ import {
 import { Camera, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { endpoints } from '../config/api';
+import { endpoints, formatImageUri } from '../config/api';
+import { useNotification } from '../context/NotificationContext';
 
 // --- IMPORT BLOCKCHAIN SERVICE ---
 import { saveMissionToBlockchain } from '../../MissionBlockchain';
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
+  const { showNotification } = useNotification();
   const { mission, userId } = route.params;
 
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -47,7 +49,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   const handlePickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Need camera roll permissions!');
+      showNotification('Need camera roll permissions!', 'error');
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -77,11 +79,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
   const handleSubmit = async () => {
     if (!userId) {
-      Platform.OS === 'web' ? window.alert("User ID missing") : Alert.alert("Error", "User ID missing.");
+      showNotification("User ID missing.", "error");
       return;
     }
     if (!imageUri) {
-      Platform.OS === 'web' ? window.alert("Please select an image") : Alert.alert("Error", "Please select an image.");
+      showNotification("Please select an image.", "error");
       return;
     }
 
@@ -133,12 +135,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         setIsAnalyzing(false);
         // 🎯 MODULE 11: Fallback if CORS blocks the 400 Bad Request error payload
         if (!aiResponse.ok && aiResponse.status === 400) {
-          const errorMsg = 'Duplicate image detected or invalid submission request!';
-          Platform.OS === 'web' ? window.alert(`Anti-Cheat / AI Error: ${errorMsg}`) : Alert.alert('Anti-Cheat / AI Error', errorMsg);
+          showNotification('Anti-Cheat / AI Error: Duplicate image detected or invalid submission request!', 'error');
           setLoading(false);
           return;
         }
-        Platform.OS === 'web' ? window.alert('Failed to connect to AI server.') : Alert.alert('AI Connection Error', 'Failed to connect to AI server.');
+        showNotification('Failed to connect to AI server.', 'error');
         setLoading(false);
         return;
       }
@@ -148,21 +149,13 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       // Look for the specific error property returned by the backend on duplicate.
       if (aiResult?.status === 'REJECTED' || (aiResult?.error && aiResult.error.includes("Duplicate"))) {
         const errorMsg = aiResult.error || "Duplicate image detected. You cannot farm points!";
-        if (Platform.OS === 'web') {
-          window.alert(`🚨 Anti-Cheat Alert:\n\n${errorMsg}`);
-        } else {
-          Alert.alert('🚨 Anti-Cheat Alert', errorMsg);
-        }
+        showNotification(`🚨 Anti-Cheat Alert: ${errorMsg}`, "error");
         setLoading(false);
         return;
       }
 
       if (!aiResponse.ok && aiResult?.error) {
-        if (Platform.OS === 'web') {
-          window.alert(`AI Error: ${aiResult.error}`);
-        } else {
-          Alert.alert('AI Error', aiResult.error);
-        }
+        showNotification(`AI Error: ${aiResult.error}`, "error");
         setLoading(false);
         return;
       }
@@ -170,11 +163,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       // If AI rejects it, stop the submission process!
       if (aiResult?.verdict !== 'VERIFIED') {
         const msg = aiResult?.message || 'The AI could not confidently identify a seedling. Please retake the photo.';
-        if (Platform.OS === 'web') {
-          window.alert(`AI Verification Failed:\n\n${msg}`);
-        } else {
-          Alert.alert('AI Verification Failed', msg);
-        }
+        showNotification(`AI Verification Failed: ${msg}`, "error");
         setLoading(false);
         return;
       }
@@ -211,35 +200,25 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
           const msg = `1. Verified by AI!\n2. Saved to DB.\n3. Verified on Blockchain!\n\nHash:\n${txHash}`;
 
-          if (Platform.OS === 'web') {
-            window.alert("🚀 Triple Success!\n" + msg);
-            navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-          } else {
-            Alert.alert("🚀 Triple Success!", msg, [
-              { text: "Awesome!", onPress: () => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }) }
-            ]);
-          }
+          navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+          showNotification("🚀 Triple Success! Verified by AI, DB, & Blockchain.", "success");
 
         } catch (blockchainError: any) {
           console.error("Blockchain Failed:", blockchainError);
           const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
 
-          if (Platform.OS === 'web') {
-            window.alert(errorMsg);
-          } else {
-            Alert.alert("Saved to DB", errorMsg);
-          }
+          showNotification(errorMsg, "info");
           setSubmitted(true);
           setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
         }
         // --------------------------------
 
       } else {
-        alert(data.message || "Submission failed");
+        showNotification(data.message || "Submission failed", "error");
       }
     } catch (error) {
       console.error("Submit Error:", error);
-      alert("Connection Error. Check console logs.");
+      showNotification("Connection Error. Check console logs.", "error");
     } finally {
       setLoading(false);
       setIsAnalyzing(false);
@@ -252,7 +231,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       {/* HERO HEADER */}
       <View style={{ height: 300, width: '100%' }}>
         {hasImage ? (
-          <Image source={{ uri: mission.image }} style={{ width: '100%', height: '100%' }} />
+          <Image source={{ uri: formatImageUri(mission.image)! }} style={{ width: '100%', height: '100%' }} />
         ) : (
           <View style={{
             width: '100%',

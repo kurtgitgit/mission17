@@ -7,8 +7,10 @@ import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText, X,
 import { CommonActions } from '@react-navigation/native';
 import { clearAuthData, getAuthData } from '../utils/storage'; 
 import { GlobalState, endpoints } from '../config/api';     
+import { useNotification } from '../context/NotificationContext';
 
 const SettingsScreen = ({ navigation }: any) => {
+  const { showNotification } = useNotification();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [mfaEnabled, setMfaEnabled] = useState(false); // 🛡️ MFA STATE
   
@@ -19,6 +21,9 @@ const SettingsScreen = ({ navigation }: any) => {
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Logout Confirmation State
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
@@ -55,14 +60,14 @@ const SettingsScreen = ({ navigation }: any) => {
         
         if (response.ok) {
             setMfaEnabled(value);
-            Alert.alert("Success", `Two-Factor Authentication is now ${value ? 'ON' : 'OFF'}`);
+            showNotification(`Two-Factor Authentication is now ${value ? 'ON' : 'OFF'}`, "success");
         } else {
             setMfaEnabled(!value); // Revert switch if failed
             Alert.alert("Error", result.message || "Failed to update MFA settings");
         }
     } catch (error) {
         setMfaEnabled(!value);
-        Alert.alert("Error", "Network error updating security settings");
+        showNotification("Network error updating security settings", "error");
     }
   };
 
@@ -84,23 +89,16 @@ const SettingsScreen = ({ navigation }: any) => {
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-        if (window.confirm("Are you sure you want to log out?")) executeLogout();
-    } else {
-        Alert.alert("Log Out", "Are you sure you want to log out?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Log Out", style: 'destructive', onPress: executeLogout }
-        ]);
-    }
+    setShowLogoutConfirm(true);
   };
 
   const handleChangePassword = async () => {
     if (!oldPass || !newPass) {
-        Alert.alert("Error", "Please fill in both fields.");
+        showNotification("Please fill in both fields.", "error");
         return;
     }
     if (newPass.length < 8) {
-        Alert.alert("Weak Password", "New password must be at least 8 characters.");
+        showNotification("New password must be at least 8 characters.", "error");
         return;
     }
 
@@ -119,15 +117,15 @@ const SettingsScreen = ({ navigation }: any) => {
         const data = await response.json();
 
         if (response.ok) {
-            Alert.alert("Success", "Password updated successfully!");
+            showNotification("Password updated successfully!", "success");
             setActiveModal(null);
             setOldPass('');
             setNewPass('');
         } else {
-            Alert.alert("Failed", data.message || "Could not update password.");
+            showNotification(data.message || "Could not update password.", "error");
         }
     } catch (error) {
-        Alert.alert("Error", "Server connection failed.");
+        showNotification("Server connection failed.", "error");
     } finally {
         setLoading(false);
     }
@@ -304,6 +302,42 @@ const SettingsScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
 
                 <Text style={styles.helpSubtext}>Available Mon-Fri, 9AM - 5PM</Text>
+            </View>
+        </View>
+      </Modal>
+
+      {/* LOGOUT CONFIRMATION MODAL */}
+      <Modal visible={showLogoutConfirm} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, { maxWidth: 340 }]}>
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                    <View style={[styles.iconCircle, { backgroundColor: '#fef2f2', marginBottom: 16 }]}>
+                        <LogOut size={32} color="#ef4444" />
+                    </View>
+                    <Text style={styles.modalTitle}>Confirm Logout</Text>
+                    <Text style={{ textAlign: 'center', color: '#64748b', fontSize: 15, marginTop: 8 }}>
+                        Are you sure you want to end your session?
+                    </Text>
+                </View>
+
+                <View style={{ gap: 12 }}>
+                    <TouchableOpacity 
+                        style={[styles.saveBtn, { backgroundColor: '#ef4444' }]} 
+                        onPress={() => {
+                            setShowLogoutConfirm(false);
+                            executeLogout();
+                        }}
+                    >
+                        <Text style={styles.saveBtnText}>Log Out</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                        style={[styles.saveBtn, { backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0' }]} 
+                        onPress={() => setShowLogoutConfirm(false)}
+                    >
+                        <Text style={[styles.saveBtnText, { color: '#64748b' }]}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
         </View>
       </Modal>

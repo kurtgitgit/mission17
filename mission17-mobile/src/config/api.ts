@@ -1,15 +1,36 @@
 // src/config/api.ts
 import { Platform } from 'react-native';
 
-// 🏠 LOCALHOST (Change this to your current computer IP for testing)
+// 🏠 LOCALHOST / LAN IP
+// IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
+// Home: 192.168.1.x | Hotspot: 192.168.43.x (Android) or 172.20.10.x (iPhone)
 const LAN_IP = "192.168.1.101"; 
 
-// ✅ DYNAMIC: Uses localhost/IP during 'expo start', uses Render in production
 const API_URL = __DEV__ 
-  ? `http://${Platform.OS === 'android' ? LAN_IP : 'localhost'}:5001/api`
+  ? `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`
   : "https://mission17-backend.onrender.com/api";
 
+const BACKEND_BASE_URL = API_URL.replace('/api', '');
+
 console.log(`🚀 Mission17 (${__DEV__ ? 'DEV' : 'PROD'}) API: ${API_URL}`);
+
+// 🖼️ IMAGE HELPER
+export const formatImageUri = (uri: string) => {
+  if (!uri) return null;
+  
+  // 1. Handle failing loremflickr links (swap for unsplash)
+  if (uri.includes('loremflickr.com')) {
+    const keywords = uri.split('/').pop() || 'nature';
+    return `https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=800&auto=format&fit=crop`; // Generic fallback
+  }
+
+  // 2. Handle local uploads
+  if (uri.startsWith('/uploads/')) {
+    return `${BACKEND_BASE_URL}${uri}`;
+  }
+
+  return uri;
+};
 
 // 1. GLOBAL MEMORY
 export const GlobalState = {
@@ -20,6 +41,7 @@ export const endpoints = {
   auth: {
     // ✅ NEW: Added 'baseUrl' to fix the "Property does not exist" error
     baseUrl: `${API_URL}/auth`, 
+    backendBaseUrl: BACKEND_BASE_URL,
 
     login: `${API_URL}/auth/login`,
     signup: `${API_URL}/auth/signup`,

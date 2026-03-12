@@ -63,7 +63,9 @@ async function buildAIFormData(imageUri) {
   let imageBuffer;
 
   if (imageUri.startsWith('/uploads/')) {
-     const filePath = path.join(__dirname, '..', imageUri);
+     const relativePath = imageUri.replace(/^\//, ''); // Remove leading slash for join
+     const filePath = path.join(__dirname, '..', relativePath);
+     console.log(`📂 AI Analysis: Reading local file: ${filePath}`);
      imageBuffer = fs.readFileSync(filePath);
   } else if (imageUri.startsWith('data:image')) {
     // 🛡️ Base64 path — no network fetch needed
@@ -96,6 +98,7 @@ async function callAIServer(imageUri) {
     aiUrl = aiUrl.endsWith('/') ? `${aiUrl}predict` : `${aiUrl}/predict`;
   }
 
+  console.log(`📡 AI Analysis: Fetching ${aiUrl}...`);
   const aiResponse = await fetch(aiUrl, {
     method: 'POST',
     body: formData,
@@ -103,17 +106,28 @@ async function callAIServer(imageUri) {
 
   if (!aiResponse.ok) {
     const errText = await aiResponse.text();
+    console.error(`❌ AI Analysis: AI Server HTTP ${aiResponse.status} - ${errText.slice(0, 100)}`);
+    
+    // Check if it's a controlled rejection (Anti-Cheat or Invalid Image)
+    try {
+      const errJson = JSON.parse(errText);
+      if (errJson.status === 'REJECTED') {
+        console.log(`🛡️ AI Analysis: AI Server rejected proof: ${errJson.error}`);
+        return {
+          verdict: 'REJECTED',
+          is_verified: false,
+          prediction: 'Anti-Cheat / Invalid',
+          message: errJson.error || 'Proof rejected by AI engine.',
+          sdg: 'N/A'
+        };
+      }
+    } catch (e) {
+      // Not JSON or doesn't have REJECTED status, proceed to throw error
+    }
+
     throw new Error(`AI Server Error (${aiResponse.status}): ${errText.slice(0, 100)}`);
   }
-
-  // Check if response is actually JSON
-  const contentType = aiResponse.headers.get("content-type");
-  if (!contentType || !contentType.includes("application/json")) {
-    const text = await aiResponse.text();
-    console.error("❌ AI Server returned non-JSON response:", text.slice(0, 200));
-    throw new Error("AI Server returned an invalid response (HTML/Text). Is the URL correct?");
-  }
-
+  
   return aiResponse.json();
 }
 
@@ -311,7 +325,11 @@ router.get('/submission-image/:id', verifyAdmin, async (req, res) => {
     const sub = await Submission.findById(req.params.id).select('imageUri');
     if (!sub) return res.status(404).json({ message: 'Submission not found' });
     if (!isValidImageUri(sub.imageUri)) return res.status(404).json({ message: 'No valid image for this submission' });
-    res.json({ imageUri: sub.imageUri });
+    let finalUri = sub.imageUri;
+    if (finalUri && finalUri.startsWith('/uploads/')) {
+      finalUri = `${req.protocol}://${req.get('host')}${finalUri}`;
+    }
+    res.json({ imageUri: finalUri });
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
   }
@@ -449,6 +467,8 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
   try {
     // 1. Fetch the submission to get the image URI
     const submission = await Submission.findById(submissionId);
+    console.log(`🔍 AI Analysis: Submission found: ${!!submission}, ImageUri: ${submission?.imageUri}`);
+    
     if (!submission || !isValidImageUri(submission.imageUri)) {
       return res.status(404).json({
         message: !submission
@@ -491,10 +511,24 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
   }
 });
 
+// --- CACHE FOR DASHBOARD ---
+let dashboardCache = null;
+let lastCacheUpdate = 0;
+const CACHE_DURATION = 60 * 1000; // 1 minute cache
+
 // DASHBOARD SUMMARY — single endpoint for the admin dashboard
 // Runs all queries in parallel, returns only the fields the UI actually needs.
 router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
   try {
+    const now = Date.now();
+    
+    // ⚡ Performance Fix: Check if we have a fresh cache
+    if (dashboardCache && (now - lastCacheUpdate < CACHE_DURATION)) {
+      console.log('⚡ Dashboard Summary: Serving from Cache');
+      return res.json(dashboardCache);
+    }
+
+    console.log('🔄 Dashboard Summary: Refreshing Data from DB...');
     const PENDING_STATUSES = ['Pending', 'Pending Admin Review'];
 
     const [
@@ -513,29 +547,32 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
 
       // Top 5 by points — only username + points fetched
       User.find()
-        .select('username points')
-        .sort({ points: -1 })
-        .limit(5)
-        .lean(),
+      .select('username points')
+      .sort({ points: -1 })
+      .limit(5)
+      .lean(),
 
       // Last 5 pending submissions — only display fields, no imageUri
       Submission.find({ status: { $in: PENDING_STATUSES } })
-        .select('username missionTitle createdAt')
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .lean(),
+      .select('username missionTitle createdAt')
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean(),
     ]);
 
-    res.json({
+    dashboardCache = {
       stats: {
-        volunteers:     volunteerCount,
+        volunteers: volunteerCount,
         activeMissions: missionCount,
-        pending:        pendingCount,
-        completed:      completedCount,
+        pending: pendingCount,
+        completed: completedCount,
       },
       topAgents,
       recentPending,
-    });
+    };
+    lastCacheUpdate = now;
+
+    res.json(dashboardCache);
   } catch (error) {
     console.error('❌ Error in /dashboard-summary:', error.message);
     res.status(500).json({ message: 'Failed to load dashboard summary.' });

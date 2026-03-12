@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Platform, Image, Keyboard } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  ActivityIndicator, 
+  Platform, 
+  Image, 
+  Keyboard,
+  ScrollView,
+  KeyboardAvoidingView,
+  SafeAreaView
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Key } from 'lucide-react-native';
+import { useNotification } from '../context/NotificationContext';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
@@ -12,6 +27,7 @@ GoogleSignin.configure({
 });
 
 export default function LoginScreen() {
+  const { showNotification } = useNotification();
   const navigation = useNavigation<any>();
   
   const [email, setEmail] = useState('');
@@ -47,12 +63,12 @@ export default function LoginScreen() {
       if (tokens.idToken) {
         handleGoogleLogin(tokens.idToken);
       } else {
-        Alert.alert("Google Sign-in", "No ID token received from Google.");
+        showNotification("No ID token received from Google.", "error");
       }
     } catch (error: any) {
       console.error("❌ Google Native Auth Error:", error.message);
       if (error.code !== 'ASYNC_OP_IN_PROGRESS') { // Ignore user cancellation panics
-          Alert.alert("Google Login Error", "Authentication was cancelled or failed.");
+          showNotification("Authentication was cancelled or failed.", "error");
       }
     }
   };
@@ -69,10 +85,10 @@ export default function LoginScreen() {
       if (res.ok) {
         await processLoginSuccess(data);
       } else {
-        Alert.alert("Google Login Failed", data.message || "Invalid Google token");
+        showNotification(data.message || "Invalid Google token", "error");
       }
     } catch (error) {
-      Alert.alert("Error", "Could not connect to server.");
+      showNotification("Could not connect to server.", "error");
     } finally {
       setLoading(false);
     }
@@ -82,14 +98,12 @@ export default function LoginScreen() {
     Keyboard.dismiss();  
 
     if (!captchaAnswer.trim()) {
-      const msg = "Please answer the math question.";
-      Platform.OS === 'web' ? alert(msg) : Alert.alert("Security Check", msg);
+      showNotification("Please answer the math question.", "error");
       return;
     }
 
     if (parseInt(captchaAnswer) !== num1 + num2) {
-      const msg = "Incorrect math answer. Please try again.";
-      Platform.OS === 'web' ? alert(msg) : Alert.alert("Verification Failed", msg);
+      showNotification("Incorrect math answer. Please try again.", "error");
       setNum1(Math.floor(Math.random() * 10) + 1);
       setNum2(Math.floor(Math.random() * 10) + 1);
       setCaptchaAnswer('');
@@ -97,8 +111,7 @@ export default function LoginScreen() {
     }
 
     if (!email || !password) {
-      const msg = 'Please enter both email and password';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      showNotification('Please enter both email and password', 'error');
       return; 
     }
 
@@ -119,7 +132,7 @@ export default function LoginScreen() {
       if (response.status === 202) {
         setMfaRequired(true);
         setTempUserId(data.userId);
-        Alert.alert("Security Check", "We sent a 6-digit code to your email.");
+        showNotification("We sent a 6-digit code to your email.", "info");
         setLoading(false);
         return;
       }
@@ -128,12 +141,10 @@ export default function LoginScreen() {
       if (response.ok) {
         await processLoginSuccess(data);
       } else {
-        const msg = data.message || 'Invalid credentials';
-        Platform.OS === 'web' ? alert(msg) : Alert.alert('Login Failed', msg);
+        showNotification(data.message || 'Invalid credentials', 'error');
       }
     } catch (error) {
-      const msg = 'Could not connect to server.';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      showNotification('Could not connect to server.', 'error');
       console.error(error);
     } finally {
       if (!mfaRequired) setLoading(false);
@@ -142,7 +153,7 @@ export default function LoginScreen() {
 
   const handleVerifyOtp = async () => {
     if (otp.length < 6) {
-        Alert.alert("Invalid Code", "Please enter the full 6-digit code.");
+        showNotification("Please enter the full 6-digit code.", "error");
         return;
     }
 
@@ -159,10 +170,10 @@ export default function LoginScreen() {
       if (response.ok) {
         await processLoginSuccess(data);
       } else {
-        Alert.alert("Invalid Code", "Please try again.");
+        showNotification("Invalid Code. Please try again.", "error");
       }
     } catch (error) {
-      Alert.alert("Error", "Could not verify code.");
+      showNotification("Could not verify code.", "error");
     } finally {
       setLoading(false);
     }
@@ -175,6 +186,7 @@ export default function LoginScreen() {
 
     GlobalState.userId = userId;
     await saveAuthData(data.token, userData);
+    showNotification(`Welcome back, ${data.user.username}!`, "success");
     
     navigation.replace('Home', { 
         screen: 'HomeTab', 
@@ -182,133 +194,148 @@ export default function LoginScreen() {
     });
   };
 
+  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
+
   return (
-    <View style={styles.container}>
-      
-      {/* HEADER WITH LOGO */}
-      <View style={styles.header}>
-        <Image 
-          source={require('../../assets/logo.png')} 
-          style={styles.logo} 
-          resizeMode="contain"
-        />
-        <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Login'}</Text>
-      </View>
+    <RootComponent style={styles.container}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={{ flex: 1 }}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent} 
+          showsVerticalScrollIndicator={false}
+        >
+          {/* HEADER WITH LOGO */}
+          <View style={styles.header}>
+            <Image 
+              source={require('../../assets/logo.png')} 
+              style={styles.logo} 
+              resizeMode="contain"
+            />
+            <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Login'}</Text>
+          </View>
 
-      <View style={styles.form}>
-        
-        {/* 🛡️ CONDITIONAL RENDERING */}
-        {!mfaRequired ? (
-            // STANDARD LOGIN UI
-            <>
-                <View style={styles.inputContainer}>
-                    <Mail color="#94a3b8" size={20} style={styles.icon} />
-                    <TextInput 
-                        placeholder="Email Address" 
-                        style={styles.input}
-                        value={email}
-                        onChangeText={setEmail}
-                        autoCapitalize="none"
-                        keyboardType="email-address"
-                    />
-                </View>
+          <View style={styles.form}>
+            
+            {/* 🛡️ CONDITIONAL RENDERING */}
+            {!mfaRequired ? (
+                // STANDARD LOGIN UI
+                <>
+                    <View style={styles.inputContainer}>
+                        <Mail color="#94a3b8" size={20} style={styles.icon} />
+                        <TextInput 
+                            placeholder="Email Address" 
+                            style={styles.input}
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
 
-                <View style={styles.inputContainer}>
-                    <Lock color="#94a3b8" size={20} style={styles.icon} />
-                    <TextInput 
-                        placeholder="Password" 
-                        style={styles.input} 
-                        value={password}
-                        onChangeText={setPassword}
-                        secureTextEntry
-                    />
-                </View>
+                    <View style={styles.inputContainer}>
+                        <Lock color="#94a3b8" size={20} style={styles.icon} />
+                        <TextInput 
+                            placeholder="Password" 
+                            style={styles.input} 
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
 
-                {/* CAPTCHA SECTION */}
-                <View style={styles.captchaContainer}>
-                    <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
-                    <TextInput
-                        style={styles.captchaInput}
-                        placeholder="#"
-                        value={captchaAnswer}
-                        onChangeText={setCaptchaAnswer}
-                        keyboardType="numeric"
-                        maxLength={2}
-                    />
-                </View>
+                    {/* CAPTCHA SECTION */}
+                    <View style={styles.captchaContainer}>
+                        <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
+                        <TextInput
+                            style={styles.captchaInput}
+                            placeholder="#"
+                            value={captchaAnswer}
+                            onChangeText={setCaptchaAnswer}
+                            keyboardType="numeric"
+                            maxLength={2}
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
 
-                <TouchableOpacity 
-                    style={styles.loginButton} 
-                    onPress={handleLogin} 
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text style={styles.loginButtonText}>Log In</Text>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.loginButton} 
+                        onPress={handleLogin} 
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.loginButtonText}>Log In</Text>
+                        )}
+                    </TouchableOpacity>
 
-                <View style={styles.dividerContainer}>
-                  <View style={styles.divider} />
-                  <Text style={styles.dividerText}>OR</Text>
-                  <View style={styles.divider} />
-                </View>
+                    <View style={styles.dividerContainer}>
+                      <View style={styles.divider} />
+                      <Text style={styles.dividerText}>OR</Text>
+                      <View style={styles.divider} />
+                    </View>
 
-                {/* GOOGLE SIGN IN BUTTON */}
-                <TouchableOpacity 
-                  style={styles.googleButton}
-                  onPress={signInWithGoogleAsync}
-                  disabled={loading}
-                >
-                  <Text style={styles.googleButtonText}>Sign in with Google</Text>
-                </TouchableOpacity>
-            </>
-        ) : (
-            // MFA OTP UI
-            <>
-                <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
-                <View style={styles.inputContainer}>
-                    <Key color="#94a3b8" size={20} style={styles.icon} />
-                    <TextInput 
-                        placeholder="123456" 
-                        style={[styles.input, styles.otpInput]} 
-                        value={otp}
-                        onChangeText={setOtp}
-                        keyboardType="number-pad"
-                        maxLength={6}
-                    />
-                </View>
+                    {/* GOOGLE SIGN IN BUTTON */}
+                    <TouchableOpacity 
+                      style={styles.googleButton}
+                      onPress={signInWithGoogleAsync}
+                      disabled={loading}
+                    >
+                      <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                    </TouchableOpacity>
+                </>
+            ) : (
+                // MFA OTP UI
+                <>
+                    <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
+                    <View style={styles.inputContainer}>
+                        <Key color="#94a3b8" size={20} style={styles.icon} />
+                        <TextInput 
+                            placeholder="123456" 
+                            style={[styles.input, styles.otpInput]} 
+                            value={otp}
+                            onChangeText={setOtp}
+                            keyboardType="number-pad"
+                            maxLength={6}
+                            placeholderTextColor="#94a3b8"
+                        />
+                    </View>
 
-                <TouchableOpacity 
-                    style={styles.loginButton} 
-                    onPress={handleVerifyOtp} 
-                    disabled={loading}
-                >
-                    {loading ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text style={styles.loginButtonText}>Verify Code</Text>
-                    )}
-                </TouchableOpacity>
+                    <TouchableOpacity 
+                        style={styles.loginButton} 
+                        onPress={handleVerifyOtp} 
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="white" />
+                        ) : (
+                            <Text style={styles.loginButtonText}>Verify Code</Text>
+                        )}
+                    </TouchableOpacity>
 
-                <TouchableOpacity onPress={() => {
-                    setMfaRequired(false);
-                    setOtp('');
-                }}>
-                    <Text style={styles.cancelLink}>Cancel</Text>
-                </TouchableOpacity>
-            </>
-        )}
-      </View>
+                    <TouchableOpacity onPress={() => {
+                        setMfaRequired(false);
+                        setOtp('');
+                    }}>
+                        <Text style={styles.cancelLink}>Cancel</Text>
+                    </TouchableOpacity>
+                </>
+            )}
+          </View>
 
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.linkText}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+              <Text style={styles.linkText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </RootComponent>
   );
 }
 
@@ -316,8 +343,11 @@ const styles = StyleSheet.create({
   container: { 
     flex: 1, 
     backgroundColor: '#f8fafc', 
-    padding: 24, 
-    justifyContent: 'center' 
+  },
+  scrollContent: {
+    flexGrow: 1,
+    padding: 24,
+    justifyContent: 'center'
   },
   header: { 
     alignItems: 'center', 
@@ -434,5 +464,5 @@ const styles = StyleSheet.create({
   // Captcha Styles
   captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: 15, backgroundColor: '#f0f8ff', borderRadius: 12, borderWidth: 1, borderColor: '#cce4ff' },
   captchaText: { fontSize: 16, fontWeight: '600', color: '#0056b3' },
-  captchaInput: { width: 50, height: 40, borderColor: '#0056b3', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff' },
+  captchaInput: { width: 50, height: 40, borderColor: '#0056b3', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff', color: '#1e293b' },
 });

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useNotification } from '../context/NotificationContext';
 import '../styles/Auth.css';
 
 const Signup = () => {
+  const { showNotification } = useNotification();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -17,7 +19,7 @@ const Signup = () => {
   const handleSignup = (e) => {
     e.preventDefault();
     if(formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      showNotification("Passwords do not match!", "error");
       return;
     }
     console.log("Signing up:", formData);
