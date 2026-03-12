@@ -1,9 +1,11 @@
 import React from 'react';
 import Layout from '../../components/Layout';
 import { Edit, BookOpen, Video } from 'lucide-react';
+import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Learning.css';
 
 const Learning = () => {
+  const { showNotification } = useNotification();
   // Static data for the 17 SDGs with their official colors
   const sdgData = [
     { id: 1, title: 'No Poverty', color: '#E5243B', resources: 3 },
@@ -18,7 +20,7 @@ const Learning = () => {
   ];
 
   const handleEdit = (id) => {
-    alert(`Opening editor for SDG ${id}... (Feature coming in Backend Phase)`);
+    showNotification(`Opening editor for SDG ${id}... (Feature coming in Backend Phase)`, "info");
   };
 
   return (

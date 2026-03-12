@@ -25,6 +25,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 // --- UTILS & CONFIG ---
 import { getAuthData } from './src/utils/storage';
 import { GlobalState } from './src/config/api';
+import { NotificationProvider } from './src/context/NotificationContext';
 
 // --- ASSETS ---
 const missionLogo = require('./assets/logo.png');
@@ -164,23 +165,25 @@ export default function App() {
   }
 
   return (
-    // 🛠️ FIX: Wrapped in GestureHandlerRootView to fix "touch end" errors
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>
-        <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Signup" component={SignupScreen} />
-          <Stack.Screen name="Home" component={MainTabs} />
-          <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
-          <Stack.Screen name="EventDetail" component={EventDetailScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-          <Stack.Screen name="Settings" component={SettingsScreen} />
-          <Stack.Screen name="Learning" component={LearningScreen} /> 
-          <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
-          <Stack.Screen name="AuditLogs" component={AuditLogScreen} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-        </StackNavigator>
-      </NavigationContainer>
-    </GestureHandlerRootView>
+    <NotificationProvider>
+      {/* 🛠️ FIX: Wrapped in GestureHandlerRootView to fix "touch end" errors */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <NavigationContainer>
+          <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="Home" component={MainTabs} />
+            <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+            <Stack.Screen name="EventDetail" component={EventDetailScreen} />
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="Learning" component={LearningScreen} /> 
+            <Stack.Screen name="SDGDetail" component={SDGDetailScreen} />
+            <Stack.Screen name="AuditLogs" component={AuditLogScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          </StackNavigator>
+        </NavigationContainer>
+      </GestureHandlerRootView>
+    </NotificationProvider>
   );
 }

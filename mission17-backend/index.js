@@ -17,6 +17,8 @@ import eventRoutes      from './routes/events.js';         // event CRUD
 import userRoutes       from './routes/users.js';          // user management
 import notificationRoutes from './routes/notifications.js'; // user notifications
 import blockchainRoutes from './routes/blockchain.js';    // on-chain record endpoint
+import { upload } from './utils/upload.js';
+import { logAudit } from './utils/authMiddleware.js';
 
 // ✅ NEW: Check for required environment variables on startup
 const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL'];
@@ -35,20 +37,22 @@ const PORT = process.env.PORT || 5001;
 
 // 1. Set Secure HTTP Headers (Helmet)
 // This protects against common attacks like sniffing and clickjacking.
-app.use(helmet());
+// 🛡️ SECURITY UPDATE: Configured to allow cross-origin images for the Admin dashboard.
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 
 // 2. Rate Limiting (Stops DoS & Model Inversion Attacks)
-// 🛡️ CAPSTONE MITIGATION: Limits each IP to 10 requests every 1 minute to protect the AI.
-// ✅ Trust Render's proxy so express-rate-limit can correctly identify client IPs
+// 🛡️ CAPSTONE MITIGATION: Limits increased for local demo/testing
 app.set('trust proxy', 1);
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 10 requests per `window`
+  max: 1000, // Increased to 1000 for smooth user testing
   standardHeaders: true,
   legacyHeaders: false,
   message: { 
     status: "Fail", 
-    message: "🛑 Too many requests from this IP. Please try again after a minute." 
+    message: "🛑 Too many requests from this IP." 
   }
 });
 app.use('/api', limiter);
@@ -67,7 +71,21 @@ app.use(xss());
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
-app.use(cors());
+app.use(cors({
+  origin: '*', // Allow all during local demo
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'auth-token', 'Authorization']
+}));
+
+// 📝 Simple Request Logger with Timing
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url} - ${duration}ms`);
+  });
+  next();
+});
 
 // Serve the uploads directory statically so the frontend can access the images
 import path from 'path';
@@ -77,6 +95,19 @@ const __dirname = path.dirname(__filename);
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- ROUTES ---
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', message: 'Server is responsive' });
+});
+
+// 📁 General File Upload Endpoint
+app.post('/api/auth/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+  const fileUrl = `/uploads/${req.file.filename}`;
+  res.status(200).json({ url: fileUrl });
+});
+
 // All route files share the /api/auth prefix — zero breaking changes for existing clients.
 app.use('/api/auth', authRoutes);        // Auth & security
 app.use('/api/auth', submissionRoutes);  // Submissions (incl. pending-submissions, analyze-proof)
@@ -100,7 +131,7 @@ const connectDB = async () => {
   }
 };
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   connectDB();
-  console.log(`🛡️  Secure Server running on http://localhost:${PORT}`);
+  console.log(`🛡️  Secure Server running on http://localhost:${PORT} (and LAN)`);
 });

@@ -4,8 +4,10 @@ import {
   CheckCircle, XCircle, Clock, FileImage, User, 
   Sparkles, X, AlertTriangle, ExternalLink, ShieldCheck,
   HelpCircle, Leaf, Recycle, Droplets, Heart, BookOpen,
-  Zap, Building2, ShoppingBag
+  Zap, Building2, ShoppingBag, Info
 } from 'lucide-react'; 
+import Modal from '../../components/Modal';
+import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Verify.css';
 import { endpoints } from '../../config/api';
 
@@ -49,6 +51,7 @@ const shapeReport = (report) => ({
 });
 
 const Verify = () => {
+  const { showNotification } = useNotification();
   const [submissions, setSubmissions]   = useState([]);
   const [loading, setLoading]           = useState(true);
   const [viewImage, setViewImage]       = useState(null);
@@ -58,6 +61,18 @@ const Verify = () => {
   const [totalCount, setTotalCount]     = useState(0);
   const [totalPages, setTotalPages]     = useState(0);
   const [activeTab, setActiveTab]       = useState('Mission'); // 'Mission' or 'Event'
+
+  // MODAL STATE
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    showInput: false,
+    confirmText: 'Confirm',
+    onConfirm: () => {},
+    subId: null
+  });
 
   const getToken = () => localStorage.getItem('token');
 
@@ -120,7 +135,7 @@ const Verify = () => {
       }));
     } catch (error) {
       console.error('AI Analysis Error:', error);
-      alert(`AI Analysis Failed: ${error.message}`);
+      showNotification(`AI Analysis Failed: ${error.message}`, "error");
     } finally {
       setAnalyzingId(null);
     }
@@ -137,8 +152,20 @@ const Verify = () => {
     } catch (e) { console.error('Failed to load proof image:', e); }
   };
 
-  const handleApprove = async (id) => {
-    if (!window.confirm('Approve this mission?')) return;
+  const handleApprove = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Approve Submission',
+      message: 'Are you sure you want to approve this mission? This will award points to the user.',
+      type: 'success',
+      showInput: false,
+      confirmText: 'Approve',
+      onConfirm: () => executeApprove(id),
+      subId: id
+    });
+  };
+
+  const executeApprove = async (id) => {
     try {
       const res = await fetch(endpoints.submissions.approve, {
         method: 'POST',
@@ -148,13 +175,30 @@ const Verify = () => {
       if (res.ok) {
         setSubmissions(submissions.filter(s => s._id !== id));
         setTotalCount(prev => Math.max(0, prev - 1));
+        showNotification("Submission approved successfully!", "success");
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      showNotification("Failed to approve submission.", "error");
+    } finally {
+      closeModal();
+    }
   };
 
-  const handleReject = async (id) => {
-    const reason = prompt('Reason for rejection:');
-    if (!reason) return;
+  const handleReject = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Reject Submission',
+      message: 'Please provide a reason for rejecting this proof. This will be shown to the user.',
+      type: 'danger',
+      showInput: true,
+      confirmText: 'Reject',
+      onConfirm: (reason) => executeReject(id, reason),
+      subId: id
+    });
+  };
+
+  const executeReject = async (id, reason) => {
     try {
       const res = await fetch(endpoints.submissions.reject, {
         method: 'POST',
@@ -164,8 +208,18 @@ const Verify = () => {
       if (res.ok) {
         setSubmissions(submissions.filter(s => s._id !== id));
         setTotalCount(prev => Math.max(0, prev - 1));
+        showNotification("Submission rejected.", "info");
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      showNotification("Failed to reject submission.", "error");
+    } finally {
+      closeModal();
+    }
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
   const openBlockchain = () => window.open(CONTRACT_URL, '_blank');
@@ -378,6 +432,18 @@ const Verify = () => {
             </button>
           </div>
         )}
+
+        <Modal 
+          isOpen={modalConfig.isOpen}
+          onClose={closeModal}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          showInput={modalConfig.showInput}
+          inputPlaceholder="Type rejection reason..."
+          confirmText={modalConfig.confirmText}
+        />
       </div>
     </Layout>
   );

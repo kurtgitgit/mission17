@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { User, Bell, Shield, Lock, Eye, EyeOff, Save, ClipboardList, Activity } from 'lucide-react';
-import { endpoints } from '../../config/api'; // Ensure this points to your web API config
+import { useNotification } from '../../context/NotificationContext';
+import { endpoints } from '../../config/api';
 import '../../styles/Settings.css'; 
 
 const Settings = () => {
+  const { showNotification } = useNotification();
   const [showPassword, setShowPassword] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -28,7 +30,7 @@ const Settings = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${endpoints.auth.baseUrl}/audit-logs`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'auth-token': token }
       });
       const data = await response.json();
       if (response.ok) setAuditLogs(data.slice(0, 5)); // Show latest 5
@@ -47,7 +49,7 @@ const Settings = () => {
       const savedUserStr = localStorage.getItem('user');
       
       if (!savedUserStr) {
-        alert("Could not identify active user session.");
+        showNotification("Could not identify active user session.", "error");
         return;
       }
       
@@ -58,7 +60,7 @@ const Settings = () => {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'auth-token': token
         },
         body: JSON.stringify({ userId, enable: enabled })
       });
@@ -66,18 +68,18 @@ const Settings = () => {
       if (response.ok) {
         setMfaEnabled(enabled);
         
-        // Persist the change in local storage so the toggle doesn't reset on refresh
+        // Persist the change in local storage
         user.mfaEnabled = enabled;
         localStorage.setItem('user', JSON.stringify(user));
         
-        alert(`MFA is now ${enabled ? 'Enabled' : 'Disabled'} for Admin.`);
+        showNotification(`MFA is now ${enabled ? 'Enabled' : 'Disabled'} for Admin.`, "success");
       } else {
         const data = await response.json();
-        alert("Failed to save: " + (data.message || 'Unknown server error'));
+        showNotification("Failed to save: " + (data.message || 'Unknown server error'), "error");
       }
     } catch (error) {
       console.error("MFA toggle error:", error);
-      alert("Failed to communicate with server.");
+      showNotification("Failed to communicate with server.", "error");
     }
   };
 
@@ -163,7 +165,7 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Card 4: 🆕 Audit Logs (Checklist: Audit logging enabled) */}
+          {/* Card 4: Audit Logs */}
           <div className="settings-card audit-card">
             <div className="card-header dark-header">
               <ClipboardList size={20} className="header-icon" />

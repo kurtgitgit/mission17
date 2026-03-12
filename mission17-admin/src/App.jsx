@@ -12,10 +12,13 @@ import Learning from './pages/Learning/Learning';
 import Settings from './pages/Settings/Settings';
 import Verify from './pages/Verify/Verify';
 
+import { NotificationProvider } from './context/NotificationContext';
+
 function App() {
   return (
-    <Router>
-      <Routes>
+    <NotificationProvider>
+      <Router>
+        <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
@@ -31,7 +34,8 @@ function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/verify" element={<Verify />} />
       </Routes>
-    </Router>
+      </Router>
+    </NotificationProvider>
   );
 }
 

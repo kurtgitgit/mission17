@@ -174,7 +174,7 @@ const Analytics = () => {
         <div className="charts-section">
           <div className="chart-card">
             <h3>Proof Submissions (Weekly)</h3>
-            <div className="chart-wrapper">
+            <div className="chart-wrapper" style={{ minHeight: '300px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} barSize={30}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -189,7 +189,7 @@ const Analytics = () => {
 
           <div className="chart-card">
             <h3>Current Status Distribution</h3>
-            <div className="chart-wrapper relative-wrapper">
+            <div className="chart-wrapper relative-wrapper" style={{ minHeight: '300px' }}>
               <div className="donut-center-text">
                 <span className="center-number">{stats.totalSubmissions}</span>
               </div>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -16,11 +16,16 @@ import '../styles/Sidebar.css';
 
 // IMPORT YOUR LOGO
 import logoImg from '../assets/logo.png'; 
+import Modal from './Modal';
 
 const Sidebar = () => {
-  const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const executeLogout = () => {
     navigate('/');
   };
 
@@ -84,10 +89,20 @@ const Sidebar = () => {
         </li>
       </ul>
 
-      <button onClick={handleLogout} className="logout-btn">
+      <button onClick={handleLogoutClick} className="logout-btn">
         <LogOut size={20} />
         <span>Logout</span>
       </button>
+
+      <Modal 
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={executeLogout}
+        title="Confirm Logout"
+        message="Are you sure you want to log out of the Admin Console?"
+        type="danger"
+        confirmText="Logout"
+      />
     </aside>
   );
 };

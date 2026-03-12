@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { Plus, Trash2, Edit, Search, X, Image as ImageIcon, Sparkles } from 'lucide-react';
+import Modal from '../../components/Modal';
+import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Missions.css'; 
+import { endpoints } from '../../config/api';
 
 const Missions = () => {
+  const { showNotification } = useNotification();
   const [showForm, setShowForm] = useState(false);
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,9 +16,6 @@ const Missions = () => {
   // EDIT MODE STATE
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-
-  // ✨ AI STATE (Stores the detected SDG ID)
-  const [aiSuggestion, setAiSuggestion] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -25,7 +26,17 @@ const Missions = () => {
     image: ''
   });
 
-  const API_BASE = "https://mission17-backend.onrender.com/api/auth";
+  const [uploading, setUploading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+
+  // MODAL STATE
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
 
   // 🧠 AI DATA: Keywords for detection
   const SDG_KEYWORDS = {
@@ -75,7 +86,7 @@ const Missions = () => {
 
   const fetchMissions = async () => {
     try {
-      const response = await fetch(`${API_BASE}/all-missions`);
+      const response = await fetch(endpoints.missions.getAll);
       const data = await response.json();
       setMissions(data);
     } catch (error) {
@@ -126,6 +137,36 @@ const Missions = () => {
     }
   };
 
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+
+    setUploading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${endpoints.auth.baseUrl}/upload`, {
+        method: 'POST',
+        headers: { 'auth-token': token },
+        body: uploadData
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormData({ ...formData, image: data.url });
+        showNotification("Image uploaded successfully!", "success");
+      } else {
+        showNotification(data.message || "Upload failed", "error");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      showNotification("Server error during upload", "error");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // ✨ CLICK HANDLER: Applies both SDG Number AND Color
   const applyAiSuggestion = () => {
     if (aiSuggestion) {
@@ -166,14 +207,14 @@ const Missions = () => {
   // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const url = isEditing ? `${API_BASE}/update-mission/${currentId}` : `${API_BASE}/add-mission`;
+    const url = isEditing ? endpoints.missions.update(currentId) : endpoints.missions.add;
     const method = isEditing ? 'PUT' : 'POST';
 
     // 1. Get Token from Local Storage
     const token = localStorage.getItem('token'); 
 
     if (!token) {
-        alert("You are not logged in! Please log in again.");
+        showNotification("You are not logged in! Please log in again.", "error");
         return;
     }
 
@@ -192,9 +233,9 @@ const Missions = () => {
       if (res.ok) {
         fetchMissions();
         setShowForm(false);
-        alert(isEditing ? "Mission updated successfully!" : "Mission created successfully!");
+        showNotification(isEditing ? "Mission updated successfully!" : "Mission created successfully!", "success");
       } else {
-        alert(`Failed: ${data.message || "Unknown error"}`);
+        showNotification(data.message || "Failed to save mission", "error");
       }
     } catch (error) {
       console.error("Save error:", error);
@@ -202,25 +243,40 @@ const Missions = () => {
   };
 
   // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure you want to delete this mission?")) {
-      const token = localStorage.getItem('token'); // Get Token
+  const handleDelete = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Delete Mission',
+      message: 'Are you sure you want to delete this mission? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: () => executeDelete(id)
+    });
+  };
 
-      try {
-        const res = await fetch(`${API_BASE}/delete-mission/${id}`, { 
-            method: 'DELETE',
-            headers: { 'auth-token': token } // Send Token
-        });
+  const executeDelete = async (id) => {
+    const token = localStorage.getItem('token'); 
+    try {
+      const res = await fetch(endpoints.missions.delete(id), { 
+          method: 'DELETE',
+          headers: { 'auth-token': token }
+      });
 
-        if (res.ok) {
-            setMissions(missions.filter(m => m._id !== id));
-        } else {
-            alert("Failed to delete. You might not be an admin.");
-        }
-      } catch (error) {
-        console.error("Delete error:", error);
+      if (res.ok) {
+          setMissions(missions.filter(m => m._id !== id));
+          showNotification("Mission deleted successfully", "success");
+      } else {
+          showNotification("Failed to delete mission", "error");
       }
+    } catch (error) {
+      console.error("Delete error:", error);
+      showNotification("Error deleting mission.", "error");
+    } finally {
+      closeModal();
     }
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
   return (
@@ -278,16 +334,44 @@ const Missions = () => {
               </div>
 
               <div style={{marginBottom: '15px'}}>
-                <label style={styles.label}>Cover Image URL</label>
+                <label style={styles.label}>Cover Image</label>
+                <div style={{display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px'}}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                    style={{display: 'none'}} 
+                    id="mission-image-upload"
+                  />
+                  <label 
+                    htmlFor="mission-image-upload" 
+                    style={{
+                      ...styles.input, 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      gap: '8px',
+                      backgroundColor: '#f8fafc',
+                      borderStyle: 'dashed',
+                      padding: '10px'
+                    }}
+                  >
+                    <ImageIcon size={18} color="#64748b" />
+                    <span>{uploading ? 'Uploading...' : 'Choose Local Photo'}</span>
+                  </label>
+                  {formData.image && (
+                    <div style={{position: 'relative'}}>
+                      <img src={formData.image.startsWith('http') ? formData.image : `${endpoints.auth.baseUrl.replace('/api/auth', '')}${formData.image}`} alt="preview" style={{width: '60px', height: '36px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0'}} />
+                      <button type="button" onClick={() => setFormData({...formData, image: ''})} style={{position: 'absolute', top: '-5px', right: '-5px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '10px'}}><X size={10}/></button>
+                    </div>
+                  )}
+                </div>
+                <p style={{fontSize: '11px', color: '#94a3b8', marginBottom: '4px'}}>Or paste URL below if preferred</p>
                 <div style={{position: 'relative'}}>
                   <ImageIcon size={18} color="#94a3b8" style={{position: 'absolute', left: '12px', top: '12px'}} />
-                  <input type="url" name="image" value={formData.image} onChange={handleInputChange} placeholder="https://..." style={{...styles.input, paddingLeft: '40px'}} />
+                  <input type="text" name="image" value={formData.image} onChange={handleInputChange} placeholder="https:// or /uploads/..." style={{...styles.input, paddingLeft: '40px'}} />
                 </div>
-                {formData.image && (
-                    <div style={{marginTop: '10px', width: '100px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e2e8f0'}}>
-                      <img src={formData.image} alt="Preview" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
-                    </div>
-                )}
               </div>
 
               {/* 👇 DESCRIPTION + AI SUGGESTION AREA */}
@@ -351,7 +435,7 @@ const Missions = () => {
                   <tr key={mission._id} style={{borderBottom: '1px solid #f1f5f9'}}>
                     <td style={styles.td}>
                       {mission.image ? (
-                        <img src={mission.image} alt="icon" style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}} />
+                        <img src={mission.image.startsWith('http') ? mission.image : `${endpoints.auth.baseUrl.replace('/api/auth', '')}${mission.image}`} alt="icon" style={{width: 40, height: 40, borderRadius: 6, objectFit: 'cover'}} />
                       ) : (
                         <div style={{width: 40, height: 40, background: '#f1f5f9', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
                           <ImageIcon size={16} color="#cbd5e1"/>
@@ -379,6 +463,16 @@ const Missions = () => {
             </tbody>
           </table>
         </div>
+        
+        <Modal 
+          isOpen={modalConfig.isOpen}
+          onClose={closeModal}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          confirmText="Delete"
+        />
       </div>
     </Layout>
   );

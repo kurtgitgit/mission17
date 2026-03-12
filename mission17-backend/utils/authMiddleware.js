@@ -15,8 +15,10 @@ import AuditLog from '../models/AuditLog.js';
 export const logAudit = async (userId, username, action, details, req) => {
   try {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    await new AuditLog({ userId, username, action, details, ipAddress: ip }).save();
-    console.log(`📝 AUDIT: ${action} by ${username}`);
+    // ⚡ OPTIMIZATION: Don't 'await' the save so the user doesn't wait for the DB write
+    new AuditLog({ userId, username, action, details, ipAddress: ip }).save()
+      .then(() => console.log(`📝 AUDIT: ${action} by ${username}`))
+      .catch(err => console.error("Audit Log Error:", err));
   } catch (err) {
     console.error("Audit Log Error:", err);
   }

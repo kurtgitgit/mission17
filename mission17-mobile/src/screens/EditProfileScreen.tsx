@@ -5,8 +5,10 @@ import {
 } from 'react-native';
 import { Save, X, User, FileText } from 'lucide-react-native';
 import { GlobalState, endpoints } from '../config/api';
+import { useNotification } from '../context/NotificationContext';
 
 const EditProfileScreen = ({ navigation }: any) => {
+  const { showNotification } = useNotification();
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   // 2. Save Changes
   const handleSave = async () => {
     if (!username.trim()) {
-      Alert.alert("Error", "Username cannot be empty.");
+      showNotification("Username cannot be empty.", "error");
       return;
     }
 
@@ -51,14 +53,14 @@ const EditProfileScreen = ({ navigation }: any) => {
       });
 
       if (res.ok) {
-        Alert.alert("Success", "Profile updated!");
+        showNotification("Profile updated!", "success");
         navigation.goBack(); // Go back to Profile page
       } else {
-        Alert.alert("Error", "Failed to update profile.");
+        showNotification("Failed to update profile.", "error");
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Network error.");
+      showNotification("Network error.", "error");
     } finally {
       setLoading(false);
     }

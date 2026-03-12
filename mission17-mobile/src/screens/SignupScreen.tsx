@@ -16,11 +16,13 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
 
 const missionLogo = require('../../assets/logo.png');
 
 export default function SignupScreen() {
+  const { showNotification } = useNotification();
   const navigation = useNavigation<any>();
   
   const [username, setUsername] = useState('');
@@ -38,15 +40,13 @@ export default function SignupScreen() {
     Keyboard.dismiss(); // 📱 UX Fix
 
     if (!username || !email || !password) {
-      const msg = 'Please fill in all fields';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Missing Info', msg);
+      showNotification('Please fill in all fields', 'error');
       return;
     }
 
     // 🔒 PASSWORD VALIDATION: Check length
     if (password.length < 8) {
-      const msg = 'Password must be at least 8 characters long.';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Weak Password', msg);
+      showNotification('Password must be at least 8 characters long.', 'error');
       return;
     }
 
@@ -74,22 +74,15 @@ export default function SignupScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        if (Platform.OS === 'web') {
-           alert('Account created! Please log in.');
-           navigation.navigate('Login');
-        } else {
-           Alert.alert('Success', 'Account created! Please log in.', [
-             { text: 'OK', onPress: () => navigation.navigate('Login') }
-           ]);
-        }
+        showNotification('Account created! Please log in.', 'success');
+        navigation.navigate('Login');
       } else {
         const msg = data.message || 'Something went wrong';
-        Platform.OS === 'web' ? alert(msg) : Alert.alert('Signup Failed', msg);
+        showNotification(msg, 'error');
       }
     } catch (error) {
       console.error(error);
-      const msg = 'Connection Error. Is the backend running?';
-      Platform.OS === 'web' ? alert(msg) : Alert.alert('Error', msg);
+      showNotification('Connection Error. Is the backend running?', 'error');
     } finally {
       setLoading(false);
     }

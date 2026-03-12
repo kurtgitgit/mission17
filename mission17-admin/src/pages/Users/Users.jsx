@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { Plus, Trash2, Edit, X, CheckCircle, Search } from 'lucide-react';
+import Modal from '../../components/Modal';
+import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Users.css'; 
+import { endpoints } from '../../config/api';
 
 const Users = () => {
+  const { showNotification } = useNotification();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,7 +24,14 @@ const Users = () => {
     points: 0
   });
 
-  const API_BASE = "https://mission17-backend.onrender.com/api/auth";
+  // MODAL STATE
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info',
+    onConfirm: () => {}
+  });
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
@@ -31,7 +42,7 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch(`${API_BASE}/users`, {
+      const response = await fetch(endpoints.users.getAll, {
         headers: {
           'auth-token': getToken() // 🛡️ ADDED TOKEN
         }
@@ -83,8 +94,8 @@ const Users = () => {
     e.preventDefault();
     
     const url = isEditing 
-      ? `${API_BASE}/admin-update-user/${currentUser._id}`
-      : `${API_BASE}/add-user`;
+      ? endpoints.users.update(currentUser._id)
+      : endpoints.users.add;
     
     const method = isEditing ? 'PUT' : 'POST';
 
@@ -101,35 +112,51 @@ const Users = () => {
       if (res.ok) {
         fetchUsers(); 
         setShowModal(false);
-        alert(isEditing ? "User updated successfully!" : "User created successfully!");
+        showNotification(isEditing ? "User updated successfully!" : "User created successfully!", "success");
       } else {
         const errorData = await res.json();
-        alert(`Error: ${errorData.message}`);
+        showNotification(errorData.message || "Failed to save user", "error");
       }
     } catch (error) {
       console.error("Save error:", error);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("Are you sure? This action cannot be undone.")) {
-      try {
-        const res = await fetch(`${API_BASE}/delete-user/${id}`, { 
-          method: 'DELETE',
-          headers: {
-            'auth-token': getToken() // 🛡️ ADDED TOKEN
-          }
-        });
-        
-        if (res.ok) {
-          setUsers(users.filter(u => u._id !== id));
-        } else {
-          alert("Failed to delete user");
+  const handleDelete = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user? This action cannot be undone and will remove all their data.',
+      type: 'danger',
+      onConfirm: () => executeDelete(id)
+    });
+  };
+
+  const executeDelete = async (id) => {
+    try {
+      const res = await fetch(endpoints.users.delete(id), { 
+        method: 'DELETE',
+        headers: {
+          'auth-token': getToken()
         }
-      } catch (error) {
-        console.error("Delete error:", error);
+      });
+      
+      if (res.ok) {
+        setUsers(users.filter(u => u._id !== id));
+        showNotification("User deleted successfully", "success");
+      } else {
+        showNotification("Failed to delete user", "error");
       }
+    } catch (error) {
+      console.error("Delete error:", error);
+      showNotification("Error communicating with server.", "error");
+    } finally {
+      closeModal();
     }
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
 
   // Helper to color-code roles
@@ -286,6 +313,16 @@ const Users = () => {
             </tbody>
           </table>
         </div>
+        
+        <Modal 
+          isOpen={modalConfig.isOpen}
+          onClose={closeModal}
+          onConfirm={modalConfig.onConfirm}
+          title={modalConfig.title}
+          message={modalConfig.message}
+          type={modalConfig.type}
+          confirmText="Delete User"
+        />
       </div>
     </Layout>
   );
