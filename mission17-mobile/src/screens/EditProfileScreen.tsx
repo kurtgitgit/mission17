@@ -17,8 +17,6 @@ const EditProfileScreen = ({ navigation }: any) => {
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  // ✅ PRODUCTION: Using live backend URL
-  const API_URL = "https://mission17-backend.onrender.com";
 
   // 1. Load current data
   useEffect(() => {
@@ -46,7 +44,7 @@ const EditProfileScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/auth/update-profile/${userId}`, {
+      const res = await fetch(`${endpoints.auth.baseUrl}/update-profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, bio })

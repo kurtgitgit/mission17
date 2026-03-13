@@ -85,7 +85,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.time}>{timeStr}</Text>
           </View>
-          <Text style={styles.message} numberOfLines={2}>{item.message}</Text>
+          <Text style={styles.message}>{item.message}</Text>
         </View>
         {!item.read && <View style={styles.dot} />}
       </TouchableOpacity>
