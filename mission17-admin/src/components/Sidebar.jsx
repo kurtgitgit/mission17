@@ -19,6 +19,7 @@ import logoImg from '../assets/logo.png';
 import Modal from './Modal';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogoutClick = () => {
@@ -26,6 +27,8 @@ const Sidebar = () => {
   };
 
   const executeLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
     navigate('/');
   };
 

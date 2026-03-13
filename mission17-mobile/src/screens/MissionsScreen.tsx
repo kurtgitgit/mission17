@@ -97,35 +97,53 @@ const MissionsScreen = ({ navigation, route }: any) => {
     const month = dateObj.toLocaleString('default', { month: 'short' });
     const day = dateObj.getDate();
     const timeStr = item.time || dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const hasImage = !!item.image;
 
     return (
       <TouchableOpacity 
-        style={styles.eventCard}
+        style={styles.card}
+        activeOpacity={0.9}
         onPress={() => {
           if (!userId) showNotification("Please log in to participate.", "info");
           navigation.navigate('EventDetail', { event: item, userId: userId });
         }}
       >
-          <View style={[styles.dateBadge, { backgroundColor: item.color || '#3b82f6' }]}>
-              <Text style={styles.dateText}>{month}</Text>
-              <Text style={styles.dateNum}>{day}</Text>
+        {/* RENDER LOGIC: Image or Color Block */}
+        {hasImage ? (
+          <Image source={{ uri: formatImageUri(item.image)! }} style={styles.cardImage} />
+        ) : (
+          <View style={[styles.cardImage, { backgroundColor: item.color || '#3b82f6', justifyContent: 'center', alignItems: 'center' }]}>
+             <Calendar size={60} color="rgba(255,255,255,0.2)" />
           </View>
-          <View style={styles.eventInfo}>
-              <Text style={styles.eventTitle} numberOfLines={1}>{item.title}</Text>
-              <View style={styles.eventRow}>
-                  <Clock size={12} color="#64748b" />
-                  <Text style={styles.eventDetail}>{timeStr}</Text>
-              </View>
-              <View style={styles.eventRow}>
-                  <MapPin size={12} color="#64748b" />
-                  <Text style={styles.eventDetail}>{item.location}</Text>
-              </View>
-          </View>
-          {item.points && (
-             <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#10b981' }}>+{item.points} PTS</Text>
+        )}
+
+        {/* Gradient Overlay */}
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.85)']} style={styles.cardOverlay}>
+          <View style={styles.cardHeader}>
+             <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+               <Text style={styles.badgeText}>{month} {day}</Text>
              </View>
-          )}
+             {item.points && (
+               <View style={styles.pointsBadge}>
+                 <Text style={[styles.pointsText, { color: '#10b981' }]}>+{item.points} PTS</Text>
+               </View>
+             )}
+          </View>
+          
+          <View>
+            <Text style={styles.cardTitle}>{item.title}</Text>
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+               <View style={styles.eventRowCompact}>
+                  <Clock size={12} color="#cbd5e1" />
+                  <Text style={styles.cardDescMini}>{timeStr}</Text>
+               </View>
+               <View style={styles.eventRowCompact}>
+                  <MapPin size={12} color="#cbd5e1" />
+                  <Text style={styles.cardDescMini} numberOfLines={1}>{item.location}</Text>
+               </View>
+            </View>
+          </View>
+        </LinearGradient>
       </TouchableOpacity>
     );
   };
@@ -202,6 +220,8 @@ const styles = StyleSheet.create({
 
   cardTitle: { color: 'white', fontSize: 24, fontWeight: '800', marginBottom: 6 } as ViewStyle,
   cardDesc: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 } as ViewStyle,
+  cardDescMini: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' } as TextStyle,
+  eventRowCompact: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 
   // EVENT CARD STYLES
   eventCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 16, padding: 10, marginBottom: 15, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 } as ViewStyle,

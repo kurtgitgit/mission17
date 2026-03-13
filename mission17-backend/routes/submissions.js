@@ -179,6 +179,17 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
         finalImageUri = image;
     }
 
+    // Fetch points from Mission or Event
+    let points = 0;
+    if (type === 'Event') {
+      const Event = mongoose.model('Event');
+      const event = await Event.findById(missionId);
+      if (event) points = event.points || 0;
+    } else {
+      const mission = await Mission.findById(missionId);
+      if (mission) points = mission.points || 0;
+    }
+
     const newSubmission = new Submission({
       userId: user._id,
       username: user.username,
@@ -187,6 +198,7 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
       type: type || 'Mission',
       imageUri: finalImageUri,
       status: req.missionStatus || 'Pending',
+      points: points, // Save points in submission
     });
 
     await newSubmission.save();

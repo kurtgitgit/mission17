@@ -6,9 +6,11 @@ import { Platform } from 'react-native';
 // Home: 192.168.1.x | Hotspot: 192.168.43.x (Android) or 172.20.10.x (iPhone)
 const LAN_IP = "192.168.1.101"; 
 
-const API_URL = __DEV__ 
-  ? `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`
-  : "https://mission17-backend.onrender.com/api";
+// 🛠️ APK DEPLOYMENT CONFIG:
+// We use the LAN_IP for both DEV and PRODUCTION builds so your APK can talk to your laptop.
+const API_URL = `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`;
+
+const AI_URL = `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/predict`;
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
@@ -56,6 +58,7 @@ export const endpoints = {
   // Updated to match your backend route (/auth/all-missions)
   missions: `${API_URL}/auth/all-missions`,
   events: `${API_URL}/auth/events`,
+  predict: AI_URL,
 };
 
 export default API_URL;

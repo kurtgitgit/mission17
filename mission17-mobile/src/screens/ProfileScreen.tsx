@@ -42,7 +42,7 @@ const ProfileScreen = ({ navigation }: any) => {
       const histJson = await histRes.json();
 
       setUserData(userJson);
-      setHistory(histJson.filter((item: any) => item.status === 'Approved'));
+      setHistory(histJson);
     } catch (error) {
       console.error(error);
     } finally {
@@ -174,10 +174,21 @@ const ProfileScreen = ({ navigation }: any) => {
             <View key={item._id} style={styles.historyCard}>
               <View style={styles.historyInfo}>
                 <Text style={styles.missionTitle}>{item.missionTitle}</Text>
-                <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                <View style={styles.historyMeta}>
+                  <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                  {item.status === 'Approved' && (
+                    <Text style={styles.pointsText}>+{item.points || 100} points</Text>
+                  )}
+                </View>
                 {item.status === 'Rejected' && <Text style={styles.reasonText}>Reason: {item.rejectionReason}</Text>}
               </View>
-              <View style={[styles.statusBadge, item.status === 'Approved' ? styles.bgSuccess : item.status === 'Rejected' ? styles.bgDanger : styles.bgWarning]}>
+              
+              <View style={[
+                styles.statusBadge, 
+                item.status === 'Approved' ? styles.bgSuccess : 
+                item.status === 'Rejected' ? styles.bgDanger : 
+                styles.bgWarning
+              ]}>
                 {item.status === 'Approved' ? <CheckCircle size={14} color="white" /> : 
                  item.status === 'Rejected' ? <XCircle size={14} color="white" /> : 
                  <Clock size={14} color="white" />}
@@ -257,8 +268,10 @@ const styles = StyleSheet.create({
 
   historyCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 5 },
   historyInfo: { flex: 1 },
-  missionTitle: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
-  date: { fontSize: 12, color: '#94a3b8' },
+  missionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
+  historyMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  date: { fontSize: 13, color: '#94a3b8' },
+  pointsText: { fontSize: 13, fontWeight: '700', color: '#22c55e' },
   reasonText: { fontSize: 12, color: '#ef4444', marginTop: 4, fontWeight: '600' },
   
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },

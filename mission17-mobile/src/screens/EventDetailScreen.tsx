@@ -109,13 +109,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
         } as any);
       }
 
-      // 🤖 AI SERVER URL: Dynamic switching!
-      const DEV_AI_IP = "192.168.1.101"; // Change to your IP for real phone dev
-      const AI_URL = __DEV__
-        ? `http://${Platform.OS === 'android' ? '10.0.2.2' : 'localhost'}:5000/predict`
-        : "https://mission17-ai.onrender.com/predict";
-
-      const aiResponse = await fetch(AI_URL, {
+      const aiResponse = await fetch(endpoints.predict, {
         method: 'POST',
         body: formData
       });

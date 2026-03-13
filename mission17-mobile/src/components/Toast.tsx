@@ -93,7 +93,7 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
 const styles = StyleSheet.create({
   toast: {
     width: width * 0.9,
-    backgroundColor: 'rgba(26, 26, 26, 0.95)',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     borderLeftWidth: 4,
     paddingVertical: 12,
@@ -118,10 +118,11 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   text: {
-    color: '#e5e5e5',
+    color: '#0f172a',
     fontSize: 14,
     fontWeight: '600',
     flex: 1,
+    flexShrink: 1,
   },
   closeBtn: {
     padding: 4,

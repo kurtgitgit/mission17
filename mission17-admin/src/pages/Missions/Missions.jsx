@@ -27,7 +27,7 @@ const Missions = () => {
   });
 
   const [uploading, setUploading] = useState(false);
-  const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
 
   // MODAL STATE
   const [modalConfig, setModalConfig] = useState({
@@ -40,23 +40,23 @@ const Missions = () => {
 
   // 🧠 AI DATA: Keywords for detection
   const SDG_KEYWORDS = {
-    1: ['poverty', 'poor', 'donation', 'charity', 'help', 'fund', 'basic needs'],
-    2: ['hunger', 'starvation', 'food', 'eat', 'farming', 'agriculture', 'nutrition', 'meal'],
-    3: ['health', 'doctor', 'medicine', 'mental', 'fitness', 'wellbeing', 'disease', 'virus', 'hospital'],
-    4: ['education', 'school', 'teach', 'learn', 'book', 'student', 'class', 'knowledge', 'university'],
-    5: ['gender', 'women', 'girl', 'equality', 'female', 'feminism', 'rights'],
-    6: ['water', 'clean', 'drink', 'sanitation', 'river', 'toilet', 'hygiene', 'well'],
-    7: ['energy', 'solar', 'power', 'electric', 'light', 'renewable', 'wind', 'battery'],
-    8: ['work', 'job', 'economy', 'growth', 'employ', 'career', 'business', 'finance'],
-    9: ['industry', 'innovation', 'infrastructure', 'build', 'tech', 'factory', 'internet'],
-    10: ['inequality', 'equal', 'rights', 'reduce', 'fair', 'discrimination'],
-    11: ['city', 'community', 'urban', 'sustainable', 'housing', 'transport', 'public'],
-    12: ['consumption', 'recycle', 'waste', 'plastic', 'reuse', 'trash', 'garbage', 'circular'],
-    13: ['climate', 'weather', 'carbon', 'warming', 'greenhouse', 'co2', 'emission', 'disaster'],
-    14: ['ocean', 'sea', 'water', 'fish', 'marine', 'beach', 'coral', 'shark', 'plastic'],
-    15: ['land', 'tree', 'plant', 'forest', 'animal', 'biodiversity', 'wildlife', 'nature', 'soil'],
-    16: ['peace', 'justice', 'strong', 'institution', 'law', 'vote', 'human rights', 'court'],
-    17: ['partnership', 'goals', 'together', 'cooperation', 'global', 'alliance', 'team']
+    1: ['poverty', 'poor', 'donation', 'charity', 'help', 'fund', 'basic needs', 'homeless', 'shelter', 'low income'],
+    2: ['hunger', 'starvation', 'food', 'eat', 'farming', 'agriculture', 'nutrition', 'meal', 'soup kitchen', 'rice', 'crops', 'zero hunger'],
+    3: ['health', 'doctor', 'medicine', 'mental', 'fitness', 'wellbeing', 'disease', 'virus', 'hospital', 'medical', 'vaccine', 'clinic', 'first aid', 'exercise'],
+    4: ['education', 'school', 'teach', 'learn', 'book', 'student', 'class', 'knowledge', 'university', 'literacy', 'coding', 'workshop', 'training', 'tutor'],
+    5: ['gender', 'women', 'girl', 'equality', 'female', 'feminism', 'rights', 'empowerment'],
+    6: ['water', 'clean', 'drink', 'sanitation', 'river', 'toilet', 'hygiene', 'well', 'filtration', 'tap', 'leak'],
+    7: ['energy', 'solar', 'power', 'electric', 'light', 'renewable', 'wind', 'battery', 'efficient', 'electricity'],
+    8: ['work', 'job', 'economy', 'growth', 'employ', 'career', 'business', 'finance', 'startup', 'fair pay', 'labor'],
+    9: ['industry', 'innovation', 'infrastructure', 'build', 'tech', 'factory', 'internet', 'smart', 'bridge', 'factory'],
+    10: ['inequality', 'equal', 'rights', 'reduce', 'fair', 'discrimination', 'disability', 'marginalized'],
+    11: ['city', 'community', 'urban', 'sustainable', 'housing', 'transport', 'public', 'walking', 'cycling', 'parks', 'neighborhood'],
+    12: ['consumption', 'recycle', 'waste', 'plastic', 'reuse', 'trash', 'garbage', 'circular', 'compost', 'scrap'],
+    13: ['climate', 'weather', 'carbon', 'warming', 'greenhouse', 'co2', 'emission', 'disaster', 'environment'],
+    14: ['ocean', 'sea', 'water', 'fish', 'marine', 'beach', 'coral', 'shark', 'plastic', 'shore', 'marine life'],
+    15: ['land', 'tree', 'plant', 'forest', 'animal', 'biodiversity', 'wildlife', 'nature', 'soil', 'mangrove', 'garden', 'reforestation'],
+    16: ['peace', 'justice', 'strong', 'institution', 'law', 'vote', 'human rights', 'court', 'safety', 'non-violence'],
+    17: ['partnership', 'goals', 'together', 'cooperation', 'global', 'alliance', 'team', 'volunteer', 'collaboration']
   };
 
   // 🎨 AI DATA: Official Colors for each SDG
@@ -104,13 +104,12 @@ const Missions = () => {
   // ✨ AI LOGIC: Analyzes text as you type
   const analyzeDescription = (text) => {
     if (!text) {
-        setAiSuggestion(null);
+        setAiSuggestions([]);
         return;
     }
     
     const lowerText = text.toLowerCase();
-    let bestMatch = null;
-    let maxCount = 0;
+    const matches = [];
 
     Object.entries(SDG_KEYWORDS).forEach(([sdg, keywords]) => {
         let count = 0;
@@ -118,20 +117,23 @@ const Missions = () => {
             if (lowerText.includes(k)) count++;
         });
         
-        if (count > 0 && count >= maxCount) {
-            maxCount = count;
-            bestMatch = sdg;
+        if (count > 0) {
+            matches.push({ sdg, count });
         }
     });
 
-    setAiSuggestion(bestMatch);
+    // Sort by relevance (keyword count)
+    matches.sort((a, b) => b.count - a.count);
+    
+    // Set suggestions (limit to top 3 to keep UI clean)
+    setAiSuggestions(matches.slice(0, 3).map(m => m.sdg));
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
 
-    // Trigger AI when typing description
+    // Trigger matching logic when typing description
     if (name === 'description') {
         analyzeDescription(value);
     }
@@ -168,18 +170,17 @@ const Missions = () => {
   };
 
   // ✨ CLICK HANDLER: Applies both SDG Number AND Color
-  const applyAiSuggestion = () => {
-    if (aiSuggestion) {
-        // Look up the official color for this SDG
-        const autoColor = SDG_COLORS[aiSuggestion] || '#3b82f6'; 
-        
-        setFormData({ 
-            ...formData, 
-            sdgNumber: aiSuggestion,
-            color: autoColor // 👈 UPDATES THE THEME COLOR
-        });
-        setAiSuggestion(null); // Hide badge after applying
-    }
+  const applySuggestion = (sdg) => {
+    // Look up the official color for this SDG
+    const autoColor = SDG_COLORS[sdg] || '#3b82f6'; 
+    
+    setFormData({ 
+        ...formData, 
+        sdgNumber: sdg,
+        color: autoColor 
+    });
+    setAiSuggestions([]); // Hide suggestions after applying
+    showNotification(`Applied Goal ${sdg} settings`, "info");
   };
 
   const openAddForm = () => {
@@ -379,22 +380,25 @@ const Missions = () => {
                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px'}}>
                     <label style={styles.label}>Description</label>
                     
-                    {/* ✨ AI BADGE */}
-                    {aiSuggestion && (
-                      <button 
-                        type="button" 
-                        onClick={applyAiSuggestion}
-                        style={{
-                          backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb',
-                          borderRadius: '20px', padding: '4px 12px', fontSize: '11px', fontWeight: 'bold',
-                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-                          transition: 'all 0.2s'
-                        }}
-                        title="Click to auto-fill SDG and Color"
-                      >
-                        <Sparkles size={12} fill="#2563eb" /> AI Detected: SDG {aiSuggestion} (Click to Apply)
-                      </button>
-                    )}
+                    {/* ✨ SYSTEM SUGGESTION BADGES */}
+                    <div style={{display: 'flex', gap: '8px', flexWrap: 'wrap'}}>
+                      {aiSuggestions.map((sdg) => (
+                        <button 
+                          key={sdg}
+                          type="button" 
+                          onClick={() => applySuggestion(sdg)}
+                          style={{
+                            backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534',
+                            borderRadius: '20px', padding: '4px 12px', fontSize: '11px', fontWeight: 'bold',
+                            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
+                            transition: 'all 0.2s'
+                          }}
+                          title={`Set to Goal ${sdg}`}
+                        >
+                          <Sparkles size={12} fill="#166534" /> Goal {sdg}
+                        </button>
+                      ))}
+                    </div>
                 </div>
 
                 <textarea 
