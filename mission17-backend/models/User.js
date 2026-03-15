@@ -9,17 +9,17 @@ const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address']
   },
   password: {
     type: String,
     required: true
   },
-  // 🛡️ ROLE-BASED ACCESS CONTROL
   role: {
     type: String,
-    enum: ['student', 'resident', 'lgu', 'ngo', 'admin'],
-    default: 'student' 
+    enum: ['resident', 'lgu', 'admin'],
+    default: 'resident' 
   },
   points: { type: Number, default: 0 },
   completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],
@@ -43,9 +43,13 @@ const UserSchema = new mongoose.Schema({
   
   otpCode: { 
     type: String 
-  }, 
+  },
   otpExpires: { 
     type: Date 
+  },
+  isVerified: { 
+    type: Boolean, 
+    default: false 
   }
 
 }, { timestamps: true });

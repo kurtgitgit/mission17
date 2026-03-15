@@ -8,9 +8,9 @@
  *  POST   /add-user                 — Admin: create a user
  *  PUT    /admin-update-user/:id    — Admin: update any user
  *  DELETE /delete-user/:id          — Admin: delete a user
- *  GET    /user/:id                 — Student: get own profile
- *  PUT    /update-profile/:id       — Student: update own profile
- *  GET    /leaderboard              — Public: top 10 students by points
+ *  GET    /user/:id                 — Resident: get own profile
+ *  PUT    /update-profile/:id       — Resident: update own profile
+ *  GET    /leaderboard              — Public: top 10 residents by points
  */
 
 import express from 'express';
@@ -36,7 +36,7 @@ router.post('/add-user', verifyAdmin, async (req, res) => {
   try {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = new User({ username, email, password: hashedPassword, role: role || 'student' });
+    const newUser = new User({ username, email, password: hashedPassword, role: role || 'resident' });
     await newUser.save();
     logAudit(req.user.id, req.user.username, 'ADMIN_USER_CREATE', `Admin created user: ${username}`, req);
     res.status(201).json({ message: 'User created' });

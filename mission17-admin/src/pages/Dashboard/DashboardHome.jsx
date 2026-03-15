@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { Users, Activity, AlertCircle, CheckSquare, Trophy, User as UserIcon } from 'lucide-react';
+import { Users, Activity, AlertCircle, CheckSquare, User as UserIcon } from 'lucide-react';
 import '../../styles/DashboardHome.css';
 import { endpoints } from '../../config/api';
-import ActivityConsole from '../../components/ActivityConsole';
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({
@@ -132,9 +131,6 @@ const DashboardHome = () => {
             </div>
           </div>
         </div>
-
-        {/* 📟 Professional Live Terminal Console */}
-        <ActivityConsole />
 
       </div>
     </Layout>

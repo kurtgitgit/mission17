@@ -4,7 +4,7 @@
  * Prefix:   /api/auth  (mounted in index.js)
  *
  * Handles ONLY authentication & account security:
- *  POST /signup          — Register new student
+ *  POST /signup          — Register new resident
  *  POST /login           — Login (with MFA check)
  *  POST /verify-otp      — Submit MFA OTP code
  *  POST /toggle-mfa      — Enable / disable MFA
@@ -25,6 +25,17 @@ import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { logAudit, verifyAdmin } from '../utils/authMiddleware.js';
 
+// 🛡️ ANTI-FRAUD: Known disposable email domains
+const DISPOSABLE_DOMAINS = [
+  'mailinator.com', 'temp-mail.org', 'guerrillamail.com', '10minutemail.com',
+  'dispostable.com', 'getnada.com', 'boun.cr'
+];
+
+const isDisposableEmail = (email) => {
+  const domain = email.split('@')[1];
+  return DISPOSABLE_DOMAINS.includes(domain);
+};
+
 const router = express.Router();
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
@@ -35,14 +46,22 @@ const googleClient = new OAuth2Client(
 // ==========================================
 // 🔧 EMAIL HELPER (OTP)
 // ==========================================
-const sendOTP = async (user) => {
+const sendOTP = async (user, type = 'mfa') => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  const isSignup = type === 'signup';
+  const subject = isSignup ? 'Activate Your Account - Welcome to Mission 17!' : 'Security Verification Code - Mission 17';
+  const title = isSignup ? 'Welcome to the Mission!' : 'Your Login Code';
+  const subtitle = isSignup 
+    ? `We're excited to have you, ${user.username}! To finish setting up your account and start your journey, please verify your email:`
+    : 'To complete your sign in, please use the following verification code:';
 
   console.log(`🔍 DEBUG OTP for ${user.email}: ${otp}`);
 
-  user.otpCode = otp;
-  user.otpExpires = Date.now() + 10 * 60 * 1000;
-  await user.save();
+  await User.findByIdAndUpdate(user._id, {
+    otpCode: otp,
+    otpExpires: Date.now() + 10 * 60 * 1000
+  });
 
   try {
     const transporter = nodemailer.createTransport({
@@ -60,14 +79,14 @@ const sendOTP = async (user) => {
         </div>
         
         <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #f3f4f6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.01);">
-          <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Your Login Code</h2>
-          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">To complete your sign in, please use the following verification code:</p>
+          <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">${title}</h2>
+          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">${subtitle}</p>
           
           <div style="background: linear-gradient(to right, #eff6ff, #f8fafc); border: 2px dashed #93c5fd; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
             <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #1e40af;">${otp}</span>
           </div>
           
-          <p style="color: #ef4444; font-size: 14px; font-weight: 500; margin-bottom: 0;">⏳ This code expires in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 14px; margin-bottom: 0;">⏳ This code expires in 10 minutes.</p>
         </div>
         
         <div style="text-align: center; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
@@ -79,8 +98,8 @@ const sendOTP = async (user) => {
     await transporter.sendMail({
       from: `"Mission 17 Security" <${process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: 'Security Verification Code - Mission 17',
-      text: `Your Mission 17 verification code is: ${otp}. It expires in 10 minutes.`,
+      subject: subject,
+      text: `${title}: ${otp}. it expires in 10 minutes.`,
       html: htmlTemplate,
     });
     console.log('✅ Email sent successfully!');
@@ -133,6 +152,59 @@ const sendWelcomeEmail = async (user) => {
 };
 
 // ==========================================
+// 🔑 EMAIL HELPER (PASSWORD RESET)
+// ==========================================
+const sendPasswordResetEmail = async (user) => {
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  console.log(`🔍 DEBUG Password Reset OTP for ${user.email}: ${otp}`);
+  
+  await User.findByIdAndUpdate(user._id, {
+    otpCode: otp,
+    otpExpires: Date.now() + 15 * 60 * 1000 // 15 mins
+  });
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
+
+    const htmlTemplate = `
+      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #fffaf0; border-radius: 12px; border: 1px solid #fed7aa;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #9a3412; font-size: 28px; font-weight: 800; margin: 0;">MISSION <span style="color: #ea580c;">17</span></h1>
+          <p style="color: #c2410c; font-size: 14px; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;">Password Reset Request</p>
+        </div>
+        
+        <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #ffedd5;">
+          <h2 style="color: #431407; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Reset Your Password</h2>
+          <p style="color: #7c2d12; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">We received a request to reset your password. Use the secret code below to proceed:</p>
+          
+          <div style="background-color: #fff7ed; border: 2px solid #fb923c; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+            <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #9a3412;">${otp}</span>
+          </div>
+          
+          <p style="color: #ef4444; font-size: 14px; font-weight: 500; margin-bottom: 0;">⏳ This code expires in 15 minutes.</p>
+        </div>
+      </div>
+    `;
+
+    await transporter.sendMail({
+      from: `"Mission 17 Support" <${process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: 'Password Reset Code - Mission 17',
+      html: htmlTemplate,
+    });
+    console.log('✅ Reset email sent to:', user.email);
+  } catch (error) {
+    console.error('❌ Reset Email Failed:', error);
+  }
+};
+
+// ==========================================
 // 🚦 RATE LIMITER (Brute Force Protection)
 // ==========================================
 // 🛡️ SECURE CODE: Rate Limiting for logins — max 5 attempts per 15 min per IP.
@@ -166,7 +238,20 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 8 characters long." });
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
+    }
+
     const cleanEmail = email.toLowerCase().trim();
+    
+    // 🛡️ CHECK 1: Disposable Domain
+    if (isDisposableEmail(cleanEmail)) {
+      return res.status(400).json({ 
+        message: "Disposable email accounts are not allowed for security reasons." 
+      });
+    }
+
     const cleanUsername = username.trim();
 
     const existingUser = await User.findOne({ email: cleanEmail });
@@ -179,21 +264,35 @@ router.post('/signup', async (req, res) => {
       username: cleanUsername,
       email: cleanEmail,
       password: hashedPassword,
-      role: role ? role.toLowerCase() : 'student',
-      points: 0
+      role: role ? role.toLowerCase() : 'resident',
+      points: 0,
+      isVerified: false // 🔒 Default to unverified
     });
 
     await newUser.save();
-    // 🔒 LOG ACTION
-    logAudit(newUser._id, newUser.username, "SIGNUP", "New user account created", req);
     
-    // 💌 Send welcome email asynchronously
-    sendWelcomeEmail(newUser).catch(err => console.error(err));
-    res.status(201).json({ message: "User created successfully" });
+    // 🔒 LOG ACTION
+    logAudit(newUser._id, newUser.username, "SIGNUP_INITIATED", "New account created (Unverified)", req);
+    
+    // 🔑 Send Activation OTP
+    await sendOTP(newUser, 'signup');
+    
+    res.status(201).json({ 
+      message: "Account created! Check your email for a verification code.",
+      userId: newUser._id 
+    });
   } catch (error) {
-    // 👇 If mongoose detects a NoSQL injection or strange characters, catch it smoothly!
     console.error("Signup Error:", error.message);
-    return res.status(400).json({ message: "Invalid input or user already exists." }); 
+
+    // 🛡️ Handle Duplicate Key Errors (MongoDB code 11000)
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({ 
+        message: `That ${field} is already taken. Please try another.` 
+      });
+    }
+
+    return res.status(500).json({ message: "Registration failed. Please try again later." }); 
   }
 });
 
@@ -210,6 +309,16 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!isPasswordValid) {
       logAudit(user._id, user.username, "LOGIN_FAILED", "Failed login attempt (Wrong Password)", req);
       return res.status(400).json({ message: "Invalid Password!" });
+    }
+
+    // 🔒 CHECK: Email Verification
+    if (!user.isVerified) {
+      await sendOTP(user, 'signup'); // Resend code if they try to login while unverified
+      return res.status(401).json({ 
+        message: "Account not verified. A new code has been sent to your email.",
+        unverified: true,
+        userId: user._id
+      });
     }
 
     if (req.body.isAdminLogin && user.role !== 'admin') {
@@ -243,7 +352,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   }
 });
 
-// 3. VERIFY OTP
+// 3. VERIFY OTP (Used for MFA)
 router.post('/verify-otp', async (req, res) => {
   const { userId, otp } = req.body;
   try {
@@ -255,9 +364,10 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: "Invalid or Expired Code" });
     }
 
-    user.otpCode = null;
-    user.otpExpires = null;
-    await user.save();
+    await User.findByIdAndUpdate(user._id, {
+      otpCode: null,
+      otpExpires: null
+    });
 
     const token = jwt.sign(
       { id: user._id, role: user.role, username: user.username },
@@ -272,6 +382,35 @@ router.post('/verify-otp', async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// 3a. VERIFY SIGNUP (New Account Activation)
+router.post('/verify-signup', async (req, res) => {
+  const { userId, otp } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
+      logAudit(user._id, user.username, "SIGNUP_VERIFY_FAILED", "Invalid signup OTP", req);
+      return res.status(400).json({ message: "Invalid or Expired Code" });
+    }
+
+    // Activate the account
+    user.isVerified = true;
+    user.otpCode = null;
+    user.otpExpires = null;
+    await user.save();
+
+    logAudit(user._id, user.username, "SIGNUP_VERIFIED", "Email successfully verified", req);
+
+    // Send Welcome Email now that they are verified
+    sendWelcomeEmail(user).catch(err => console.error("Welcome Email Error:", err));
+
+    res.status(200).json({ message: "Account verified! You can now log in." });
+  } catch (error) {
+    res.status(500).json({ message: "Verification failed" });
   }
 });
 
@@ -319,7 +458,7 @@ router.post('/google', async (req, res) => {
         username: name.replace(/\s+/g, '') + Math.floor(Math.random() * 1000), // e.g. JohnDoe42
         email: cleanEmail,
         password: hashedPassword,
-        role: role ? role.toLowerCase() : 'student',
+        role: role ? role.toLowerCase() : 'resident',
         points: 0,
         // Optional: you could add a 'isGoogleUser' boolean to the schema later
       });
@@ -360,12 +499,66 @@ router.put('/change-password', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Incorrect old password' });
 
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword
+    });
     logAudit(userId, user.username, 'PASSWORD_CHANGE', 'User successfully changed their password', req);
     res.json({ message: 'Password updated successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// 6. FORGOT PASSWORD (REQUEST CODE)
+router.post('/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required." });
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: "Please enter a valid email address." });
+    }
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) return res.status(404).json({ message: "User with this email not found." });
+
+    await sendPasswordResetEmail(user);
+    logAudit(user._id, user.username, "FORGOT_PASSWORD_REQUEST", "Password reset code requested", req);
+    console.log(`✅ Success: Reset code ${user.otpCode} sent to ${user.email}`);
+    res.json({ message: "Reset code sent to your email." });
+  } catch (error) {
+    console.error("❌ Forgot Password Error:", error);
+    res.status(500).json({ message: "Error sending reset code." });
+  }
+});
+
+// 7. RESET PASSWORD (VERIFY CODE & UPDATE)
+router.post('/reset-password', async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) return res.status(404).json({ message: "User not found." });
+
+    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: "Invalid or expired reset code." });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await User.findByIdAndUpdate(user._id, {
+      password: hashedPassword,
+      otpCode: null,
+      otpExpires: null
+    });
+
+    logAudit(user._id, user.username, "PASSWORD_RESET_SUCCESS", "Password reset using OTP code", req);
+    res.json({ message: "Password reset successful! You can now log in." });
+  } catch (error) {
+    console.error("❌ Reset Password Error:", error);
+    res.status(500).json({ message: "Error resetting password." });
   }
 });
 

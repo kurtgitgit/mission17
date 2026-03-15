@@ -28,19 +28,25 @@ export default function SignupScreen() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('Student'); 
+  const [role, setRole] = useState('Resident'); 
   
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Available Roles
-  const roles = ['Student', 'Resident', 'LGU', 'NGO'];
+  const roles = ['Resident', 'LGU'];
 
   const handleSignup = async () => {
     Keyboard.dismiss(); // 📱 UX Fix
 
     if (!username || !email || !password) {
       showNotification('Please fill in all fields', 'error');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showNotification('Please enter a valid email address.', 'error');
       return;
     }
 
@@ -74,8 +80,11 @@ export default function SignupScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Account created! Please log in.', 'success');
-        navigation.navigate('Login');
+        showNotification('Account created! Please verify your email.', 'success');
+        navigation.navigate('VerifySignup', { 
+          userId: data.userId, 
+          email: email.trim() 
+        });
       } else {
         const msg = data.message || 'Something went wrong';
         showNotification(msg, 'error');

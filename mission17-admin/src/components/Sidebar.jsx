@@ -3,14 +3,14 @@ import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Target, 
-  PlusCircle, // 👈 ADDED ICON
+  PlusCircle,
   Users, 
   BarChart3, 
   LogOut, 
-  BookOpen, 
   Settings, 
   CheckCircle,
-  Calendar
+  Calendar,
+  Shield
 } from 'lucide-react';
 import '../styles/Sidebar.css';
 
@@ -73,12 +73,6 @@ const Sidebar = () => {
           </NavLink>
         </li>
         <li className="nav-item">
-          <NavLink to="/learning" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <BookOpen size={20} />
-            <span>Learning Hub</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
           <NavLink to="/verify" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <CheckCircle size={20} />
             <span>Verify Proofs</span>
@@ -88,6 +82,12 @@ const Sidebar = () => {
           <NavLink to="/analytics" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
             <BarChart3 size={20} />
             <span>Analytics</span>
+          </NavLink>
+        </li>
+        <li className="nav-item">
+          <NavLink to="/audit-logs" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
+            <Shield size={20} />
+            <span>Audit Logs</span>
           </NavLink>
         </li>
       </ul>

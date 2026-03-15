@@ -1,0 +1,27 @@
+.audit-logs-container {
+  padding: 1rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.audit-logs-container .section-title {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: #0f172a;
+}
+
+.audit-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-bottom: 24px;
+}
+
+/* Make the console taller on the dedicated page */
+.audit-logs-container .activity-console {
+  height: calc(100vh - 220px);
+  min-height: 500px;
+}
+
+.audit-logs-container .console-body {
+  height: calc(100% - 90px);
+}

@@ -9,25 +9,33 @@ const BACKEND_ENV_PATH = path.join(__dirname, 'mission17-backend', '.env');
 
 function getLocalIp() {
     const interfaces = os.networkInterfaces();
+    const candidates = [];
+
     for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]) {
-            // Skip internal (loopback) and non-IPv4 addresses
+            // Skip internal and non-IPv4
             if (iface.family === 'IPv4' && !iface.internal) {
-                // Prioritize Wi-Fi or Ethernet interfaces
-                if (name.toLowerCase().includes('wi-fi') || name.toLowerCase().includes('wifi') || name.toLowerCase().includes('ethernet')) {
-                    return iface.address;
+                const ip = iface.address;
+                // Skip common virtual network ranges
+                if (ip.startsWith('192.168.56.') || ip.startsWith('192.168.99.') || ip.startsWith('172.')) {
+                    continue;
                 }
+                candidates.push({ name, ip });
             }
         }
     }
-    // Fallback: Return the first non-internal IPv4 found
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address;
-            }
-        }
-    }
+
+    // 1. Prioritize Wi-Fi
+    const wifi = candidates.find(c => c.name.toLowerCase().includes('wi-fi') || c.name.toLowerCase().includes('wifi'));
+    if (wifi) return wifi.ip;
+
+    // 2. Prioritize 192.168.1.x or 192.168.0.x (common home LANs)
+    const lan = candidates.find(c => c.ip.startsWith('192.168.1.') || c.ip.startsWith('192.168.0.'));
+    if (lan) return lan.ip;
+
+    // 3. Fallback to any candidate
+    if (candidates.length > 0) return candidates[0].ip;
+
     return '127.0.0.1';
 }
 

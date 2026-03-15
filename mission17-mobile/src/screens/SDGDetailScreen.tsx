@@ -32,6 +32,12 @@ const SDGDetailScreen = ({ route, navigation }: any) => {
             <Text style={styles.descriptionText}>{sdg.description}</Text>
           </View>
 
+          {/* Why It Matters Section */}
+          <Text style={styles.sectionTitle}>WHY IT MATTERS?</Text>
+          <View style={styles.whyBox}>
+            <Text style={styles.whyText}>{sdg.whyItMatters}</Text>
+          </View>
+
           {/* How To Help Section */}
           <Text style={styles.sectionTitle}>HOW TO HELP?</Text>
           <View style={styles.helpBox}>
@@ -75,9 +81,12 @@ const styles = StyleSheet.create({
   heroImage: { width: '100%', height: 220, borderRadius: 16, marginBottom: 20 },
   
   infoBox: { backgroundColor: '#f1f5f9', padding: 20, borderRadius: 16, marginBottom: 25 },
-  descriptionText: { fontSize: 15, color: '#334155', lineHeight: 24, fontWeight: '500' },
+  descriptionText: { fontSize: 15, color: '#334155', lineHeight: 24, fontWeight: '500', textAlign: 'justify' },
 
   sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', alignSelf: 'center', marginBottom: 15 },
+  
+  whyBox: { backgroundColor: '#fff7ed', padding: 20, borderRadius: 16, borderLeftWidth: 4, borderColor: '#fb923c', marginBottom: 25 },
+  whyText: { fontSize: 14, color: '#9a3412', lineHeight: 22, fontStyle: 'italic' },
   
   helpBox: { backgroundColor: '#f8fafc', padding: 20, borderRadius: 16, borderWidth: 1, borderColor: '#e2e8f0' },
   bulletItem: { flexDirection: 'row', marginBottom: 12 },

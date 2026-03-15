@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, 
   Platform, SafeAreaView, Alert, Modal, TextInput, Linking, ActivityIndicator 
 } from 'react-native';
-import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText, X, Mail, Shield } from 'lucide-react-native';
+import { ChevronLeft, Bell, Lock, HelpCircle, LogOut, ChevronRight, FileText, X, Mail, Shield, Eye, EyeOff } from 'lucide-react-native';
 import { CommonActions } from '@react-navigation/native';
 import { clearAuthData, getAuthData } from '../utils/storage'; 
 import { GlobalState, endpoints } from '../config/api';     
@@ -20,6 +20,8 @@ const SettingsScreen = ({ navigation }: any) => {
   // Password Change States
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
+  const [showOldPass, setShowOldPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // Logout Confirmation State
@@ -235,20 +237,31 @@ const SettingsScreen = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
                 
-                <TextInput 
-                    placeholder="Old Password" 
-                    style={styles.input} 
-                    secureTextEntry 
-                    value={oldPass}
-                    onChangeText={setOldPass}
-                />
-                <TextInput 
-                    placeholder="New Password (min 8 chars)" 
-                    style={styles.input} 
-                    secureTextEntry 
-                    value={newPass}
-                    onChangeText={setNewPass}
-                />
+                <View style={styles.passwordInputContainer}>
+                    <TextInput 
+                        placeholder="Old Password" 
+                        style={styles.modalInput} 
+                        secureTextEntry={!showOldPass}
+                        value={oldPass}
+                        onChangeText={setOldPass}
+                    />
+                    <TouchableOpacity onPress={() => setShowOldPass(!showOldPass)} style={styles.eyeIcon}>
+                        {showOldPass ? <EyeOff size={20} color="#94a3b8" /> : <Eye size={20} color="#94a3b8" />}
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.passwordInputContainer}>
+                    <TextInput 
+                        placeholder="New Password (min 8 chars)" 
+                        style={styles.modalInput} 
+                        secureTextEntry={!showNewPass}
+                        value={newPass}
+                        onChangeText={setNewPass}
+                    />
+                    <TouchableOpacity onPress={() => setShowNewPass(!showNewPass)} style={styles.eyeIcon}>
+                        {showNewPass ? <EyeOff size={20} color="#94a3b8" /> : <Eye size={20} color="#94a3b8" />}
+                    </TouchableOpacity>
+                </View>
 
                 <TouchableOpacity style={styles.saveBtn} onPress={handleChangePassword} disabled={loading}>
                     {loading ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
@@ -373,6 +386,23 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   
   input: { backgroundColor: '#f1f5f9', padding: 16, borderRadius: 12, marginBottom: 12, fontSize: 16, color: '#0f172a' },
+  passwordInputContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f1f5f9', 
+    borderRadius: 12, 
+    marginBottom: 12,
+    paddingRight: 12
+  },
+  modalInput: { 
+    flex: 1,
+    padding: 16, 
+    fontSize: 16, 
+    color: '#0f172a' 
+  },
+  eyeIcon: {
+    padding: 4
+  },
   saveBtn: { backgroundColor: '#3b82f6', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { Plus, Trash2, Edit, X, CheckCircle, Search } from 'lucide-react';
+import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Users.css'; 
@@ -20,7 +20,7 @@ const Users = () => {
     username: '',
     email: '',
     password: '',
-    role: 'Student', // Default
+    role: 'Resident', // Default
     points: 0
   });
 
@@ -73,7 +73,7 @@ const Users = () => {
 
   const openAddModal = () => {
     setIsEditing(false);
-    setFormData({ username: '', email: '', password: '', role: 'Student', points: 0 });
+    setFormData({ username: '', email: '', password: '', role: 'Resident', points: 0 });
     setShowModal(true);
   };
 
@@ -84,7 +84,7 @@ const Users = () => {
       username: user.username, 
       email: user.email, 
       password: '', // Keep empty unless changing
-      role: user.role || 'Student',
+      role: user.role || 'Resident',
       points: user.points || 0 
     });
     setShowModal(true);
@@ -155,6 +155,29 @@ const Users = () => {
     }
   };
 
+  const handleActivateUser = async (user) => {
+    try {
+      const res = await fetch(endpoints.users.update(user._id), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': getToken()
+        },
+        body: JSON.stringify({ isVerified: true })
+      });
+
+      if (res.ok) {
+        setUsers(users.map(u => u._id === user._id ? { ...u, isVerified: true } : u));
+        showNotification(`${user.username} has been manually activated!`, "success");
+      } else {
+        showNotification("Failed to activate user", "error");
+      }
+    } catch (error) {
+      console.error("Activation error:", error);
+      showNotification("Connection error", "error");
+    }
+  };
+
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
@@ -164,9 +187,7 @@ const Users = () => {
     switch (role?.toLowerCase()) {
       case 'admin': return { bg: '#fee2e2', text: '#dc2626' };     // Red
       case 'lgu': return { bg: '#fef3c7', text: '#d97706' };       // Amber
-      case 'ngo': return { bg: '#dcfce7', text: '#16a34a' };       // Green
-      case 'resident': return { bg: '#e0e7ff', text: '#4f46e5' };  // Indigo
-      case 'student':
+      case 'resident':
       default: return { bg: '#e0f2fe', text: '#0284c7' };          // Blue
     }
   };
@@ -230,10 +251,8 @@ const Users = () => {
                   <div style={{...styles.fieldGroup, flex: 1}}>
                     <label style={styles.label}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, width: '100%'}}>
-                      <option value="student">Student</option>
                       <option value="resident">Resident</option>
                       <option value="lgu">LGU (Local Govt)</option>
-                      <option value="ngo">NGO (Partner)</option>
                       <option value="admin">Admin</option>
                     </select>
                   </div>
@@ -285,14 +304,31 @@ const Users = () => {
                           padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', 
                           backgroundColor: badge.bg, color: badge.text, textTransform: 'uppercase'
                         }}>
-                          {user.role || 'Student'}
+                          {user.role || 'Resident'}
                         </span>
                       </td>
                       <td style={styles.td}>{user.points || 0}</td>
                       <td style={styles.td}>
-                        <span style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px'}}>
-                           <CheckCircle size={14} /> Active
-                        </span>
+                        {user.isVerified ? (
+                          <span style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px'}}>
+                            <CheckCircle size={14} /> Active
+                          </span>
+                        ) : (
+                          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                            <span style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#f59e0b', fontWeight: '600', fontSize: '13px'}}>
+                              <Clock size={14} /> Pending
+                            </span>
+                            <button 
+                              onClick={() => handleActivateUser(user)}
+                              style={{
+                                padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6', 
+                                color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
+                              }}
+                            >
+                              Verify
+                            </button>
+                          </div>
+                        )}
                       </td>
                       <td style={styles.td}>
                         <div style={{display: 'flex', gap: '10px'}}>
