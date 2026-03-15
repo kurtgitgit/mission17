@@ -22,6 +22,11 @@ const Signup = () => {
       showNotification("Passwords do not match!", "error");
       return;
     }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      showNotification("Please enter a valid email address.", "error");
+      return;
+    }
     console.log("Signing up:", formData);
     // TODO: Connect to Node.js backend later
   };

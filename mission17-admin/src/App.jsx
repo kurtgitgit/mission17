@@ -8,9 +8,9 @@ import Missions from './pages/Missions/Missions';
 import Events from './pages/Events';
 import Users from './pages/Users/Users';
 import Analytics from './pages/Analytics/Analytics';
-import Learning from './pages/Learning/Learning';
 import Settings from './pages/Settings/Settings';
 import Verify from './pages/Verify/Verify';
+import AuditLogs from './pages/AuditLogs/AuditLogs';
 
 import { NotificationProvider } from './context/NotificationContext';
 
@@ -30,9 +30,9 @@ function App() {
        
         <Route path="/users" element={<Users />} />
         <Route path="/analytics" element={<Analytics />} />
-        <Route path="/learning" element={<Learning />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/verify" element={<Verify />} />
+        <Route path="/audit-logs" element={<AuditLogs />} />
       </Routes>
       </Router>
     </NotificationProvider>

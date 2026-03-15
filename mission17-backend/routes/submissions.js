@@ -4,13 +4,13 @@
  * Prefix:   /api/auth  (mounted in index.js — no URL changes for existing clients)
  *
  * Routes:
- *  POST /submit-mission           — Student submits a mission
+ *  POST /submit-mission           — Resident submits a mission
  *  GET  /pending-submissions      — Admin: get pending + auto-run AI on unanalyzed ones
  *  GET  /submissions?status=      — Admin: get Approved | Rejected submissions (no imageUri)
  *  POST /approve-mission          — Admin: approve a submission + award blockchain points
  *  POST /reject-mission           — Admin: reject a submission
  *  POST /analyze-proof            — Admin: manually (re-)analyze a submission with AI
- *  GET  /user-submissions/:userId — Student: get own submission history (no imageUri)
+ *  GET  /user-submissions/:userId — Resident: get own submission history (no imageUri)
  */
 
 import express from 'express';

@@ -86,7 +86,7 @@
 
 .dashboard-lower-section {
   display: grid;
-  grid-template-columns: 2fr 1fr; /* Activity is wider, Leaderboard is narrower */
+  grid-template-columns: 2fr 1fr;
   gap: 30px;
   margin-top: 40px;
 }

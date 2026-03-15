@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, Shield, RefreshCw } from 'lucide-react';
+import { Shield, RefreshCw } from 'lucide-react';
 import { endpoints } from '../config/api';
 import '../styles/ActivityConsole.css';
 
@@ -57,8 +57,8 @@ const ActivityConsole = () => {
     <div className="activity-console">
       <div className="console-header">
         <div className="header-left">
-          <Terminal size={16} />
-          <span>Live System Activity</span>
+          <Shield size={16} />
+          <span>Recent Audit Logs</span>
           <span className="live-indicator">LIVE</span>
         </div>
         <div className="header-right">

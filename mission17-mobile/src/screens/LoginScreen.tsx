@@ -12,19 +12,31 @@ import {
   Keyboard,
   ScrollView,
   KeyboardAvoidingView,
-  SafeAreaView
+  SafeAreaView,
+  NativeModules
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Mail, Lock, Key } from 'lucide-react-native';
+import { Mail, Lock, Key, Eye, EyeOff, RotateCcw } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+// import { GoogleSignin } from '@react-native-google-signin/google-signin'; // Removed for Expo Go compatibility
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 
-GoogleSignin.configure({
-  webClientId: '273385582923-o4esb9aj3t3ssnmfm4j1mbq9jp5d1dnm.apps.googleusercontent.com',
-  // Native configuration handles the Android and iOS Client IDs automatically behind the scenes.
-});
+// Safe configuration for Expo Go
+let isGoogleAvailable = false;
+let GoogleSignin: any = null;
+
+if (Platform.OS !== 'web' && NativeModules.RNGoogleSignin) {
+  try {
+    GoogleSignin = require('@react-native-google-signin/google-signin').GoogleSignin;
+    GoogleSignin.configure({
+      webClientId: '273385582923-o4esb9aj3t3ssnmfm4j1mbq9jp5d1dnm.apps.googleusercontent.com',
+    });
+    isGoogleAvailable = true;
+  } catch (e) {
+    console.warn("⚠️ Google Sign-In not available in this environment (likely Expo Go).");
+  }
+}
 
 export default function LoginScreen() {
   const { showNotification } = useNotification();
@@ -32,6 +44,7 @@ export default function LoginScreen() {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [num1, setNum1] = useState(Math.floor(Math.random() * 10) + 1);
@@ -42,8 +55,23 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
 
+  const refreshCaptcha = () => {
+    setNum1(Math.floor(Math.random() * 10) + 1);
+    setNum2(Math.floor(Math.random() * 10) + 1);
+    setCaptchaAnswer('');
+  };
+
   // 🌐 GOOGLE AUTH STATE
   const signInWithGoogleAsync = async () => {
+    if (!isGoogleAvailable || Platform.OS === 'web') {
+      Alert.alert(
+        "Feature Unavailable",
+        "Google Sign-In is only available on actual devices using the APK or a Development Build. Please use Email/Password to test in Expo Go.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
     try {
       await GoogleSignin.hasPlayServices();
       
@@ -104,15 +132,19 @@ export default function LoginScreen() {
 
     if (parseInt(captchaAnswer) !== num1 + num2) {
       showNotification("Incorrect math answer. Please try again.", "error");
-      setNum1(Math.floor(Math.random() * 10) + 1);
-      setNum2(Math.floor(Math.random() * 10) + 1);
-      setCaptchaAnswer('');
+      refreshCaptcha();
       return;
     }
 
     if (!email || !password) {
       showNotification('Please enter both email and password', 'error');
       return; 
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      showNotification('Please enter a valid email address.', 'error');
+      return;
     }
 
     setLoading(true);
@@ -137,15 +169,28 @@ export default function LoginScreen() {
         return;
       }
 
+      // 🔒 CASE 1.5: UNVERIFIED ACCOUNT (Status 401)
+      if (response.status === 401 && data.unverified) {
+        showNotification(data.message, "info");
+        navigation.navigate('VerifySignup', { 
+          userId: data.userId, 
+          email: cleanEmail 
+        });
+        setLoading(false);
+        return;
+      }
+
       // CASE 2: SUCCESS (Status 200)
       if (response.ok) {
         await processLoginSuccess(data);
       } else {
         showNotification(data.message || 'Invalid credentials', 'error');
+        refreshCaptcha();
       }
     } catch (error) {
       showNotification('Could not connect to server.', 'error');
       console.error(error);
+      refreshCaptcha();
     } finally {
       if (!mfaRequired) setLoading(false);
     }
@@ -242,14 +287,33 @@ export default function LoginScreen() {
                             style={styles.input} 
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                             placeholderTextColor="#94a3b8"
                         />
+                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                            {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
+                        </TouchableOpacity>
                     </View>
+
+                    <TouchableOpacity 
+                        onPress={() => navigation.navigate('ForgotPassword')}
+                        style={styles.forgotPasswordContainer}
+                    >
+                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                    </TouchableOpacity>
 
                     {/* CAPTCHA SECTION */}
                     <View style={styles.captchaContainer}>
-                        <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
+                        <View style={styles.captchaLeft}>
+                          <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
+                          <TouchableOpacity 
+                            onPress={refreshCaptcha} 
+                            style={styles.refreshButton}
+                            activeOpacity={0.6}
+                          >
+                            <RotateCcw color="#0056b3" size={20} />
+                          </TouchableOpacity>
+                        </View>
                         <TextInput
                             style={styles.captchaInput}
                             placeholder="#"
@@ -397,7 +461,8 @@ const styles = StyleSheet.create({
   mfaInstruction: {
     textAlign: 'center',
     color: '#64748b',
-    marginBottom: 10
+    marginBottom: 10,
+    paddingHorizontal: 20
   },
   loginButton: { 
     backgroundColor: '#0ea5e9', 
@@ -461,8 +526,12 @@ const styles = StyleSheet.create({
     fontSize: 14, 
     fontWeight: '600' 
   },
+  forgotPasswordContainer: { alignSelf: 'flex-end', marginTop: -8, marginBottom: 10 },
+  forgotPasswordText: { color: '#64748b', fontSize: 14, fontWeight: '600' },
   // Captcha Styles
   captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: 15, backgroundColor: '#f0f8ff', borderRadius: 12, borderWidth: 1, borderColor: '#cce4ff' },
-  captchaText: { fontSize: 16, fontWeight: '600', color: '#0056b3' },
+  captchaLeft: { flexDirection: 'row', alignItems: 'center' },
+  refreshButton: { marginLeft: 12, padding: 4 },
+  captchaText: { fontSize: 16, fontWeight: '600', color: '#0056b3', flexShrink: 1 },
   captchaInput: { width: 50, height: 40, borderColor: '#0056b3', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff', color: '#1e293b' },
 });

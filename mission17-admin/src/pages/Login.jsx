@@ -24,6 +24,12 @@ const Login = () => {
   const [num1, setNum1] = useState(Math.floor(Math.random() * 8) + 5); 
   const [num2, setNum2] = useState(Math.floor(Math.random() * 8) + 5); 
 
+  const refreshCaptcha = () => {
+    setNum1(Math.floor(Math.random() * 8) + 5);
+    setNum2(Math.floor(Math.random() * 8) + 5);
+    setCaptchaAnswer('');
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     // Clear error when user starts typing again
@@ -35,6 +41,14 @@ const Login = () => {
     setLoading(true);
     setError("");
 
+    // 📧 EMAIL VALIDATION
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address.");
+      setLoading(false);
+      return;
+    }
+
     // 🤖 CAPTCHA VALIDATION
     if (!captchaAnswer.trim()) {
       setError("Please answer the security math question.");
@@ -44,9 +58,7 @@ const Login = () => {
 
     if (parseInt(captchaAnswer) !== num1 * num2) {
       setError("Incorrect security answer. Please try again.");
-      setNum1(Math.floor(Math.random() * 8) + 5);
-      setNum2(Math.floor(Math.random() * 8) + 5);
-      setCaptchaAnswer('');
+      refreshCaptcha();
       setLoading(false);
       return;
     }
@@ -86,6 +98,7 @@ const Login = () => {
     } catch (err) {
       console.error("Login Error:", err);
       setError(err.message);
+      refreshCaptcha();
     } finally {
       setLoading(false);
     }

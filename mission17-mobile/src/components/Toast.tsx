@@ -80,7 +80,9 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
     >
       <View style={styles.content}>
         {getIcon()}
-        <Text style={styles.text}>{message}</Text>
+        <Text style={styles.text}>
+          {typeof message === 'string' ? message : JSON.stringify(message)}
+        </Text>
       </View>
       <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
         <X size={16} color="#94a3b8" />
@@ -115,17 +117,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    gap: 12,
+    paddingRight: 8,
   },
   text: {
     color: '#0f172a',
     fontSize: 14,
     fontWeight: '600',
+    marginLeft: 12,
     flex: 1,
-    flexShrink: 1,
+    flexWrap: 'wrap',
   },
   closeBtn: {
     padding: 4,
+    marginLeft: 4,
   },
   progressBar: {
     position: 'absolute',

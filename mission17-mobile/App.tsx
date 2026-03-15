@@ -9,6 +9,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'; // 👈 I
 // --- IMPORT YOUR SCREENS ---
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
+import VerifySignup from './src/screens/VerifySignup';
 import HomeScreen from './src/screens/HomeScreen';
 import MissionsScreen from './src/screens/MissionsScreen';
 import MissionDetailScreen from './src/screens/MissionDetailScreen';
@@ -21,6 +22,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import SDGDetailScreen from './src/screens/SDGDetailScreen';
 import AuditLogScreen from './src/screens/AuditLogScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 
 // --- UTILS & CONFIG ---
 import { getAuthData } from './src/utils/storage';
@@ -172,6 +174,8 @@ export default function App() {
           <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="VerifySignup" component={VerifySignup} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="Home" component={MainTabs} />
             <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
             <Stack.Screen name="EventDetail" component={EventDetailScreen} />
