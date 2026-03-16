@@ -1,3 +1,44 @@
+export const SDG_IMAGES: { [key: number]: any } = {
+  1: require('../../assets/sdg/sdg01.png'),
+  2: require('../../assets/sdg/sdg02.png'),
+  3: require('../../assets/sdg/sdg03.png'),
+  4: require('../../assets/sdg/sdg04.png'),
+  5: require('../../assets/sdg/sdg05.png'),
+  6: require('../../assets/sdg/sdg06.png'),
+  7: require('../../assets/sdg/sdg07.png'),
+  8: require('../../assets/sdg/sdg08.png'),
+  9: require('../../assets/sdg/sdg09.png'),
+  10: require('../../assets/sdg/sdg10.png'),
+  11: require('../../assets/sdg/sdg11.png'),
+  12: require('../../assets/sdg/sdg12.png'),
+  13: require('../../assets/sdg/sdg13.png'),
+  14: require('../../assets/sdg/sdg14.png'),
+  15: require('../../assets/sdg/sdg15.png'),
+  16: require('../../assets/sdg/sdg16.png'),
+  17: require('../../assets/sdg/sdg17.png'),
+  18: require('../../assets/logo.png'), 
+};
+
+export const SDG_HERO_IMAGES: { [key: number]: any } = {
+  1: require('../../assets/learninghubsdgpics/no_poverty.jpg'),
+  2: require('../../assets/learninghubsdgpics/zero_hunger.jpg'),
+  3: require('../../assets/learninghubsdgpics/good_health_and_wellbeing.jpg'),
+  4: require('../../assets/learninghubsdgpics/quality_education.png'),
+  5: require('../../assets/learninghubsdgpics/gender_equality.jpg'),
+  6: require('../../assets/learninghubsdgpics/claen_water_and_sanitation.jpg'),
+  7: require('../../assets/learninghubsdgpics/affordable_and_clean_energy.png'),
+  8: require('../../assets/learninghubsdgpics/decent_work_and_economic_growth.jpg'),
+  9: require('../../assets/learninghubsdgpics/industry,innovation_and_infastracture.jpg'),
+  10: require('../../assets/learninghubsdgpics/reduced_inequalities.png'),
+  11: require('../../assets/learninghubsdgpics/Sustainable_Cities_and_Communities.jpg'),
+  12: require('../../assets/learninghubsdgpics/Responsible_Consumption_and_Production.jpg'),
+  13: require('../../assets/learninghubsdgpics/Climate_Action.jpg'),
+  14: require('../../assets/learninghubsdgpics/Life_Below_Water.jpg'),
+  15: require('../../assets/learninghubsdgpics/Life_on_Land.jpg'),
+  16: require('../../assets/learninghubsdgpics/Peace, Justice, and_Strong_Institutions.jpg'),
+  17: require('../../assets/learninghubsdgpics/Partnerships_for_the_Goals.jpg'),
+};
+
 export const SDG_DATA = [
   {
     id: 1,

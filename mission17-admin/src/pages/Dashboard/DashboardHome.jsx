@@ -44,9 +44,9 @@ const DashboardHome = () => {
   return (
     <Layout title="Dashboard">
       <div className="dashboard-container">
-        
+
         <h2 className="section-title">Dashboard Overview</h2>
-        
+
         <div className="stats-grid">
           <div className="stat-card blue-card">
             <div className="stat-icon-box"><Users size={24} color="#2563eb" /></div>
@@ -88,45 +88,45 @@ const DashboardHome = () => {
             <div className="activity-list">
               {loading
                 ? Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="activity-item skeleton-row">
-                      <span className="skeleton-line wide" />
-                      <span className="skeleton-line narrow" />
-                    </div>
-                  ))
+                  <div key={i} className="activity-item skeleton-row">
+                    <span className="skeleton-line wide" />
+                    <span className="skeleton-line narrow" />
+                  </div>
+                ))
                 : recentActivity.length === 0
                   ? <p className="empty-msg">No pending submissions.</p>
                   : recentActivity.map((act) => (
-                      <div key={act._id} className="activity-item">
-                        <p><strong>{act.username}</strong> submitted proof for <strong>{act.missionTitle}</strong></p>
-                        <span className="activity-status pending">Pending Review</span>
-                      </div>
-                    ))
+                    <div key={act._id} className="activity-item">
+                      <p><strong>{act.username}</strong> submitted proof for <strong>{act.missionTitle}</strong></p>
+                      <span className="activity-status pending">Pending Review</span>
+                    </div>
+                  ))
               }
             </div>
           </div>
 
           {/* Leaderboard Widget */}
           <div className="leaderboard-section">
-            <h2 className="section-title">Top Agents</h2>
+            <h2 className="section-title">Leaderboards</h2>
             <div className="leaderboard-widget">
               {loading
                 ? Array.from({ length: 5 }).map((_, i) => (
-                    <div key={i} className="leader-row skeleton-row">
-                      <span className="skeleton-circle" />
-                      <span className="skeleton-line wide" />
-                      <span className="skeleton-line narrow" style={{ marginLeft: 'auto' }} />
-                    </div>
-                  ))
+                  <div key={i} className="leader-row skeleton-row">
+                    <span className="skeleton-circle" />
+                    <span className="skeleton-line wide" />
+                    <span className="skeleton-line narrow" style={{ marginLeft: 'auto' }} />
+                  </div>
+                ))
                 : leaders.length === 0
                   ? <p className="empty-msg">No users yet.</p>
                   : leaders.map((agent, index) => (
-                      <div key={agent._id} className="leader-row">
-                        <span className={`rank-tag rank-${index + 1}`}>{index + 1}</span>
-                        <div className="leader-avatar"><UserIcon size={14} /></div>
-                        <span className="leader-name">{agent.username}</span>
-                        <span className="leader-pts">{agent.points || 0} pts</span>
-                      </div>
-                    ))
+                    <div key={agent._id} className="leader-row">
+                      <span className={`rank-tag rank-${index + 1}`}>{index + 1}</span>
+                      <div className="leader-avatar"><UserIcon size={14} /></div>
+                      <span className="leader-name">{agent.username}</span>
+                      <span className="leader-pts">{agent.points || 0} pts</span>
+                    </div>
+                  ))
               }
             </div>
           </div>

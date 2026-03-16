@@ -17,9 +17,10 @@ const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x79f116E8e42788C07B3
 // VERDICT CONFIG - drives all styling
 // ==========================================
 const VERDICT_CONFIG = {
-  VERIFIED:  { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: CheckCircle,  label: 'Verified' },
-  REJECTED:  { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: XCircle,       label: 'Rejected' },
-  UNCERTAIN: { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: HelpCircle,    label: 'Uncertain' },
+  VERIFIED:   { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: CheckCircle,  label: 'Verified' },
+  REJECTED:   { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: XCircle,       label: 'Rejected' },
+  ANTI_CHEAT: { color: '#701a75', bg: '#fdf4ff', border: '#f5d0fe', icon: ShieldCheck,  label: 'Anti-Cheat' },
+  UNCERTAIN:  { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: HelpCircle,    label: 'Uncertain' },
 };
 
 // SDG icon mapping - picks a relevant icon per SDG label
@@ -345,7 +346,13 @@ const Verify = () => {
                         {/* Prediction row */}
                         <div className="ai-prediction">
                           <span className="ai-label">Detected</span>
-                          <code className="ai-class">{aiResult.prediction?.replace(/_/g, ' ')}</code>
+                          <code className="ai-class">
+                            {aiResult.prediction?.includes('Non_SDG') || aiResult.prediction?.includes('Invalid')
+                              ? 'Non-SDG Related' 
+                              : aiResult.prediction === 'Duplicate Detection'
+                                ? 'Duplicate Upload'
+                                : aiResult.prediction?.replace(/_/g, ' ')}
+                          </code>
                         </div>
 
                         {/* Message */}

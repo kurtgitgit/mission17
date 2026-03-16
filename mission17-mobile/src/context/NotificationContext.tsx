@@ -6,12 +6,13 @@ type NotificationType = 'success' | 'error' | 'info';
 
 interface Notification {
   id: string;
+  title?: string;
   message: string;
   type: NotificationType;
 }
 
 interface NotificationContextType {
-  showNotification: (message: string, type?: NotificationType) => void;
+  showNotification: (message: string, type?: NotificationType, title?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -27,9 +28,9 @@ export const useNotification = () => {
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const showNotification = useCallback((message: string, type: NotificationType = 'info') => {
+  const showNotification = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
     const id = Math.random().toString(36).substr(2, 9);
-    setNotifications((prev) => [...prev, { id, message, type }]);
+    setNotifications((prev) => [...prev, { id, title, message, type }]);
 
     // Auto-remove after 4 seconds
     setTimeout(() => {
@@ -48,6 +49,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         {notifications.map((n) => (
           <Toast
             key={n.id}
+            title={n.title}
             message={n.message}
             type={n.type}
             onClose={() => removeNotification(n.id)}

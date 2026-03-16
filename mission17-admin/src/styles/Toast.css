@@ -40,8 +40,15 @@
 
 .toast-content {
     display: flex;
-    align-items: flex-start;
+    align-items: center; /* Changed from flex-start to center for better alignment with titles */
     gap: 12px;
+    flex: 1;
+}
+
+.toast-text-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     flex: 1;
 }
 
@@ -49,13 +56,19 @@
 .toast-icon.error { color: #f87171; }
 .toast-icon.info { color: #60a5fa; }
 
+.toast-title {
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .message-text {
-    color: #1e293b;
-    font-size: 0.95rem;
+    color: #475569;
+    font-size: 0.875rem;
     font-weight: 500;
     word-break: break-word;
     line-height: 1.4;
-    padding-top: 1px;
 }
 
 .toast-close {

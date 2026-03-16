@@ -112,11 +112,12 @@ async function callAIServer(imageUri) {
     try {
       const errJson = JSON.parse(errText);
       if (errJson.status === 'REJECTED') {
+        const isDuplicate = errJson.error?.includes('Duplicate');
         console.log(`🛡️ AI Analysis: AI Server rejected proof: ${errJson.error}`);
         return {
-          verdict: 'REJECTED',
+          verdict: isDuplicate ? 'ANTI_CHEAT' : 'REJECTED',
           is_verified: false,
-          prediction: 'Anti-Cheat / Invalid',
+          prediction: isDuplicate ? 'Duplicate Detection' : (errJson.prediction || 'Anti-Cheat / Invalid'),
           message: errJson.error || 'Proof rejected by AI engine.',
           sdg: 'N/A'
         };

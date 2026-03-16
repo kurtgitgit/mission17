@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { endpoints, formatImageUri } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
+import { SDG_HERO_IMAGES } from '../data/SDGData';
 
 // --- IMPORT BLOCKCHAIN SERVICE ---
 import { saveMissionToBlockchain } from '../../MissionBlockchain';
@@ -227,17 +228,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         {hasImage ? (
           <Image source={{ uri: formatImageUri(mission.image)! }} style={{ width: '100%', height: '100%' }} />
         ) : (
-          <View style={{
-            width: '100%',
-            height: '100%',
-            backgroundColor: mission.color || '#3b82f6',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <Text style={styles.placeholderNumber}>
-              {mission.sdgNumber}
-            </Text>
-          </View>
+          <Image 
+            source={SDG_HERO_IMAGES[mission.sdgNumber]} 
+            style={{ width: '100%', height: '100%' }} 
+            resizeMode="cover"
+          />
         )}
 
         <View style={styles.imageOverlay} />

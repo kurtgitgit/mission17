@@ -14,9 +14,9 @@ export const useNotification = () => {
 export const NotificationProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
 
-    const showNotification = useCallback((message, type = 'info') => {
+    const showNotification = useCallback((message, type = 'info', title) => {
         const id = Math.random().toString(36).substr(2, 9);
-        setNotifications((prev) => [...prev, { id, message, type }]);
+        setNotifications((prev) => [...prev, { id, title, message, type }]);
 
         // Auto-remove after 4 seconds
         setTimeout(() => {
@@ -35,6 +35,7 @@ export const NotificationProvider = ({ children }) => {
                 {notifications.map((n) => (
                     <Toast 
                         key={n.id} 
+                        title={n.title}
                         message={n.message} 
                         type={n.type} 
                         onClose={() => removeNotification(n.id)} 

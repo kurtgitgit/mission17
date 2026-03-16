@@ -98,7 +98,8 @@ def predict():
         print(f"🚨 ANTI-CHEAT: Duplicate image detected! Hash: {img_hash}")
         return jsonify({
             "status": "REJECTED",
-            "error": "Duplicate image detected. You cannot farm points!"
+            "error": "Duplicate image detected. You cannot farm points!",
+            "prediction": "Anti-Cheat: Duplicate"
         }), 400
         
     # If it's a brand new photo, save the hash to memory to block future attempts

@@ -5,6 +5,7 @@ const path = require('path');
 
 // --- ⚙️ CONFIGURATION ---
 const MOBILE_CONFIG_PATH = path.join(__dirname, 'mission17-mobile', 'src', 'config', 'api.ts');
+const BLOCKCHAIN_CONFIG_PATH = path.join(__dirname, 'mission17-mobile', 'MissionBlockchain.js');
 const BACKEND_ENV_PATH = path.join(__dirname, 'mission17-backend', '.env');
 
 function getLocalIp() {
@@ -73,6 +74,23 @@ function updateBackendEnv(ip) {
     }
 }
 
+function updateBlockchainConfig(ip) {
+    if (!fs.existsSync(BLOCKCHAIN_CONFIG_PATH)) {
+        console.warn(`⚠️  Blockchain config not found at: ${BLOCKCHAIN_CONFIG_PATH}`);
+        return;
+    }
+    let content = fs.readFileSync(BLOCKCHAIN_CONFIG_PATH, 'utf8');
+    const regex = /const API_URL = 'http:\/\/.*:5001\/api\/blockchain\/record';/g;
+    const newContent = content.replace(regex, `const API_URL = 'http://${ip}:5001/api/blockchain/record';`);
+
+    if (content !== newContent) {
+        fs.writeFileSync(BLOCKCHAIN_CONFIG_PATH, newContent, 'utf8');
+        console.log(`✅ Updated Blockchain Config (MissionBlockchain.js) -> ${ip}`);
+    } else {
+        console.log(`ℹ️  Blockchain Config already set to ${ip}`);
+    }
+}
+
 // --- 🚀 EXECUTION ---
 console.log("🔍 Detecting local IP address...");
 const ip = getLocalIp();
@@ -80,5 +98,6 @@ console.log(`📍 Found IP: ${ip}\n`);
 
 updateMobileConfig(ip);
 updateBackendEnv(ip);
+updateBlockchainConfig(ip);
 
 console.log("\n🚀 All synced! You can now restart your servers and the APK.");
