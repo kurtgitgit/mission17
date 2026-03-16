@@ -3,7 +3,7 @@
 // This prevents attackers from stealing the wallet key from the mobile app.
 
 // IMPORTANT: Replace with your backend server's IP address. For local development, this is often your computer's IP.
-const API_URL = 'http://localhost:5001/api/blockchain/record';
+const API_URL = 'http://192.168.1.101:5001/api/blockchain/record';
 
 export const saveMissionToBlockchain = async (userId, missionTitle) => {
     console.log("🔗 Blockchain: Securely submitting to backend...");

@@ -3,7 +3,7 @@ import Layout from '../../components/Layout';
 import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
-import '../../styles/Users.css'; 
+import '../../styles/Users.css';
 import { endpoints } from '../../config/api';
 
 const Users = () => {
@@ -30,7 +30,7 @@ const Users = () => {
     title: '',
     message: '',
     type: 'info',
-    onConfirm: () => {}
+    onConfirm: () => { }
   });
 
   // Helper to get token
@@ -47,7 +47,7 @@ const Users = () => {
           'auth-token': getToken() // 🛡️ ADDED TOKEN
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
@@ -61,7 +61,7 @@ const Users = () => {
     }
   };
 
-  const filteredUsers = users.filter(user => 
+  const filteredUsers = users.filter(user =>
     user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,29 +80,29 @@ const Users = () => {
   const openEditModal = (user) => {
     setIsEditing(true);
     setCurrentUser(user);
-    setFormData({ 
-      username: user.username, 
-      email: user.email, 
+    setFormData({
+      username: user.username,
+      email: user.email,
       password: '', // Keep empty unless changing
       role: user.role || 'Resident',
-      points: user.points || 0 
+      points: user.points || 0
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const url = isEditing 
+
+    const url = isEditing
       ? endpoints.users.update(currentUser._id)
       : endpoints.users.add;
-    
+
     const method = isEditing ? 'PUT' : 'POST';
 
     try {
       const res = await fetch(url, {
         method: method,
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'auth-token': getToken() // 🛡️ ADDED TOKEN
         },
@@ -110,7 +110,7 @@ const Users = () => {
       });
 
       if (res.ok) {
-        fetchUsers(); 
+        fetchUsers();
         setShowModal(false);
         showNotification(isEditing ? "User updated successfully!" : "User created successfully!", "success");
       } else {
@@ -134,13 +134,13 @@ const Users = () => {
 
   const executeDelete = async (id) => {
     try {
-      const res = await fetch(endpoints.users.delete(id), { 
+      const res = await fetch(endpoints.users.delete(id), {
         method: 'DELETE',
         headers: {
           'auth-token': getToken()
         }
       });
-      
+
       if (res.ok) {
         setUsers(users.filter(u => u._id !== id));
         showNotification("User deleted successfully", "success");
@@ -195,19 +195,19 @@ const Users = () => {
   return (
     <Layout title="User Management">
       <div className="users-container">
-        
-        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px'}}>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
           <div>
-            <h1 style={{fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0}}>User Management</h1>
-            <p style={{color: '#64748b', margin: '4px 0 0 0'}}>Manage Students, LGUs, and NGO partners.</p>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>User Management</h1>
+            <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Manage Residents, LGUs, and Admins.</p>
           </div>
 
-          <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
-            <div style={{position: 'relative'}}>
-              <Search size={18} color="#94a3b8" style={{position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)'}} />
-              <input 
-                type="text" 
-                placeholder="Search name, email, or role..." 
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+              <input
+                type="text"
+                placeholder="Search name, email, or role..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.searchInput}
@@ -224,12 +224,12 @@ const Users = () => {
         {showModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>
-              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '20px'}}>
-                <h2 style={{margin: 0}}>{isEditing ? 'Edit User' : 'Add New User'}</h2>
-                <button onClick={() => setShowModal(false)} style={{background: 'none', border: 'none', cursor: 'pointer'}}><X /></button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>{isEditing ? 'Edit User' : 'Add New User'}</h2>
+                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
               </div>
-              
-              <form onSubmit={handleSubmit} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 <div style={styles.fieldGroup}>
                   <label style={styles.label}>Full Name / Org Name</label>
                   <input type="text" name="username" placeholder="e.g. Juan dela Cruz" value={formData.username} onChange={handleChange} required style={styles.input} />
@@ -247,10 +247,10 @@ const Users = () => {
                   </div>
                 )}
 
-                <div style={{display: 'flex', gap: '10px'}}>
-                  <div style={{...styles.fieldGroup, flex: 1}}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ ...styles.fieldGroup, flex: 1 }}>
                     <label style={styles.label}>Role</label>
-                    <select name="role" value={formData.role} onChange={handleChange} style={{...styles.input, width: '100%'}}>
+                    <select name="role" value={formData.role} onChange={handleChange} style={{ ...styles.input, width: '100%' }}>
                       <option value="resident">Resident</option>
                       <option value="lgu">LGU (Local Govt)</option>
                       <option value="admin">Admin</option>
@@ -260,10 +260,10 @@ const Users = () => {
                   <div style={styles.fieldGroup}>
                     <label style={styles.label}>Points</label>
                     {isEditing
-                      ? <div style={{...styles.input, width: '80px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', userSelect: 'none'}}>
-                          {formData.points}
-                        </div>
-                      : <input type="number" name="points" placeholder="0" value={formData.points} onChange={handleChange} style={{...styles.input, width: '80px'}} />
+                      ? <div style={{ ...styles.input, width: '80px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', userSelect: 'none' }}>
+                        {formData.points}
+                      </div>
+                      : <input type="number" name="points" placeholder="0" value={formData.points} onChange={handleChange} style={{ ...styles.input, width: '80px' }} />
                     }
                   </div>
                 </div>
@@ -277,9 +277,9 @@ const Users = () => {
         )}
 
         {/* TABLE */}
-        <div style={{backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', overflow: 'hidden'}}>
-          <table style={{width: '100%', borderCollapse: 'collapse'}}>
-            <thead style={{backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0'}}>
+        <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
                 <th style={styles.th}>Name / Org</th>
                 <th style={styles.th}>Email</th>
@@ -291,17 +291,17 @@ const Users = () => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="6" style={{padding: '20px', textAlign: 'center'}}>Loading...</td></tr>
+                <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
               ) : filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => {
                   const badge = getRoleBadgeStyle(user.role);
                   return (
-                    <tr key={user._id} style={{borderBottom: '1px solid #f1f5f9'}}>
+                    <tr key={user._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={styles.td}><strong>{user.username}</strong></td>
                       <td style={styles.td}>{user.email}</td>
                       <td style={styles.td}>
                         <span style={{
-                          padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', 
+                          padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold',
                           backgroundColor: badge.bg, color: badge.text, textTransform: 'uppercase'
                         }}>
                           {user.role || 'Resident'}
@@ -310,18 +310,18 @@ const Users = () => {
                       <td style={styles.td}>{user.points || 0}</td>
                       <td style={styles.td}>
                         {user.isVerified ? (
-                          <span style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px'}}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px' }}>
                             <CheckCircle size={14} /> Active
                           </span>
                         ) : (
-                          <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                            <span style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#f59e0b', fontWeight: '600', fontSize: '13px'}}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#f59e0b', fontWeight: '600', fontSize: '13px' }}>
                               <Clock size={14} /> Pending
                             </span>
-                            <button 
+                            <button
                               onClick={() => handleActivateUser(user)}
                               style={{
-                                padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6', 
+                                padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6',
                                 color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
                               }}
                             >
@@ -331,7 +331,7 @@ const Users = () => {
                         )}
                       </td>
                       <td style={styles.td}>
-                        <div style={{display: 'flex', gap: '10px'}}>
+                        <div style={{ display: 'flex', gap: '10px' }}>
                           <button onClick={() => openEditModal(user)} style={styles.actionBtn('#64748b')} title="Edit">
                             <Edit size={18} />
                           </button>
@@ -344,13 +344,13 @@ const Users = () => {
                   );
                 })
               ) : (
-                <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No users found matching "{searchTerm}"</td></tr>
+                <tr><td colSpan="6" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No users found matching "{searchTerm}"</td></tr>
               )}
             </tbody>
           </table>
         </div>
-        
-        <Modal 
+
+        <Modal
           isOpen={modalConfig.isOpen}
           onClose={closeModal}
           onConfirm={modalConfig.onConfirm}

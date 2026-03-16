@@ -5,12 +5,13 @@ import { CheckCircle, AlertCircle, Info, X } from 'lucide-react-native';
 const { width } = Dimensions.get('window');
 
 interface ToastProps {
+  title?: string;
   message: string;
   type: 'success' | 'error' | 'info';
   onClose: () => void;
 }
 
-const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
+const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => {
   const slideAnim = useRef(new Animated.Value(-100)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
@@ -53,9 +54,18 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
 
   const getIcon = () => {
     switch (type) {
-      case 'success': return <CheckCircle size={20} color="#4ade80" />;
-      case 'error': return <AlertCircle size={20} color="#f87171" />;
-      default: return <Info size={20} color="#60a5fa" />;
+      case 'success': return <CheckCircle size={22} color="#4ade80" />;
+      case 'error': return <AlertCircle size={22} color="#f87171" />;
+      default: return <Info size={22} color="#60a5fa" />;
+    }
+  };
+
+  const getAutoTitle = () => {
+    if (title) return title;
+    switch (type) {
+      case 'success': return 'Success';
+      case 'error': return 'Error';
+      default: return 'Notification';
     }
   };
 
@@ -80,9 +90,12 @@ const Toast: React.FC<ToastProps> = ({ message, type, onClose }) => {
     >
       <View style={styles.content}>
         {getIcon()}
-        <Text style={styles.text}>
-          {typeof message === 'string' ? message : JSON.stringify(message)}
-        </Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.titleText}>{getAutoTitle()}</Text>
+          <Text style={styles.messageText}>
+            {typeof message === 'string' ? message : JSON.stringify(message)}
+          </Text>
+        </View>
       </View>
       <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
         <X size={16} color="#94a3b8" />
@@ -119,13 +132,21 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 8,
   },
-  text: {
-    color: '#0f172a',
-    fontSize: 14,
-    fontWeight: '600',
+  textContainer: {
     marginLeft: 12,
     flex: 1,
-    flexWrap: 'wrap',
+  },
+  titleText: {
+    color: '#0f172a',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 2,
+  },
+  messageText: {
+    color: '#64748b',
+    fontSize: 14,
+    fontWeight: '500',
+    lineHeight: 18,
   },
   closeBtn: {
     padding: 4,

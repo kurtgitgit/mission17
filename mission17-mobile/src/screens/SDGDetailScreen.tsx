@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, Image, ScrollView, TouchableOpacity, SafeAreaView, Platform 
 } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
+import { SDG_HERO_IMAGES } from '../data/SDGData';
 
 const SDGDetailScreen = ({ route, navigation }: any) => {
   const { sdg } = route.params; // Get the clicked item data
@@ -23,9 +24,14 @@ const SDGDetailScreen = ({ route, navigation }: any) => {
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
-          
-          {/* Hero Image */}
-          <Image source={{ uri: sdg.image }} style={styles.heroImage} />
+          {/* Hero Image Section */}
+          <View style={[styles.imageContainer, { backgroundColor: sdg.color + '20' }]}>
+            <Image 
+              source={SDG_HERO_IMAGES[sdg.id]} 
+              style={styles.heroImage} 
+              resizeMode="cover"
+            />
+          </View>
 
           {/* Description Box */}
           <View style={styles.infoBox}>
@@ -53,13 +59,6 @@ const SDGDetailScreen = ({ route, navigation }: any) => {
             </Text>
           </View>
 
-          {/* Logo Footer */}
-          <View style={styles.footer}>
-            <Image 
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/6182/6182992.png' }} 
-              style={{ width: 60, height: 60, opacity: 0.8 }} 
-            />
-          </View>
 
         </ScrollView>
       </SafeAreaView>
@@ -78,7 +77,18 @@ const styles = StyleSheet.create({
 
   content: { padding: 20, paddingBottom: 50 },
   
-  heroImage: { width: '100%', height: 220, borderRadius: 16, marginBottom: 20 },
+  imageContainer: { 
+    width: '100%', 
+    height: 220, 
+    borderRadius: 24, 
+    marginBottom: 25, 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#f1f5f9'
+  },
+  heroImage: { width: '100%', height: '100%' },
   
   infoBox: { backgroundColor: '#f1f5f9', padding: 20, borderRadius: 16, marginBottom: 25 },
   descriptionText: { fontSize: 15, color: '#334155', lineHeight: 24, fontWeight: '500', textAlign: 'justify' },
@@ -93,7 +103,6 @@ const styles = StyleSheet.create({
   bulletPoint: { fontSize: 18, color: '#0f172a', marginRight: 10, marginTop: -4 },
   bulletText: { fontSize: 14, color: '#475569', lineHeight: 22, flex: 1 },
 
-  footer: { alignItems: 'center', marginTop: 40 },
 });
 
 export default SDGDetailScreen;
