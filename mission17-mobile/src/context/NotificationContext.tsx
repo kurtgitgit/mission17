@@ -7,12 +7,12 @@ type NotificationType = 'success' | 'error' | 'info';
 interface Notification {
   id: string;
   title?: string;
-  message: string;
+  message: any;
   type: NotificationType;
 }
 
 interface NotificationContextType {
-  showNotification: (message: string, type?: NotificationType, title?: string) => void;
+  showNotification: (arg1: any, arg2?: any, arg3?: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -28,7 +28,34 @@ export const useNotification = () => {
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const showNotification = useCallback((message: string, type: NotificationType = 'info', title?: string) => {
+  const showNotification = useCallback((arg1: any, arg2?: any, arg3?: string) => {
+    let title: string | undefined;
+    let message: any;
+    let type: NotificationType;
+
+    // Detect Polymorphic Usage
+    if (typeof arg1 === 'object' && arg1 !== null && !Array.isArray(arg1) && !(arg1 instanceof Error)) {
+      // Case 1: showNotification({ title, message, type })
+      title = arg1.title;
+      message = arg1.message;
+      type = (arg1.type as NotificationType) || 'info';
+    } else if (typeof arg3 === 'string' && ['success', 'error', 'info'].includes(arg3)) {
+      // Case 2: showNotification(title, message, type)
+      title = arg1;
+      message = arg2;
+      type = arg3 as NotificationType;
+    } else if (typeof arg2 === 'string' && ['success', 'error', 'info'].includes(arg2)) {
+      // Case 3: showNotification(message, type, title)
+      message = arg1;
+      type = arg2 as NotificationType;
+      title = arg3;
+    } else {
+      // Fallback: showNotification(message, [type?], [title?])
+      message = arg1;
+      type = (arg2 as NotificationType) || 'info';
+      title = arg3;
+    }
+
     const id = Math.random().toString(36).substr(2, 9);
     setNotifications((prev) => [...prev, { id, title, message, type }]);
 

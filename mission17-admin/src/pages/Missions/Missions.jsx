@@ -91,6 +91,7 @@ const Missions = () => {
       setMissions(data);
     } catch (error) {
       console.error("Fetch error:", error);
+      showNotification("Could not load missions from server.", "error");
     } finally {
       setLoading(false);
     }
@@ -240,6 +241,7 @@ const Missions = () => {
       }
     } catch (error) {
       console.error("Save error:", error);
+      showNotification("Network error while saving mission.", "error");
     }
   };
 

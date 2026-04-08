@@ -56,6 +56,7 @@ const Users = () => {
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+      showNotification("Could not load user list.", "error");
     } finally {
       setLoading(false);
     }
@@ -119,6 +120,7 @@ const Users = () => {
       }
     } catch (error) {
       console.error("Save error:", error);
+      showNotification("Network error while saving user data.", "error");
     }
   };
 

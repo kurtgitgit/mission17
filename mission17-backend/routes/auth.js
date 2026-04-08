@@ -48,11 +48,11 @@ const googleClient = new OAuth2Client(
 // ==========================================
 const sendOTP = async (user, type = 'mfa') => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  
+
   const isSignup = type === 'signup';
   const subject = isSignup ? 'Activate Your Account - Welcome to Mission 17!' : 'Security Verification Code - Mission 17';
   const title = isSignup ? 'Welcome to the Mission!' : 'Your Login Code';
-  const subtitle = isSignup 
+  const subtitle = isSignup
     ? `We're excited to have you, ${user.username}! To finish setting up your account and start your journey, please verify your email:`
     : 'To complete your sign in, please use the following verification code:';
 
@@ -158,7 +158,7 @@ const sendPasswordResetEmail = async (user) => {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
   console.log(`🔍 DEBUG Password Reset OTP for ${user.email}: ${otp}`);
-  
+
   await User.findByIdAndUpdate(user._id, {
     otpCode: otp,
     otpExpires: Date.now() + 15 * 60 * 1000 // 15 mins
@@ -244,11 +244,11 @@ router.post('/signup', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
-    
+
     // 🛡️ CHECK 1: Disposable Domain
     if (isDisposableEmail(cleanEmail)) {
-      return res.status(400).json({ 
-        message: "Disposable email accounts are not allowed for security reasons." 
+      return res.status(400).json({
+        message: "Disposable email accounts are not allowed for security reasons."
       });
     }
 
@@ -270,16 +270,16 @@ router.post('/signup', async (req, res) => {
     });
 
     await newUser.save();
-    
+
     // 🔒 LOG ACTION
     logAudit(newUser._id, newUser.username, "SIGNUP_INITIATED", "New account created (Unverified)", req);
-    
+
     // 🔑 Send Activation OTP
     await sendOTP(newUser, 'signup');
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: "Account created! Check your email for a verification code.",
-      userId: newUser._id 
+      userId: newUser._id
     });
   } catch (error) {
     console.error("Signup Error:", error.message);
@@ -287,12 +287,12 @@ router.post('/signup', async (req, res) => {
     // 🛡️ Handle Duplicate Key Errors (MongoDB code 11000)
     if (error.code === 11000) {
       const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({ 
-        message: `That ${field} is already taken. Please try another.` 
+      return res.status(400).json({
+        message: `That ${field} is already taken. Please try another.`
       });
     }
 
-    return res.status(500).json({ message: "Registration failed. Please try again later." }); 
+    return res.status(500).json({ message: "Registration failed. Please try again later." });
   }
 });
 
@@ -314,7 +314,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     // 🔒 CHECK: Email Verification
     if (!user.isVerified) {
       await sendOTP(user, 'signup'); // Resend code if they try to login while unverified
-      return res.status(401).json({ 
+      return res.status(401).json({
         message: "Account not verified. A new code has been sent to your email.",
         unverified: true,
         userId: user._id
@@ -430,17 +430,17 @@ router.post('/toggle-mfa', async (req, res) => {
 // 🌐 GOOGLE AUTHENTICATION
 // ==========================================
 router.post('/google', async (req, res) => {
-  const { idToken, role } = req.body; 
+  const { idToken, role } = req.body;
 
   try {
     // 1. Verify token with Google
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID, 
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;  
+    const { email, name, sub: googleId } = payload;
     const cleanEmail = email.toLowerCase().trim();
 
     // 2. Check if user already exists
@@ -465,7 +465,7 @@ router.post('/google', async (req, res) => {
 
       await user.save();
       logAudit(user._id, user.username, "SIGNUP", "New user signed up via Google", req);
-      
+
       // 💌 Send welcome email asynchronously
       sendWelcomeEmail(user).catch(err => console.error(err));
     }

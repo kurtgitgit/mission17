@@ -1,22 +1,28 @@
 import os
 import traceback
 import numpy as np
-import cv2
 import io
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.efficientnet import preprocess_input
 from werkzeug.utils import secure_filename
 from PIL import Image
 import imagehash
 
 # 🎯 MODULE 11: In-memory database to store hashes of previously uploaded photos
 UPLOADED_HASHES = set()
+ANTI_CHEAT_ENABLED = True # 🛡️ Re-enabled to prevent duplicate farming
 
 app = Flask(__name__)
 # Enable CORS for all routes and explicitly support error codes
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
+
+@app.route('/reset-anti-cheat', methods=['POST', 'GET'])
+def reset_anti_cheat():
+    global UPLOADED_HASHES
+    UPLOADED_HASHES.clear()
+    return jsonify({"message": "Anti-cheat hash database cleared!", "count": 0}), 200
 
 @app.after_request
 def after_request(response):
@@ -94,7 +100,7 @@ def predict():
     # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
     img_hash = get_image_hash(file_bytes)
     
-    if img_hash in UPLOADED_HASHES:
+    if ANTI_CHEAT_ENABLED and img_hash in UPLOADED_HASHES:
         print(f"🚨 ANTI-CHEAT: Duplicate image detected! Hash: {img_hash}")
         return jsonify({
             "status": "REJECTED",
@@ -107,30 +113,25 @@ def predict():
     print(f"✅ Unique image logged with hash: {img_hash}")
 
     try:
-        # Preprocessing
-        # 1. Read image using OpenCV
-        file_bytes = np.asarray(bytearray(file.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        # Preprocessing — mirrors EXACTLY what train_ai.py does during training
+        # 1. Read image using PIL
+        file_bytes = file.read()
+        try:
+            img = Image.open(io.BytesIO(file_bytes)).convert('RGB')
+        except Exception:
+            return jsonify({'error': 'Uploaded file is not a valid or readable image.'}), 400
 
-        # 🔒 CHECK 4: Valid image content (catches corrupt or non-image files that
-        # pass the extension check)
+        # 🔒 CHECK 4: Valid image content
         if img is None:
             return jsonify({'error': 'Uploaded file is not a valid or readable image.'}), 400
 
-        # 2. Resize & Apply Histogram Equalization (Mitigate low-light bias)
-        # 🛡️ SECURE CODE: Bias Mitigation.
-        # Histogram Equalization normalizes lighting to prevent bias against low-light/indoor photos.
-        # 🛡️ SECURE CODE: ALGORITHMIC BIAS MITIGATION
-        img = cv2.resize(img, (224, 224))
-        img_yuv = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-        img_yuv[:,:,0] = cv2.equalizeHist(img_yuv[:,:,0])
-        img_rgb = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2RGB)
+        # 2. Resize to 224x224 (EfficientNetB0 input size)
+        img = img.resize((224, 224), Image.LANCZOS)
 
-        # 🛠️ DEBUG: Save the equalized image to verify bias mitigation
-        cv2.imwrite('debug_bias_mitigation.jpg', cv2.cvtColor(img_rgb, cv2.COLOR_RGB2BGR))
-
-        # 3. Normalize & Batch
-        img_array = img_rgb.astype(np.float32) / 255.0
+        # 3. Apply EfficientNetB0 preprocess_input — matches training pipeline exactly
+        #    This scales raw 0-255 values correctly for EfficientNet (NOT /255).
+        img_array = np.array(img, dtype=np.float32)
+        img_array = preprocess_input(img_array)          # ✅ EfficientNet-compatible
         img_array = np.expand_dims(img_array, axis=0)
 
         # Prediction

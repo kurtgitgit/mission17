@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // 🏠 LOCALHOST / LAN IP
 // IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
 // Home: 192.168.1.x | Hotspot: 192.168.43.x (Android) or 172.20.10.x (iPhone)
-const LAN_IP = "192.168.1.101"; 
+const LAN_IP = "10.42.160.98"; 
 
 // 🛠️ APK DEPLOYMENT CONFIG:
 // We use the LAN_IP for both DEV and PRODUCTION builds so your APK can talk to your laptop.
