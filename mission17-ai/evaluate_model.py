@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.efficientnet import preprocess_input
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -13,12 +14,12 @@ print("📁 Loading Test Dataset...")
 # 👇 Using the correct path you established
 test_dir = '../dataset/mission_dataset' 
 
-test_datagen = ImageDataGenerator(rescale=1./255)
+test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 test_generator = test_datagen.flow_from_directory(
     test_dir,
     target_size=(224, 224), 
     batch_size=32,
-    class_mode='categorical', # 👈 FIXED: Changed to multi-class
+    class_mode='categorical',
     shuffle=False
 )
 

@@ -6,13 +6,13 @@ const { width } = Dimensions.get('window');
 
 interface ToastProps {
   title?: string;
-  message: string;
+  message: any;
   type: 'success' | 'error' | 'info';
   onClose: () => void;
 }
 
 const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => {
-  const slideAnim = useRef(new Animated.Value(-100)).current;
+  const slideAnim = useRef(new Animated.Value(-200)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -54,26 +54,46 @@ const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => {
 
   const getIcon = () => {
     switch (type) {
-      case 'success': return <CheckCircle size={22} color="#4ade80" />;
-      case 'error': return <AlertCircle size={22} color="#f87171" />;
-      default: return <Info size={22} color="#60a5fa" />;
+      case 'success': return <CheckCircle size={24} color="#10b981" />;
+      case 'error': return <AlertCircle size={24} color="#ef4444" />;
+      default: return <Info size={24} color="#3b82f6" />;
     }
   };
 
   const getAutoTitle = () => {
     if (title) return title;
     switch (type) {
-      case 'success': return 'Success';
-      case 'error': return 'Error';
+      case 'success': return 'Action Successful';
+      case 'error': return 'System Error';
+      case 'info': return 'System Update';
       default: return 'Notification';
+    }
+  };
+
+  const renderMessage = () => {
+    if (!message) return 'No message details.';
+    if (typeof message === 'string') return message;
+    
+    // Handle Error objects or API response objects
+    if (message instanceof Error) return message.message;
+    if (message.message) return String(message.message);
+    if (message.error) return String(message.error);
+    if (message.detail) return String(message.detail);
+    
+    // Fallback for objects that JSON.stringify handles poorly (like empty errors)
+    try {
+      const stringified = JSON.stringify(message);
+      return stringified === '{}' ? 'An unexpected error occurred.' : stringified;
+    } catch (e) {
+      return 'An error occurred (unserializable details).';
     }
   };
 
   const getBorderColor = () => {
     switch (type) {
-      case 'success': return '#4ade80';
-      case 'error': return '#f87171';
-      default: return '#60a5fa';
+      case 'success': return '#10b981';
+      case 'error': return '#ef4444';
+      default: return '#3b82f6';
     }
   };
 
@@ -89,16 +109,16 @@ const Toast: React.FC<ToastProps> = ({ title, message, type, onClose }) => {
       ]}
     >
       <View style={styles.content}>
-        {getIcon()}
+        <View style={styles.iconWrapper}>
+          {getIcon()}
+        </View>
         <View style={styles.textContainer}>
           <Text style={styles.titleText}>{getAutoTitle()}</Text>
-          <Text style={styles.messageText}>
-            {typeof message === 'string' ? message : JSON.stringify(message)}
-          </Text>
+          <Text style={styles.messageText}>{renderMessage()}</Text>
         </View>
       </View>
-      <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
-        <X size={16} color="#94a3b8" />
+      <TouchableOpacity onPress={handleClose} style={styles.closeBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+        <X size={18} color="#94a3b8" />
       </TouchableOpacity>
       <View style={[styles.progressBar, { backgroundColor: getBorderColor() }]} />
     </Animated.View>
@@ -128,25 +148,28 @@ const styles = StyleSheet.create({
   },
   content: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flex: 1,
     paddingRight: 8,
+  },
+  iconWrapper: {
+    paddingTop: 2,
   },
   textContainer: {
     marginLeft: 12,
     flex: 1,
   },
   titleText: {
-    color: '#0f172a',
-    fontSize: 15,
+    color: '#1e293b',
+    fontSize: 16,
     fontWeight: '800',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   messageText: {
-    color: '#64748b',
-    fontSize: 14,
+    color: '#475569',
+    fontSize: 15,
     fontWeight: '500',
-    lineHeight: 18,
+    lineHeight: 20,
   },
   closeBtn: {
     padding: 4,
