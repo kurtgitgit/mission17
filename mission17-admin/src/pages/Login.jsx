@@ -137,16 +137,17 @@ const Login = () => {
   return (
     <div className="auth-container">
       
-      {/* LEFT SIDE: BRANDING PANEL (Your Design) */}
+      {/* LEFT SIDE: BRANDING PANEL */}
       <div className="auth-sidebar">
         <div className="sidebar-content">
           <div className="brand-box">
-            <img src={logoImg} alt="Mission17 Logo" className="sidebar-logo" />
-            <h1 className="brand-title">MISSION17</h1>
-            <p className="brand-tagline">Gamified Community Action</p>
+            <div style={{ fontSize: '56px', marginBottom: '12px' }}>🏛️</div>
+            <h1 className="brand-title">BARANGAY PANTAL</h1>
+            <p className="brand-tagline">Official Digital Portal</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '8px' }}>Dagupan City, Pangasinan</p>
           </div>
           <div className="sidebar-footer">
-            <p>© 2026 Admin Console</p>
+            <p>© 2026 Barangay Pantal Admin</p>
           </div>
         </div>
         <div className="circle-decoration circle-1"></div>
@@ -157,8 +158,8 @@ const Login = () => {
       <div className="auth-main">
         <div className="form-wrapper">
           <div className="form-header">
-            <h2>Welcome back</h2>
-            <p>Please enter your details to sign in.</p>
+            <h2>Admin Portal Login</h2>
+            <p>Barangay Pantal — Authorized personnel only.</p>
           </div>
 
           <form onSubmit={handleSubmit} className="auth-form">

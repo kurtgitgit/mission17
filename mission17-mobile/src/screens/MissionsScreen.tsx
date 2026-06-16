@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, Image, 
-  Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal 
+  Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal, ScrollView
 } from 'react-native';
 import { GlobalState, endpoints, formatImageUri } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
@@ -12,8 +12,10 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const { showNotification } = useNotification();
   const [missions, setMissions] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'missions' | 'events'>('missions');
+  const [selectedSDG, setSelectedSDG] = useState<string | null>(null);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
   const userId = route.params?.userId || GlobalState.userId;
@@ -28,6 +30,19 @@ const MissionsScreen = ({ navigation, route }: any) => {
         const eventRes = await fetch(endpoints.events);
         const eventData = await eventRes.json();
         setEvents(eventData);
+
+        if (userId) {
+          const subRes = await fetch(endpoints.auth.getUserSubmissions(userId));
+          if (subRes.ok) {
+            const subData = await subRes.json();
+            const completedIds = new Set(
+              subData
+                .filter((s: any) => s.status === 'Approved')
+                .map((s: any) => s.missionId)
+            );
+            setCompletedMissions(completedIds as Set<string>);
+          }
+        }
       } catch (error) {
         console.error("Failed to load data:", error);
       } finally {
@@ -46,16 +61,26 @@ const MissionsScreen = ({ navigation, route }: any) => {
   }, [route.params?.initialTab]);
 
   const handlePressMission = (item: any) => {
-    if (!userId) showNotification("Please log in to save points.", "info");
+    if (!userId) {
+      showNotification("Please log in to save points.", "info");
+      return navigation.navigate('MissionDetail', { mission: item, userId: userId });
+    }
+    
+    if (completedMissions.has(item._id)) {
+      showNotification("You have already completed this mission!", "success");
+      return; // Do not navigate if completed, or we could navigate but disable submission button there. Let's just navigate so they can see details.
+    }
+    
     navigation.navigate('MissionDetail', { mission: item, userId: userId });
   };
 
   const renderCard = ({ item }: { item: any }) => {
     const hasImage = !!item.image;
+    const isCompleted = completedMissions.has(item._id);
 
     return (
       <TouchableOpacity 
-        style={styles.card} 
+        style={[styles.card, isCompleted && { opacity: 0.85 }]} 
         activeOpacity={0.9} 
         onPress={() => handlePressMission(item)}
       >
@@ -76,16 +101,22 @@ const MissionsScreen = ({ navigation, route }: any) => {
              <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                <Text style={styles.badgeText}>SDG {item.sdgNumber}</Text>
              </View>
-             <View style={styles.pointsBadge}>
-               <Text style={styles.pointsText}>{item.points} PTS</Text>
+             <View style={[styles.badge, { backgroundColor: 'rgba(26,107,58,0.8)' }]}>
+               <Text style={styles.badgeText}>Civic Task</Text>
              </View>
           </View>
           
           <View>
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardDesc} numberOfLines={2}>
-              {item.description || 'Tap to view mission details and start contributing.'}
+              {item.description || 'Tap to participate in this barangay civic program.'}
             </Text>
+            {isCompleted && (
+              <View style={styles.completedBadgeRow}>
+                <Target size={16} color="#fff" />
+                <Text style={styles.completedBadgeText}>Mission Completed</Text>
+              </View>
+            )}
           </View>
         </LinearGradient>
       </TouchableOpacity>
@@ -123,11 +154,9 @@ const MissionsScreen = ({ navigation, route }: any) => {
              <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
                <Text style={styles.badgeText}>{month} {day}</Text>
              </View>
-             {item.points && (
-               <View style={styles.pointsBadge}>
-                 <Text style={[styles.pointsText, { color: '#10b981' }]}>+{item.points} PTS</Text>
-               </View>
-             )}
+             <View style={[styles.badge, { backgroundColor: 'rgba(26,107,58,0.8)' }]}>
+               <Text style={styles.badgeText}>Brgy. Event</Text>
+             </View>
           </View>
           
           <View>
@@ -151,8 +180,8 @@ const MissionsScreen = ({ navigation, route }: any) => {
   return (
     <RootComponent style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.pageTitle}>Explore</Text>
-        <Text style={styles.subTitle}>Find missions and events near you.</Text>
+        <Text style={styles.pageTitle}>Civic Tasks & Events</Text>
+        <Text style={styles.subTitle}>Participate in barangay programs near you.</Text>
         
         {/* TAB SWITCHER */}
         <View style={styles.tabContainer}>
@@ -161,7 +190,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
             onPress={() => setActiveTab('missions')}
           >
             <Target size={16} color={activeTab === 'missions' ? 'white' : '#64748b'} style={{marginRight: 6}} />
-            <Text style={[styles.tabText, activeTab === 'missions' && styles.activeTabText]}>Missions</Text>
+            <Text style={[styles.tabText, activeTab === 'missions' && styles.activeTabText]}>Civic Tasks</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -172,13 +201,35 @@ const MissionsScreen = ({ navigation, route }: any) => {
             <Text style={[styles.tabText, activeTab === 'events' && styles.activeTabText]}>Events</Text>
           </TouchableOpacity>
         </View>
+        
+        {/* SDG FILTER CHIPS */}
+        {activeTab === 'missions' && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sdgScroll} contentContainerStyle={{ paddingRight: 20 }}>
+            <TouchableOpacity 
+              style={[styles.sdgChip, selectedSDG === null && styles.activeSdgChip]}
+              onPress={() => setSelectedSDG(null)}
+            >
+              <Text style={[styles.sdgChipText, selectedSDG === null && styles.activeSdgChipText]}>All SDGs</Text>
+            </TouchableOpacity>
+            
+            {Array.from(new Set(missions.map(m => m.sdgNumber?.toString()))).filter(Boolean).sort((a, b) => Number(a) - Number(b)).map(sdg => (
+              <TouchableOpacity 
+                key={sdg} 
+                style={[styles.sdgChip, selectedSDG === sdg && styles.activeSdgChip]}
+                onPress={() => setSelectedSDG(sdg as string)}
+              >
+                <Text style={[styles.sdgChipText, selectedSDG === sdg && styles.activeSdgChipText]}>SDG {sdg}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 50 }} />
       ) : (
         <FlatList
-          data={activeTab === 'missions' ? missions : events}
+          data={activeTab === 'missions' ? (selectedSDG ? missions.filter(m => m.sdgNumber?.toString() === selectedSDG) : missions) : events}
           renderItem={activeTab === 'missions' ? renderCard : renderEventCard}
           keyExtractor={(item) => item._id}
           contentContainerStyle={styles.listContent}
@@ -202,10 +253,17 @@ const styles = StyleSheet.create({
   // TABS
   tabContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginTop: 20 } as ViewStyle,
   tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 } as ViewStyle,
-  activeTabBtn: { backgroundColor: '#3b82f6', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } as ViewStyle,
+  activeTabBtn: { backgroundColor: '#0038A8', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } as ViewStyle,
   tabText: { fontSize: 14, fontWeight: '600', color: '#64748b' } as TextStyle,
   activeTabText: { color: 'white' } as TextStyle,
   
+  // SDG FILTERS
+  sdgScroll: { marginTop: 15, flexDirection: 'row' } as ViewStyle,
+  sdgChip: { backgroundColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0' } as ViewStyle,
+  activeSdgChip: { backgroundColor: '#0038A8', borderColor: '#0038A8' } as ViewStyle,
+  sdgChipText: { color: '#64748b', fontWeight: '600', fontSize: 13 } as TextStyle,
+  activeSdgChipText: { color: 'white' } as TextStyle,
+
   card: { height: 240, marginBottom: 20, borderRadius: 20, overflow: 'hidden', backgroundColor: 'white', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5 } as ViewStyle,
   cardImage: { width: '100%', height: '100%' } as any, 
   cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', justifyContent: 'space-between', padding: 20 } as ViewStyle,
@@ -222,6 +280,9 @@ const styles = StyleSheet.create({
   cardDesc: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 } as ViewStyle,
   cardDescMini: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' } as TextStyle,
   eventRowCompact: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  
+  completedBadgeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 12, alignSelf: 'flex-start', gap: 6 } as ViewStyle,
+  completedBadgeText: { color: 'white', fontWeight: 'bold', fontSize: 13 } as TextStyle,
 
   // EVENT CARD STYLES
   eventCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 16, padding: 10, marginBottom: 15, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 } as ViewStyle,

@@ -1,17 +1,28 @@
-/* src/styles/Layout.css */
+/* src/styles/Layout.css — Barangay Pantal Admin */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #f8fafc;
+}
 
 .layout-container {
   display: flex;
   width: 100%;
+  min-height: 100vh;
 }
 
 .main-content {
-  margin-left: 260px; /* Must match Sidebar width */
+  margin-left: 260px;
   width: calc(100% - 260px);
-  height: 100vh;
-  background-color: #f8fafc; /* Light gray background */
-  padding: 20px;
+  height: 100vh;               /* Fixed height = triggers overflow scroll */
+  background-color: #f8fafc;
+  padding: 0;
   box-sizing: border-box;
-  overflow-y: auto;
+  overflow-y: auto;            /* Scrolls when content overflows */
   overflow-x: hidden;
 }

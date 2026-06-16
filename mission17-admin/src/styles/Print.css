@@ -1,0 +1,244 @@
+/* Layout for the Report Generation screen */
+.report-layout {
+  display: flex;
+  gap: 30px;
+  margin-top: 20px;
+  align-items: flex-start;
+}
+
+.report-controls {
+  flex: 0 0 350px;
+}
+
+.report-type-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.report-type-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #475569;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.report-type-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.report-type-btn.active {
+  background: #0038A8;
+  color: white;
+  border-color: #0038A8;
+  box-shadow: 0 4px 6px rgba(0, 56, 168, 0.2);
+}
+
+/* A4 Paper Preview Container */
+.report-preview-container {
+  flex: 1;
+  background: #e2e8f0; /* Dark desk background */
+  padding: 40px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  overflow-x: auto;
+}
+
+/* The actual paper */
+.report-paper {
+  background: white;
+  width: 210mm; /* A4 Width */
+  min-height: 297mm; /* A4 Height */
+  padding: 20mm;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  position: relative;
+  font-family: 'Times New Roman', Times, serif; /* Official look */
+  color: black;
+}
+
+/* Letterhead Styles */
+.report-letterhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.letterhead-logo {
+  font-size: 60px;
+  width: 80px;
+  text-align: center;
+}
+
+.letterhead-logo.logo-yellow {
+  text-shadow: 0 0 10px rgba(252, 209, 22, 0.5); /* FCD116 glow */
+}
+
+.letterhead-text {
+  text-align: center;
+  flex: 1;
+}
+
+.lh-republic {
+  font-size: 14px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.lh-province, .lh-city {
+  font-size: 14px;
+  margin: 2px 0;
+}
+
+.lh-brgy {
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0 0 0;
+  color: #0038A8; /* eGovPH Navy */
+}
+
+.report-divider {
+  border-top: 2px solid #0038A8;
+  border-bottom: 1px solid #0038A8;
+  height: 4px;
+  margin-bottom: 30px;
+}
+
+.report-header-info {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.report-title {
+  font-size: 20px;
+  font-weight: bold;
+  text-decoration: underline;
+  margin-bottom: 10px;
+}
+
+.report-date {
+  font-size: 12px;
+  color: #555;
+}
+
+/* Official Table Styles */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Helvetica', 'Arial', sans-serif;
+  font-size: 12px;
+  margin-bottom: 50px;
+}
+
+.report-table th {
+  background-color: #0038A8;
+  color: white;
+  padding: 10px;
+  border: 1px solid #002266;
+  text-align: left;
+}
+
+.report-table td {
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  color: #333;
+}
+
+.report-table tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* Signatures */
+.report-signatures {
+  display: flex;
+  justify-content: flex-end;
+  gap: 80px;
+  margin-top: 80px;
+  padding-right: 20px;
+}
+
+.sig-block {
+  text-align: center;
+  width: 200px;
+}
+
+.sig-line {
+  border-bottom: 1px solid black;
+  height: 20px;
+  margin-bottom: 5px;
+}
+
+.sig-name {
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.sig-title {
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ==============================================================
+   PRINT MEDIA QUERY
+   This hides everything except the .report-paper when printing
+   ============================================================== */
+@media print {
+  @page {
+    margin: 0;
+    size: A4 portrait;
+  }
+
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide entire UI */
+  .sidebar, .top-header, .report-controls {
+    display: none !important;
+  }
+
+  /* Reset the preview container so it takes up the whole page without scrolling/shadows */
+  .report-preview-container {
+    padding: 0 !important;
+    background: white !important;
+    display: block !important;
+  }
+
+  .report-layout {
+    display: block !important;
+    margin: 0 !important;
+  }
+
+  .dashboard-container {
+    display: block !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Make paper exactly fit print page */
+  .report-paper {
+    width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    padding: 15mm 20mm !important; /* Proper print margins */
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
