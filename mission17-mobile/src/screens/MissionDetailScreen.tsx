@@ -143,7 +143,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       // 🎯 MODULE 11: Display specific Anti-Cheat notification
       // Look for the specific error property returned by the backend on duplicate.
       if (aiResult?.status === 'REJECTED' || (aiResult?.error && aiResult.error.includes("Duplicate"))) {
-        const errorMsg = aiResult.error || "Duplicate image detected. You cannot farm points!";
+        const errorMsg = aiResult.error || "Duplicate image detected. Please submit original proof.";
         showNotification(`🚨 Anti-Cheat Alert: ${errorMsg}`, "error");
         setLoading(false);
         return;
@@ -254,19 +254,21 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* BRIEF */}
         <View style={styles.section}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
-            <Text style={styles.sectionTitle}>Mission Brief</Text>
-            <Text style={styles.pointsHighlight}>{mission.points} Points</Text>
+          <Text style={styles.sectionTitle}>Civic Task Brief</Text>
+          <View style={styles.sdgBadgeRow}>
+            <View style={[styles.sdgBadge, { backgroundColor: mission.color || '#0038A8' }]}>
+              <Text style={styles.sdgBadgeText}>SDG {mission.sdgNumber}</Text>
+            </View>
           </View>
 
           <Text style={styles.description}>
-            {mission.description || `This mission contributes to Goal ${mission.sdgNumber}. Participate in a local activity to support this goal.`}
+            {mission.description || `This civic task contributes to SDG Goal ${mission.sdgNumber}. Participate in a local activity to support Barangay Pantal's sustainability programs.`}
           </Text>
 
           <View style={styles.bulletPoint}>
-            <Text style={styles.bulletText}>• Take a clear photo of your activity.</Text>
-            <Text style={styles.bulletText}>• Ensure you are visible.</Text>
-            <Text style={styles.bulletText}>• Write a short caption.</Text>
+            <Text style={styles.bulletText}>📸 Take a clear photo of your activity.</Text>
+            <Text style={styles.bulletText}>✅ Ensure the activity is clearly visible.</Text>
+            <Text style={styles.bulletText}>🔗 Approved proofs are recorded on the blockchain.</Text>
           </View>
         </View>
 
@@ -301,7 +303,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
               <Text style={styles.submitBtnText}>Saving to Blockchain...</Text>
             </View>
           ) : (
-            <Text style={styles.submitBtnText}>{submitted ? "Verified & Submitted!" : "Verify Seedling"}</Text>
+            <Text style={styles.submitBtnText}>{submitted ? '✅ Submitted for Review!' : 'Submit Civic Task Proof'}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
@@ -323,9 +325,11 @@ const styles = StyleSheet.create({
 
   content: { padding: 25, paddingBottom: 50 },
   section: { marginBottom: 30 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  pointsHighlight: { fontSize: 16, fontWeight: '800', color: '#16a34a' },
-  description: { fontSize: 15, color: '#475569', lineHeight: 24, marginBottom: 15, marginTop: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 10 },
+  sdgBadgeRow: { flexDirection: 'row', marginBottom: 10 },
+  sdgBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
+  sdgBadgeText: { color: 'white', fontWeight: '800', fontSize: 12 },
+  description: { fontSize: 15, color: '#475569', lineHeight: 24, marginBottom: 15, marginTop: 4 },
   bulletPoint: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12 },
   bulletText: { fontSize: 14, color: '#64748b', marginBottom: 5 },
 

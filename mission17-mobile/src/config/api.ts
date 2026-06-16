@@ -14,7 +14,7 @@ const AI_URL = `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/pred
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
-console.log(`🚀 Mission17 (${__DEV__ ? 'DEV' : 'PROD'}) API: ${API_URL}`);
+console.log(`🏛️ Brgy. Pantal Portal (${__DEV__ ? 'DEV' : 'PROD'}) API: ${API_URL}`);
 
 // 🖼️ IMAGE HELPER
 export const formatImageUri = (uri: string) => {
@@ -22,8 +22,7 @@ export const formatImageUri = (uri: string) => {
   
   // 1. Handle failing loremflickr links (swap for unsplash)
   if (uri.includes('loremflickr.com')) {
-    const keywords = uri.split('/').pop() || 'nature';
-    return `https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=800&auto=format&fit=crop`; // Generic fallback
+    return `https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=800&auto=format&fit=crop`;
   }
 
   // 2. Handle local uploads
@@ -36,7 +35,8 @@ export const formatImageUri = (uri: string) => {
 
 // 1. GLOBAL MEMORY
 export const GlobalState = {
-  userId: null as string | null
+  userId: null as string | null,
+  username: null as string | null
 };
 
 export const endpoints = {
@@ -55,7 +55,6 @@ export const endpoints = {
     resetPassword: `${API_URL}/auth/reset-password`,
     verifyOTP: `${API_URL}/auth/verify-otp`,
     verifySignup: `${API_URL}/auth/verify-signup`,
-    leaderboard: `${API_URL}/auth/leaderboard`,
     getNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
     markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
   },
@@ -63,6 +62,13 @@ export const endpoints = {
   missions: `${API_URL}/auth/all-missions`,
   events: `${API_URL}/auth/events`,
   predict: AI_URL,
+  // 🏛️ Barangay Portal Endpoints
+  announcements: `${BACKEND_BASE_URL}/api/announcements`,
+  officials: `${BACKEND_BASE_URL}/api/officials`,
+  documentRequests: {
+    submit: `${BACKEND_BASE_URL}/api/document-requests`,
+    my: (userId: string) => `${BACKEND_BASE_URL}/api/document-requests/my/${userId}`,
+  },
 };
 
 export default API_URL;

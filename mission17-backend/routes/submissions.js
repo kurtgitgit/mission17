@@ -382,18 +382,17 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     const user = await User.findById(sub.userId);
     if (!user) return res.status(404).json({ message: 'User associated with submission not found.' });
 
-    const pointsToAward = 100;
     let txHash = null;
 
-    // ⛓️ Step 1: Award points on the blockchain (if wallet is linked)
+    // ⛓️ Step 1: Record on the blockchain (transparency, not rewards)
     if (!user.walletAddress) {
-      console.warn(`🟡 User ${user.username} has no wallet address. Skipping POINTS transaction.`);
+      console.warn(`🟡 User ${user.username} has no wallet address. Skipping blockchain record.`);
     }
 
     try {
       if (user.walletAddress) {
         // 🛡️ SECURE CODE: Blockchain Integration with dynamic gas fees.
-        txHash = await awardSdgPoints(user.walletAddress, pointsToAward);
+        txHash = await awardSdgPoints(user.walletAddress, 1); // Value of 1 = submission unit (no points meaning)
       }
     } catch (blockchainError) {
       return res.status(500).json({
@@ -405,13 +404,12 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     // ✅ Step 2: Update DB only after blockchain success (or skip)
     sub.status = 'Approved';
     sub.blockchainTxHash = txHash || 'SKIPPED_NO_ADDRESS';
-    user.points = (user.points || 0) + pointsToAward;
 
     // ✅ Step 3: Create Notification
     const notification = new Notification({
       userId: user._id,
-      title: 'Mission Approved',
-      message: `Your proof for "${sub.missionTitle || 'Mission'}" has been verified! You earned ${pointsToAward} points.`,
+      title: '✅ Civic Task Approved!',
+      message: `Your proof for "${sub.missionTitle || 'Civic Task'}" has been verified and recorded on the blockchain. Thank you for your contribution to Barangay Pantal!`,
       type: 'success'
     });
 
@@ -420,7 +418,7 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     logAudit(
       req.user.id, req.user.username,
       'ADMIN_APPROVE',
-      `Approved mission ${submissionId}. TX: ${txHash || 'Skipped'}`,
+      `Approved civic task ${submissionId}. TX: ${txHash || 'Skipped'}`,
       req
     );
 

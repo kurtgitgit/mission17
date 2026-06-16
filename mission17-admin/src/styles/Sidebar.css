@@ -1,9 +1,15 @@
-/* src/styles/Sidebar.css */
+/* src/styles/Sidebar.css — Barangay Pantal Admin */
+
+:root {
+  --brgy-green: #0038A8;
+  --brgy-green-dark: #002266;
+  --brgy-green-light: rgba(255,255,255,0.12);
+}
 
 .sidebar {
   width: 260px;
   height: 100vh;
-  background-color: #3F66A5; 
+  background: linear-gradient(180deg, #002266 0%, #0038A8 100%);
   color: white;
   display: flex;
   flex-direction: column;
@@ -12,47 +18,61 @@
   top: 0;
   z-index: 1000;
   font-family: 'Inter', sans-serif;
-  box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+  box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-/* --- NEW CLICKABLE HEADER --- */
+/* --- HEADER --- */
 .sidebar-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  margin-bottom: 10px;
-  text-decoration: none; /* Removes underline from link */
+  padding: 1.4rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 8px;
+  text-decoration: none;
   cursor: pointer;
   transition: background-color 0.2s;
+  flex-shrink: 0;
 }
 
-/* Hover effect so users know it's clickable */
 .sidebar-header:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .logo-box {
-  width: 45px;  /* Made it slightly bigger */
-  height: 45px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  /* background: white;  <-- REMOVED THIS */
-  /* padding: 4px;       <-- REMOVED THIS */
-  border-radius: 8px;    /* Optional: Keeps the shape if you add hover effects later */
+  border-radius: 10px;
 }
 
-/* Ensure the image fills the space */
+.brgy-logo-box {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 12px;
+  width: 46px;
+  height: 46px;
+}
+
+.brgy-logo-emoji {
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  text-align: center;
+  line-height: 46px;
+}
+
 .sidebar-logo-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); /* Adds a tiny shadow for pop */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
 }
-
-
 
 .logo-text-col {
   display: flex;
@@ -60,73 +80,89 @@
 }
 
 .brand-name {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
   color: white;
   line-height: 1.2;
 }
 
 .brand-sub {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* --- (Keep the rest of your CSS below) --- */
+/* --- NAV LIST --- */
 .nav-list {
   list-style: none;
-  padding: 0;
+  padding: 0 8px;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  flex: 1; 
+  gap: 2px;
+  flex: 1;
+}
+
+/* Section Labels */
+.nav-section-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1.2px;
+  padding: 14px 18px 4px;
+  list-style: none;
 }
 
 .nav-link {
   display: flex;
   align-items: center;
-  gap: 15px;
-  padding: 15px 25px;
-  color: rgba(255, 255, 255, 0.8);
+  gap: 12px;
+  padding: 11px 18px;
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
-  font-size: 15px;
+  font-size: 14px;
+  border-radius: 10px;
 }
 
 .nav-link:hover {
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
-  padding-left: 30px;
+  padding-left: 22px;
 }
 
 .nav-link.active {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
   color: white;
-  border-left: 4px solid white;
+  border-left: 3px solid #f59e0b;
   font-weight: 700;
+  padding-left: 15px;
 }
 
+/* --- LOGOUT --- */
 .logout-btn {
-  margin: 20px;
-  padding: 12px 20px;
-  background-color: #ef4444; /* Bright red */
-  border: none;
-  color: white;
-  border-radius: 8px;
+  margin: 16px;
+  padding: 11px 18px;
+  background-color: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  border-radius: 10px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.4); /* Red shadow */
+  flex-shrink: 0;
 }
 
 .logout-btn:hover {
-  background-color: #dc2626; /* Darker red on hover */
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px -1px rgba(239, 68, 68, 0.5);
+  background-color: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  transform: translateY(-1px);
 }

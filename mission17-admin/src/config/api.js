@@ -2,12 +2,15 @@ const API_URL = import.meta.env.DEV
   ? `http://${window.location.hostname}:5001/api` 
   : "https://mission17-backend.onrender.com/api"; 
 
+const BACKEND_BASE_URL = API_URL.replace('/api', '');
+
 export const endpoints = {
   dashboard: {
     summary: `${API_URL}/auth/dashboard-summary`,
   },
   auth: {
     baseUrl: `${API_URL}/auth`,
+    backendBaseUrl: BACKEND_BASE_URL,
     login: `${API_URL}/auth/login`,
     auditLogs: `${API_URL}/auth/audit-logs`,
   },
@@ -27,16 +30,22 @@ export const endpoints = {
     delete:  (id) => `${API_URL}/auth/delete-mission/${id}`,
   },
   users: {
-    getAll:       `${API_URL}/auth/users`,
-    add:          `${API_URL}/auth/add-user`,
-    update:       (id) => `${API_URL}/auth/admin-update-user/${id}`,
-    delete:       (id) => `${API_URL}/auth/delete-user/${id}`,
-    leaderboard:  `${API_URL}/auth/leaderboard`,
+    getAll:  `${API_URL}/auth/users`,
+    add:     `${API_URL}/auth/add-user`,
+    update:  (id) => `${API_URL}/auth/admin-update-user/${id}`,
+    delete:  (id) => `${API_URL}/auth/delete-user/${id}`,
   },
   events: {
     getAll: `${API_URL}/auth/events`,
     add:    `${API_URL}/auth/events`,
     update: (id) => `${API_URL}/auth/events/${id}`,
     delete: (id) => `${API_URL}/auth/events/${id}`,
+  },
+  // 🏛️ Barangay Portal
+  announcements: `${BACKEND_BASE_URL}/api/announcements`,
+  officials:     `${BACKEND_BASE_URL}/api/officials`,
+  documentRequests: {
+    all:    `${BACKEND_BASE_URL}/api/document-requests`,
+    update: (id) => `${BACKEND_BASE_URL}/api/document-requests/${id}/status`,
   },
 };

@@ -10,7 +10,7 @@
 /* --- LEFT SIDE: BRAND SIDEBAR --- */
 .auth-sidebar {
   width: 40%;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); /* Deep Navy Gradient */
+  background: linear-gradient(135deg, #002266 0%, #0038A8 100%); /* Barangay Green Gradient */
   color: white;
   display: flex;
   flex-direction: column;
@@ -41,12 +41,9 @@
   margin: 0;
   
   /* Gradient Text Background */
-  background: linear-gradient(90deg, #60a5fa, #3b82f6);
-  
-  /* Standard property first, then vendor prefix to fix warning */
+  background: linear-gradient(90deg, #86efac, #4ade80);
   background-clip: text;
   -webkit-background-clip: text;
-  
   -webkit-text-fill-color: transparent;
 }
 
@@ -146,8 +143,8 @@
 }
 
 .input-wrapper input:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #0038A8;
+  box-shadow: 0 0 0 3px rgba(26, 107, 58, 0.15);
 }
 
 /* ⚡ AUTOFILL FIX: Removes grey background & keeps padding */
@@ -209,7 +206,7 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .forgot-link {
-  color: #3b82f6;
+  color: #0038A8;
   font-weight: 600;
   text-decoration: none;
 }
@@ -220,7 +217,7 @@ input::-webkit-credentials-auto-fill-button {
 .submit-btn {
   width: 100%;
   padding: 14px;
-  background: #0f172a; /* Dark Navy to match sidebar */
+  background: #0038A8; /* Barangay Green */
   color: white;
   border: none;
   border-radius: 12px;
@@ -235,7 +232,7 @@ input::-webkit-credentials-auto-fill-button {
 }
 
 .submit-btn:hover {
-  background: #1e293b;
+  background: #002266;
   transform: translateY(-2px);
 }
 

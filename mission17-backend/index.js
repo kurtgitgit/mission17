@@ -10,13 +10,19 @@ import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
 
 // IMPORTS
-import authRoutes       from './routes/auth.js';          // signup, login, otp, mfa, password, audit-logs
-import submissionRoutes from './routes/submissions.js';   // submit, pending, approve, reject, analyze-proof
-import missionRoutes    from './routes/missions.js';      // mission CRUD
-import eventRoutes      from './routes/events.js';         // event CRUD
-import userRoutes       from './routes/users.js';          // user management
-import notificationRoutes from './routes/notifications.js'; // user notifications
-import blockchainRoutes from './routes/blockchain.js';    // on-chain record endpoint
+import authRoutes           from './routes/auth.js';              // signup, login, otp, mfa, password, audit-logs
+import submissionRoutes     from './routes/submissions.js';       // submit, pending, approve, reject, analyze-proof
+import missionRoutes        from './routes/missions.js';          // civic task CRUD
+import eventRoutes          from './routes/events.js';            // event CRUD
+import userRoutes           from './routes/users.js';             // user management
+import notificationRoutes   from './routes/notifications.js';    // user notifications
+import blockchainRoutes     from './routes/blockchain.js';       // on-chain record endpoint
+import announcementRoutes   from './routes/announcements.js';   // barangay announcements
+import officialsRoutes      from './routes/officials.js';        // barangay officials
+import docRequestRoutes     from './routes/document-requests.js'; // document requests
+import chatbotRoutes        from './routes/chatbot.js';           // AI chatbot
+import blotterRoutes        from './routes/blotter-reports.js';   // Blotter reports
+import suggestionRoutes     from './routes/suggestions.js';       // Suggestions
 import { upload } from './utils/upload.js';
 import { logAudit } from './utils/authMiddleware.js';
 
@@ -73,7 +79,7 @@ app.use(express.urlencoded({ limit: '100mb', extended: true }));
 
 app.use(cors({
   origin: '*', // Allow all during local demo
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'auth-token', 'Authorization']
 }));
 
@@ -109,13 +115,29 @@ app.post('/api/auth/upload', upload.single('image'), (req, res) => {
 });
 
 // All route files share the /api/auth prefix — zero breaking changes for existing clients.
-app.use('/api/auth', authRoutes);        // Auth & security
-app.use('/api/auth', submissionRoutes);  // Submissions (incl. pending-submissions, analyze-proof)
-app.use('/api/auth', missionRoutes);     // Missions
-app.use('/api/auth', eventRoutes);       // Events
-app.use('/api/auth', userRoutes);        // Users & leaderboard
-app.use('/api/auth', notificationRoutes);// Notifications
+app.use('/api/auth', authRoutes);           // Auth & security
+app.use('/api/auth', submissionRoutes);     // Submissions (incl. pending-submissions, analyze-proof)
+app.use('/api/auth', missionRoutes);        // Civic Tasks
+app.use('/api/auth', eventRoutes);          // Events
+app.use('/api/auth', userRoutes);           // Users
+app.use('/api/auth', notificationRoutes);   // Notifications
 app.use('/api/blockchain', blockchainRoutes); // Blockchain proxy
+// 🏛️ Barangay Portal Routes
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/officials', officialsRoutes);
+app.use('/api/document-requests', docRequestRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/blotter-reports', blotterRoutes);
+app.use('/api/suggestions', suggestionRoutes);
+
+// ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
+// Catches any unhandled errors from asyncHandler() across all routes.
+// Must be registered AFTER all route definitions.
+app.use((err, req, res, _next) => {
+  console.error(`[${req.method} ${req.path}]`, err.message);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({ message: err.message || 'Internal Server Error' });
+});
 
 // DATABASE
 const connectDB = async () => {
@@ -133,5 +155,5 @@ const connectDB = async () => {
 
 app.listen(PORT, '0.0.0.0', () => {
   connectDB();
-  console.log(`🛡️  Secure Server running on http://localhost:${PORT} (and LAN)`);
+  console.log(`🏛️  Barangay Pantal Portal Server running on http://localhost:${PORT}`);
 });

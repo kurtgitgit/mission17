@@ -1,0 +1,355 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   src/styles/PortalAdmin.css  —  Shared styles for Brgy Pantal admin pages
+   (Announcements, Officials, Document Requests)
+───────────────────────────────────────────────────────────────────────────── */
+
+/* ── Page Shell ── */
+.pa-page {
+  padding: 28px 32px;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* ── Page Header ── */
+.pa-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pa-header-left h1 {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+}
+
+.pa-header-left p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* ── Primary Button ── */
+.pa-btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0038A8;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  white-space: nowrap;
+}
+.pa-btn-primary:hover  { background: #002266; transform: translateY(-1px); }
+.pa-btn-primary:active { transform: translateY(0); }
+
+/* ── Secondary Button ── */
+.pa-btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  color: #374151;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pa-btn-secondary:hover { background: #f8fafc; }
+
+/* ── Danger Button ── */
+.pa-btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.pa-btn-danger:hover { background: #fecaca; }
+
+/* ── Icon Button ── */
+.pa-btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  color: #94a3b8;
+}
+.pa-btn-icon:hover { background: #f1f5f9; }
+.pa-btn-icon.blue   { color: #3b82f6; }
+.pa-btn-icon.green  { color: #0038A8; }
+.pa-btn-icon.red    { color: #ef4444; }
+.pa-btn-icon.amber  { color: #b45309; }
+
+/* ── Filter Bar ── */
+.pa-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.pa-search-wrapper {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+.pa-search-wrapper svg {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+.pa-search-input {
+  width: 100%;
+  padding: 10px 14px 10px 38px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: white;
+  color: #0f172a;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+.pa-search-input:focus { outline: none; border-color: #0038A8; }
+
+.pa-filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.pa-chip {
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.pa-chip:hover  { border-color: #0038A8; color: #0038A8; }
+.pa-chip.active { background: #0038A8; color: white; border-color: #0038A8; }
+
+/* ── Count Pill ── */
+.pa-count {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 14px;
+}
+
+/* ── Form Card ── */
+.pa-form-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.pa-form-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 22px;
+}
+
+.pa-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.pa-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+@media (max-width: 768px) { .pa-form-grid { grid-template-columns: 1fr; } }
+
+.pa-form-group { display: flex; flex-direction: column; gap: 6px; }
+.pa-form-group.full  { grid-column: 1 / -1; }
+
+.pa-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.pa-input {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.pa-input:focus  { outline: none; border-color: #0038A8; background: white; }
+
+.pa-textarea { min-height: 120px; resize: vertical; }
+
+.pa-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* ── Checkbox row ── */
+.pa-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.pa-checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: #0038A8; cursor: pointer; }
+.pa-checkbox-label { font-size: 14px; font-weight: 600; color: #374151; cursor: pointer; }
+
+/* ── List Cards ── */
+.pa-list { display: grid; gap: 12px; }
+
+.pa-card {
+  background: white;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid #f1f5f9;
+  transition: box-shadow 0.2s;
+}
+.pa-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+.pa-card.pinned { border-left: 4px solid #f59e0b; }
+
+.pa-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.pa-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ── Category / Status Badges ── */
+.pa-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ── Card meta line ── */
+.pa-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.pa-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 5px;
+  line-height: 1.4;
+}
+
+.pa-card-body {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.pa-card-footer {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── Officials Grid ── */
+.pa-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* ── Empty State ── */
+.pa-empty {
+  text-align: center;
+  padding: 64px 20px;
+  color: #94a3b8;
+}
+.pa-empty-icon { margin-bottom: 16px; opacity: 0.35; }
+.pa-empty h3   { font-size: 18px; font-weight: 700; color: #64748b; margin: 0 0 6px; }
+.pa-empty p    { font-size: 14px; }
+
+/* ── Document Request workflow badge ── */
+.pa-status-Pending           { background: #fef3c7; color: #b45309; }
+.pa-status-Processing        { background: #e0f2fe; color: #0891b2; }
+.pa-status-Ready             { background: #ede9fe; color: #7c3aed; }
+.pa-status-Completed         { background: #dcfce7; color: #16a34a; }
+.pa-status-Rejected          { background: #fee2e2; color: #dc2626; }
+
+.pa-workflow-btn {
+  background: #0038A8;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.pa-workflow-btn:hover    { background: #002266; }
+.pa-workflow-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ── Loading skeleton ── */
+.pa-skeleton-row {
+  background: white;
+  border-radius: 14px;
+  padding: 20px;
+  animation: pa-shimmer 1.4s infinite linear;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 800px 100%;
+  height: 80px;
+}
+
+@keyframes pa-shimmer {
+  0%   { background-position: -800px 0; }
+  100% { background-position: 800px 0; }
+}
