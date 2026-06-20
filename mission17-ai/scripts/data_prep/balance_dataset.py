@@ -4,7 +4,7 @@ import random
 
 # 👇 CONFIGURATION
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_DIR = os.path.join(CURRENT_DIR, '..', 'dataset', 'mission_dataset')
+DATASET_DIR = os.path.join(CURRENT_DIR, '..', '..', '..', 'dataset', 'mission_dataset')
 
 # Target: balance ALL classes to this count
 # Set to None to auto-detect the median (safe default)

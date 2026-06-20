@@ -5,7 +5,7 @@ import shutil
 # Current script directory
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 # The main project dataset folder (../dataset)
-BASE_DIR = os.path.join(CURRENT_DIR, '..', 'dataset')
+BASE_DIR = os.path.join(CURRENT_DIR, '..', '..', '..', 'dataset')
 
 # 1. The "Correct" Destination
 FINAL_DEST = os.path.join(BASE_DIR, "mission_dataset")
@@ -14,7 +14,7 @@ FINAL_DEST = os.path.join(BASE_DIR, "mission_dataset")
 OLD_GARBAGE_DIR = os.path.join(BASE_DIR, "garbage_classification")
 
 # 3. The "Misplaced" Downloads (if any) inside mission17-ai/dataset
-MISPLACED_DIR = os.path.join(CURRENT_DIR, "dataset", "mission_dataset")
+MISPLACED_DIR = os.path.join(CURRENT_DIR, '..', '..', "dataset", "mission_dataset")
 
 # Map OLD folders to NEW SDG destinations
 # We are putting ALL waste items into SDG12 (Responsible Consumption & Production)
@@ -81,7 +81,7 @@ def organize_files():
         # Cleanup parent 'dataset' in mission17-ai if empty
         try: 
             os.rmdir(MISPLACED_DIR)
-            os.rmdir(os.path.join(CURRENT_DIR, "dataset"))
+            os.rmdir(os.path.join(CURRENT_DIR, '..', '..', "dataset"))
         except: pass
         print("   ✅ Misplaced images moved to correct folder.")
 
