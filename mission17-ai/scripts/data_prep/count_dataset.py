@@ -4,7 +4,7 @@ def count_images():
     # Define the path to the dataset
     # Based on your other scripts, it is in ../dataset/mission_dataset
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    dataset_dir = os.path.join(base_dir, '..', 'dataset', 'mission_dataset')
+    dataset_dir = os.path.join(base_dir, '..', '..', '..', 'dataset', 'mission_dataset')
 
     print(f"📊 Checking dataset at: {os.path.abspath(dataset_dir)}\n")
 

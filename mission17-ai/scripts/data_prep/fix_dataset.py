@@ -2,7 +2,8 @@ import os
 import shutil
 
 # Define paths
-base_dir = "dataset/garbage_classification"
+import os
+base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'dataset', 'garbage_classification')
 old_planting = os.path.join(base_dir, "planting")
 new_planting = os.path.join(base_dir, "SDG13_15_Planting")
 

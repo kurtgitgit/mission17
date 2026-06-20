@@ -5,14 +5,16 @@ from tensorflow.keras.applications.efficientnet import preprocess_input
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 print("⏳ Loading AI Model...")
 # 👇 Ensure this is your correct model name!
-model = tf.keras.models.load_model('mission_model.h5') 
+model = tf.keras.models.load_model(os.path.join(BASE_DIR, '..', '..', 'mission_model.h5')) 
 
 print("📁 Loading Test Dataset...")
 # 👇 Using the correct path you established
-test_dir = '../dataset/mission_dataset' 
+test_dir = os.path.join(BASE_DIR, '..', '..', '..', 'dataset', 'mission_dataset')
 
 test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 test_generator = test_datagen.flow_from_directory(
@@ -51,5 +53,5 @@ sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
 plt.title('AI Confusion Matrix (10 Classes)')
 plt.ylabel('Actual Image Class')
 plt.xlabel('AI Prediction')
-plt.savefig('confusion_matrix.png')
-print("\n📊 Saved 'confusion_matrix.png' to your folder. Put this in your presentation!")
+plt.savefig(os.path.join(BASE_DIR, '..', '..', 'outputs', 'confusion_matrix.png'))
+print("\n📊 Saved 'confusion_matrix.png' to your outputs folder. Put this in your presentation!")

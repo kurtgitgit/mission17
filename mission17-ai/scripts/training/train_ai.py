@@ -10,9 +10,9 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCh
 
 # --- CONFIGURATION ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATASET_DIR = os.path.join(BASE_DIR, '..', 'dataset', 'mission_dataset')
-MODEL_SAVE_PATH = os.path.join(BASE_DIR, 'mission_model.h5')
-LABELS_SAVE_PATH = os.path.join(BASE_DIR, 'labels.txt')
+DATASET_DIR = os.path.join(BASE_DIR, '..', '..', '..', 'dataset', 'mission_dataset')
+MODEL_SAVE_PATH = os.path.join(BASE_DIR, '..', '..', 'mission_model.h5')
+LABELS_SAVE_PATH = os.path.join(BASE_DIR, '..', '..', 'labels.txt')
 
 # Hyperparameters
 IMG_SIZE = (224, 224)

@@ -4,7 +4,7 @@ import shutil
 import math
 
 # 👇 CONFIGURATION
-BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'dataset', 'mission_dataset')
+BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'dataset', 'mission_dataset')
 
 # Target images per class — everything will be brought up to this number
 TARGET = 500

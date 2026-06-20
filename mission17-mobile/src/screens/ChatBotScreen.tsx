@@ -30,6 +30,10 @@ const ChatBotScreen = () => {
     if (!text) return;
 
     const userMsg: Message = { id: Date.now().toString(), text, isBot: false };
+
+    // Capture history BEFORE adding the new user message (exclude initial greeting)
+    const history = messages.slice(1).map(m => ({ text: m.text, isBot: m.isBot }));
+
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -38,7 +42,7 @@ const ChatBotScreen = () => {
       const res  = await fetch(`${endpoints.auth.backendBaseUrl}/api/chatbot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, history }),
       });
       const data = await res.json();
       const botMsg: Message = { id: (Date.now() + 1).toString(), text: data.reply ?? "Sorry, I couldn't understand that.", isBot: true };
