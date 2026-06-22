@@ -82,7 +82,7 @@ const ServicesScreen: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          username: '',
+          username: GlobalState.username || 'Resident',
           fullName: fullName.trim(),
           address: address.trim(),
           contactNumber: contact.trim(),

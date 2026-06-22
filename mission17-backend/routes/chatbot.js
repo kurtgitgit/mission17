@@ -1,8 +1,9 @@
 import express from 'express';
-import fetch from 'node-fetch';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { ChatOllama } from "@langchain/ollama";
+import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
 
 const router = express.Router();
 
@@ -11,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 // ─── Load Dataset Dictionary ───────────────────────────────────────────────────
 let pangasinanDictionary = "";
+let ilocanoDictionary = "";
 try {
   const dictionaryPath = path.join(__dirname, '../utils/pangasinan_examples.json');
   const examples = JSON.parse(fs.readFileSync(dictionaryPath, 'utf-8'));
@@ -18,6 +20,14 @@ try {
   pangasinanDictionary = examples.map(ex => `- USER: "${ex.User}" -> BOT: "${ex.Bot}"`).join('\n');
 } catch (error) {
   console.error("⚠️ Failed to load Pangasinan dictionary:", error.message);
+}
+
+try {
+  const ilocanoPath = path.join(__dirname, '../utils/ilocano_examples.json');
+  const examples = JSON.parse(fs.readFileSync(ilocanoPath, 'utf-8'));
+  ilocanoDictionary = examples.map(ex => `- USER: "${ex.User}" -> BOT: "${ex.Bot}"`).join('\n');
+} catch (error) {
+  console.error("⚠️ Failed to load Ilocano dictionary:", error.message);
 }
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
@@ -31,12 +41,16 @@ Your purpose is to answer inquiries about:
 
 LANGUAGE RULES (CRITICAL):
 - Detect the language the user is writing in and always respond in that same language.
-- Seamlessly support English, Filipino/Tagalog, and Pangasinan.
+- Seamlessly support English, Filipino/Tagalog, Pangasinan, and Ilocano.
 - If the user writes in Tagalog, reply in Tagalog. If in English, reply in English.
 - If the user writes in Pangasinan, do your best to respond in Pangasinan. Use simple, correct Pangasinan phrases.
+- If the user writes in Ilocano, do your best to respond in Ilocano. Use simple, correct Ilocano phrases.
 
 PANGASINAN LANGUAGE CONVERSATIONAL EXAMPLES (Use these heavily to understand vocabulary and grammar):
 ${pangasinanDictionary}
+
+ILOCANO LANGUAGE CONVERSATIONAL EXAMPLES (Use these heavily to understand vocabulary and grammar):
+${ilocanoDictionary}
 
 TONE & FORMAT RULES:
 - Keep responses concise, friendly, and helpful.
@@ -46,16 +60,19 @@ TONE & FORMAT RULES:
 - Remember the context of the entire conversation — never ask for information the user already provided.`;
 
 // ─── Model URL ─────────────────────────────────────────────────────────────────
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
+const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
+// Extract base URL for LangChain (e.g., http://localhost:11434)
+const OLLAMA_BASE_URL = OLLAMA_URL.replace('/api/chat', '');
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3';
 
 // ─── Keyword Fallback ──────────────────────────────────────────────────────────
 const getMockReply = (message) => {
   const msg = message.toLowerCase();
-  if (msg.includes('blotter'))                               return "To file a Blotter Report, go to the 'Services' section and select 'eFeedback / Blotter'. Provide as much incident detail as possible! 📋";
-  if (msg.includes('sdg') || msg.includes('mission'))       return "Mission 17 encourages residents to complete Civic Tasks aligned with the 17 SDGs. Earn points on the 'Missions' page! 🌍";
-  if (msg.includes('document') || msg.includes('request'))  return "To request a barangay document, go to 'Services' and select 'Document Requests'. Fill out the form and wait for approval. 📄";
+  if (msg.includes('blotter')) return "To file a Blotter Report, go to the 'Services' section and select 'eFeedback / Blotter'. Provide as much incident detail as possible! 📋";
+  if (msg.includes('sdg') || msg.includes('mission')) return "Mission 17 encourages residents to complete Civic Tasks aligned with the 17 SDGs. Earn points on the 'Missions' page! 🌍";
+  if (msg.includes('document') || msg.includes('request')) return "To request a barangay document, go to 'Services' and select 'Document Requests'. Fill out the form and wait for approval. 📄";
   if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('maong')) return "Mabuhay! 🏛️ Welcome to the official eGov Portal of Barangay Pantal. What can I help you with today?";
-  if (msg.includes('thank') || msg.includes('salamat'))     return "You're very welcome! Salamat! Let me know if you need anything else. 😊";
+  if (msg.includes('thank') || msg.includes('salamat')) return "You're very welcome! Salamat! Let me know if you need anything else. 😊";
   return "Hello! 🏛️ I am the Barangay Pantal digital assistant. How can I help you today?";
 };
 
@@ -67,55 +84,43 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ reply: 'Please provide a message.' });
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    console.warn('⚠️  GEMINI_API_KEY not set. Using keyword fallback.');
-    return res.json({ reply: getMockReply(message) });
-  }
-
   try {
-    // Build the conversation contents from history + new message
-    const contents = [
-      // Map previous messages from history
-      ...history.map(msg => ({
-        role: msg.isBot ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      })),
-      // Add the latest user message
-      {
-        role: 'user',
-        parts: [{ text: message }]
-      }
+    // Build LangChain messages from history
+    const lcMessages = [
+      new SystemMessage(SYSTEM_PROMPT),
+      ...history.map(msg => 
+        msg.isBot ? new AIMessage(msg.text) : new HumanMessage(msg.text)
+      ),
+      new HumanMessage(message)
     ];
 
-    const response = await fetch(`${GEMINI_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 512,
-        }
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('Gemini API Error:', data?.error?.message);
-      return res.json({ reply: getMockReply(message) });
+    // If the user has an API key from a cloud provider, pass it in the headers
+    const headers = {};
+    if (process.env.OLLAMA_API_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.OLLAMA_API_KEY}`;
     }
 
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
+    const chatOllama = new ChatOllama({
+      baseUrl: OLLAMA_BASE_URL,
+      model: OLLAMA_MODEL,
+      temperature: 0.7,
+      maxRetries: 1, // Fallback quickly if Ollama is down
+      headers,
+    });
+
+    // We can also use numPredict via model_kwargs but for LangChain it's built-in via standard params if needed.
+    // For ChatOllama, maxTokens translates to num_predict.
+    chatOllama.maxTokens = 512; 
+
+    const response = await chatOllama.invoke(lcMessages);
+
+    const reply = response?.content 
       ?? "I'm sorry, I couldn't understand that. Could you rephrase your question? 🤔";
 
     return res.json({ reply });
 
   } catch (error) {
-    console.error('ChatBot Error:', error.message);
+    console.error('ChatBot/LangChain Error:', error.message);
     return res.json({ reply: getMockReply(message) });
   }
 });
