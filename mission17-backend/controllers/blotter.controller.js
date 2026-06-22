@@ -5,6 +5,17 @@ import BlotterReport from '../models/BlotterReport.js';
 import Notification from '../models/Notification.js';
 import { logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 
@@ -16,10 +27,26 @@ export const submitReport = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Missing required fields: userId, incidentType, description, location, dateOfIncident.' });
   }
 
+  let finalEvidenceUrl = evidenceUrl;
+  if (evidenceUrl && evidenceUrl.startsWith('data:image')) {
+    const base64Data = evidenceUrl.split(',')[1];
+    const filename = `blotter_${Date.now()}_${userId}.jpg`;
+    const filepath = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(filepath, base64Data, 'base64');
+    finalEvidenceUrl = `/uploads/${filename}`;
+  }
+
   const report = await BlotterReport.create({
     userId, username, incidentType, description, location,
     dateOfIncident: new Date(dateOfIncident),
-    evidenceUrl,
+    evidenceUrl: finalEvidenceUrl,
+  });
+
+  await Notification.create({
+    userId: report.userId,
+    title: 'Blotter Report Submitted',
+    message: `Your blotter report (Ref: ${report.referenceNumber}) has been successfully filed and is pending review.`,
+    type: 'info'
   });
 
   res.status(201).json({

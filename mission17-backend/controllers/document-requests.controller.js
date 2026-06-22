@@ -32,6 +32,13 @@ export const submitRequest = asyncHandler(async (req, res) => {
     userId, username, fullName, address, contactNumber, documentType, purpose,
   });
 
+  await Notification.create({
+    userId: docRequest.userId,
+    title: 'Document Request Submitted',
+    message: `Your request for "${documentType}" (Ref: ${docRequest.referenceNumber}) has been received and is pending review.`,
+    type: 'info'
+  });
+
   res.status(201).json({
     message: 'Document request submitted successfully!',
     referenceNumber: docRequest.referenceNumber,

@@ -11,6 +11,10 @@ const Settings = () => {
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Load Admin MFA status and Logs on mount
   useEffect(() => {
@@ -83,6 +87,53 @@ const Settings = () => {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      showNotification("Please fill in all password fields.", "error");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showNotification("New password and confirm password do not match.", "error");
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    try {
+      const token = localStorage.getItem('token');
+      const savedUserStr = localStorage.getItem('user');
+      if (!savedUserStr) {
+        showNotification("Session expired.", "error");
+        return;
+      }
+      const user = JSON.parse(savedUserStr);
+      const userId = user._id || user.id;
+
+      const response = await fetch(`${endpoints.auth.baseUrl}/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': token
+        },
+        body: JSON.stringify({ userId, oldPassword, newPassword })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        showNotification(data.message || "Password updated successfully!", "success");
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        showNotification(data.message || "Failed to change password.", "error");
+      }
+    } catch (error) {
+      console.error("Change password error:", error);
+      showNotification("Server connection failed.", "error");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="settings-container">
@@ -149,18 +200,32 @@ const Settings = () => {
             </div>
             <div className="card-body">
               <div className="form-group">
+                <label>Current Password</label>
+                <div className="input-with-icon">
+                  <Lock size={16} className="field-icon" />
+                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-group">
                 <label>New Password</label>
                 <div className="input-with-icon">
                   <Lock size={16} className="field-icon" />
-                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" />
+                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                   <button className="eye-btn" onClick={() => setShowPassword(!showPassword)}>
                     {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
                   </button>
                 </div>
               </div>
-              <button className="save-btn">
+              <div className="form-group">
+                <label>Confirm New Password</label>
+                <div className="input-with-icon">
+                  <Lock size={16} className="field-icon" />
+                  <input type={showPassword ? "text" : "password"} placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                </div>
+              </div>
+              <button className="save-btn" onClick={handleChangePassword} disabled={isChangingPassword}>
                 <Save size={16} />
-                <span>Save Changes</span>
+                <span>{isChangingPassword ? "Saving..." : "Save Changes"}</span>
               </button>
             </div>
           </div>

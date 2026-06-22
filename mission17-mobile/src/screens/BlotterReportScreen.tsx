@@ -4,6 +4,8 @@ import {
   TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform
 } from 'react-native';
 import { ArrowLeft, Camera, ShieldAlert } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
@@ -16,6 +18,23 @@ const BlotterReportScreen = () => {
   const [incidentType, setIncidentType] = useState('Disturbance');
   const [description, setDescription]   = useState('');
   const [location, setLocation]         = useState('');
+  const [evidenceUri, setEvidenceUri]   = useState('');
+  const [evidenceBase64, setEvidenceBase64] = useState('');
+
+  const pickImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.5,
+      base64: true,
+    });
+
+    if (!result.canceled && result.assets[0].base64) {
+      setEvidenceUri(result.assets[0].uri);
+      setEvidenceBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
+    }
+  };
 
   const submitReport = async () => {
     if (!description.trim() || !location.trim()) {
@@ -35,7 +54,7 @@ const BlotterReportScreen = () => {
           description,
           location,
           dateOfIncident:  new Date().toISOString(),
-          evidenceUrl:     'https://via.placeholder.com/150',
+          evidenceUrl:     evidenceBase64 || null,
         }),
       });
 
@@ -116,10 +135,16 @@ const BlotterReportScreen = () => {
         <Text style={[styles.label, { marginTop: spacing.md }]}>Evidence / Photo (Optional)</Text>
         <TouchableOpacity
           style={styles.uploadBox}
-          onPress={() => Alert.alert('Notice', 'Camera integration is available on physical device builds.')}
+          onPress={pickImage}
         >
-          <Camera size={28} color={colors.textMuted} />
-          <Text style={styles.uploadText}>Tap to capture or upload photo</Text>
+          {evidenceUri ? (
+            <Image source={{ uri: evidenceUri }} style={{ width: '100%', height: '100%', borderRadius: radius.md }} />
+          ) : (
+            <>
+              <Camera size={28} color={colors.textMuted} />
+              <Text style={styles.uploadText}>Tap to capture or upload photo</Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
