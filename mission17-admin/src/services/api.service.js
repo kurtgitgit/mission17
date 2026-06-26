@@ -27,6 +27,7 @@ export const blotterApi = {
 export const suggestionsApi = {
   getAll:       ()           => http.get('/api/suggestions'),
   updateStatus: (id, payload) => http.patch(`/api/suggestions/${id}/status`, payload),
+  remove:       (id)          => http.delete(`/api/suggestions/${id}`),
 };
 
 // ─── DOCUMENT REQUESTS ───────────────────────────────────────────────────────

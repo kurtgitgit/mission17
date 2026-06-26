@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
+import { useNotification } from '../context/NotificationContext';
 import '../styles/DashboardHome.css';
 
 const BlotterManagement = () => {
+  const { showNotification } = useNotification();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,10 +45,10 @@ const BlotterManagement = () => {
       // Update local state to reflect change instantly
       setReports(reports.map(r => r._id === selectedReport._id ? { ...r, status: newStatus, adminRemarks } : r));
       setSelectedReport({ ...selectedReport, status: newStatus, adminRemarks });
-      alert('Case updated successfully.');
+      showNotification('Case updated successfully.', 'success');
     } catch (err) {
       console.error('Failed to update status', err);
-      alert('Failed to update report status.');
+      showNotification('Failed to update report status.', 'error');
     } finally {
       setUpdating(false);
     }

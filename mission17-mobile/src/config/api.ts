@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 // 🏠 LOCALHOST / LAN IP
 // IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
 // Home: 192.168.1.x | Hotspot: 192.168.43.x (Android) or 172.20.10.x (iPhone)
-const LAN_IP = "10.42.160.98"; 
+const LAN_IP = "192.168.1.101"; 
 
 // 🛠️ APK DEPLOYMENT CONFIG:
 // We use the LAN_IP for both DEV and PRODUCTION builds so your APK can talk to your laptop.
@@ -36,7 +36,9 @@ export const formatImageUri = (uri: string) => {
 // 1. GLOBAL MEMORY
 export const GlobalState = {
   userId: null as string | null,
-  username: null as string | null
+  username: null as string | null,
+  token: null as string | null,
+  auth: null as { token: string } | null,
 };
 
 export const endpoints = {

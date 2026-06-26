@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, ThumbsUp, MessageSquare, Search, CheckCircle, Clock, ChevronRight, User, Hash } from 'lucide-react';
+import { Lightbulb, MessageSquare, Search, CheckCircle, Clock, ChevronRight, User, Trash2, AlertTriangle, XCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
+import { useNotification } from '../context/NotificationContext';
 import '../styles/DashboardHome.css';
 
 const Suggestions = () => {
+  const { showNotification } = useNotification();
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,6 +15,7 @@ const Suggestions = () => {
   const [newStatus, setNewStatus] = useState('');
   const [adminReply, setAdminReply] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     fetchSuggestions();
@@ -41,11 +44,29 @@ const Suggestions = () => {
       await suggestionsApi.updateStatus(selectedItem._id, { status: newStatus, adminReply });
       setSuggestions(suggestions.map(s => s._id === selectedItem._id ? { ...s, status: newStatus, adminReply } : s));
       setSelectedItem({ ...selectedItem, status: newStatus, adminReply });
-      alert('Feedback updated successfully.');
+      showNotification(
+        newStatus === 'Approved' ? '✅ Feedback approved — resident will be notified!' :
+        newStatus === 'Rejected' ? '❌ Feedback rejected — resident will be notified.' :
+        'Feedback updated successfully.',
+        newStatus === 'Rejected' ? 'error' : 'success'
+      );
     } catch (err) {
-      alert('Failed to update suggestion.');
+      showNotification('Failed to update suggestion.', 'error');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    const item = deleteTarget;
+    setDeleteTarget(null);
+    try {
+      await suggestionsApi.remove(item._id);
+      setSuggestions(prev => prev.filter(s => s._id !== item._id));
+      if (selectedItem?._id === item._id) setSelectedItem(null);
+      showNotification('Feedback deleted successfully.', 'success');
+    } catch {
+      showNotification('Failed to delete feedback.', 'error');
     }
   };
 
@@ -66,6 +87,36 @@ const Suggestions = () => {
   return (
     <div className="dashboard-container">
       <Sidebar />
+
+      {/* DELETE CONFIRM MODAL */}
+      {deleteTarget && (
+        <div style={{ position:'fixed', inset:0, zIndex:9999, backgroundColor:'rgba(0,0,0,0.45)', display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(3px)' }}>
+          <div style={{ background:'white', borderRadius:16, width:'100%', maxWidth:440, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 24px', borderBottom:'1px solid #f1f5f9' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div style={{ width:40, height:40, borderRadius:10, backgroundColor:'#fee2e2', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <AlertTriangle size={20} color="#dc2626" />
+                </div>
+                <div>
+                  <h3 style={{ margin:0, fontSize:17, fontWeight:800, color:'#0f172a' }}>Delete Feedback</h3>
+                  <p style={{ margin:0, fontSize:13, color:'#64748b', marginTop:2 }}>This action cannot be undone.</p>
+                </div>
+              </div>
+              <button onClick={() => setDeleteTarget(null)} style={{ background:'none', border:'none', cursor:'pointer', padding:4 }}>
+                <XCircle size={20} color="#94a3b8" />
+              </button>
+            </div>
+            <div style={{ padding:'20px 24px' }}>
+              <p style={{ fontSize:14, color:'#475569', margin:0 }}>Are you sure you want to permanently delete <strong>&ldquo;{deleteTarget.title}&rdquo;</strong>?</p>
+            </div>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:10, padding:'16px 24px', borderTop:'1px solid #f1f5f9', background:'#f8fafc', borderRadius:'0 0 16px 16px' }}>
+              <button onClick={() => setDeleteTarget(null)} style={{ padding:'9px 20px', borderRadius:10, border:'1.5px solid #e2e8f0', background:'white', color:'#475569', fontWeight:600, fontSize:14, cursor:'pointer' }}>Cancel</button>
+              <button onClick={handleDeleteConfirm} style={{ padding:'9px 20px', borderRadius:10, border:'none', background:'#dc2626', color:'white', fontWeight:700, fontSize:14, cursor:'pointer' }}>Yes, Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', paddingBottom: 0 }}>
         
         {/* HEADER */}
@@ -152,8 +203,15 @@ const Suggestions = () => {
                     <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#0f172a' }}>{selectedItem.title}</h2>
                     <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>{selectedItem.category}</span>
                   </div>
-                  <div>
+                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     {getStatusBadge(selectedItem.status)}
+                    <button
+                      onClick={() => setDeleteTarget(selectedItem)}
+                      title="Delete this feedback"
+                      style={{ background:'#fee2e2', border:'none', borderRadius:8, padding:'8px 10px', cursor:'pointer', display:'flex', alignItems:'center', gap:5, color:'#dc2626', fontWeight:700, fontSize:13 }}
+                    >
+                      <Trash2 size={15} /> Delete
+                    </button>
                   </div>
                 </div>
 
@@ -179,16 +237,6 @@ const Suggestions = () => {
                         <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
                           {new Date(selectedItem.createdAt).toLocaleString()}
                         </div>
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px' }}>
-                        <Hash size={20} color="#0038A8" />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Upvotes</div>
-                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{selectedItem.upvotes?.length || 0} Votes</div>
                       </div>
                     </div>
                   </div>
@@ -230,14 +278,21 @@ const Suggestions = () => {
                       />
                     </div>
 
-                    <button 
-                      className="btn primary" 
-                      onClick={handleUpdate} 
-                      disabled={updating || (newStatus === selectedItem.status && adminReply === (selectedItem.adminReply || ''))}
-                      style={{ padding: '12px 24px', fontSize: '15px', width: 'auto' }}
-                    >
-                      {updating ? 'Saving Reply...' : 'Save & Publish Reply'}
-                    </button>
+                    <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'center' }}>
+                      <button
+                        className="btn primary"
+                        onClick={handleUpdate}
+                        disabled={updating || (newStatus === selectedItem.status && adminReply === (selectedItem.adminReply || ''))}
+                        style={{ padding:'12px 24px', fontSize:'15px', width:'auto' }}
+                      >
+                        {updating ? 'Saving...' : 'Save & Publish Reply'}
+                      </button>
+                      {!selectedItem.isAnonymous && newStatus !== selectedItem.status && (
+                        <span style={{ fontSize:12, color: newStatus === 'Rejected' ? '#dc2626' : '#0891b2', display:'flex', alignItems:'center', gap:4 }}>
+                          📲 Resident will receive a notification
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </>

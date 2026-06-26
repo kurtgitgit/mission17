@@ -29,18 +29,18 @@ const MissionsScreen = ({ navigation, route }: any) => {
       try {
         const missionRes = await fetch(endpoints.missions);
         const missionData = await missionRes.json();
-        setMissions(missionData);
+        setMissions(Array.isArray(missionData) ? missionData : (Array.isArray(missionData.data) ? missionData.data : []));
 
         const eventRes = await fetch(endpoints.events);
         const eventData = await eventRes.json();
-        setEvents(eventData);
+        setEvents(Array.isArray(eventData) ? eventData : (Array.isArray(eventData.data) ? eventData.data : []));
 
         if (userId) {
           const subRes = await fetch(endpoints.auth.getUserSubmissions(userId));
           if (subRes.ok) {
             const subData = await subRes.json();
             const completedIds = new Set(
-              subData
+              (Array.isArray(subData) ? subData : [])
                 .filter((s: any) => s.status === 'Approved')
                 .map((s: any) => s.missionId)
             );
@@ -66,12 +66,12 @@ const MissionsScreen = ({ navigation, route }: any) => {
 
   const handlePressMission = (item: any) => {
     if (!userId) {
-      showNotification("Please log in to save points.", "info");
+      showNotification({ message: "Please log in to save points.", type: "info" });
       return navigation.navigate('MissionDetail', { mission: item, userId: userId });
     }
     
     if (completedMissions.has(item._id)) {
-      showNotification("You have already completed this mission!", "success");
+      showNotification({ message: "You have already completed this mission!", type: "success" });
       return; // Do not navigate if completed, or we could navigate but disable submission button there. Let's just navigate so they can see details.
     }
     
@@ -139,7 +139,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
         style={styles.card}
         activeOpacity={0.9}
         onPress={() => {
-          if (!userId) showNotification("Please log in to participate.", "info");
+          if (!userId) showNotification({ message: "Please log in to participate.", type: "info" });
           navigation.navigate('EventDetail', { event: item, userId: userId });
         }}
       >

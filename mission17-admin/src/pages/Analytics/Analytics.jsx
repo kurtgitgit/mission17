@@ -61,7 +61,11 @@ const Analytics = () => {
 
         // ── CIVIC TASKS ─────────────────────────────────────────
         if (submRes.ok) {
-          const subs = await submRes.json();
+          const data = await submRes.json();
+          // New API returns { submissions, sdgCounts } — support both old array and new object format
+          const subs = Array.isArray(data) ? data : (data.submissions || []);
+          const sdgCounts = (!Array.isArray(data) && data.sdgCounts) ? data.sdgCounts : null;
+
           let p = 0, a = 0, r = 0;
           const daysOfWeek  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           const weekCounts  = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
@@ -103,10 +107,21 @@ const Analytics = () => {
           }
           setMonthlyData(keys.map(k => ({ month: k, submissions: monthCounts[k] || 0 })));
 
-          // SDG Contribution groupings (mocking the extraction from submissions for demo)
-          // Usually we'd map missionId -> sdg, but assuming missionTitle hints or we mock
-          const sdgCounts = { 'SDG 1: No Poverty': 5, 'SDG 3: Health': 12, 'SDG 4: Education': 8, 'SDG 11: Cities': 15, 'SDG 13: Climate': 20 };
-          setSdgBar(Object.keys(sdgCounts).map(k => ({ sdg: k.split(':')[0], name: k, count: sdgCounts[k] })));
+          // SDG Contributions — real data from AnalysisReport
+          if (sdgCounts && Object.keys(sdgCounts).length > 0) {
+            // Sort by count descending, take top 6
+            const sorted = Object.entries(sdgCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 6);
+            setSdgBar(sorted.map(([key, count]) => ({
+              sdg: key.replace('Sustainable Development Goal', 'SDG').split(' ').slice(0, 2).join(' '),
+              name: key,
+              count,
+            })));
+          } else {
+            // No analysis reports yet — show empty state
+            setSdgBar([]);
+          }
         }
 
         // ── RESIDENTS ────────────────────────────────────────────
@@ -231,7 +246,7 @@ const Analytics = () => {
               <span className="chart-badge green">Trend</span>
             </div>
             <div className="chart-wrapper">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={monthlyData}>
                   <defs>
                     <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
@@ -243,7 +258,7 @@ const Analytics = () => {
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} width={28} allowDecimals={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="submissions" name="Submissions" stroke="#0038A8" strokeWidth={2.5} fill="url(#areaGradient)" />
+                  <Area type="monotone" dataKey="submissions" name="Submissions" stroke="#0038A8" strokeWidth={2.5} fill="url(#areaGradient)" isAnimationActive={false} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -259,9 +274,9 @@ const Analytics = () => {
                 <span className="center-number">{taskStats.total}</span>
                 <span className="center-label">Total</span>
               </div>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={taskPieData} cx="50%" cy="45%" innerRadius={65} outerRadius={90} paddingAngle={4} dataKey="value" stroke="none">
+                  <Pie data={taskPieData} cx="50%" cy="45%" innerRadius={65} outerRadius={90} paddingAngle={4} dataKey="value" stroke="none" isAnimationActive={false}>
                     {taskPieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Legend verticalAlign="bottom" height={36} iconType="circle"
@@ -290,9 +305,9 @@ const Analytics = () => {
                 <span className="center-number">{blotterTotal}</span>
                 <span className="center-label">Total</span>
               </div>
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
-                  <Pie data={blotterPie} cx="50%" cy="45%" innerRadius={65} outerRadius={90} paddingAngle={4} dataKey="value" stroke="none">
+                  <Pie data={blotterPie} cx="50%" cy="45%" innerRadius={65} outerRadius={90} paddingAngle={4} dataKey="value" stroke="none" isAnimationActive={false}>
                     {blotterPie.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Pie>
                   <Legend verticalAlign="bottom" height={36} iconType="circle"
@@ -309,15 +324,23 @@ const Analytics = () => {
               <span className="chart-badge green">SDGs</span>
             </div>
             <div className="chart-wrapper">
-              <ResponsiveContainer width="100%" height="100%">
+              {sdgBar.length === 0 ? (
+                <div className="chart-empty" style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', color:'#94a3b8' }}>
+                  <span style={{ fontSize:36, marginBottom:8 }}>📊</span>
+                  <p style={{ fontWeight:600, margin:0 }}>No SDG data yet</p>
+                  <p style={{ fontSize:12, marginTop:4 }}>SDG contributions will appear here once civic tasks are analyzed by AI.</p>
+                </div>
+              ) : (
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={sdgBar} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="sdg" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={6} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} width={28} allowDecimals={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="Contributions" fill="#22c55e" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="count" name="Contributions" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
+              )}
             </div>
           </div>
         </div>
@@ -331,13 +354,13 @@ const Analytics = () => {
               <span className="chart-badge purple">Activity</span>
             </div>
             <div className="chart-wrapper">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={weeklyBar} barSize={32}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                   <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={6} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} width={28} allowDecimals={false} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="submissions" name="Submissions" fill="#0038A8" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="submissions" name="Submissions" fill="#0038A8" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -349,13 +372,13 @@ const Analytics = () => {
               <span className="chart-badge amber">Requests</span>
             </div>
             <div className="chart-wrapper">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={docStats} layout="vertical" barSize={18}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
                   <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} width={110} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="value" name="Requests" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="value" name="Requests" radius={[0, 6, 6, 0]} isAnimationActive={false}>
                     {docStats.map((entry, i) => <Cell key={i} fill={entry.color} />)}
                   </Bar>
                 </BarChart>
@@ -377,13 +400,13 @@ const Analytics = () => {
               <div className="chart-empty">No announcements posted yet.</div>
             ) : (
               <div className="chart-wrapper">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={catData} barSize={32}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="cat" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={6} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11 }} width={28} allowDecimals={false} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="count" name="Announcements" fill="#0891b2" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="count" name="Announcements" fill="#0891b2" radius={[6, 6, 0, 0]} isAnimationActive={false} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Search, RefreshCw, FileText } from 'lucide-react';
+import { Search, RefreshCw, FileText, XCircle, AlertTriangle } from 'lucide-react';
 import { endpoints } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/PortalAdmin.css';
@@ -19,6 +19,107 @@ const STATUS_CLASS = {
   'Rejected':         'pa-badge pa-status-Rejected',
 };
 
+// ─── Reject Modal ─────────────────────────────────────────────────────────────
+const RejectModal = ({ onConfirm, onCancel }) => {
+  const [reason, setReason] = useState('');
+  return (
+    <div style={overlay}>
+      <div style={modalBox}>
+        {/* Header */}
+        <div style={modalHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={iconWrap}>
+              <AlertTriangle size={20} color="#dc2626" />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0f172a' }}>Reject Request</h3>
+              <p style={{ margin: 0, fontSize: 13, color: '#64748b', marginTop: 2 }}>This action will notify the resident.</p>
+            </div>
+          </div>
+          <button onClick={onCancel} style={closeBtn}>
+            <XCircle size={20} color="#94a3b8" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '20px 24px' }}>
+          <label style={labelStyle}>
+            Reason for Rejection <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional — visible to resident)</span>
+          </label>
+          <textarea
+            autoFocus
+            rows={4}
+            style={textareaStyle}
+            placeholder="e.g. Incomplete supporting documents. Please resubmit with a valid ID..."
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+          />
+        </div>
+
+        {/* Footer */}
+        <div style={modalFooter}>
+          <button style={cancelBtnStyle} onClick={onCancel}>Cancel</button>
+          <button
+            style={rejectBtnStyle}
+            onClick={() => onConfirm(reason.trim())}
+          >
+            Confirm Rejection
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Inline styles for the modal ──────────────────────────────────────────────
+const overlay = {
+  position: 'fixed', inset: 0, zIndex: 9999,
+  backgroundColor: 'rgba(0,0,0,0.45)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  backdropFilter: 'blur(3px)',
+};
+const modalBox = {
+  background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
+  boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
+  animation: 'fadeIn 0.15s ease',
+};
+const modalHeader = {
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+  padding: '20px 24px', borderBottom: '1px solid #f1f5f9',
+};
+const modalFooter = {
+  display: 'flex', justifyContent: 'flex-end', gap: 10,
+  padding: '16px 24px', borderTop: '1px solid #f1f5f9',
+  backgroundColor: '#f8fafc', borderRadius: '0 0 16px 16px',
+};
+const iconWrap = {
+  width: 40, height: 40, borderRadius: 10,
+  backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+const closeBtn = {
+  background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 8,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+};
+const labelStyle = {
+  display: 'block', fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 8,
+};
+const textareaStyle = {
+  width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10,
+  padding: '10px 14px', fontSize: 14, color: '#0f172a',
+  backgroundColor: '#f8fafc', resize: 'vertical', outline: 'none',
+  fontFamily: 'inherit', lineHeight: 1.6, boxSizing: 'border-box',
+  transition: 'border-color 0.2s',
+};
+const cancelBtnStyle = {
+  padding: '9px 20px', borderRadius: 10, border: '1.5px solid #e2e8f0',
+  background: 'white', color: '#475569', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+};
+const rejectBtnStyle = {
+  padding: '9px 20px', borderRadius: 10, border: 'none',
+  background: '#dc2626', color: 'white', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 const DocumentRequests = () => {
   const { showNotification } = useNotification();
   const [requests, setRequests]       = useState([]);
@@ -26,6 +127,7 @@ const DocumentRequests = () => {
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch]           = useState('');
   const [processing, setProcessing]   = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null); // id of request being rejected
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
@@ -62,10 +164,9 @@ const DocumentRequests = () => {
     } finally { setProcessing(null); }
   };
 
-  const handleReject = async (id) => {
-    const reason = window.prompt('Reason for rejection (leave blank to skip):');
-    if (reason === null) return; // cancelled
-    await updateStatus(id, 'Rejected', reason || '');
+  const handleRejectConfirm = async (reason) => {
+    setRejectTarget(null);
+    await updateStatus(rejectTarget, 'Rejected', reason);
   };
 
   const filtered = requests.filter(r =>
@@ -76,6 +177,14 @@ const DocumentRequests = () => {
 
   return (
     <Layout title="Document Requests">
+      {/* Reject Modal */}
+      {rejectTarget && (
+        <RejectModal
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectTarget(null)}
+        />
+      )}
+
       <div className="pa-page">
 
         {/* ── HEADER ── */}
@@ -187,7 +296,7 @@ const DocumentRequests = () => {
                         )}
                         <button
                           className="pa-btn-danger"
-                          onClick={() => handleReject(req._id)}
+                          onClick={() => setRejectTarget(req._id)}
                           disabled={processing === req._id}
                         >
                           Reject

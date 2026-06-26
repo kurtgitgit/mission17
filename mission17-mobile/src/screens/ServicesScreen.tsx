@@ -34,6 +34,9 @@ const ServicesScreen: React.FC = () => {
   const [contact, setContact] = useState('');
   const [purpose, setPurpose] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successRef, setSuccessRef] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState('');
 
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
@@ -66,12 +69,26 @@ const ServicesScreen: React.FC = () => {
     }
   }, [tab]);
 
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!docType) newErrors.docType = 'Please select a document type.';
+    if (!fullName.trim() || fullName.trim().length < 3 || !/[a-zA-Z]/.test(fullName))
+      newErrors.fullName = 'Please enter a valid full name (letters required).';
+    if (!address.trim() || address.trim().length < 5 || !/[a-zA-Z]/.test(address))
+      newErrors.address = 'Please enter a complete and valid address.';
+    const cleanContact = contact.trim().replace(/\s/g, '');
+    if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact))
+      newErrors.contact = 'Enter a valid PH mobile number (e.g. 09123456789).';
+    const cleanPurpose = purpose.trim();
+    if (!cleanPurpose || cleanPurpose.length < 5 || !/[a-zA-Z]/.test(cleanPurpose) || /^(.)\1+$/.test(cleanPurpose))
+      newErrors.purpose = 'Please state a clear purpose (letters required).';
+    return newErrors;
+  };
+
   const handleSubmit = async () => {
-    if (!docType) return Alert.alert('Required', 'Please select a document type.');
-    if (!fullName.trim()) return Alert.alert('Required', 'Please enter your full name.');
-    if (!address.trim()) return Alert.alert('Required', 'Please enter your address.');
-    if (!contact.trim()) return Alert.alert('Required', 'Please enter your contact number.');
-    if (!purpose.trim()) return Alert.alert('Required', 'Please state the purpose.');
+    const newErrors = validate();
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
     if (!userId) return Alert.alert('Error', 'You must be logged in to request documents.');
 
@@ -93,17 +110,13 @@ const ServicesScreen: React.FC = () => {
 
       const data = await res.json();
       if (res.ok) {
-        Alert.alert(
-          '✅ Request Submitted!',
-          `Your request for "${docType}" has been received.\n\nReference Number: ${data.referenceNumber}\n\nWe will notify you when it is ready for pickup.`,
-          [{ text: 'View Status', onPress: () => setTab('status') }]
-        );
-        setDocType(''); setFullName(''); setAddress(''); setContact(''); setPurpose('');
+        setSuccessRef(data.referenceNumber);
+        setDocType(''); setFullName(''); setAddress(''); setContact(''); setPurpose(''); setErrors({});
       } else {
-        Alert.alert('Error', data.message || 'Failed to submit request.');
+        setSubmitError(data.message || 'Failed to submit request. Please try again.');
       }
     } catch (err) {
-      Alert.alert('Error', 'Network error. Please try again.');
+      setSubmitError('Network error. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -178,6 +191,30 @@ const ServicesScreen: React.FC = () => {
             <Text style={styles.formCardTitle}>Document Request Form</Text>
             <Text style={styles.formCardSub}>Fill out the form below. Processing time is 1–3 working days.</Text>
 
+            {/* ── SUCCESS CARD ── */}
+            {successRef && (
+              <View style={styles.successCard}>
+                <Text style={styles.successIcon}>✅</Text>
+                <Text style={styles.successTitle}>Request Submitted!</Text>
+                <Text style={styles.successBody}>Your request for <Text style={{fontWeight:'800'}}>{'"}"'}</Text> has been received.</Text>
+                <Text style={styles.successRef}>Reference No: <Text style={{fontWeight:'800', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'}}>{successRef}</Text></Text>
+                <Text style={styles.successBody}>We will notify you once it is ready for pickup.</Text>
+                <TouchableOpacity style={styles.successBtn} onPress={() => { setSuccessRef(null); setTab('status'); }}>
+                  <Text style={styles.successBtnText}>View My Requests →</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ── ERROR BANNER ── */}
+            {submitError ? (
+              <View style={styles.errorBanner}>
+                <Text style={styles.errorBannerText}>⚠️ {submitError}</Text>
+                <TouchableOpacity onPress={() => setSubmitError('')}>
+                  <Text style={styles.errorBannerClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {/* Document Type Picker */}
             <Text style={styles.label}>Document Type *</Text>
             <TouchableOpacity style={styles.picker} onPress={() => setShowPicker(true)}>
@@ -188,16 +225,20 @@ const ServicesScreen: React.FC = () => {
             </TouchableOpacity>
 
             <Text style={styles.label}>Full Name *</Text>
-            <TextInput style={styles.input} placeholder="Juan dela Cruz" value={fullName} onChangeText={setFullName} />
+            <TextInput style={[styles.input, errors.fullName ? styles.inputError : null]} placeholder="Juan dela Cruz" value={fullName} onChangeText={(t) => { setFullName(t); setErrors(e => ({...e, fullName: ''})); }} />
+            {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
 
             <Text style={styles.label}>Complete Address *</Text>
-            <TextInput style={styles.input} placeholder="Blk 1, Lot 2, Barangay Pantal, Dagupan City" value={address} onChangeText={setAddress} multiline numberOfLines={2} />
+            <TextInput style={[styles.input, errors.address ? styles.inputError : null]} placeholder="Blk 1, Lot 2, Barangay Pantal, Dagupan City" value={address} onChangeText={(t) => { setAddress(t); setErrors(e => ({...e, address: ''})); }} multiline numberOfLines={2} />
+            {errors.address ? <Text style={styles.errorText}>{errors.address}</Text> : null}
 
             <Text style={styles.label}>Contact Number *</Text>
-            <TextInput style={styles.input} placeholder="09XX XXX XXXX" value={contact} onChangeText={setContact} keyboardType="phone-pad" />
+            <TextInput style={[styles.input, errors.contact ? styles.inputError : null]} placeholder="09XX XXX XXXX" value={contact} onChangeText={(t) => { setContact(t); setErrors(e => ({...e, contact: ''})); }} keyboardType="phone-pad" maxLength={11} />
+            {errors.contact ? <Text style={styles.errorText}>{errors.contact}</Text> : null}
 
             <Text style={styles.label}>Purpose *</Text>
-            <TextInput style={[styles.input, { height: 90, textAlignVertical: 'top' }]} placeholder="State the purpose of the document (e.g., Employment, Bank Loan, Travel...)" value={purpose} onChangeText={setPurpose} multiline />
+            <TextInput style={[styles.input, { height: 90, textAlignVertical: 'top' }, errors.purpose ? styles.inputError : null]} placeholder="State the purpose of the document (e.g., Employment, Bank Loan, Travel...)" value={purpose} onChangeText={(t) => { setPurpose(t); setErrors(e => ({...e, purpose: ''})); }} multiline />
+            {errors.purpose ? <Text style={styles.errorText}>{errors.purpose}</Text> : null}
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>📋 Requirements: Valid government-issued ID upon pickup.</Text>
@@ -282,8 +323,34 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12,
     paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: '#0f172a',
-    backgroundColor: '#f8fafc', marginBottom: 16,
+    backgroundColor: '#f8fafc', marginBottom: 4,
   },
+  inputError: { borderColor: '#dc2626', backgroundColor: '#fff5f5' },
+  errorText: { fontSize: 11, color: '#dc2626', marginBottom: 12, marginLeft: 4, fontWeight: '600' },
+
+  // SUCCESS CARD
+  successCard: {
+    backgroundColor: '#f0fdf4', borderWidth: 1.5, borderColor: '#16a34a',
+    borderRadius: 14, padding: 20, marginBottom: 20, alignItems: 'center',
+  },
+  successIcon: { fontSize: 40, marginBottom: 8 },
+  successTitle: { fontSize: 18, fontWeight: '900', color: '#15803d', marginBottom: 6 },
+  successBody: { fontSize: 13, color: '#166534', textAlign: 'center', lineHeight: 20, marginBottom: 4 },
+  successRef: { fontSize: 13, color: '#166534', textAlign: 'center', marginBottom: 10 },
+  successBtn: {
+    marginTop: 10, backgroundColor: '#16a34a', borderRadius: 10,
+    paddingVertical: 10, paddingHorizontal: 24,
+  },
+  successBtnText: { color: 'white', fontWeight: '800', fontSize: 14 },
+
+  // ERROR BANNER
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fee2e2', borderWidth: 1, borderColor: '#dc2626',
+    borderRadius: 10, padding: 12, marginBottom: 16,
+  },
+  errorBannerText: { flex: 1, fontSize: 13, color: '#991b1b', fontWeight: '600' },
+  errorBannerClose: { fontSize: 16, color: '#dc2626', marginLeft: 8, fontWeight: '800' },
   picker: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 12,
