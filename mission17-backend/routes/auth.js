@@ -24,6 +24,21 @@ import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { logAudit, verifyAdmin } from '../utils/authMiddleware.js';
+import multer from 'multer';
+import path from 'path';
+
+// ==========================================
+// 📂 MULTER CONFIGURATION FOR FILE UPLOADS
+// ==========================================
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage: storage });
 
 // 🛡️ ANTI-FRAUD: Known disposable email domains
 const DISPOSABLE_DOMAINS = [
@@ -227,12 +242,25 @@ const loginLimiter = rateLimit({
 // ==========================================
 
 // 1. REGISTER
-router.post('/signup', async (req, res) => {
-  let { username, email, password, role } = req.body;
+router.post('/signup', upload.fields([
+  { name: 'validIdImage', maxCount: 1 }, 
+  { name: 'profileImage', maxCount: 1 }
+]), async (req, res) => {
+  let { 
+    email, password, role, 
+    firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus, 
+    nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber, 
+    voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson, 
+    numberOfFamilyMembers, educationalAttainment, bloodType, disability 
+  } = req.body;
+
+  // Since we don't collect a specific 'username' anymore on the form, we can generate one or use email
+  let username = req.body.username || (email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : '');
+
   try {
     // Basic validation to stop XSS/Empty fields before hitting the DB
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "All fields are required." });
+    if (!email || !password || !firstName || !lastName) {
+      return res.status(400).json({ message: "Required fields are missing." });
     }
     if (password.length < 8) {
       return res.status(400).json({ message: "Password must be at least 8 characters long." });
@@ -260,13 +288,25 @@ router.post('/signup', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    // Grab file URLs if they exist
+    const validIdUrl = req.files && req.files['validIdImage'] ? `/uploads/${req.files['validIdImage'][0].filename}` : null;
+    const profileImageUrl = req.files && req.files['profileImage'] ? `/uploads/${req.files['profileImage'][0].filename}` : null;
+
     const newUser = new User({
       username: cleanUsername,
       email: cleanEmail,
       password: hashedPassword,
       role: role ? role.toLowerCase() : 'resident',
       points: 0,
-      isVerified: false // 🔒 Default to unverified
+      isVerified: false, // 🔒 Default to unverified email
+      accountStatus: 'pending', // 🔒 Admin approval required
+      
+      // Expanded fields
+      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus, 
+      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber, 
+      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson, 
+      numberOfFamilyMembers, educationalAttainment, bloodType, disability,
+      validIdUrl, profileImageUrl
     });
 
     await newUser.save();
@@ -309,6 +349,16 @@ router.post('/login', loginLimiter, async (req, res) => {
     if (!isPasswordValid) {
       logAudit(user._id, user.username, "LOGIN_FAILED", "Failed login attempt (Wrong Password)", req);
       return res.status(400).json({ message: "Invalid Password!" });
+    }
+
+    // 🔒 CHECK: Admin Approval
+    if (user.accountStatus === 'pending') {
+      logAudit(user._id, user.username, "LOGIN_DENIED", "Pending Admin Approval", req);
+      return res.status(403).json({ message: "Your account is currently pending admin approval." });
+    }
+    if (user.accountStatus === 'rejected') {
+      logAudit(user._id, user.username, "LOGIN_DENIED", "Account Rejected by Admin", req);
+      return res.status(403).json({ message: "Your account registration was rejected." });
     }
 
     // 🔒 CHECK: Email Verification

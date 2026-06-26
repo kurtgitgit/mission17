@@ -8,10 +8,36 @@ import asyncHandler from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
-// GET /all-missions — Public
+// GET /all-missions — Public - With Pagination & Search
 router.get('/all-missions', asyncHandler(async (req, res) => {
-  const missions = await Mission.find().sort({ sdgNumber: 1 });
-  res.json(missions);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const search = req.query.search || '';
+
+  const query = {};
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: 'i' } }
+    ];
+    if (!isNaN(search) && search.trim() !== '') {
+      query.$or.push({ sdgNumber: Number(search) });
+    }
+  }
+
+  const missions = await Mission.find(query)
+    .sort({ sdgNumber: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Mission.countDocuments(query);
+
+  res.json({
+    data: missions,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit)
+  });
 }));
 
 // POST /add-mission — Admin

@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
-  SafeAreaView, ActivityIndicator, Image, Linking 
+  SafeAreaView, ActivityIndicator, Linking, Alert 
 } from 'react-native';
-// FIXED: Removed 'checkCircle' typo
 import { 
-  User, Settings, Edit3, ShieldCheck, ExternalLink, Clock, XCircle, CheckCircle
+  User, Settings, ShieldCheck, Clock, XCircle, CheckCircle, 
+  ChevronRight, HelpCircle, Info, ShieldAlert, PhoneCall, ThumbsUp, LogOut
 } from 'lucide-react-native'; 
-import { useIsFocused } from '@react-navigation/native';
+import { useIsFocused, CommonActions } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
-
-
+import { clearAuthData } from '../utils/storage';
+import { useTheme } from '../context/ThemeContext';
 
 // YOUR SYSTEM RELAYER ADDRESS
 const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
 
 const ProfileScreen = ({ navigation }: any) => { 
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+
   const [userData, setUserData] = useState<any>(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,99 +51,140 @@ const ProfileScreen = ({ navigation }: any) => {
   const approvedCount = history.filter((h: any) => h.status === 'Approved').length;
   const pendingCount = history.filter((h: any) => h.status === 'Pending').length;
 
-  // 👇 FUNCTION TO OPEN ETHERSCAN
   const openBlockchainHistory = () => {
     const url = `https://sepolia.etherscan.io/address/${WALLET_ADDRESS}`;
     Linking.openURL(url);
   };
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color="#3b82f6" /></View>;
+  const handleLogout = async () => {
+    Alert.alert("Logout", "Are you sure you want to log out?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Logout", style: "destructive", onPress: async () => {
+          await clearAuthData();
+          GlobalState.userId = null;
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Login' }],
+            })
+          );
+      }}
+    ]);
+  };
+
+  const handleComingSoon = (feature: string) => {
+    Alert.alert(feature, "This feature will be available soon.");
+  };
+
+  if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color={theme.primary} /></View>;
+
+  const MenuItem = ({ icon, title, onPress, isLast = false }: any) => (
+    <TouchableOpacity style={[styles.menuItem, !isLast && styles.menuItemBorder]} onPress={onPress}>
+      <View style={styles.menuIconContainer}>{icon}</View>
+      <Text style={styles.menuText}>{title}</Text>
+      <ChevronRight size={20} color={theme.primary} />
+    </TouchableOpacity>
+  );
 
   return (
     <RootComponent style={styles.container}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         
-        {/* HEADER WITH EDIT BUTTON */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerTopRow}>
-             <TouchableOpacity 
-              style={styles.iconBtn} 
-              onPress={() => navigation.navigate('Settings')} 
-             >
-             <Settings size={20} color="#94a3b8" />
-             </TouchableOpacity>
-             
-             <TouchableOpacity 
-               style={styles.iconBtn} 
-               onPress={() => navigation.navigate('EditProfile')}
-             >
-               <Edit3 size={20} color="#3b82f6" />
-             </TouchableOpacity>
-          </View>
+        <Text style={styles.pageTitle}>Account</Text>
 
-          {/* AVATAR WITH VERIFIED BADGE */}
+        {/* ── PROFILE INFO ── */}
+        <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
              <View style={styles.avatarCircle}>
-                 <User size={40} color="#3b82f6" />
+                 <User size={38} color="white" />
              </View>
-             {/* Verified Badge Icon */}
              <View style={styles.verifiedBadge}>
-                 <ShieldCheck size={16} color="white" />
+                 <ShieldCheck size={14} color="white" />
              </View>
           </View>
-
-          <Text style={styles.name}>{userData?.username || 'Agent'}</Text>
-          <Text style={styles.email}>{userData?.email}</Text>
-          
-          {/* 👇 SYSTEM RELAYER BUTTON 👇 */}
-          <TouchableOpacity 
-            onPress={openBlockchainHistory} 
-            activeOpacity={0.7}
-            style={styles.ledgerButton}
-          >
-            <View style={styles.ledgerIconBox}>
-                <ShieldCheck size={14} color="#3b82f6" />
-            </View>
-            <View style={{flex: 1}}>
-                <Text style={styles.ledgerButtonTitle}>Blockchain Verified</Text>
-                <Text style={styles.ledgerButtonSubtitle}>
-                    System Relayer: {WALLET_ADDRESS.substring(0, 6)}...{WALLET_ADDRESS.substring(WALLET_ADDRESS.length - 4)}
-                </Text>
-            </View>
-            <ExternalLink size={14} color="#94a3b8" />
-          </TouchableOpacity>
-          {/* 👆 END BUTTON 👆 */}
-
-          {userData?.bio && <Text style={styles.bio}>{userData.bio}</Text>}
-          
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{history.length}</Text>
-              <Text style={styles.statLabel}>Submitted</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#16a34a' }]}>{approvedCount}</Text>
-              <Text style={styles.statLabel}>Approved</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#b45309' }]}>{pendingCount}</Text>
-              <Text style={styles.statLabel}>Pending</Text>
-            </View>
+          <View style={styles.profileDetails}>
+            <Text style={styles.greeting}>Hi, {userData?.username?.toUpperCase() || 'USER'}</Text>
+            {userData?.mobileNumber && <Text style={styles.contactText}>{userData.mobileNumber}</Text>}
+            <Text style={styles.contactText}>{userData?.email}</Text>
           </View>
         </View>
 
+        {/* ── ACTION MENU ── */}
+        <View style={styles.menuContainer}>
+          <MenuItem 
+            icon={<User size={22} color={theme.primary} />} 
+            title="Personal Information" 
+            onPress={() => navigation.navigate('EditProfile')} 
+          />
+          <MenuItem 
+            icon={<HelpCircle size={22} color={theme.primary} />} 
+            title="FAQs" 
+            onPress={() => handleComingSoon("FAQs")} 
+          />
+          <MenuItem 
+            icon={<Info size={22} color={theme.primary} />} 
+            title="About Mission 17" 
+            onPress={() => handleComingSoon("About Mission 17")} 
+          />
+          <MenuItem 
+            icon={<ShieldAlert size={22} color={theme.primary} />} 
+            title="Privacy Notice" 
+            onPress={() => handleComingSoon("Privacy Notice")} 
+          />
+          <MenuItem 
+            icon={<PhoneCall size={22} color={theme.primary} />} 
+            title="Contact Us" 
+            onPress={() => handleComingSoon("Contact Us")} 
+          />
+          <MenuItem 
+            icon={<ThumbsUp size={22} color={theme.primary} />} 
+            title="Rate our app" 
+            onPress={() => handleComingSoon("Rate our app")} 
+          />
+          <MenuItem 
+            icon={<Settings size={22} color={theme.primary} />} 
+            title="Settings" 
+            onPress={() => navigation.navigate('Settings')} 
+          />
+          <MenuItem 
+            icon={<ShieldCheck size={22} color={theme.primary} />} 
+            title="Blockchain Verified" 
+            onPress={openBlockchainHistory} 
+          />
+          <MenuItem 
+            icon={<LogOut size={22} color={theme.primary} />} 
+            title="Logout" 
+            onPress={handleLogout} 
+            isLast={true}
+          />
+        </View>
 
+        {/* ── STATS SECTION ── */}
+        <View style={styles.statsCard}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{history.length}</Text>
+            <Text style={styles.statLabel}>Submitted</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#16a34a' }]}>{approvedCount}</Text>
+            <Text style={styles.statLabel}>Approved</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: '#b45309' }]}>{pendingCount}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+        </View>
 
-        {/* TASK HISTORY */}
+        {/* ── TASK HISTORY ── */}
         <View style={styles.historyHeader}>
           <Text style={styles.sectionTitle}>Civic Task History</Text>
         </View>
 
         {history.length === 0 ? (
           <View style={styles.emptyState}>
-            <Clock size={40} color="#cbd5e1" />
+            <Clock size={40} color={theme.textTertiary} />
             <Text style={styles.emptyText}>No missions yet. Start one today!</Text>
           </View>
         ) : (
@@ -175,84 +219,54 @@ const ProfileScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+const getStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 20 },
+  content: { padding: 24 },
   
-  headerCard: { backgroundColor: 'white', borderRadius: 24, padding: 20, alignItems: 'center', marginBottom: 25, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
-  headerTopRow: { width: '100%', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  iconBtn: { padding: 8, borderRadius: 20, backgroundColor: '#f1f5f9' },
-  
-  avatarContainer: { position: 'relative', marginBottom: 10 },
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center' },
-  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#10b981', padding: 4, borderRadius: 12, borderWidth: 2, borderColor: 'white' },
+  pageTitle: { fontSize: 18, fontWeight: '700', color: theme.text, textAlign: 'center', marginBottom: 24, marginTop: Platform.OS === 'android' ? 24 : 0 },
 
-  name: { fontSize: 22, fontWeight: '800', color: '#0f172a' },
-  email: { fontSize: 14, color: '#64748b', marginBottom: 15 },
-  
-  // NEW BUTTON STYLES
-  ledgerButton: {
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#f8fafc', 
-    borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    borderRadius: 16, 
-    padding: 12, 
-    width: '100%', 
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  ledgerIconBox: {
-    width: 32, height: 32, borderRadius: 10, backgroundColor: '#eff6ff', 
-    justifyContent: 'center', alignItems: 'center', marginRight: 12
-  },
-  ledgerButtonTitle: {
-    fontSize: 13, fontWeight: '700', color: '#0f172a'
-  },
-  ledgerButtonSubtitle: {
-    fontSize: 11, color: '#64748b', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', marginTop: 2
-  },
+  // PROFILE HEADER
+  profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
+  avatarContainer: { position: 'relative', marginRight: 16 },
+  avatarCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center' },
+  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: theme.success, padding: 3, borderRadius: 12, borderWidth: 2, borderColor: theme.background },
+  profileDetails: { flex: 1 },
+  greeting: { fontSize: 18, fontWeight: '800', color: theme.text, marginBottom: 4 },
+  contactText: { fontSize: 14, color: theme.textSecondary, marginBottom: 2 },
 
-  bio: { fontSize: 13, color: '#3b82f6', fontStyle: 'italic', marginBottom: 15, textAlign: 'center' }, 
-  
-  statsRow: { flexDirection: 'row', width: '100%', borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 },
+  // MENU
+  menuContainer: { marginBottom: 30 },
+  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18 },
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: theme.border },
+  menuIconContainer: { width: 24, alignItems: 'center', marginRight: 16 },
+  menuText: { flex: 1, fontSize: 16, color: theme.primary, fontWeight: '600' },
+
+  // STATS
+  statsCard: { flexDirection: 'row', backgroundColor: theme.surface, borderRadius: 16, paddingVertical: 16, marginBottom: 30, borderWidth: 1, borderColor: theme.border },
   statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '800', color: '#3b82f6' },
-  statLabel: { fontSize: 12, color: '#64748b', marginTop: 2 },
-  statDivider: { width: 1, height: '80%', backgroundColor: '#f1f5f9' },
+  statValue: { fontSize: 20, fontWeight: '800', color: theme.primary },
+  statLabel: { fontSize: 12, color: theme.textSecondary, marginTop: 4, fontWeight: '500' },
+  statDivider: { width: 1, height: '80%', backgroundColor: theme.border, alignSelf: 'center' },
 
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 10 },
-  viewLedgerLink: { fontSize: 12, color: '#3b82f6', fontWeight: '600' },
-
-  badgeScroll: { marginBottom: 25, marginHorizontal: -20, paddingHorizontal: 20 },
-  badgeCard: { flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 16, marginRight: 12, width: 160 },
-  badgeIcon: { fontSize: 24, marginRight: 10 },
-  badgeName: { fontSize: 13, fontWeight: '700' },
-  badgeDesc: { fontSize: 10, opacity: 0.8 },
-
-  historyCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 5 },
-  historyInfo: { flex: 1 },
-  missionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginBottom: 2 },
-  historyMeta: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  date: { fontSize: 13, color: '#94a3b8' },
-  pointsText: { fontSize: 13, fontWeight: '700', color: '#22c55e' },
-  reasonText: { fontSize: 12, color: '#ef4444', marginTop: 4, fontWeight: '600' },
+  // TASK HISTORY
+  historyHeader: { marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: theme.text },
+  historyCard: { backgroundColor: theme.surface, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: theme.border },
+  historyInfo: { flex: 1, paddingRight: 12 },
+  missionTitle: { fontSize: 15, fontWeight: '700', color: theme.text, marginBottom: 4 },
+  historyMeta: { flexDirection: 'row', alignItems: 'center' },
+  date: { fontSize: 12, color: theme.textSecondary },
+  reasonText: { fontSize: 12, color: theme.danger, marginTop: 6, fontWeight: '600' },
   
   statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   statusText: { color: 'white', fontSize: 11, fontWeight: '700' },
-  bgSuccess: { backgroundColor: '#22c55e' },
-  bgDanger: { backgroundColor: '#ef4444' },
-  bgWarning: { backgroundColor: '#f59e0b' },
+  bgSuccess: { backgroundColor: theme.success },
+  bgDanger: { backgroundColor: theme.danger },
+  bgWarning: { backgroundColor: theme.warning },
 
-  emptyState: { alignItems: 'center', padding: 30, opacity: 0.5 },
-  emptyText: { marginTop: 10, color: '#64748b' }
+  emptyState: { alignItems: 'center', padding: 30, opacity: 0.6 },
+  emptyText: { marginTop: 10, color: theme.textSecondary, fontSize: 14 }
 });
 
 export default ProfileScreen;

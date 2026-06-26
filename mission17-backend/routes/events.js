@@ -15,11 +15,35 @@ import Event from '../models/Event.js';
 
 const router = express.Router();
 
-// 1. GET ALL EVENTS (Public)
+// 1. GET ALL EVENTS (Public) - With Pagination & Search
 router.get('/events', async (req, res) => {
   try {
-    const events = await Event.find().sort({ date: 1 });
-    res.json(events);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const search = req.query.search || '';
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { location: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    const events = await Event.find(query)
+      .sort({ date: 1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Event.countDocuments(query);
+
+    res.json({
+      data: events,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching events' });
   }

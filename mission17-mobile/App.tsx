@@ -36,6 +36,7 @@ import OfficialsScreen     from './src/screens/OfficialsScreen';
 import { getAuthData } from './src/utils/storage';
 import { GlobalState } from './src/config/api';
 import { NotificationProvider } from './src/context/NotificationContext';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -43,21 +44,22 @@ const Tab   = createBottomTabNavigator();
 // ─── TAB BAR ────────────────────────────────────────────
 function MainTabs() {
   const TabNavigator = Tab.Navigator as any;
+  const { theme } = useTheme();
 
   return (
     <TabNavigator
       id="MainTabs"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#0038A8',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: theme.primary,
+        tabBarInactiveTintColor: theme.textTertiary,
         tabBarStyle: {
           height: Platform.OS === 'ios' ? 82 : 64,
           paddingBottom: Platform.OS === 'ios' ? 24 : 10,
           paddingTop: 8,
-          backgroundColor: 'white',
+          backgroundColor: theme.surface,
           borderTopWidth: 1,
-          borderTopColor: '#e2e8f0',
+          borderTopColor: theme.border,
           ...Platform.select({
             default: { elevation: 12, shadowColor: '#000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.06, shadowRadius: 8 },
             web: { boxShadow: '0px -2px 12px rgba(0,0,0,0.06)' }
@@ -140,8 +142,9 @@ export default function App() {
   }
 
   return (
-    <NotificationProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
+    <ThemeProvider>
+      <NotificationProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
         <NavigationContainer>
           <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
             {/* Auth */}
@@ -172,6 +175,7 @@ export default function App() {
           </StackNavigator>
         </NavigationContainer>
       </GestureHandlerRootView>
-    </NotificationProvider>
+      </NotificationProvider>
+    </ThemeProvider>
   );
 }

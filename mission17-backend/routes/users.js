@@ -20,12 +20,43 @@ import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 
 const router = express.Router();
 
-// 1. GET ALL USERS (Admin)
+// 1. GET ALL USERS (Admin) - With Pagination & Search
 router.get('/users', verifyAdmin, async (req, res) => {
   try {
-    const users = await User.find().select('-password');
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const search = req.query.search || '';
+    const verified = req.query.verified; // 'true', 'false', or undefined
+
+    const query = {};
+    if (search) {
+      query.$or = [
+        { username: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { role: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    if (verified === 'true') query.isVerified = true;
+    if (verified === 'false') query.isVerified = false;
+
+    const users = await User.find(query)
+      .select('-password')
+      .sort({ _id: -1 }) // Sort newest first
+      .skip(skip)
+      .limit(limit);
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      data: users,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    });
   } catch (error) {
+    console.error("GET /users error:", error);
     res.status(500).json({ message: 'Server Error' });
   }
 });

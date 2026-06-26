@@ -21,6 +21,39 @@ const UserSchema = new mongoose.Schema({
     enum: ['resident', 'lgu', 'admin'],
     default: 'resident' 
   },
+  // ==================================================
+  // 📝 EXTENDED RESIDENT INFORMATION
+  // ==================================================
+  firstName: { type: String },
+  middleName: { type: String },
+  lastName: { type: String },
+  birthDate: { type: String },
+  age: { type: String },
+  placeOfBirth: { type: String },
+  gender: { type: String },
+  civilStatus: { type: String },
+  nationality: { type: String },
+  religion: { type: String },
+  completeAddress: { type: String },
+  purok: { type: String },
+  yearsOfResidency: { type: String },
+  mobileNumber: { type: String },
+  voterStatus: { type: String },
+  employmentStatus: { type: String },
+  occupation: { type: String },
+  householdHead: { type: String },
+  emergencyContactPerson: { type: String },
+  numberOfFamilyMembers: { type: String },
+  educationalAttainment: { type: String },
+  bloodType: { type: String },
+  disability: { type: String },
+  validIdUrl: { type: String },
+  profileImageUrl: { type: String },
+  accountStatus: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending' // Admin must approve before login
+  },
   points: { type: Number, default: 0 },
   completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],
 

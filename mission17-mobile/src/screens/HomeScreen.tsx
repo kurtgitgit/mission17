@@ -12,14 +12,15 @@ import {
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { endpoints, GlobalState } from '../config/api';
 import { getAuthData } from '../utils/storage';
+import { useTheme } from '../context/ThemeContext';
 
 // ─── QUICK SERVICES ─────────────────────────────────────────────────────────
 const SERVICES = [
-  { id: 'clearance',  label: 'eBrgy',         emoji: '📄', screen: 'Services',          color: '#0038A8' },
-  { id: 'officials',  label: 'eOfficials',    emoji: '👥', screen: 'Officials',         color: '#0038A8' },
-  { id: 'tasks',      label: 'eMissions',     emoji: '🌿', screen: 'MissionsTab',       color: '#0038A8' },
-  { id: 'news',       label: 'eNews',         emoji: '📢', screen: 'AnnouncementsTab',  color: '#0038A8' },
-  { id: 'suggestions',label: 'eFeedback',     emoji: '💡', screen: 'Suggestion',        color: '#0038A8' },
+  { id: 'clearance',  label: 'eBrgy',         emoji: '📄', screen: 'Services' },
+  { id: 'officials',  label: 'eOfficials',    emoji: '👥', screen: 'Officials' },
+  { id: 'tasks',      label: 'eMissions',     emoji: '🌿', screen: 'MissionsTab' },
+  { id: 'news',       label: 'eNews',         emoji: '📢', screen: 'AnnouncementsTab' },
+  { id: 'suggestions',label: 'eFeedback',     emoji: '💡', screen: 'Suggestion' },
 ];
 
 // ─── HOTLINES ───────────────────────────────────────────────────────────────
@@ -35,6 +36,8 @@ const HomeScreen: React.FC = () => {
   const navigation  = useNavigation<any>();
   const route       = useRoute<any>();
   const isFocused   = useIsFocused();
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme);
 
   const userId = route.params?.userId || GlobalState.userId;
 
@@ -99,10 +102,10 @@ const HomeScreen: React.FC = () => {
 
   return (
     <RootComponent style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* ══════════ HEADER ══════════ */}
         <View style={styles.header}>
@@ -142,12 +145,12 @@ const HomeScreen: React.FC = () => {
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#0038A8' }]}>{stats.approved}</Text>
+              <Text style={[styles.statNum, { color: theme.primary }]}>{stats.approved}</Text>
               <Text style={styles.statLbl}>Verified</Text>
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#CE1126' }]}>{stats.pending}</Text>
+              <Text style={[styles.statNum, { color: theme.danger }]}>{stats.pending}</Text>
               <Text style={styles.statLbl}>Pending</Text>
             </View>
           </View>
@@ -186,19 +189,19 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
 
         {/* ══════════ BLOTTER REPORT BANNER ══════════ */}
-        <TouchableOpacity style={[styles.docBanner, { backgroundColor: '#fef2f2', borderColor: '#fecaca', marginTop: 10 }]} onPress={() => navigation.navigate('BlotterReport')} activeOpacity={0.85}>
+        <TouchableOpacity style={[styles.docBanner, { backgroundColor: theme.dangerLight, borderColor: theme.dangerLight, marginTop: 10 }]} onPress={() => navigation.navigate('BlotterReport')} activeOpacity={0.85}>
           <View style={styles.docBannerLeft}>
-            <Shield size={22} color="#dc2626" />
+            <Shield size={22} color={theme.danger} />
             <View>
-              <Text style={[styles.docBannerTitle, { color: '#b91c1c' }]}>File a Blotter Report</Text>
-              <Text style={[styles.docBannerSub, { color: '#dc2626' }]}>Report incidents directly to the barangay</Text>
+              <Text style={[styles.docBannerTitle, { color: theme.danger }]}>File a Blotter Report</Text>
+              <Text style={[styles.docBannerSub, { color: theme.danger }]}>Report incidents directly to the barangay</Text>
             </View>
           </View>
-          <ChevronRight size={18} color="#dc2626" />
+          <ChevronRight size={18} color={theme.danger} />
         </TouchableOpacity>
         
         <TouchableOpacity style={{ alignItems: 'center', marginTop: 8 }} onPress={() => navigation.navigate('BlotterHistory')}>
-          <Text style={{ fontSize: 13, color: '#dc2626', fontWeight: '600' }}>View My Past Reports →</Text>
+          <Text style={{ fontSize: 13, color: theme.danger, fontWeight: '600' }}>View My Past Reports →</Text>
         </TouchableOpacity>
 
         {/* ══════════ ANNOUNCEMENTS ══════════ */}
@@ -212,7 +215,7 @@ const HomeScreen: React.FC = () => {
 
           {announcements.length === 0 ? (
             <View style={styles.emptyState}>
-              <Megaphone size={28} color="#cbd5e1" />
+              <Megaphone size={28} color={theme.textTertiary} />
               <Text style={styles.emptyText}>No announcements yet.</Text>
             </View>
           ) : (
@@ -254,18 +257,18 @@ const HomeScreen: React.FC = () => {
                   onPress={() => navigation.navigate('MissionsTab')}
                   activeOpacity={0.85}
                 >
-                  <View style={[styles.evtDate, { backgroundColor: evt.color || '#0038A8' }]}>
-                    <Text style={styles.evtMon}>{mon}</Text>
-                    <Text style={styles.evtDay}>{day}</Text>
+                  <View style={[styles.evtDate, { backgroundColor: evt.color || theme.primary }]}>
+                    <Text style={[styles.evtMon, { color: 'white' }]}>{mon}</Text>
+                    <Text style={[styles.evtDay, { color: 'white' }]}>{day}</Text>
                   </View>
                   <View style={styles.evtInfo}>
                     <Text style={styles.evtTitle} numberOfLines={1}>{evt.title}</Text>
                     <View style={styles.evtLocRow}>
-                      <MapPin size={12} color="#94a3b8" />
+                      <MapPin size={12} color={theme.textTertiary} />
                       <Text style={styles.evtLoc} numberOfLines={1}>{evt.location}</Text>
                     </View>
                   </View>
-                  <ChevronRight size={16} color="#cbd5e1" />
+                  <ChevronRight size={16} color={theme.textTertiary} />
                 </TouchableOpacity>
               );
             })}
@@ -288,7 +291,7 @@ const HomeScreen: React.FC = () => {
                   <Text style={styles.hotlineLabel}>{h.label}</Text>
                   <Text style={styles.hotlineNumber}>{h.number}</Text>
                 </View>
-                <Phone size={15} color="#0038A8" />
+                <Phone size={15} color={theme.primary} />
               </TouchableOpacity>
             ))}
           </View>
@@ -310,12 +313,12 @@ const HomeScreen: React.FC = () => {
 };
 
 // ─── STYLES ──────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f8fafc' },
+const getStyles = (theme: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.background },
 
   // HEADER
   header: {
-    backgroundColor: '#0038A8',
+    backgroundColor: '#0038A8', // Brand blue stays same for header
     paddingTop: Platform.OS === 'android' ? 44 : 18,
     paddingHorizontal: 20,
     paddingBottom: 40, // More space for overlapping card
@@ -324,7 +327,7 @@ const styles = StyleSheet.create({
   brgyBadge: { fontSize: 13, fontWeight: '900', color: '#FCD116', letterSpacing: 0.3 },
   brgyCity: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
   bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  bellDot: { position: 'absolute', top: 9, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: '#CE1126', borderWidth: 1.5, borderColor: '#0038A8' },
+  bellDot: { position: 'absolute', top: 9, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#0038A8' },
   welcomeRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
   avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FCD116' },
   avatarInitial: { fontSize: 20, fontWeight: '900', color: 'white' },
@@ -333,80 +336,82 @@ const styles = StyleSheet.create({
 
   // DIGITAL ID / STATS STRIP
   statsStrip: {
-    backgroundColor: 'white', marginHorizontal: 16,
+    backgroundColor: theme.surface, marginHorizontal: 16,
     borderRadius: 16, marginTop: -30,
-    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 15, elevation: 6,
-    overflow: 'hidden'
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.3 : 0.1, shadowRadius: 15, elevation: 6,
+    overflow: 'hidden', borderWidth: 1, borderColor: theme.border
   },
-  idHeader: { backgroundColor: '#f1f5f9', paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  idHeaderText: { fontSize: 11, fontWeight: '800', color: '#0038A8', letterSpacing: 1 },
+  idHeader: { backgroundColor: theme.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.border },
+  idHeaderText: { fontSize: 11, fontWeight: '800', color: theme.primary, letterSpacing: 1 },
   idBody: { flexDirection: 'row', paddingVertical: 16 },
   statItem: { flex: 1, alignItems: 'center', gap: 4 },
-  statNum:  { fontSize: 22, fontWeight: '900', color: '#0f172a' },
-  statLbl:  { fontSize: 11, color: '#64748b', fontWeight: '700', textTransform: 'uppercase' },
-  statDiv:  { width: 1, backgroundColor: '#e2e8f0', alignSelf: 'stretch', marginVertical: 4 },
+  statNum:  { fontSize: 22, fontWeight: '900', color: theme.text },
+  statLbl:  { fontSize: 11, color: theme.textSecondary, fontWeight: '700', textTransform: 'uppercase' },
+  statDiv:  { width: 1, backgroundColor: theme.border, alignSelf: 'stretch', marginVertical: 4 },
 
   // SECTIONS
   section: { paddingHorizontal: 16, marginTop: 24 },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#0038A8' },
-  seeAll: { fontSize: 13, color: '#CE1126', fontWeight: '700' },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: theme.primary },
+  seeAll: { fontSize: 13, color: theme.danger, fontWeight: '700' },
 
   // QUICK SERVICES
   servicesGrid: { flexDirection: 'row', gap: 10 },
   svcCard: {
-    flex: 1, backgroundColor: 'white', borderRadius: 14, paddingVertical: 16, alignItems: 'center', gap: 8,
-    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: '#f1f5f9'
+    flex: 1, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 16, alignItems: 'center', gap: 8,
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.06, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: theme.border
   },
-  svcIconBox: { width: 46, height: 46, borderRadius: 12, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
+  svcIconBox: { width: 46, height: 46, borderRadius: 12, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
   svcEmoji:  { fontSize: 22 },
-  svcLabel:  { fontSize: 11, fontWeight: '700', color: '#0038A8', textAlign: 'center' },
+  svcLabel:  { fontSize: 11, fontWeight: '700', color: theme.primary, textAlign: 'center' },
 
   // DOC BANNER
   docBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#eff6ff', borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14,
-    borderWidth: 1.5, borderColor: '#bfdbfe',
+    backgroundColor: theme.isDark ? 'rgba(124, 58, 237, 0.15)' : '#eff6ff', borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14,
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(124, 58, 237, 0.3)' : '#bfdbfe',
   },
   docBannerLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  docBannerTitle: { fontSize: 14, fontWeight: '800', color: '#1e3a8a' },
-  docBannerSub:   { fontSize: 12, color: '#3b82f6', marginTop: 1 },
+  docBannerTitle: { fontSize: 14, fontWeight: '800', color: theme.isDark ? '#a78bfa' : '#1e3a8a' },
+  docBannerSub:   { fontSize: 12, color: theme.isDark ? '#8b5cf6' : '#3b82f6', marginTop: 1 },
 
   // ANNOUNCEMENTS
   annCard: {
-    backgroundColor: 'white', borderRadius: 14, padding: 16, marginBottom: 10,
-    borderLeftWidth: 4, borderLeftColor: '#0038A8',
-    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 6, elevation: 1,
+    backgroundColor: theme.surface, borderRadius: 14, padding: 16, marginBottom: 10,
+    borderLeftWidth: 4, borderLeftColor: theme.primary,
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.03, shadowRadius: 6, elevation: 1,
+    borderWidth: 1, borderColor: theme.border
   },
-  pinTag:   { fontSize: 10, fontWeight: '800', color: '#b45309', marginBottom: 5 },
-  annTitle: { fontSize: 15, fontWeight: '800', color: '#0f172a', marginBottom: 5, lineHeight: 22 },
-  annBody:  { fontSize: 13, color: '#64748b', lineHeight: 20, marginBottom: 8 },
-  annDate:  { fontSize: 11, color: '#94a3b8' },
-  emptyState: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'white', borderRadius: 14, padding: 20, marginBottom: 10 },
-  emptyText:  { color: '#94a3b8', fontStyle: 'italic', fontSize: 14 },
+  pinTag:   { fontSize: 10, fontWeight: '800', color: theme.warning, marginBottom: 5 },
+  annTitle: { fontSize: 15, fontWeight: '800', color: theme.text, marginBottom: 5, lineHeight: 22 },
+  annBody:  { fontSize: 13, color: theme.textSecondary, lineHeight: 20, marginBottom: 8 },
+  annDate:  { fontSize: 11, color: theme.textTertiary },
+  emptyState: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 14, padding: 20, marginBottom: 10, borderWidth: 1, borderColor: theme.border },
+  emptyText:  { color: theme.textTertiary, fontStyle: 'italic', fontSize: 14 },
 
   // EVENTS
   evtRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: 'white', borderRadius: 14, padding: 14, marginBottom: 8,
-    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 6, elevation: 1,
+    backgroundColor: theme.surface, borderRadius: 14, padding: 14, marginBottom: 8,
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.03, shadowRadius: 6, elevation: 1,
+    borderWidth: 1, borderColor: theme.border
   },
-  evtDate: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FCD116' },
-  evtMon:  { fontSize: 9, fontWeight: '800', color: '#0038A8', textTransform: 'uppercase' },
-  evtDay:  { fontSize: 18, fontWeight: '900', color: '#0038A8', lineHeight: 22 },
+  evtDate: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  evtMon:  { fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
+  evtDay:  { fontSize: 18, fontWeight: '900', lineHeight: 22 },
   evtInfo: { flex: 1 },
-  evtTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a', marginBottom: 3 },
+  evtTitle: { fontSize: 14, fontWeight: '700', color: theme.text, marginBottom: 3 },
   evtLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  evtLoc:    { fontSize: 12, color: '#94a3b8', flex: 1 },
+  evtLoc:    { fontSize: 12, color: theme.textTertiary, flex: 1 },
 
   // HOTLINES
-  hotlinesCard: { backgroundColor: 'white', borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
+  hotlinesCard: { backgroundColor: theme.surface, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: theme.border },
   hotlineRow:   { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  hotlineDivider: { borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  hotlineDivider: { borderBottomWidth: 1, borderBottomColor: theme.border },
   hotlineEmoji:  { fontSize: 22, marginRight: 12 },
   hotlineInfo:   { flex: 1 },
-  hotlineLabel:  { fontSize: 14, fontWeight: '700', color: '#0f172a' },
-  hotlineNumber: { fontSize: 13, color: '#0038A8', fontWeight: '600', marginTop: 1 },
+  hotlineLabel:  { fontSize: 14, fontWeight: '700', color: theme.text },
+  hotlineNumber: { fontSize: 13, color: theme.primary, fontWeight: '600', marginTop: 1 },
   
   // FAB
   fab: {

@@ -11,6 +11,13 @@ const Users = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterTab, setFilterTab] = useState('all');
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const limit = 10;
 
   // Modal & Form State
   const [showModal, setShowModal] = useState(false);
@@ -36,13 +43,28 @@ const Users = () => {
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
 
+  // Reset to page 1 when search or tab changes
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    setCurrentPage(1);
+  }, [searchTerm, filterTab]);
+
+  // Debounce search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, currentPage, filterTab]);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(endpoints.users.getAll, {
+      let url = `${endpoints.users.getAll}?page=${currentPage}&limit=${limit}`;
+      if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+      if (filterTab === 'verified') url += `&verified=true`;
+      if (filterTab === 'unverified') url += `&verified=false`;
+
+      const response = await fetch(url, {
         headers: {
           'auth-token': getToken() // 🛡️ ADDED TOKEN
         }
@@ -50,7 +72,9 @@ const Users = () => {
 
       if (response.ok) {
         const data = await response.json();
-        setUsers(data);
+        setUsers(data.data || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalUsers(data.total || 0);
       } else {
         console.error("Failed to fetch users");
       }
@@ -61,12 +85,6 @@ const Users = () => {
       setLoading(false);
     }
   };
-
-  const filteredUsers = users.filter(user =>
-    user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -165,7 +183,7 @@ const Users = () => {
           'Content-Type': 'application/json',
           'auth-token': getToken()
         },
-        body: JSON.stringify({ isVerified: true })
+        body: JSON.stringify({ isVerified: true, accountStatus: 'approved' })
       });
 
       if (res.ok) {
@@ -278,6 +296,22 @@ const Users = () => {
           </div>
         )}
 
+        {/* TABS */}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '15px', borderBottom: '1px solid #e2e8f0' }}>
+          <button 
+            onClick={() => setFilterTab('all')} 
+            style={{ ...styles.tabBtn, borderBottom: filterTab === 'all' ? '2px solid #3b82f6' : 'none', color: filterTab === 'all' ? '#3b82f6' : '#64748b' }}
+          >All Users</button>
+          <button 
+            onClick={() => setFilterTab('verified')} 
+            style={{ ...styles.tabBtn, borderBottom: filterTab === 'verified' ? '2px solid #16a34a' : 'none', color: filterTab === 'verified' ? '#16a34a' : '#64748b' }}
+          >Verified</button>
+          <button 
+            onClick={() => setFilterTab('unverified')} 
+            style={{ ...styles.tabBtn, borderBottom: filterTab === 'unverified' ? '2px solid #f59e0b' : 'none', color: filterTab === 'unverified' ? '#f59e0b' : '#64748b' }}
+          >Unverified</button>
+        </div>
+
         {/* TABLE */}
         <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -294,8 +328,8 @@ const Users = () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
-              ) : filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => {
+              ) : users.length > 0 ? (
+                users.map((user) => {
                   const badge = getRoleBadgeStyle(user.role);
                   return (
                     <tr key={user._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -352,6 +386,28 @@ const Users = () => {
           </table>
         </div>
 
+        {/* PAGINATION CONTROLS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+          <div style={{ fontSize: '14px', color: '#64748b' }}>
+            Showing {users.length} of {totalUsers} users
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              style={{ ...styles.pageBtn, opacity: currentPage === 1 ? 0.5 : 1 }}
+            >Previous</button>
+            <div style={{ padding: '8px 12px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', color: '#475569' }}>
+              Page {currentPage} of {totalPages}
+            </div>
+            <button 
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              style={{ ...styles.pageBtn, opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1 }}
+            >Next</button>
+          </div>
+        </div>
+
         <Modal
           isOpen={modalConfig.isOpen}
           onClose={closeModal}
@@ -376,6 +432,8 @@ const styles = {
   input: { padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', width: '100%', boxSizing: 'border-box' },
   submitBtn: { marginTop: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
   actionBtn: (color) => ({ background: 'none', border: 'none', color: color, cursor: 'pointer', padding: '4px' }),
+  tabBtn: { background: 'none', border: 'none', padding: '10px 15px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', transition: 'all 0.2s', marginBottom: '-1px' },
+  pageBtn: { padding: '8px 16px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', color: '#334155' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { backgroundColor: 'white', padding: '30px', borderRadius: '16px', width: '400px', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }
 };

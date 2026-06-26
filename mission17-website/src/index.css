@@ -24,30 +24,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.font-serif {
-  font-family: var(--font-serif);
-}
+.font-serif { font-family: var(--font-serif); }
+.text-gold { color: var(--accent-gold); }
+.text-blue { color: var(--primary-blue); }
+.bg-gold { background-color: var(--accent-gold); }
 
-.text-gold {
-  color: var(--accent-gold);
-}
-
-.text-blue {
-  color: var(--primary-blue);
-}
-
-.bg-gold {
-  background-color: var(--accent-gold);
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-a {
-  color: var(--bright-blue);
-  text-decoration: none;
-}
+html { scroll-behavior: smooth; }
+a { color: var(--bright-blue); text-decoration: none; }
 
 .btn-primary {
   background-color: var(--bright-blue);
@@ -108,7 +91,7 @@ a {
 }
 
 .heading-hero {
-  font-size: clamp(3rem, 6vw, 5rem);
+  font-size: clamp(2.5rem, 6vw, 5rem);
   font-weight: 800;
   line-height: 1.1;
   color: var(--primary-blue);
@@ -180,9 +163,7 @@ a {
   gap: 3rem;
 }
 
-.stat-item {
-  text-align: center;
-}
+.stat-item { text-align: center; }
 .stat-number {
   font-size: 3.5rem;
   font-weight: 800;
@@ -233,9 +214,7 @@ a {
   z-index: 10;
 }
 
-.sdg-card:hover img {
-  transform: scale(1.05);
-}
+.sdg-card:hover img { transform: scale(1.05); }
 
 /* Modal styles for SDG interaction */
 .modal-overlay {
@@ -276,3 +255,66 @@ a {
 
 @keyframes fadeIn { to { opacity: 1; } }
 @keyframes slideUp { to { transform: translateY(0); } }
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 768px) {
+  .nav-links { display: none !important; }
+  .header-content { flex-direction: column; text-align: center; align-items: center; }
+  
+  .hero-container {
+    flex-direction: column !important;
+    text-align: center;
+    padding: 4rem 5% 4rem !important;
+  }
+  
+  .hero-text-block {
+    flex: 1 1 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .hero-text-block p {
+    font-size: 1rem !important;
+    margin: 0 auto 2rem;
+  }
+  
+  .hero-buttons {
+    justify-content: center;
+    width: 100%;
+  }
+  
+  .hero-buttons button {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .stats-banner {
+    flex-direction: column;
+    padding: 2rem 5%;
+    gap: 2rem;
+  }
+  
+  .stat-number { font-size: 2.5rem; }
+  
+  .section-title-wrapper {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 1rem;
+  }
+  
+  .ai-engine-container { flex-direction: column !important; gap: 2rem !important; }
+  .ai-engine-block { flex: 1 1 100% !important; }
+  
+  .footer-container {
+    flex-direction: column !important;
+    text-align: center;
+    gap: 2rem !important;
+  }
+  
+  .footer-right { text-align: center !important; }
+  .footer-right p { align-items: center; justify-content: center; }
+  
+  .top-banner-text {
+    font-size: 0.75rem !important;
+    text-align: center;
+  }
+}
