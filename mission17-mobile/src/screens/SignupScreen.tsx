@@ -5,85 +5,181 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Alert, 
   ActivityIndicator, 
   Platform, 
   Image,
   KeyboardAvoidingView,
   ScrollView,
   SafeAreaView,
-  Keyboard
+  Keyboard,
+  Modal,
+  TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Eye, EyeOff, Upload, CheckSquare, Square, ChevronDown } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
+import * as ImagePicker from 'expo-image-picker';
 
 const missionLogo = require('../../assets/logo.png');
+
+// Custom Cross-Platform Dropdown
+const CustomDropdown = ({ label, value, options, onSelect }: { label: string, value: string, options: string[], onSelect: (val: string) => void }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={styles.inputContainer}>
+      <TouchableOpacity 
+        style={styles.dropdownTrigger}
+        onPress={() => { Keyboard.dismiss(); setVisible(true); }}
+      >
+        <Text style={{ color: value ? '#1e293b' : '#94a3b8', fontSize: 15 }}>
+          {value || label}
+        </Text>
+        <ChevronDown color="#94a3b8" size={20} />
+      </TouchableOpacity>
+      
+      <Modal visible={visible} transparent animationType="fade">
+        <TouchableWithoutFeedback onPress={() => setVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select {label}</Text>
+              <ScrollView style={{ maxHeight: 300 }}>
+                {options.map((opt) => (
+                  <TouchableOpacity 
+                    key={opt} 
+                    style={styles.modalOption}
+                    onPress={() => { onSelect(opt); setVisible(false); }}
+                  >
+                    <Text style={[styles.modalOptionText, value === opt && styles.modalOptionTextSelected]}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+    </View>
+  );
+};
 
 export default function SignupScreen() {
   const { showNotification } = useNotification();
   const navigation = useNavigation<any>();
   
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [step, setStep] = useState(1);
+
+  const [formData, setFormData] = useState({
+    firstName: '', middleName: '', lastName: '', suffix: '', birthDate: '', age: '',
+    placeOfBirth: '', gender: '', civilStatus: '', nationality: '', religion: '',
+    completeAddress: '', purok: '', yearsOfResidency: '', mobileNumber: '',
+    email: '', voterStatus: '', employmentStatus: '', occupation: '',
+    householdHead: '', emergencyContactPerson: '', numberOfFamilyMembers: '',
+    educationalAttainment: '', bloodType: '', disability: '',
+    password: '', confirmPassword: ''
+  });
+
   const [role, setRole] = useState('Resident'); 
-  
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [noMiddleName, setNoMiddleName] = useState(false);
 
-  // Available Roles
-  const roles = ['Resident', 'LGU'];
+  const [validIdImage, setValidIdImage] = useState<any>(null);
+  const [profileImage, setProfileImage] = useState<any>(null);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const pickImage = async (type: 'id' | 'profile') => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      if (type === 'id') setValidIdImage(result.assets[0]);
+      if (type === 'profile') setProfileImage(result.assets[0]);
+    }
+  };
+
+  const nextStep = () => {
+    if (step === 1) {
+      if (!formData.firstName || !formData.lastName) {
+        showNotification('First and Last Name are required.', 'error');
+        return;
+      }
+      if (!formData.email) {
+        showNotification('Email Address is required.', 'error');
+        return;
+      }
+    }
+    setStep(prev => Math.min(prev + 1, 3));
+  };
+
+  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
   const handleSignup = async () => {
-    Keyboard.dismiss(); // 📱 UX Fix
+    Keyboard.dismiss();
 
-    if (!username || !email || !password) {
-      showNotification('Please fill in all fields', 'error');
+    if (!formData.password) {
+      showNotification('Password is required.', 'error');
+      return;
+    }
+    
+    if (formData.password !== formData.confirmPassword) {
+      showNotification('Passwords do not match.', 'error');
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      showNotification('Please enter a valid email address.', 'error');
-      return;
-    }
-
-    // 🔒 PASSWORD VALIDATION: Check length
-    if (password.length < 8) {
-      showNotification('Password must be at least 8 characters long.', 'error');
+    if (!validIdImage) {
+      showNotification('Please attach a Valid ID.', 'error');
       return;
     }
 
     setLoading(true);
 
     try {
-      console.log("Attempting signup to:", endpoints.auth.signup);
+      const formPayload = new FormData();
+      Object.keys(formData).forEach(key => {
+        if (key !== 'confirmPassword') {
+          if (key === 'middleName' && noMiddleName) {
+            formPayload.append(key, '');
+          } else {
+            formPayload.append(key, formData[key as keyof typeof formData]);
+          }
+        }
+      });
+      formPayload.append('role', role.toLowerCase());
 
-      // 🛡️ DATA CLEANING:
-      // 1. Trim email spaces
-      // 2. Lowercase role ('Student' -> 'student') to match Database Enums
-      const payload = { 
-        username: username.trim(), 
-        email: email.trim(), 
-        password,
-        role: role.toLowerCase() 
-      };
+      if (validIdImage) {
+        formPayload.append('validIdImage', {
+          uri: validIdImage.uri,
+          name: 'valid_id.jpg',
+          type: 'image/jpeg'
+        } as any);
+      }
+      
+      if (profileImage) {
+        formPayload.append('profileImage', {
+          uri: profileImage.uri,
+          name: 'profile_img.jpg',
+          type: 'image/jpeg'
+        } as any);
+      }
 
       const response = await fetch(endpoints.auth.signup, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formPayload,
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Account created! Please verify your email.', 'success');
+        showNotification('Account created successfully! It is now pending admin approval.', 'success');
         navigation.navigate('VerifySignup', { 
           userId: data.userId, 
-          email: email.trim() 
+          email: formData.email.trim() 
         });
       } else {
         const msg = data.message || 'Something went wrong';
@@ -98,108 +194,256 @@ export default function SignupScreen() {
   };
   
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
-
-  // Helper for web styles to avoid TypeScript errors
   const webInputStyle = Platform.OS === 'web' ? { outlineStyle: 'none' } : {};
 
+  const renderInput = (placeholder: string, field: string, keyboardType: any = "default") => (
+    <View style={styles.inputContainer}>
+      <TextInput 
+        placeholder={placeholder} 
+        style={[styles.input, webInputStyle as any]} 
+        value={(formData as any)[field]}
+        onChangeText={(val) => handleInputChange(field, val)}
+        keyboardType={keyboardType}
+        placeholderTextColor="#94a3b8"
+      />
+    </View>
+  );
+
   return (
-    <RootComponent style={styles.safeArea}>
+    <RootComponent style={styles.root}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
-        style={styles.container}
+        style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} bounces={false}>
           
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <ArrowLeft color="#1e293b" size={24} />
-          </TouchableOpacity>
-
+          {/* HEADER WITH LOGO (Blue) */}
           <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => { step === 1 ? navigation.goBack() : prevStep() }}
+            >
+              <ArrowLeft color="white" size={24} />
+            </TouchableOpacity>
+
             <Image 
-              source={missionLogo}
-              style={styles.logo}
+              source={missionLogo} 
+              style={styles.logo} 
               resizeMode="contain"
             />
             <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Join Mission 17 to start your journey.</Text>
+            <Text style={styles.subtitle}>Step {step} of 3</Text>
           </View>
 
-          <View style={styles.form}>
-            {/* Username */}
-            <View style={styles.inputContainer}>
-              <User color="#94a3b8" size={20} style={styles.icon} />
-              <TextInput 
-                placeholder="Full Name / Username" 
-                style={[styles.input, webInputStyle as any]} 
-                value={username}
-                onChangeText={setUsername}
-                placeholderTextColor="#94a3b8"
-              />
+          {/* OVERLAPPING WHITE CARD */}
+          <View style={styles.cardContainer}>
+            
+            <View style={styles.topProgressBarContainer}>
+              <View style={[styles.topProgressSegment, step >= 1 && styles.topProgressSegmentActive]} />
+              <View style={[styles.topProgressSegment, step >= 2 && styles.topProgressSegmentActive]} />
+              <View style={[styles.topProgressSegment, step >= 3 && styles.topProgressSegmentActive]} />
             </View>
 
-            {/* Email */}
-            <View style={styles.inputContainer}>
-              <Mail color="#94a3b8" size={20} style={styles.icon} />
-              <TextInput 
-                placeholder="Email Address" 
-                style={[styles.input, webInputStyle as any]} 
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor="#94a3b8"
-              />
-            </View>
+            <View style={styles.form}>
+              {step === 1 && (
+                <>
+                  <View style={styles.row}>
+                    <View style={{ flex: 2, marginRight: 10 }}>
+                      {renderInput("First Name", "firstName")}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <CustomDropdown 
+                        label="Suffix" 
+                        value={formData.suffix} 
+                        options={["None", "Jr.", "Sr.", "II", "III", "IV"]} 
+                        onSelect={(val) => handleInputChange("suffix", val === "None" ? "" : val)} 
+                      />
+                    </View>
+                  </View>
 
-            {/* Password */}
-            <View style={styles.inputContainer}>
-              <Lock color="#94a3b8" size={20} style={styles.icon} />
-              <TextInput 
-                placeholder="Password (min 8 chars)" 
-                style={[styles.input, webInputStyle as any]} 
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                placeholderTextColor="#94a3b8"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
-              </TouchableOpacity>
-            </View>
-
-            {/* Role Selection */}
-            <View style={styles.roleSection}>
-              <Text style={styles.roleLabel}>I am a:</Text>
-              <View style={styles.roleContainer}>
-                {roles.map((r) => (
+                  <View style={[styles.inputContainer, noMiddleName && { backgroundColor: '#f1f5f9' }]}>
+                    <TextInput 
+                      placeholder="Middle Name" 
+                      style={[styles.input, webInputStyle as any]} 
+                      value={noMiddleName ? '' : formData.middleName}
+                      onChangeText={(val) => handleInputChange("middleName", val)}
+                      placeholderTextColor="#94a3b8"
+                      editable={!noMiddleName}
+                    />
+                  </View>
+                  
                   <TouchableOpacity 
-                    key={r} 
-                    style={[styles.roleChip, role === r && styles.roleChipActive]}
-                    onPress={() => setRole(r)}
+                    style={styles.checkboxRowRight} 
+                    onPress={() => setNoMiddleName(!noMiddleName)}
                   >
-                    <Text style={[styles.roleText, role === r && styles.roleTextActive]}>{r}</Text>
+                    {noMiddleName ? <CheckSquare color="#0038A8" size={18} /> : <Square color="#cbd5e1" size={18} />}
+                    <Text style={styles.checkboxLabelRight}>I have no middle name</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
+
+                  {renderInput("Last Name", "lastName")}
+                  {renderInput("Email Address", "email", "email-address")}
+
+                  <Text style={styles.disclaimerText}>
+                    By tapping <Text style={{fontWeight: 'bold', color: '#1e293b'}}>Continue</Text>, you agree with the <Text style={styles.linkTextBlue}>Terms and Conditions</Text> and <Text style={styles.linkTextBlue}>Privacy Notice</Text>
+                  </Text>
+
+                  <TouchableOpacity style={styles.primaryButtonBlue} onPress={nextStep}>
+                    <Text style={styles.primaryButtonTextBlue}>Continue</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.dividerContainer}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
+                  </View>
+
+                  <Text style={styles.alreadyHaveText}>Already have an account?</Text>
+                  <TouchableOpacity style={styles.outlineButton} onPress={() => navigation.navigate('Login')}>
+                    <Text style={styles.outlineButtonText}>Login here</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {step === 2 && (
+                <>
+                  <Text style={styles.sectionTitle}>Basic Information</Text>
+                  {renderInput("Birthdate (MM/DD/YYYY)", "birthDate")}
+                  {renderInput("Age", "age", "numeric")}
+                  {renderInput("Place of Birth", "placeOfBirth")}
+                  
+                  <CustomDropdown 
+                    label="Gender" 
+                    value={formData.gender} 
+                    options={["Male", "Female", "Other", "Prefer not to say"]} 
+                    onSelect={(val) => handleInputChange("gender", val)} 
+                  />
+                  
+                  <CustomDropdown 
+                    label="Civil Status" 
+                    value={formData.civilStatus} 
+                    options={["Single", "Married", "Widowed", "Separated"]} 
+                    onSelect={(val) => handleInputChange("civilStatus", val)} 
+                  />
+
+                  <Text style={styles.sectionTitle}>Demographics & Contact</Text>
+                  {renderInput("Mobile Number (Example: 09***)", "mobileNumber", "phone-pad")}
+                  {renderInput("Nationality", "nationality")}
+                  {renderInput("Religion", "religion")}
+                  {renderInput("Complete Address", "completeAddress")}
+                  
+                  <CustomDropdown 
+                    label="Purok" 
+                    value={formData.purok} 
+                    options={["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"]} 
+                    onSelect={(val) => handleInputChange("purok", val)} 
+                  />
+
+                  {renderInput("Years of Residency", "yearsOfResidency", "numeric")}
+
+                  <CustomDropdown 
+                    label="Voter Status" 
+                    value={formData.voterStatus} 
+                    options={["Registered", "Not Registered"]} 
+                    onSelect={(val) => handleInputChange("voterStatus", val)} 
+                  />
+                  
+                  <CustomDropdown 
+                    label="Employment Status" 
+                    value={formData.employmentStatus} 
+                    options={["Employed", "Self-Employed", "Unemployed", "Student", "Retired"]} 
+                    onSelect={(val) => handleInputChange("employmentStatus", val)} 
+                  />
+                  
+                  {renderInput("Occupation", "occupation")}
+                  
+                  <CustomDropdown 
+                    label="Household Head?" 
+                    value={formData.householdHead} 
+                    options={["Yes", "No"]} 
+                    onSelect={(val) => handleInputChange("householdHead", val)} 
+                  />
+
+                  {renderInput("Emergency Contact Person", "emergencyContactPerson")}
+                  {renderInput("Number of Family Members", "numberOfFamilyMembers", "numeric")}
+                  
+                  <CustomDropdown 
+                    label="Educational Attainment" 
+                    value={formData.educationalAttainment} 
+                    options={["Elementary", "High School", "College", "Post-Graduate", "None"]} 
+                    onSelect={(val) => handleInputChange("educationalAttainment", val)} 
+                  />
+
+                  {renderInput("Blood Type", "bloodType")}
+                  {renderInput("Disability / Special Needs (if any)", "disability")}
+
+                  <View style={styles.navButtonsContainer}>
+                    <TouchableOpacity style={styles.primaryButtonBlue} onPress={nextStep}>
+                      <Text style={styles.primaryButtonTextBlue}>Continue</Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
+              {step === 3 && (
+                <>
+                  <Text style={styles.sectionTitle}>Attachments</Text>
+                  
+                  <View style={styles.uploadRow}>
+                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('id')}>
+                      <Upload color="#475569" size={20} />
+                      <Text style={styles.uploadButtonText}>Attach Valid ID *</Text>
+                    </TouchableOpacity>
+                    {validIdImage && <Text style={styles.fileLabel}>ID Selected</Text>}
+                  </View>
+
+                  <View style={styles.uploadRow}>
+                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('profile')}>
+                      <Upload color="#475569" size={20} />
+                      <Text style={styles.uploadButtonText}>Profile Image</Text>
+                    </TouchableOpacity>
+                    {profileImage && <Text style={styles.fileLabel}>Image Selected</Text>}
+                  </View>
+
+                  <Text style={styles.sectionTitle}>Security</Text>
+                  <View style={styles.inputContainer}>
+                    <TextInput 
+                      placeholder="Password (min 8 chars) *" 
+                      style={[styles.input, webInputStyle as any]} 
+                      value={formData.password}
+                      onChangeText={(val) => handleInputChange('password', val)}
+                      secureTextEntry={!showPassword}
+                      placeholderTextColor="#94a3b8"
+                    />
+                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                      {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputContainer}>
+                    <TextInput 
+                      placeholder="Confirm Password *" 
+                      style={[styles.input, webInputStyle as any]} 
+                      value={formData.confirmPassword}
+                      onChangeText={(val) => handleInputChange('confirmPassword', val)}
+                      secureTextEntry={!showPassword}
+                      placeholderTextColor="#94a3b8"
+                    />
+                  </View>
+
+                  <View style={styles.navButtonsContainer}>
+                    <TouchableOpacity 
+                      style={[styles.primaryButtonBlue, loading && styles.disabledButton]} 
+                      onPress={handleSignup}
+                      disabled={loading}
+                    >
+                      {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonTextBlue}>Complete Registration</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+
             </View>
-
-            <TouchableOpacity 
-              style={[styles.signupButton, loading && styles.disabledButton]} 
-              onPress={handleSignup}
-              disabled={loading}
-            >
-              {loading ? <ActivityIndicator color="white" /> : <Text style={styles.signupButtonText}>Sign Up</Text>}
-            </TouchableOpacity>
-
           </View>
-          
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-              <Text style={styles.linkText}>Log In</Text>
-            </TouchableOpacity>
-          </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </RootComponent>
@@ -207,45 +451,89 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#f8fafc' },
-  container: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
-  backButton: { position: 'absolute', top: 20, left: 24, zIndex: 10 },
-  header: { alignItems: 'center', marginBottom: 32, marginTop: 40 },
-  logo: { width: 80, height: 80, marginBottom: 20 },
-  title: { fontSize: 28, fontWeight: '800', color: '#0f172a', marginBottom: 8 },
-  subtitle: { fontSize: 16, color: '#64748b', textAlign: 'center' },
+  root: { flex: 1, backgroundColor: '#f8fafc' },
+  scrollContent: { flexGrow: 1, paddingBottom: 40 },
   
-  form: { gap: 16 },
-  
-  inputContainer: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', 
-    borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 16, height: 56,
-    shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 4, elevation: 2
+  header: { 
+    backgroundColor: '#0038A8',
+    paddingTop: Platform.OS === 'android' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 60, // Space for overlapping card
+    alignItems: 'center',
+    position: 'relative'
   },
-  icon: { marginRight: 12 },
+  backButton: { position: 'absolute', top: Platform.OS === 'android' ? 60 : 40, left: 24, zIndex: 10 },
+  logo: { width: 80, height: 80, marginBottom: 12 },
+  title: { fontSize: 26, fontWeight: '800', color: 'white', marginBottom: 4 },
+  subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   
-  input: { flex: 1, fontSize: 16, color: '#1e293b', height: '100%' },
-  
-  roleSection: { marginTop: 8, marginBottom: 8 },
-  roleLabel: { fontSize: 14, fontWeight: '600', color: '#64748b', marginBottom: 10, marginLeft: 4 },
-  roleContainer: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-  roleChip: { 
-    paddingVertical: 8, paddingHorizontal: 16, borderRadius: 20, 
-    backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' 
+  // OVERLAPPING CARD
+  cardContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    marginTop: -30,
+    padding: 24,
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 15, 
+    elevation: 6,
   },
-  roleChipActive: { backgroundColor: '#eff6ff', borderColor: '#3b82f6' },
-  roleText: { fontSize: 13, fontWeight: '600', color: '#64748b' },
-  roleTextActive: { color: '#3b82f6' },
 
-  signupButton: { 
-    backgroundColor: '#3b82f6', height: 56, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginTop: 10,
-    shadowColor: '#3b82f6', shadowOpacity: 0.2, shadowRadius: 8, elevation: 4
-  },
-  disabledButton: { backgroundColor: '#94a3b8' },
-  signupButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  topProgressBarContainer: { flexDirection: 'row', gap: 8, marginBottom: 24 },
+  topProgressSegment: { flex: 1, height: 4, backgroundColor: '#f1f5f9', borderRadius: 2 },
+  topProgressSegmentActive: { backgroundColor: '#0038A8' },
   
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 32 },
-  footerText: { color: '#64748b', fontSize: 14 },
-  linkText: { color: '#3b82f6', fontSize: 14, fontWeight: '700' },
+  form: { gap: 14 },
+  row: { flexDirection: 'row' },
+
+  inputContainer: { 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', 
+    borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 16, height: 54,
+  },
+  input: { flex: 1, fontSize: 15, color: '#1e293b', height: '100%' },
+
+  checkboxRowRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: -6, marginBottom: 6 },
+  checkboxLabelRight: { fontSize: 13, color: '#64748b' },
+
+  disclaimerText: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20, marginTop: 10, paddingHorizontal: 10 },
+  linkTextBlue: { color: '#0038A8', fontWeight: 'bold' },
+
+  primaryButtonBlue: { 
+    backgroundColor: '#0038A8', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 10
+  },
+  primaryButtonTextBlue: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  
+  disabledButton: { backgroundColor: '#94a3b8' },
+
+  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e2e8f0' },
+  dividerText: { marginHorizontal: 16, color: '#94a3b8', fontSize: 13 },
+
+  alreadyHaveText: { textAlign: 'center', color: '#475569', fontSize: 14, marginBottom: 12 },
+  outlineButton: { 
+    borderWidth: 1, borderColor: '#0038A8', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center'
+  },
+  outlineButtonText: { color: '#0038A8', fontSize: 15, fontWeight: '600' },
+
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 10, marginBottom: 4 },
+  
+  dropdownTrigger: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modalOverlay: { flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 20 },
+  modalContent: { backgroundColor: 'white', borderRadius: 12, padding: 16, maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1e293b', marginBottom: 16, textAlign: 'center' },
+  modalOption: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  modalOptionText: { fontSize: 16, color: '#475569', textAlign: 'center' },
+  modalOptionTextSelected: { color: '#0038A8', fontWeight: 'bold' },
+  
+  uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  uploadButton: { 
+    flexDirection: 'row', alignItems: 'center', gap: 8, 
+    paddingVertical: 10, paddingHorizontal: 16, 
+    borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' 
+  },
+  uploadButtonText: { fontSize: 14, color: '#475569', fontWeight: '500' },
+  fileLabel: { fontSize: 12, color: '#10b981', fontWeight: '600' },
+
+  navButtonsContainer: { marginTop: 16 },
 });

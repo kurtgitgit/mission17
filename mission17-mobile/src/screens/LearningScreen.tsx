@@ -6,6 +6,7 @@ import {
 import { BookOpen, MapPin, Phone, Clock, ChevronRight, Leaf, Globe } from 'lucide-react-native';
 import { SDG_IMAGES, SDG_DATA } from '../data/SDGData';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../context/ThemeContext';
 
 const BARANGAY_PROGRAMS = [
   { sdgs: [13, 15], icon: '🌿', title: 'Tree Planting', desc: 'Coastal & public space reforestation drives.' },
@@ -17,6 +18,8 @@ const BARANGAY_PROGRAMS = [
 ];
 
 const LearningScreen: React.FC = () => {
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme);
   const [activeTab, setActiveTab] = useState<'sdg' | 'about'>('sdg');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const navigation = useNavigation<any>();
@@ -38,7 +41,7 @@ const LearningScreen: React.FC = () => {
             <Text style={styles.sdgTitle}>{item.title}</Text>
           </View>
           <View style={[styles.sdgArrow, isExpanded && styles.sdgArrowRotated]}>
-            <ChevronRight size={18} color="#64748b" />
+            <ChevronRight size={18} color={theme.textTertiary} />
           </View>
         </View>
 
@@ -46,8 +49,8 @@ const LearningScreen: React.FC = () => {
           <View style={styles.sdgExpanded}>
             <View style={[styles.sdgColorBar, { backgroundColor: item.color }]} />
             <Text style={styles.sdgDesc}>{item.description}</Text>
-            <View style={[styles.sdgWhy, { backgroundColor: item.color + '12' }]}>
-              <Text style={[styles.sdgWhyLabel, { color: item.color }]}>💡 Why it matters</Text>
+            <View style={[styles.sdgWhy, { backgroundColor: theme.isDark ? theme.surfaceSecondary : item.color + '12' }]}>
+              <Text style={[styles.sdgWhyLabel, { color: theme.isDark ? theme.text : item.color }]}>💡 Why it matters</Text>
               <Text style={styles.sdgWhyText}>{item.whyItMatters}</Text>
             </View>
             <Text style={styles.sdgHelpLabel}>🌿 How you can help:</Text>
@@ -72,7 +75,7 @@ const LearningScreen: React.FC = () => {
 
   return (
     <RootComponent style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
 
       {/* ─── HEADER ─── */}
       <View style={styles.header}>
@@ -88,14 +91,14 @@ const LearningScreen: React.FC = () => {
             style={[styles.tab, activeTab === 'sdg' && styles.tabActive]}
             onPress={() => setActiveTab('sdg')}
           >
-            <Globe size={14} color={activeTab === 'sdg' ? '#0038A8' : 'rgba(255,255,255,0.7)'} />
+            <Globe size={14} color={activeTab === 'sdg' ? theme.primary : 'rgba(255,255,255,0.7)'} />
             <Text style={[styles.tabText, activeTab === 'sdg' && styles.tabTextActive]}>SDG Hub</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'about' && styles.tabActive]}
             onPress={() => setActiveTab('about')}
           >
-            <MapPin size={14} color={activeTab === 'about' ? '#0038A8' : 'rgba(255,255,255,0.7)'} />
+            <MapPin size={14} color={activeTab === 'about' ? theme.primary : 'rgba(255,255,255,0.7)'} />
             <Text style={[styles.tabText, activeTab === 'about' && styles.tabTextActive]}>About Brgy</Text>
           </TouchableOpacity>
         </View>
@@ -152,7 +155,7 @@ const LearningScreen: React.FC = () => {
           {/* Office Hours */}
           <View style={styles.officeCard}>
             <View style={styles.officeHeader}>
-              <Clock size={16} color="#b45309" />
+              <Clock size={16} color={theme.isDark ? theme.warning : "#b45309"} />
               <Text style={styles.officeTitle}>Office Hours</Text>
             </View>
             {[
@@ -162,7 +165,7 @@ const LearningScreen: React.FC = () => {
             ].map(item => (
               <View key={item.day} style={styles.officeRow}>
                 <Text style={styles.officeDay}>{item.day}</Text>
-                <Text style={[styles.officeTime, item.closed && { color: '#dc2626' }]}>{item.time}</Text>
+                <Text style={[styles.officeTime, item.closed && { color: theme.danger }]}>{item.time}</Text>
               </View>
             ))}
           </View>
@@ -194,8 +197,8 @@ const LearningScreen: React.FC = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0fdf4' },
+const getStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background },
 
   header: {
     backgroundColor: '#0038A8',
@@ -209,41 +212,41 @@ const styles = StyleSheet.create({
 
   tabBar: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: 4 },
   tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9 },
-  tabActive: { backgroundColor: 'white' },
+  tabActive: { backgroundColor: theme.surface },
   tabText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
-  tabTextActive: { color: '#0038A8' },
+  tabTextActive: { color: theme.primary },
 
   listContent: { padding: 16, paddingBottom: 60 },
 
   // SDG HUB
-  sdgIntro: { backgroundColor: 'white', borderRadius: 16, padding: 18, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#0038A8' },
-  sdgIntroTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
-  sdgIntroText: { fontSize: 13, color: '#475569', lineHeight: 20 },
+  sdgIntro: { backgroundColor: theme.surface, borderRadius: 16, padding: 18, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: theme.primary, borderWidth: 1, borderColor: theme.border },
+  sdgIntroTitle: { fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 6 },
+  sdgIntroText: { fontSize: 13, color: theme.textSecondary, lineHeight: 20 },
 
   sdgCard: {
-    backgroundColor: 'white', borderRadius: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
-    overflow: 'hidden',
+    backgroundColor: theme.surface, borderRadius: 14, marginBottom: 10,
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2,
+    overflow: 'hidden', borderWidth: 1, borderColor: theme.border
   },
-  sdgCardExpanded: { shadowOpacity: 0.1, shadowRadius: 12, elevation: 5 },
+  sdgCardExpanded: { shadowOpacity: theme.isDark ? 0.3 : 0.1, shadowRadius: 12, elevation: 5 },
   sdgCardRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   sdgIcon: { width: 48, height: 48, borderRadius: 10, marginRight: 14 },
   sdgMeta: { flex: 1 },
-  sdgNum: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5 },
-  sdgTitle: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginTop: 2 },
+  sdgNum: { fontSize: 11, fontWeight: '700', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sdgTitle: { fontSize: 16, fontWeight: '800', color: theme.text, marginTop: 2 },
   sdgArrow: { transform: [{ rotate: '0deg' }] },
   sdgArrowRotated: { transform: [{ rotate: '90deg' }] },
 
   sdgExpanded: { paddingHorizontal: 16, paddingBottom: 18 },
   sdgColorBar: { height: 3, borderRadius: 3, marginBottom: 14 },
-  sdgDesc: { fontSize: 13, color: '#475569', lineHeight: 21, marginBottom: 14 },
+  sdgDesc: { fontSize: 13, color: theme.textSecondary, lineHeight: 21, marginBottom: 14 },
   sdgWhy: { borderRadius: 12, padding: 14, marginBottom: 14 },
   sdgWhyLabel: { fontSize: 13, fontWeight: '800', marginBottom: 6 },
-  sdgWhyText: { fontSize: 13, color: '#374151', lineHeight: 20 },
-  sdgHelpLabel: { fontSize: 13, fontWeight: '700', color: '#0f172a', marginBottom: 8 },
+  sdgWhyText: { fontSize: 13, color: theme.text, lineHeight: 20 },
+  sdgHelpLabel: { fontSize: 13, fontWeight: '700', color: theme.text, marginBottom: 8 },
   sdgHelpRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
   sdgHelpDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6, flexShrink: 0 },
-  sdgHelpText: { fontSize: 13, color: '#475569', flex: 1, lineHeight: 20 },
+  sdgHelpText: { fontSize: 13, color: theme.textSecondary, flex: 1, lineHeight: 20 },
   joinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 12, borderRadius: 12 },
   joinBtnText: { color: 'white', fontWeight: '700', fontSize: 14 },
 
@@ -258,32 +261,32 @@ const styles = StyleSheet.create({
   aboutBody: { fontSize: 14, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 22 },
 
   infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  infoBox: { width: '47.5%', backgroundColor: 'white', borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 },
+  infoBox: { width: '47.5%', backgroundColor: theme.surface, borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: theme.border },
   infoBoxIcon: { fontSize: 24, marginBottom: 8 },
-  infoBoxLabel: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  infoBoxValue: { fontSize: 12, fontWeight: '600', color: '#0f172a', textAlign: 'center' },
+  infoBoxLabel: { fontSize: 11, fontWeight: '700', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  infoBoxValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center' },
 
-  officeCard: { backgroundColor: '#fefce8', borderRadius: 14, padding: 16, borderWidth: 1.5, borderColor: '#fef08a', marginBottom: 20 },
+  officeCard: { backgroundColor: theme.isDark ? 'rgba(254, 252, 232, 0.1)' : '#fefce8', borderRadius: 14, padding: 16, borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(254, 240, 138, 0.2)' : '#fef08a', marginBottom: 20 },
   officeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  officeTitle: { fontSize: 15, fontWeight: '800', color: '#854d0e' },
-  officeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#fef08a20' },
-  officeDay: { fontSize: 13, color: '#374151', fontWeight: '600' },
-  officeTime: { fontSize: 13, color: '#0038A8', fontWeight: '700' },
+  officeTitle: { fontSize: 15, fontWeight: '800', color: theme.isDark ? theme.warning : '#854d0e' },
+  officeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: theme.isDark ? 'rgba(254, 240, 138, 0.1)' : '#fef08a20' },
+  officeDay: { fontSize: 13, color: theme.text, fontWeight: '600' },
+  officeTime: { fontSize: 13, color: theme.primary, fontWeight: '700' },
 
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a', marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: theme.text, marginBottom: 12 },
   programCard: {
-    backgroundColor: 'white', borderRadius: 14, padding: 16, marginBottom: 10,
+    backgroundColor: theme.surface, borderRadius: 14, padding: 16, marginBottom: 10,
     flexDirection: 'row', alignItems: 'flex-start',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, elevation: 2,
+    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: theme.border
   },
   programIcon: { fontSize: 28, marginRight: 14, marginTop: 2 },
   programInfo: { flex: 1 },
   programTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  programTitle: { fontSize: 14, fontWeight: '800', color: '#0f172a' },
+  programTitle: { fontSize: 14, fontWeight: '800', color: theme.text },
   sdgTags: { flexDirection: 'row', gap: 4 },
-  sdgTag: { backgroundColor: '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  sdgTagText: { fontSize: 10, fontWeight: '800', color: '#16a34a' },
-  programDesc: { fontSize: 12, color: '#64748b', lineHeight: 18 },
+  sdgTag: { backgroundColor: theme.isDark ? 'rgba(22, 163, 74, 0.2)' : '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  sdgTagText: { fontSize: 10, fontWeight: '800', color: theme.success },
+  programDesc: { fontSize: 12, color: theme.textSecondary, lineHeight: 18 },
 });
 
 export default LearningScreen;

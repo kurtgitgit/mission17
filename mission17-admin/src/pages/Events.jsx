@@ -12,6 +12,12 @@ const Events = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalEvents, setTotalEvents] = useState(0);
+    const limit = 10;
+
     // EDIT MODE STATE
     const [isEditing, setIsEditing] = useState(false);
     const [currentId, setCurrentId] = useState(null);
@@ -31,26 +37,40 @@ const Events = () => {
 
     const [uploading, setUploading] = useState(false);
 
+    // Reset to page 1 when search changes
     useEffect(() => {
-        fetchEvents();
-    }, []);
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    // Debounce search
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            fetchEvents();
+        }, 300);
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, currentPage]);
 
     const fetchEvents = async () => {
+        setLoading(true);
         try {
-            const res = await fetch(endpoints.events.getAll);
+            let url = `${endpoints.events.getAll}?page=${currentPage}&limit=${limit}`;
+            if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+
+            const res = await fetch(url);
             const data = await res.json();
-            setEvents(data);
+            if (res.ok) {
+                setEvents(data.data || []);
+                setTotalPages(data.totalPages || 1);
+                setTotalEvents(data.total || 0);
+            } else {
+                showNotification("Could not load events from server.", "error");
+            }
         } catch (error) {
             console.error("Fetch error:", error);
         } finally {
             setLoading(false);
         }
     };
-
-    const filteredEvents = events.filter(e => 
-        e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.location.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -314,8 +334,8 @@ const Events = () => {
                         <tbody>
                             {loading ? (
                                 <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
-                            ) : filteredEvents.length > 0 ? (
-                                filteredEvents.map((event) => (
+                            ) : events.length > 0 ? (
+                                events.map((event) => (
                                     <tr key={event._id} style={{borderBottom: '1px solid #f1f5f9'}}>
                                         <td style={styles.td}>
                                             {event.image ? (
@@ -357,6 +377,28 @@ const Events = () => {
                     </table>
                 </div>
 
+                {/* PAGINATION CONTROLS */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+                    <div style={{ fontSize: '14px', color: '#64748b' }}>
+                        Showing {events.length} of {totalEvents} events
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
+                            disabled={currentPage === 1}
+                            onClick={() => setCurrentPage(prev => prev - 1)}
+                            style={{ ...styles.pageBtn, opacity: currentPage === 1 ? 0.5 : 1 }}
+                        >Previous</button>
+                        <div style={{ padding: '8px 12px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', color: '#475569' }}>
+                            Page {currentPage} of {totalPages}
+                        </div>
+                        <button 
+                            disabled={currentPage === totalPages || totalPages === 0}
+                            onClick={() => setCurrentPage(prev => prev + 1)}
+                            style={{ ...styles.pageBtn, opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1 }}
+                        >Next</button>
+                    </div>
+                </div>
+
                 <Modal 
                     isOpen={showDeleteConfirm}
                     onClose={() => setShowDeleteConfirm(false)}
@@ -383,6 +425,7 @@ const styles = {
     th: { padding: '16px', textAlign: 'left', fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
     td: { padding: '16px', fontSize: '14px', color: '#334155' },
     actionBtn: (color) => ({ background: 'none', border: 'none', color: color, cursor: 'pointer', padding: '6px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+    pageBtn: { padding: '8px 16px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', color: '#334155' },
 };
 
 export default Events;

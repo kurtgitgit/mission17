@@ -12,6 +12,12 @@ const Missions = () => {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMissions, setTotalMissions] = useState(0);
+  const limit = 10;
   
   // EDIT MODE STATE
   const [isEditing, setIsEditing] = useState(false);
@@ -80,15 +86,34 @@ const Missions = () => {
     17: '#19486A'  // Navy
   };
 
+  // Reset to page 1 when search changes
   useEffect(() => {
-    fetchMissions();
-  }, []);
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Debounce search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchMissions();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, currentPage]);
 
   const fetchMissions = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(endpoints.missions.getAll);
+      let url = `${endpoints.missions.getAll}?page=${currentPage}&limit=${limit}`;
+      if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
+
+      const response = await fetch(url);
       const data = await response.json();
-      setMissions(data);
+      if (response.ok) {
+        setMissions(data.data || []);
+        setTotalPages(data.totalPages || 1);
+        setTotalMissions(data.total || 0);
+      } else {
+        showNotification("Could not load missions from server.", "error");
+      }
     } catch (error) {
       console.error("Fetch error:", error);
       showNotification("Could not load missions from server.", "error");
@@ -96,11 +121,6 @@ const Missions = () => {
       setLoading(false);
     }
   };
-
-  const filteredMissions = missions.filter(m => 
-    m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.sdgNumber.toString().includes(searchTerm)
-  );
 
   // ✨ AI LOGIC: Analyzes text as you type
   const analyzeDescription = (text) => {
@@ -436,8 +456,8 @@ const Missions = () => {
             <tbody>
               {loading ? (
                 <tr><td colSpan="5" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
-              ) : filteredMissions.length > 0 ? (
-                filteredMissions.map((mission) => (
+              ) : missions.length > 0 ? (
+                missions.map((mission) => (
                   <tr key={mission._id} style={{borderBottom: '1px solid #f1f5f9'}}>
                     <td style={styles.td}>
                       {mission.image ? (
@@ -469,6 +489,28 @@ const Missions = () => {
             </tbody>
           </table>
         </div>
+
+        {/* PAGINATION CONTROLS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '20px' }}>
+          <div style={{ fontSize: '14px', color: '#64748b' }}>
+            Showing {missions.length} of {totalMissions} missions
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              style={{ ...styles.pageBtn, opacity: currentPage === 1 ? 0.5 : 1 }}
+            >Previous</button>
+            <div style={{ padding: '8px 12px', backgroundColor: '#f1f5f9', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', color: '#475569' }}>
+              Page {currentPage} of {totalPages}
+            </div>
+            <button 
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              style={{ ...styles.pageBtn, opacity: currentPage === totalPages || totalPages === 0 ? 0.5 : 1 }}
+            >Next</button>
+          </div>
+        </div>
         
         <Modal 
           isOpen={modalConfig.isOpen}
@@ -496,6 +538,7 @@ const styles = {
   th: { padding: '16px', textAlign: 'left', fontSize: '13px', color: '#64748b', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' },
   td: { padding: '16px', fontSize: '14px', color: '#334155' },
   actionBtn: (color) => ({ background: 'none', border: 'none', color: color, cursor: 'pointer', padding: '6px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }),
+  pageBtn: { padding: '8px 16px', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', color: '#334155' },
 };
 
 export default Missions;

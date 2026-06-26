@@ -4,8 +4,9 @@ import {
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
   RefreshControl, Image, Dimensions, Alert
 } from 'react-native';
-import { Megaphone, ThumbsUp, MessageCircle, Share2, Heart, Smile, Pin } from 'lucide-react-native';
+import { Megaphone, Pin } from 'lucide-react-native';
 import { endpoints } from '../config/api';
+import { useTheme } from '../context/ThemeContext';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -46,15 +47,12 @@ const timeAgo = (dateStr: string) => {
 };
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-const PostCard: React.FC<{ item: any }> = ({ item }) => {
-  const [liked,    setLiked]    = useState(false);
+const PostCard: React.FC<{ item: any, theme: any, styles: any }> = ({ item, theme, styles }) => {
   const [expanded, setExpanded] = useState(false);
 
   const catColor = CAT_COLORS[item.category] || CAT_COLORS.general;
   const catLabel = CAT_LABELS[item.category] || 'General';
   const imgSrc   = item.image || CAT_IMAGES[item.category] || CAT_IMAGES.general;
-  const stats    = fakeStats(item._id);
-  const totalLikes = stats.likes + (liked ? 1 : 0);
 
   const bodyPreview = item.body?.length > 160 && !expanded
     ? item.body.slice(0, 160) + '…'
@@ -77,16 +75,16 @@ const PostCard: React.FC<{ item: any }> = ({ item }) => {
         </View>
         {item.isPinned && (
           <View style={styles.pinnedBadge}>
-            <Pin size={11} color="#b45309" />
+            <Pin size={11} color={theme.warning} />
             <Text style={styles.pinnedText}>Pinned</Text>
           </View>
         )}
       </View>
 
       {/* ── CATEGORY TAG ── */}
-      <View style={[styles.catTag, { backgroundColor: catColor + '15' }]}>
+      <View style={[styles.catTag, { backgroundColor: catColor + '20' }]}>
         <View style={[styles.catDot, { backgroundColor: catColor }]} />
-        <Text style={[styles.catTagText, { color: catColor }]}>{catLabel}</Text>
+        <Text style={[styles.catTagText, { color: theme.isDark ? '#e2e8f0' : catColor }]}>{catLabel}</Text>
       </View>
 
       {/* ── BODY TEXT ── */}
@@ -104,52 +102,15 @@ const PostCard: React.FC<{ item: any }> = ({ item }) => {
         style={styles.postImage}
         resizeMode="cover"
       />
-
-      {/* ── REACTIONS SUMMARY ── */}
-      <View style={styles.reactionSummary}>
-        <View style={styles.reactionEmojis}>
-          <Text style={styles.reactionEmoji}>👍</Text>
-          <Text style={styles.reactionEmoji}>❤️</Text>
-          <Text style={styles.reactionEmoji}>😮</Text>
-        </View>
-        <Text style={styles.reactionCount}>{totalLikes.toLocaleString()}</Text>
-        <Text style={styles.reactionRight}>{stats.comments} comments · {stats.shares} shares</Text>
-      </View>
-
-      {/* ── DIVIDER ── */}
-      <View style={styles.actionDivider} />
-
-      {/* ── ACTION BUTTONS ── */}
-      <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.actionBtn} onPress={() => setLiked(!liked)}>
-          <ThumbsUp
-            size={18}
-            color={liked ? '#0038A8' : '#65676b'}
-            fill={liked ? '#0038A8' : 'none'}
-          />
-          <Text style={[styles.actionText, liked && { color: '#0038A8', fontWeight: '800' }]}>
-            Like
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionBtn}
-          onPress={() => Alert.alert('Comments', 'Comments will be available in a future update.')}>
-          <MessageCircle size={18} color="#65676b" />
-          <Text style={styles.actionText}>Comment</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionBtn}
-          onPress={() => Alert.alert('Share', `Share "${item.title}" with others!`)}>
-          <Share2 size={18} color="#65676b" />
-          <Text style={styles.actionText}>Share</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
 // ─── SCREEN ───────────────────────────────────────────────────────────────────
 const AnnouncementsScreen: React.FC = () => {
+  const { theme, isDarkMode } = useTheme();
+  const styles = getStyles(theme);
+
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -180,7 +141,7 @@ const AnnouncementsScreen: React.FC = () => {
 
   return (
     <RootComponent style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
+      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
 
       {/* ── HEADER ── */}
       <View style={styles.header}>
@@ -213,15 +174,15 @@ const AnnouncementsScreen: React.FC = () => {
 
       {/* ── FEED ── */}
       {loading ? (
-        <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 60 }} />
+        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 60 }} />
       ) : (
         <FlatList
           data={filtered}
           keyExtractor={item => item._id}
-          renderItem={({ item }) => <PostCard item={item} />}
+          renderItem={({ item }) => <PostCard item={item} theme={theme} styles={styles} />}
           contentContainerStyle={styles.feed}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
           ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -237,12 +198,12 @@ const AnnouncementsScreen: React.FC = () => {
 };
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#f0f2f5' },
+const getStyles = (theme: any) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: theme.background },
 
   // HEADER
   header: {
-    backgroundColor: '#0038A8',
+    backgroundColor: '#0038A8', // Brand blue for header always
     paddingTop: Platform.OS === 'android' ? 44 : 18,
     paddingHorizontal: 16,
     paddingBottom: 14,
@@ -263,10 +224,12 @@ const styles = StyleSheet.create({
 
   // POST CARD
   postCard: {
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
+    borderWidth: 1,
+    borderColor: theme.border,
     ...Platform.select({
-      ios:     { shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-      android: { elevation: 2 },
+      ios:     { shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
+      android: { elevation: theme.isDark ? 0 : 2 },
       default: {},
     }),
   },
@@ -276,13 +239,13 @@ const styles = StyleSheet.create({
   pageAvatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
   pageAvatarEmoji: { fontSize: 22 },
   pageInfo: { flex: 1 },
-  pageName: { fontSize: 15, fontWeight: '800', color: '#050505' },
+  pageName: { fontSize: 15, fontWeight: '800', color: theme.text },
   pageMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
-  postTime: { fontSize: 12, color: '#65676b' },
-  dotSep: { fontSize: 12, color: '#65676b' },
-  postGlobe: { fontSize: 12, color: '#65676b' },
-  pinnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  pinnedText: { fontSize: 10, fontWeight: '800', color: '#b45309' },
+  postTime: { fontSize: 12, color: theme.textSecondary },
+  dotSep: { fontSize: 12, color: theme.textSecondary },
+  postGlobe: { fontSize: 12, color: theme.textSecondary },
+  pinnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surfaceSecondary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: theme.border },
+  pinnedText: { fontSize: 10, fontWeight: '800', color: theme.warning },
 
   // CAT TAG
   catTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 14, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, alignSelf: 'flex-start' },
@@ -290,9 +253,9 @@ const styles = StyleSheet.create({
   catTagText: { fontSize: 11, fontWeight: '800' },
 
   // POST CONTENT
-  postTitle: { fontSize: 16, fontWeight: '800', color: '#050505', paddingHorizontal: 14, marginBottom: 6, lineHeight: 22 },
-  postBody: { fontSize: 14, color: '#3c3c3c', paddingHorizontal: 14, lineHeight: 21, marginBottom: 6 },
-  seeMore: { fontSize: 14, color: '#0038A8', fontWeight: '700', paddingHorizontal: 14, marginBottom: 10 },
+  postTitle: { fontSize: 16, fontWeight: '800', color: theme.text, paddingHorizontal: 14, marginBottom: 6, lineHeight: 22 },
+  postBody: { fontSize: 14, color: theme.textSecondary, paddingHorizontal: 14, lineHeight: 21, marginBottom: 6 },
+  seeMore: { fontSize: 14, color: theme.primary, fontWeight: '700', paddingHorizontal: 14, marginBottom: 10 },
 
   // IMAGE
   postImage: { width: SCREEN_W, height: SCREEN_W * 0.55 },
@@ -301,20 +264,20 @@ const styles = StyleSheet.create({
   reactionSummary: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
   reactionEmojis: { flexDirection: 'row', marginRight: 6 },
   reactionEmoji: { fontSize: 16, marginRight: -3 },
-  reactionCount: { fontSize: 14, color: '#65676b', flex: 1, marginLeft: 6 },
-  reactionRight: { fontSize: 13, color: '#65676b' },
+  reactionCount: { fontSize: 14, color: theme.textSecondary, flex: 1, marginLeft: 6 },
+  reactionRight: { fontSize: 13, color: theme.textSecondary },
 
   // ACTIONS
-  actionDivider: { height: 1, backgroundColor: '#e4e6ea', marginHorizontal: 14 },
+  actionDivider: { height: 1, backgroundColor: theme.border, marginHorizontal: 14 },
   actionRow: { flexDirection: 'row', paddingVertical: 4 },
   actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
-  actionText: { fontSize: 14, color: '#65676b', fontWeight: '600' },
+  actionText: { fontSize: 14, color: theme.textSecondary, fontWeight: '600' },
 
   // EMPTY
   empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 52, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#475569', marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 22 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: theme.textSecondary, marginBottom: 8 },
+  emptyText: { fontSize: 14, color: theme.textTertiary, textAlign: 'center', lineHeight: 22 },
 });
 
 export default AnnouncementsScreen;

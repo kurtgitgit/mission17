@@ -7,9 +7,13 @@ import { GlobalState, endpoints, formatImageUri } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import { MapPin, Clock, X, Calendar, Target } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 
 const MissionsScreen = ({ navigation, route }: any) => {
   const { showNotification } = useNotification();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
+  
   const [missions, setMissions] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
@@ -88,7 +92,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
         {hasImage ? (
           <Image source={{ uri: formatImageUri(item.image)! }} style={styles.cardImage} />
         ) : (
-          <View style={[styles.cardImage, { backgroundColor: item.color || '#3b82f6', justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.cardImage, { backgroundColor: item.color || theme.primary, justifyContent: 'center', alignItems: 'center' }]}>
              <Text style={styles.placeholderNumber}>
                {item.sdgNumber}
              </Text>
@@ -143,7 +147,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
         {hasImage ? (
           <Image source={{ uri: formatImageUri(item.image)! }} style={styles.cardImage} />
         ) : (
-          <View style={[styles.cardImage, { backgroundColor: item.color || '#3b82f6', justifyContent: 'center', alignItems: 'center' }]}>
+          <View style={[styles.cardImage, { backgroundColor: item.color || theme.primary, justifyContent: 'center', alignItems: 'center' }]}>
              <Calendar size={60} color="rgba(255,255,255,0.2)" />
           </View>
         )}
@@ -189,7 +193,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
             style={[styles.tabBtn, activeTab === 'missions' && styles.activeTabBtn]} 
             onPress={() => setActiveTab('missions')}
           >
-            <Target size={16} color={activeTab === 'missions' ? 'white' : '#64748b'} style={{marginRight: 6}} />
+            <Target size={16} color={activeTab === 'missions' ? 'white' : theme.textSecondary} style={{marginRight: 6}} />
             <Text style={[styles.tabText, activeTab === 'missions' && styles.activeTabText]}>Civic Tasks</Text>
           </TouchableOpacity>
           
@@ -197,7 +201,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
             style={[styles.tabBtn, activeTab === 'events' && styles.activeTabBtn]} 
             onPress={() => setActiveTab('events')}
           >
-            <Calendar size={16} color={activeTab === 'events' ? 'white' : '#64748b'} style={{marginRight: 6}} />
+            <Calendar size={16} color={activeTab === 'events' ? 'white' : theme.textSecondary} style={{marginRight: 6}} />
             <Text style={[styles.tabText, activeTab === 'events' && styles.activeTabText]}>Events</Text>
           </TouchableOpacity>
         </View>
@@ -226,7 +230,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={activeTab === 'missions' ? (selectedSDG ? missions.filter(m => m.sdgNumber?.toString() === selectedSDG) : missions) : events}
@@ -242,29 +246,29 @@ const MissionsScreen = ({ navigation, route }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' } as ViewStyle,
-  header: { padding: 20, backgroundColor: 'white', paddingBottom: 15 } as ViewStyle,
-  pageTitle: { fontSize: 26, fontWeight: '800', color: '#0f172a' } as ViewStyle,
-  subTitle: { fontSize: 14, color: '#64748b', marginTop: 4 } as ViewStyle,
+const getStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.background } as ViewStyle,
+  header: { padding: 20, backgroundColor: theme.surface, paddingBottom: 15 } as ViewStyle,
+  pageTitle: { fontSize: 26, fontWeight: '800', color: theme.text } as ViewStyle,
+  subTitle: { fontSize: 14, color: theme.textSecondary, marginTop: 4 } as ViewStyle,
   listContent: { padding: 20, paddingBottom: 40 } as ViewStyle,
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#94a3b8' } as TextStyle,
+  emptyText: { textAlign: 'center', marginTop: 40, color: theme.textTertiary } as TextStyle,
 
   // TABS
-  tabContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, marginTop: 20 } as ViewStyle,
+  tabContainer: { flexDirection: 'row', backgroundColor: theme.surfaceSecondary, borderRadius: 12, padding: 4, marginTop: 20 } as ViewStyle,
   tabBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10 } as ViewStyle,
-  activeTabBtn: { backgroundColor: '#0038A8', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } as ViewStyle,
-  tabText: { fontSize: 14, fontWeight: '600', color: '#64748b' } as TextStyle,
+  activeTabBtn: { backgroundColor: theme.primary, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } as ViewStyle,
+  tabText: { fontSize: 14, fontWeight: '600', color: theme.textSecondary } as TextStyle,
   activeTabText: { color: 'white' } as TextStyle,
   
   // SDG FILTERS
   sdgScroll: { marginTop: 15, flexDirection: 'row' } as ViewStyle,
-  sdgChip: { backgroundColor: '#f1f5f9', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: '#e2e8f0' } as ViewStyle,
-  activeSdgChip: { backgroundColor: '#0038A8', borderColor: '#0038A8' } as ViewStyle,
-  sdgChipText: { color: '#64748b', fontWeight: '600', fontSize: 13 } as TextStyle,
+  sdgChip: { backgroundColor: theme.surfaceSecondary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 10, borderWidth: 1, borderColor: theme.border } as ViewStyle,
+  activeSdgChip: { backgroundColor: theme.primary, borderColor: theme.primary } as ViewStyle,
+  sdgChipText: { color: theme.textSecondary, fontWeight: '600', fontSize: 13 } as TextStyle,
   activeSdgChipText: { color: 'white' } as TextStyle,
 
-  card: { height: 240, marginBottom: 20, borderRadius: 20, overflow: 'hidden', backgroundColor: 'white', elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5 } as ViewStyle,
+  card: { height: 240, marginBottom: 20, borderRadius: 20, overflow: 'hidden', backgroundColor: theme.surface, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 5 } as ViewStyle,
   cardImage: { width: '100%', height: '100%' } as any, 
   cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '100%', justifyContent: 'space-between', padding: 20 } as ViewStyle,
   
@@ -274,25 +278,25 @@ const styles = StyleSheet.create({
   badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 } as ViewStyle,
   badgeText: { color: 'white', fontWeight: '800', fontSize: 12 } as ViewStyle,
   pointsBadge: { backgroundColor: 'white', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 } as ViewStyle,
-  pointsText: { color: '#0f172a', fontWeight: '800', fontSize: 12 } as ViewStyle,
+  pointsText: { color: theme.text, fontWeight: '800', fontSize: 12 } as ViewStyle,
 
   cardTitle: { color: 'white', fontSize: 24, fontWeight: '800', marginBottom: 6 } as ViewStyle,
   cardDesc: { color: '#e2e8f0', fontSize: 14, lineHeight: 20 } as ViewStyle,
   cardDescMini: { color: '#cbd5e1', fontSize: 12, fontWeight: '600' } as TextStyle,
   eventRowCompact: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   
-  completedBadgeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 12, alignSelf: 'flex-start', gap: 6 } as ViewStyle,
+  completedBadgeRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.success, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, marginTop: 12, alignSelf: 'flex-start', gap: 6 } as ViewStyle,
   completedBadgeText: { color: 'white', fontWeight: 'bold', fontSize: 13 } as TextStyle,
 
   // EVENT CARD STYLES
-  eventCard: { flexDirection: 'row', backgroundColor: 'white', borderRadius: 16, padding: 10, marginBottom: 15, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 } as ViewStyle,
+  eventCard: { flexDirection: 'row', backgroundColor: theme.surface, borderRadius: 16, padding: 10, marginBottom: 15, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 } as ViewStyle,
   dateBadge: { width: 50, height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 } as ViewStyle,
   dateText: { color: 'white', fontSize: 10, fontWeight: '700', textTransform: 'uppercase' } as TextStyle,
   dateNum: { color: 'white', fontSize: 18, fontWeight: '800' } as TextStyle,
   eventInfo: { flex: 1 } as ViewStyle,
-  eventTitle: { fontSize: 14, fontWeight: '700', color: '#1e293b', marginBottom: 4 } as TextStyle,
+  eventTitle: { fontSize: 14, fontWeight: '700', color: theme.text, marginBottom: 4 } as TextStyle,
   eventRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 2 } as ViewStyle,
-  eventDetail: { fontSize: 11, color: '#64748b' } as TextStyle,
+  eventDetail: { fontSize: 11, color: theme.textSecondary } as TextStyle,
 
 });
 

@@ -18,7 +18,6 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Key, Eye, EyeOff, RotateCcw } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
-// import { GoogleSignin } from '@react-native-google-signin/google-signin'; // Removed for Expo Go compatibility
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 
@@ -75,27 +74,20 @@ export default function LoginScreen() {
     try {
       await GoogleSignin.hasPlayServices();
       
-      // Force sign out first so the user is always presented with the account picker
       try {
         await GoogleSignin.signOut();
-      } catch (e) {
-        // Ignore errors if they aren't signed in yet
-      }
+      } catch (e) {}
 
       const userInfo = await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens(); // The safest way to guarantee idToken extraction
+      const tokens = await GoogleSignin.getTokens();
       
-      console.log("================ Google Native Sign-in Response ================");
-      console.log("✅ ID Token Received Length:", tokens.idToken.length);
-
       if (tokens.idToken) {
         handleGoogleLogin(tokens.idToken);
       } else {
         showNotification("No ID token received from Google.", "error");
       }
     } catch (error: any) {
-      console.error("❌ Google Native Auth Error:", error.message);
-      if (error.code !== 'ASYNC_OP_IN_PROGRESS') { // Ignore user cancellation panics
+      if (error.code !== 'ASYNC_OP_IN_PROGRESS') {
           showNotification("Authentication was cancelled or failed.", "error");
       }
     }
@@ -160,7 +152,6 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
-      // CASE 1: MFA REQUIRED (Status 202)
       if (response.status === 202) {
         setMfaRequired(true);
         setTempUserId(data.userId);
@@ -169,7 +160,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // 🔒 CASE 1.5: UNVERIFIED ACCOUNT (Status 401)
       if (response.status === 401 && data.unverified) {
         showNotification(data.message, "info");
         navigation.navigate('VerifySignup', { 
@@ -180,7 +170,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // CASE 2: SUCCESS (Status 200)
       if (response.ok) {
         await processLoginSuccess(data);
       } else {
@@ -224,7 +213,6 @@ export default function LoginScreen() {
     }
   };
 
-  // Helper to handle saving and navigation
   const processLoginSuccess = async (data: any) => {
     const userId = data.user._id || data.user.id; 
     const userData = { ...data.user, _id: userId };
@@ -242,7 +230,7 @@ export default function LoginScreen() {
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   return (
-    <RootComponent style={styles.container}>
+    <RootComponent style={styles.root}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={{ flex: 1 }}
@@ -250,152 +238,125 @@ export default function LoginScreen() {
         <ScrollView 
           contentContainerStyle={styles.scrollContent} 
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          {/* HEADER WITH LOGO */}
+          {/* HEADER WITH LOGO (Blue) */}
           <View style={styles.header}>
             <Image 
               source={require('../../assets/logo.png')} 
               style={styles.logo} 
               resizeMode="contain"
             />
-            <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Login'}</Text>
+            <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Welcome Back'}</Text>
+            <Text style={styles.subtitle}>Sign in to your account</Text>
           </View>
 
-          <View style={styles.form}>
-            
-            {/* 🛡️ CONDITIONAL RENDERING */}
-            {!mfaRequired ? (
-                // STANDARD LOGIN UI
-                <>
-                    <View style={styles.inputContainer}>
-                        <Mail color="#94a3b8" size={20} style={styles.icon} />
-                        <TextInput 
-                            placeholder="Email Address" 
-                            style={styles.input}
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
+          {/* OVERLAPPING WHITE CARD */}
+          <View style={styles.cardContainer}>
+            <View style={styles.form}>
+              
+              {!mfaRequired ? (
+                  <>
+                      <View style={styles.inputContainer}>
+                          <Mail color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="Email Address" 
+                              style={styles.input}
+                              value={email}
+                              onChangeText={setEmail}
+                              autoCapitalize="none"
+                              keyboardType="email-address"
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
 
-                    <View style={styles.inputContainer}>
-                        <Lock color="#94a3b8" size={20} style={styles.icon} />
-                        <TextInput 
-                            placeholder="Password" 
-                            style={styles.input} 
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
-                            placeholderTextColor="#94a3b8"
-                        />
-                        <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                            {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
-                        </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity 
-                        onPress={() => navigation.navigate('ForgotPassword')}
-                        style={styles.forgotPasswordContainer}
-                    >
-                        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                    </TouchableOpacity>
-
-                    {/* CAPTCHA SECTION */}
-                    <View style={styles.captchaContainer}>
-                        <View style={styles.captchaLeft}>
-                          <Text style={styles.captchaText}>Security Check: {num1} + {num2} = ?</Text>
-                          <TouchableOpacity 
-                            onPress={refreshCaptcha} 
-                            style={styles.refreshButton}
-                            activeOpacity={0.6}
-                          >
-                            <RotateCcw color="#0056b3" size={20} />
+                      <View style={styles.inputContainer}>
+                          <Lock color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="Password" 
+                              style={styles.input} 
+                              value={password}
+                              onChangeText={setPassword}
+                              secureTextEntry={!showPassword}
+                              placeholderTextColor="#94a3b8"
+                          />
+                          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                              {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
                           </TouchableOpacity>
-                        </View>
-                        <TextInput
-                            style={styles.captchaInput}
-                            placeholder="#"
-                            value={captchaAnswer}
-                            onChangeText={setCaptchaAnswer}
-                            keyboardType="numeric"
-                            maxLength={2}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
+                      </View>
 
-                    <TouchableOpacity 
-                        style={styles.loginButton} 
-                        onPress={handleLogin} 
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.loginButtonText}>Log In</Text>
-                        )}
-                    </TouchableOpacity>
+                      <TouchableOpacity 
+                          onPress={() => navigation.navigate('ForgotPassword')}
+                          style={styles.forgotPasswordContainer}
+                      >
+                          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                      </TouchableOpacity>
 
-                    <View style={styles.dividerContainer}>
-                      <View style={styles.divider} />
-                      <Text style={styles.dividerText}>OR</Text>
-                      <View style={styles.divider} />
-                    </View>
+                      <View style={styles.captchaContainer}>
+                          <View style={styles.captchaLeft}>
+                            <Text style={styles.captchaText}>Verify: {num1} + {num2} = ?</Text>
+                            <TouchableOpacity onPress={refreshCaptcha} style={styles.refreshButton}>
+                              <RotateCcw color="#0038A8" size={18} />
+                            </TouchableOpacity>
+                          </View>
+                          <TextInput
+                              style={styles.captchaInput}
+                              placeholder="#"
+                              value={captchaAnswer}
+                              onChangeText={setCaptchaAnswer}
+                              keyboardType="numeric"
+                              maxLength={2}
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
 
-                    {/* GOOGLE SIGN IN BUTTON */}
-                    <TouchableOpacity 
-                      style={styles.googleButton}
-                      onPress={signInWithGoogleAsync}
-                      disabled={loading}
-                    >
-                      <Text style={styles.googleButtonText}>Sign in with Google</Text>
-                    </TouchableOpacity>
-                </>
-            ) : (
-                // MFA OTP UI
-                <>
-                    <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
-                    <View style={styles.inputContainer}>
-                        <Key color="#94a3b8" size={20} style={styles.icon} />
-                        <TextInput 
-                            placeholder="123456" 
-                            style={[styles.input, styles.otpInput]} 
-                            value={otp}
-                            onChangeText={setOtp}
-                            keyboardType="number-pad"
-                            maxLength={6}
-                            placeholderTextColor="#94a3b8"
-                        />
-                    </View>
+                      <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} disabled={loading}>
+                          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Log In</Text>}
+                      </TouchableOpacity>
 
-                    <TouchableOpacity 
-                        style={styles.loginButton} 
-                        onPress={handleVerifyOtp} 
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.loginButtonText}>Verify Code</Text>
-                        )}
-                    </TouchableOpacity>
+                      <View style={styles.dividerContainer}>
+                        <View style={styles.divider} />
+                        <Text style={styles.dividerText}>OR</Text>
+                        <View style={styles.divider} />
+                      </View>
 
-                    <TouchableOpacity onPress={() => {
-                        setMfaRequired(false);
-                        setOtp('');
-                    }}>
-                        <Text style={styles.cancelLink}>Cancel</Text>
-                    </TouchableOpacity>
-                </>
-            )}
-          </View>
+                      <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogleAsync} disabled={loading}>
+                        <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                      </TouchableOpacity>
+                  </>
+              ) : (
+                  <>
+                      <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
+                      <View style={styles.inputContainer}>
+                          <Key color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="123456" 
+                              style={[styles.input, styles.otpInput]} 
+                              value={otp}
+                              onChangeText={setOtp}
+                              keyboardType="number-pad"
+                              maxLength={6}
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text style={styles.linkText}>Sign Up</Text>
-            </TouchableOpacity>
+                      <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp} disabled={loading}>
+                          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Verify Code</Text>}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={() => { setMfaRequired(false); setOtp(''); }}>
+                          <Text style={styles.cancelLink}>Cancel</Text>
+                      </TouchableOpacity>
+                  </>
+              )}
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+                <Text style={styles.linkText}>Sign Up</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -404,54 +365,73 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { 
+  root: { 
     flex: 1, 
     backgroundColor: '#f8fafc', 
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 24,
-    justifyContent: 'center'
+    paddingBottom: 40,
   },
   header: { 
-    alignItems: 'center', 
-    marginBottom: 32 
+    backgroundColor: '#0038A8',
+    paddingTop: Platform.OS === 'android' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 60, // Space for overlapping card
+    alignItems: 'center',
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: 90,
+    height: 90,
     marginBottom: 16
   },
   title: { 
-    fontSize: 28, 
-    fontWeight: 'bold', 
-    color: '#0ea5e9' 
+    fontSize: 26, 
+    fontWeight: '800', 
+    color: 'white',
+    marginBottom: 4
+  },
+  subtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.8)'
+  },
+
+  // OVERLAPPING CARD
+  cardContainer: {
+    backgroundColor: 'white',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    marginTop: -30,
+    padding: 24,
+    shadowColor: '#000', 
+    shadowOpacity: 0.1, 
+    shadowRadius: 15, 
+    elevation: 6,
   },
   form: { 
-    gap: 16 
+    gap: 14 
   },
   inputContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: 'white', 
+    backgroundColor: '#f8fafc', 
     borderRadius: 12, 
     borderWidth: 1, 
     borderColor: '#e2e8f0', 
     paddingHorizontal: 16, 
-    height: 56 
+    height: 54 
   },
   icon: { 
     marginRight: 12 
   },
   input: { 
     flex: 1, 
-    fontSize: 16, 
+    fontSize: 15, 
     color: '#1e293b',
     ...Platform.select({
       web: { outlineStyle: 'none' as any }
     }) 
   },
-  // OTP SPECIFIC STYLE
   otpInput: {
     letterSpacing: 8,
     fontSize: 20,
@@ -462,17 +442,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#64748b',
     marginBottom: 10,
-    paddingHorizontal: 20
+    paddingHorizontal: 10
   },
-  loginButton: { 
-    backgroundColor: '#0ea5e9', 
-    height: 56, 
+  primaryButton: { 
+    backgroundColor: '#0038A8', 
+    height: 54, 
     borderRadius: 12, 
     justifyContent: 'center', 
     alignItems: 'center', 
-    marginTop: 8 
+    marginTop: 4 
   },
-  loginButtonText: { 
+  primaryButtonText: { 
     color: 'white', 
     fontSize: 16, 
     fontWeight: 'bold' 
@@ -486,7 +466,7 @@ const styles = StyleSheet.create({
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 8,
   },
   divider: {
     flex: 1,
@@ -497,10 +477,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     color: '#64748b',
     fontWeight: '600',
+    fontSize: 13
   },
   googleButton: {
     backgroundColor: 'white',
-    height: 56,
+    height: 54,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -509,29 +490,28 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     color: '#1e293b',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
   },
   footer: { 
     flexDirection: 'row', 
     justifyContent: 'center', 
-    marginTop: 32 
+    marginTop: 24 
   },
   footerText: { 
     color: '#64748b', 
     fontSize: 14 
   },
   linkText: { 
-    color: '#0ea5e9', 
+    color: '#0038A8', 
     fontSize: 14, 
-    fontWeight: '600' 
+    fontWeight: '700' 
   },
-  forgotPasswordContainer: { alignSelf: 'flex-end', marginTop: -8, marginBottom: 10 },
-  forgotPasswordText: { color: '#64748b', fontSize: 14, fontWeight: '600' },
-  // Captcha Styles
-  captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, padding: 15, backgroundColor: '#f0f8ff', borderRadius: 12, borderWidth: 1, borderColor: '#cce4ff' },
+  forgotPasswordContainer: { alignSelf: 'flex-end', marginTop: -6, marginBottom: 6 },
+  forgotPasswordText: { color: '#64748b', fontSize: 13, fontWeight: '600' },
+  captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0f5ff', borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe' },
   captchaLeft: { flexDirection: 'row', alignItems: 'center' },
   refreshButton: { marginLeft: 12, padding: 4 },
-  captchaText: { fontSize: 16, fontWeight: '600', color: '#0056b3', flexShrink: 1 },
-  captchaInput: { width: 50, height: 40, borderColor: '#0056b3', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff', color: '#1e293b' },
+  captchaText: { fontSize: 15, fontWeight: '600', color: '#0038A8', flexShrink: 1 },
+  captchaInput: { width: 50, height: 40, borderColor: '#0038A8', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff', color: '#1e293b', fontWeight: 'bold' },
 });

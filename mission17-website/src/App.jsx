@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Smartphone, ArrowRight, FileText, CheckCircle, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Phone } from 'lucide-react';
+import { Smartphone, ArrowRight, FileText, CheckCircle, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Phone, Menu } from 'lucide-react';
 
 const sdgData = [
   { id: 1, title: 'No Poverty', desc: 'End poverty in all its forms everywhere.' },
@@ -62,8 +62,8 @@ function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', overflowX: 'hidden' }}>
       
-      {/* Top Banner (Liga Style) */}
-      <div style={{ background: 'var(--primary-blue)', color: 'white', padding: '10px 5%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.85rem' }}>
+      {/* Top Banner */}
+      <div className="top-banner-text" style={{ background: 'var(--primary-blue)', color: 'white', padding: '10px 5%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.85rem' }}>
         <span>Welcome to the Official <span className="text-gold font-serif" style={{ fontStyle: 'italic', fontWeight: 600 }}>Mission 17</span> Website — connecting barangays digitally.</span>
       </div>
 
@@ -77,13 +77,13 @@ function App() {
         boxShadow: isScrolled ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
         transition: 'all 0.3s'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '45px', width: 'auto' }} />
           <div>
             <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Pantal</h1>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <a href="#services" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Home</a>
           <a href="#about" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>About Us</a>
           <a href="#services" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Services</a>
@@ -95,74 +95,39 @@ function App() {
         </div>
       </nav>
 
-      {/* Hero Section - Liga Style with Sunset Bridge Background */}
-      <header style={{ 
+      {/* Hero Section */}
+      <header className="hero-container" style={{ 
         padding: '8rem 5% 10rem', 
         background: 'linear-gradient(to right, rgba(0, 43, 127, 0.95) 0%, rgba(0, 43, 127, 0.7) 40%, rgba(0, 43, 127, 0.2) 100%), url("/bridge_bg.jpg") center/cover no-repeat',
         position: 'relative',
-        borderBottom: '4px solid var(--accent-gold)'
+        borderBottom: '4px solid var(--accent-gold)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '4rem'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4rem', position: 'relative', zIndex: 2 }}>
-          
-          {/* Left Content */}
-          <div style={{ flex: '1 1 500px', maxWidth: '650px', animation: 'heroSlideLeft 0.8s ease forwards' }}>
-            <h1 className="heading-hero" style={{ color: 'white' }}>
-              Welcome to the <br />
-              <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Mission 17</span> Portal
-            </h1>
-            <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', lineHeight: 1.7, maxWidth: '550px' }}>
-              This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and gamified digital governance.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <button className="btn-primary" style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}>
-                <Smartphone size={20} /> Download App
-              </button>
-              <button className="btn-outline" style={{ borderColor: 'white', color: 'white' }}>
-                Learn More About Us
-              </button>
-            </div>
+        <div className="hero-text-block" style={{ flex: '1 1 500px', maxWidth: '650px', animation: 'heroSlideLeft 0.8s ease forwards', zIndex: 2 }}>
+          <h1 className="heading-hero" style={{ color: 'white' }}>
+            Welcome to the <br />
+            <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Mission 17</span> Portal
+          </h1>
+          <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', lineHeight: 1.7, maxWidth: '550px' }}>
+            This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and gamified digital governance.
+          </p>
+          <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            <button className="btn-primary" style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}>
+              <Smartphone size={20} /> Download App
+            </button>
+            <button className="btn-outline" style={{ borderColor: 'white', color: 'white' }}>
+              Learn More About Us
+            </button>
           </div>
-
-          {/* Right Content (Image / Logo) */}
-          <div style={{ flex: '1 1 400px', position: 'relative', display: 'flex', justifyContent: 'center', animation: 'heroSlideRight 0.8s ease forwards' }}>
-            {/* Background Blob/Decoration removed for photo clarity */}
-            
-            <img 
-              src="/logo.png" 
-              alt="Mission 17 Official Seal" 
-              style={{ 
-                position: 'relative',
-                zIndex: 1,
-                width: '100%', 
-                maxWidth: '380px', 
-                height: 'auto', 
-                filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.4))',
-                animation: 'heroFloat 6s ease-in-out infinite'
-              }} 
-            />
-          </div>
-
         </div>
-
-        {/* Hero CSS Animations */}
-        <style>{`
-          @keyframes heroSlideLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to   { opacity: 1; transform: translateX(0); }
-          }
-          @keyframes heroSlideRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to   { opacity: 1; transform: translateX(0); }
-          }
-          @keyframes heroFloat {
-            0%, 100% { transform: translateY(0px); }
-            50%       { transform: translateY(-12px); }
-          }
-        `}</style>
       </header>
 
       {/* Impact Stats Banner */}
-      <div style={{ padding: '0 5%' }}>
+      <div style={{ padding: '0' }}>
         <FadeInSection>
           <div className="stats-banner">
             <div className="stat-item">
@@ -181,19 +146,19 @@ function App() {
         </FadeInSection>
       </div>
 
-      {/* Features Section - Liga Style */}
-      <section id="services" style={{ padding: '8rem 5%', background: 'var(--bg-light)' }}>
+      {/* Features Section */}
+      <section id="services" style={{ padding: '6rem 5%', background: 'var(--bg-light)' }}>
         <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', marginBottom: '5rem' }}>
+          <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', marginBottom: '4rem' }}>
             <div className="section-label">Core Features</div>
-            <h3 style={{ fontSize: '2.8rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
               Complete <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Ecosystem</span>
             </h3>
-            <p style={{ color: 'var(--text-muted)', maxWidth: '650px', margin: '0 auto', fontSize: '1.15rem', lineHeight: 1.7 }}>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '650px', margin: '0 auto', fontSize: '1.1rem', lineHeight: 1.7 }}>
               A fully integrated digital governance and community engagement platform built to serve the citizens of Barangay Pantal efficiently.
             </p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2.5rem', maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
             {[
               { icon: <FileText size={32}/>, title: "Blotter & Reports", desc: "Submit official incident reports securely with real-time tracking and push notifications." },
               { icon: <FileText size={32}/>, title: "Document Requests", desc: "Request Barangay Clearances, IDs, and Certificates directly from the app." },
@@ -204,10 +169,10 @@ function App() {
               { icon: <Smartphone size={32}/>, title: "Mobile & Web Portal", desc: "Cross-platform mobile app for residents and a powerful React dashboard for Admins." },
               { icon: <ShieldCheck size={32}/>, title: "Role-Based Access", desc: "Secure authentication with Two-Factor Auth (2FA) and detailed audit logs." }
             ].map((srv, idx) => (
-              <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', padding: '2.5rem 2rem', border: 'none', boxShadow: '0 10px 30px rgba(0,43,127,0.06)' }}>
-                <div style={{ color: 'white', marginBottom: '1.5rem', background: 'var(--primary-blue)', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '16px' }}>{srv.icon}</div>
-                <h4 style={{ fontSize: '1.25rem', marginBottom: '1rem', color: 'var(--text-dark)', fontWeight: 700 }}>{srv.title}</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>{srv.desc}</p>
+              <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', padding: '2rem 1.5rem', border: 'none', boxShadow: '0 10px 30px rgba(0,43,127,0.06)' }}>
+                <div style={{ color: 'white', marginBottom: '1.5rem', background: 'var(--primary-blue)', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px' }}>{srv.icon}</div>
+                <h4 style={{ fontSize: '1.2rem', marginBottom: '0.75rem', color: 'var(--text-dark)', fontWeight: 700 }}>{srv.title}</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>{srv.desc}</p>
               </div>
             ))}
           </div>
@@ -215,36 +180,36 @@ function App() {
       </section>
 
       {/* News & Announcements Section */}
-      <section id="news" style={{ padding: '8rem 5%', background: 'var(--bg-white)' }}>
+      <section id="news" style={{ padding: '6rem 5%', background: 'var(--bg-white)' }}>
         <FadeInSection>
           <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
+            <div className="section-title-wrapper" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
               <div style={{ maxWidth: '600px' }}>
                 <div className="section-label">Barangay Bulletin</div>
-                <h3 style={{ fontSize: '2.8rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px' }}>
-                  Latest <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>News & Updates</span>
+                <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px' }}>
+                  Latest <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>News</span>
                 </h3>
               </div>
               <button className="btn-outline" style={{ marginBottom: '0.5rem' }}>View All News</button>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
               {[
                 { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Pantal River for our monthly cleanup drive. Earn SDG points via the Mission 17 App.' },
                 { title: 'New Barangay ID System Rollout', date: 'Oct 10, 2026', desc: 'Request your new PVC Barangay ID directly through the mobile app Document Request feature.' },
                 { title: 'Barangay Assembly Meeting', date: 'Oct 05, 2026', desc: 'All residents are invited to the bi-annual barangay assembly at the covered court.' }
               ].map((news, idx) => (
                 <div key={idx} className="card" style={{ padding: '0', overflow: 'hidden', border: 'none', boxShadow: '0 10px 30px rgba(0,43,127,0.08)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '200px', background: 'var(--bg-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ height: '160px', background: 'var(--bg-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <FileText size={48} color="var(--text-muted)" opacity={0.2} />
                   </div>
-                  <div style={{ padding: '2rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'inline-block', padding: '6px 12px', background: 'rgba(252, 209, 22, 0.2)', color: '#b39500', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem', alignSelf: 'flex-start' }}>Advisory</div>
-                    <h4 style={{ fontSize: '1.3rem', color: 'var(--text-dark)', marginBottom: '1rem', lineHeight: 1.4, fontWeight: 700 }}>{news.title}</h4>
-                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.6, flex: 1 }}>{news.desc}</p>
-                    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>{news.date}</span>
-                      <a href="#" style={{ color: 'var(--primary-blue)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.9rem' }}>Read More <ArrowRight size={16}/></a>
+                  <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'inline-block', padding: '4px 10px', background: 'rgba(252, 209, 22, 0.2)', color: '#b39500', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem', alignSelf: 'flex-start' }}>Advisory</div>
+                    <h4 style={{ fontSize: '1.2rem', color: 'var(--text-dark)', marginBottom: '0.75rem', lineHeight: 1.4, fontWeight: 700 }}>{news.title}</h4>
+                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.5, flex: 1, fontSize: '0.95rem' }}>{news.desc}</p>
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>{news.date}</span>
+                      <a href="#" style={{ color: 'var(--primary-blue)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>Read More <ArrowRight size={14}/></a>
                     </div>
                   </div>
                 </div>
@@ -255,46 +220,46 @@ function App() {
       </section>
 
       {/* AI Engine Flowchart Section */}
-      <section id="ai" style={{ padding: '8rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
+      <section id="ai" style={{ padding: '6rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
         <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center' }}>
-            <div style={{ flex: '1 1 500px' }}>
+          <div className="ai-engine-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center' }}>
+            <div className="ai-engine-block" style={{ flex: '1 1 500px' }}>
               <div className="section-label">Smart Governance</div>
-              <h3 style={{ fontSize: '2.8rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
                 Intelligent <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Verification Engine</span>
               </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', marginBottom: '2.5rem', lineHeight: 1.7 }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '2.5rem', lineHeight: 1.6 }}>
                 Mission 17 uses a custom-trained AI model to automatically review civic task submissions. This prevents fraud and ensures that blockchain tokens are only awarded to genuine participants.
               </p>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem' }}>1</div>
+                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>1</div>
                   <div>
-                    <h4 style={{ fontSize: '1.2rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>User Uploads Photo</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>Citizen completes a coastal cleanup and uploads a photo proof via the mobile app.</p>
+                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>User Uploads Photo</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>Citizen completes a coastal cleanup and uploads a photo proof via the mobile app.</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '48px', height: '48px', borderRadius: '50%', background: 'var(--accent-gold)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem' }}>2</div>
+                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-gold)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>2</div>
                   <div>
-                    <h4 style={{ fontSize: '1.2rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>AI Model Analysis</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>Our Python server processes the image through an EfficientNet model to classify the activity.</p>
+                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>AI Model Analysis</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>Our Python server processes the image through an EfficientNet model to classify the activity.</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '48px', height: '48px', borderRadius: '50%', background: 'var(--bg-light)', border: '2px solid var(--primary-blue)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1.2rem' }}>3</div>
+                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-light)', border: '2px solid var(--primary-blue)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>3</div>
                   <div>
-                    <h4 style={{ fontSize: '1.2rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>Smart Contract Execution</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>If validated, SDG tokens are minted on the blockchain and sent to the user's wallet.</p>
+                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>Smart Contract Execution</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>If validated, SDG tokens are minted on the blockchain and sent to the user's wallet.</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '400px', aspectRatio: '3/4', background: 'var(--bg-light)', borderRadius: '24px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', boxShadow: '0 20px 40px rgba(0,43,127,0.08)' }}>
-                <Cpu size={80} color="var(--primary-blue)" style={{ marginBottom: '2rem' }} />
-                <h4 style={{ fontSize: '1.5rem', color: 'var(--primary-blue)', marginBottom: '2rem', fontWeight: 700 }}>System Architecture</h4>
+            <div className="ai-engine-block" style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}>
+              <div style={{ position: 'relative', width: '100%', maxWidth: '350px', aspectRatio: '3/4', background: 'var(--bg-light)', borderRadius: '24px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', boxShadow: '0 20px 40px rgba(0,43,127,0.08)' }}>
+                <Cpu size={60} color="var(--primary-blue)" style={{ marginBottom: '1.5rem' }} />
+                <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', marginBottom: '1.5rem', fontWeight: 700 }}>System Architecture</h4>
                 <div style={{ width: '100%', height: '8px', background: 'rgba(0, 43, 127, 0.1)', borderRadius: '4px', marginBottom: '1.5rem' }}>
                    <div style={{ width: '60%', height: '100%', background: 'var(--primary-blue)', borderRadius: '4px' }}></div>
                 </div>
@@ -310,117 +275,23 @@ function App() {
         </FadeInSection>
       </section>
 
-      {/* Interactive SDG Showcase */}
-      <section id="sdgs" style={{ padding: '8rem 5%', background: 'var(--bg-light)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
-              <div className="section-label">Gamified Rewards</div>
-              <h3 style={{ fontSize: '2.8rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
-                Sustainable <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Development Goals</span>
-              </h3>
-              <p style={{ color: 'var(--text-muted)', maxWidth: '700px', margin: '0 auto', fontSize: '1.15rem', lineHeight: 1.7 }}>
-                Mission 17 gamifies civic engagement. By completing tasks related to these UN Goals, residents earn verified reward points. Click a goal to learn more!
-              </p>
-            </div>
-            
-            <div className="sdg-grid">
-              {sdgData.map((sdg) => {
-                const numStr = sdg.id.toString().padStart(2, '0');
-                const imagePath = `/sdg/sdg${numStr}.png`;
-                return (
-                  <div key={sdg.id} className="sdg-card" onClick={() => setSelectedSdg(sdg)} title={`Click to read about ${sdg.title}`} style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-                    <img src={imagePath} alt={`SDG ${sdg.id}: ${sdg.title}`} />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </FadeInSection>
-      </section>
-
-      {/* Barangay Officials */}
-      <section id="officials" style={{ padding: '8rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
-            <div className="section-label">Leadership</div>
-            <h3 style={{ fontSize: '2.8rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
-              Barangay <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Council</span>
-            </h3>
-            <p style={{ color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto 5rem', fontSize: '1.15rem' }}>
-              The dedicated leaders serving Barangay Pantal.
-            </p>
-            
-            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '3rem' }}>
-              {[
-                { name: 'Hon. Juan dela Cruz', role: 'Punong Barangay' },
-                { name: 'Hon. Maria Santos', role: 'Barangay Kagawad' },
-                { name: 'Hon. Pedro Reyes', role: 'Barangay Kagawad' },
-                { name: 'Hon. Ana Lim', role: 'Barangay Kagawad' },
-                { name: 'Hon. Mark Cruz', role: 'Barangay Kagawad' },
-              ].map((official, idx) => (
-                <div key={idx} style={{ width: '220px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: '140px', height: '140px', borderRadius: '50%', backgroundColor: 'var(--bg-light)', border: '1px solid var(--border-light)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px rgba(0,0,0,0.04)' }}>
-                    <User size={48} color="var(--text-muted)" />
-                  </div>
-                  <h4 style={{ fontSize: '1.2rem', color: 'var(--primary-blue)', marginBottom: '0.25rem', fontWeight: 700 }}>{official.name}</h4>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{official.role}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </FadeInSection>
-      </section>
-
-      {/* Emergency Hotlines Directory */}
-      <section id="directory" style={{ padding: '8rem 5%', background: 'var(--primary-blue)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '5rem' }}>
-              <div className="section-label" style={{ color: 'white' }}>Quick Access</div>
-              <h3 style={{ fontSize: '2.8rem', color: 'white', fontWeight: 800, letterSpacing: '-0.5px' }}>
-                Emergency <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Hotlines</span>
-              </h3>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem' }}>
-              {[
-                { name: 'PNP (Police)', number: '117 / (075) 522-2222', icon: <ShieldCheck size={32} /> },
-                { name: 'BFP (Fire)', number: '(075) 522-3333', icon: <Phone size={32} /> },
-                { name: 'MDRRMO / Rescue', number: '(075) 522-4444', icon: <Phone size={32} /> },
-                { name: 'Barangay Hall Desk', number: '(075) 522-5555', icon: <MessageCircle size={32} /> }
-              ].map((contact, idx) => (
-                <div key={idx} className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '2rem', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px' }}>
-                  <div style={{ color: 'var(--accent-gold)' }}>
-                    {contact.icon}
-                  </div>
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', color: 'white', marginBottom: '0.25rem', fontWeight: 500 }}>{contact.name}</h4>
-                    <p style={{ fontSize: '1.25rem', color: 'white', fontWeight: 800 }}>{contact.number}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </FadeInSection>
-      </section>
-
       {/* Footer */}
-      <footer style={{ background: 'var(--bg-white)', padding: '6rem 5% 3rem', borderTop: '1px solid var(--border-light)', marginTop: 'auto' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '4rem' }}>
+      <footer style={{ background: 'var(--bg-white)', padding: '4rem 5% 2rem', borderTop: '1px solid var(--border-light)', marginTop: 'auto' }}>
+        <div className="footer-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '3rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1.5rem' }}>
-              <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '48px', width: 'auto' }} />
-              <h4 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
+              <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '40px', width: 'auto' }} />
+              <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1rem', maxWidth: '350px', lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>
               Empowering Barangay Pantal through AI-driven e-Governance, gamified civic tasks, and Sustainable Development Goals.
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '0.5rem' }}>Barangay Hall, Pantal, Dagupan City, 2400</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '0.5rem' }}>contact@mission17.gov.ph | (075) 522-5555</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '2rem' }}>&copy; 2026 Mission 17 Project Team. All rights reserved.</p>
+          <div className="footer-right" style={{ textAlign: 'right' }}>
+            <h4 style={{ fontSize: '1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Hall, Pantal, Dagupan City</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>contact@mission17.gov.ph</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 Mission 17 Project. All rights reserved.</p>
           </div>
         </div>
       </footer>
@@ -434,16 +305,16 @@ function App() {
               <img 
                 src={`/sdg/sdg${selectedSdg.id.toString().padStart(2, '0')}.png`} 
                 alt={`SDG ${selectedSdg.id}`} 
-                style={{ width: '80px', height: '80px', objectFit: 'contain', borderRadius: '8px' }} 
+                style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '6px' }} 
               />
               <div>
-                <h4 style={{ color: 'var(--primary-blue)', fontSize: '0.9rem', fontWeight: 800, textTransform: 'uppercase' }}>Goal {selectedSdg.id}</h4>
-                <h3 style={{ fontSize: '1.4rem', color: 'var(--text-dark)' }}>{selectedSdg.title}</h3>
+                <h4 style={{ color: 'var(--primary-blue)', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase' }}>Goal {selectedSdg.id}</h4>
+                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-dark)' }}>{selectedSdg.title}</h3>
               </div>
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.05rem', lineHeight: 1.6 }}>{selectedSdg.desc}</p>
-            <div style={{ marginTop: '2rem', textAlign: 'right' }}>
-              <button className="btn-primary" onClick={() => setSelectedSdg(null)} style={{ padding: '8px 20px' }}>Close</button>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{selectedSdg.desc}</p>
+            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+              <button className="btn-primary" onClick={() => setSelectedSdg(null)} style={{ padding: '6px 16px' }}>Close</button>
             </div>
           </div>
         </div>
