@@ -218,6 +218,8 @@ export default function LoginScreen() {
     const userData = { ...data.user, _id: userId };
 
     GlobalState.userId = userId;
+    GlobalState.token = data.token;
+    GlobalState.auth = { token: data.token };
     await saveAuthData(data.token, userData);
     showNotification(`Welcome back, ${data.user.username}!`, "success");
     

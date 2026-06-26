@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
-  SafeAreaView, ActivityIndicator, Linking, Alert 
+  SafeAreaView, ActivityIndicator, Linking, Alert, Modal
 } from 'react-native';
 import { 
   User, Settings, ShieldCheck, Clock, XCircle, CheckCircle, 
@@ -11,17 +11,20 @@ import { useIsFocused, CommonActions } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
 import { clearAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
+import { useNotification } from '../context/NotificationContext';
 
 // YOUR SYSTEM RELAYER ADDRESS
 const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
 
 const ProfileScreen = ({ navigation }: any) => { 
   const { theme } = useTheme();
+  const { showNotification } = useNotification();
   const styles = getStyles(theme);
 
   const [userData, setUserData] = useState<any>(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const isFocused = useIsFocused();
   const userId = GlobalState.userId;
 
@@ -56,20 +59,37 @@ const ProfileScreen = ({ navigation }: any) => {
     Linking.openURL(url);
   };
 
-  const handleLogout = async () => {
-    Alert.alert("Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: async () => {
-          await clearAuthData();
-          GlobalState.userId = null;
-          navigation.dispatch(
-            CommonActions.reset({
-              index: 0,
-              routes: [{ name: 'Login' }],
-            })
-          );
-      }}
-    ]);
+  const performLogout = async () => {
+    try {
+      setShowLogoutModal(false);
+      await clearAuthData();
+      GlobalState.userId = null;
+      GlobalState.token = null;
+      GlobalState.auth = null;
+
+      showNotification({
+        title: "Success",
+        message: "Logged out successfully",
+        type: "success"
+      });
+      
+      // In a nested navigator (Profile -> Tabs -> Stack), getParent() returns Tabs.
+      // We need to go one level higher to the Root Stack to reset to Login.
+      const rootNav = navigation.getParent('RootStack') || navigation.getParent()?.getParent() || navigation;
+      
+      rootNav.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: 'Login' }],
+        })
+      );
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
   };
 
   const handleComingSoon = (feature: string) => {
@@ -215,6 +235,29 @@ const ProfileScreen = ({ navigation }: any) => {
         
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* --- LOGOUT CONFIRMATION MODAL --- */}
+      <Modal visible={showLogoutModal} animationType="fade" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconContainer}>
+              <LogOut size={32} color={theme.danger} />
+            </View>
+            <Text style={styles.modalTitle}>Confirm Logout</Text>
+            <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
+            
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowLogoutModal(false)}>
+                <Text style={styles.modalBtnCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalBtnConfirm} onPress={performLogout}>
+                <Text style={styles.modalBtnConfirmText}>Logout</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </RootComponent>
   );
 };
@@ -266,7 +309,19 @@ const getStyles = (theme: any) => StyleSheet.create({
   bgWarning: { backgroundColor: theme.warning },
 
   emptyState: { alignItems: 'center', padding: 30, opacity: 0.6 },
-  emptyText: { marginTop: 10, color: theme.textSecondary, fontSize: 14 }
+  emptyText: { marginTop: 10, color: theme.textSecondary, fontSize: 14 },
+
+  // MODAL STYLES
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
+  modalCard: { backgroundColor: theme.surface, borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
+  modalIconContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.danger + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 8 },
+  modalMessage: { fontSize: 15, color: theme.textSecondary, textAlign: 'center', marginBottom: 24, paddingHorizontal: 10 },
+  modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalBtnCancel: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, alignItems: 'center' },
+  modalBtnCancelText: { fontSize: 15, fontWeight: '700', color: theme.textSecondary },
+  modalBtnConfirm: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.danger, alignItems: 'center' },
+  modalBtnConfirmText: { fontSize: 15, fontWeight: '700', color: 'white' }
 });
 
 export default ProfileScreen;

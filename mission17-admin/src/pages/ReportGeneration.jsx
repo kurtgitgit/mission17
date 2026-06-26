@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, AlertTriangle } from 'lucide-react';
+import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, AlertTriangle, TrendingUp } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';
 
 const ReportGeneration = () => {
-  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, missions
+  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, missions, analytics
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -14,18 +14,38 @@ const ReportGeneration = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      let endpoint = '';
-      
-      if (reportType === 'blotter') endpoint = '/api/blotter-reports';
-      else if (reportType === 'documents') endpoint = '/api/document-requests';
-      else if (reportType === 'users') endpoint = '/api/auth/admin/users';
-      else if (reportType === 'missions') endpoint = '/api/auth/missions';
+      if (reportType === 'analytics') {
+        const baseUrl = 'http://localhost:5001';
+        const headers = { Authorization: `Bearer ${token}`, 'auth-token': token };
+        const [submRes, userRes, docRes, blotterRes] = await Promise.all([
+          axios.get(`${baseUrl}/api/auth/analytics-stats`, { headers }),
+          axios.get(`${baseUrl}/api/auth/users`, { headers }),
+          axios.get(`${baseUrl}/api/document-requests`, { headers }),
+          axios.get(`${baseUrl}/api/blotter-reports`, { headers })
+        ]);
+        
+        const subs = Array.isArray(submRes.data) ? submRes.data : (submRes.data.submissions || []);
+        const approvedSubs = subs.filter(s => s.status === 'Approved').length;
+        
+        setData({
+          users: userRes.data.length || 0,
+          documents: docRes.data.length || 0,
+          blotters: blotterRes.data.length || 0,
+          submissions: subs.length || 0,
+          approvedSubmissions: approvedSubs || 0
+        });
+      } else {
+        let endpoint = '';
+        if (reportType === 'blotter') endpoint = '/api/blotter-reports';
+        else if (reportType === 'documents') endpoint = '/api/document-requests';
+        else if (reportType === 'users') endpoint = '/api/auth/admin/users';
+        else if (reportType === 'missions') endpoint = '/api/auth/missions';
 
-      const res = await axios.get(`http://localhost:5001${endpoint}`, {
-        headers: { Authorization: `Bearer ${token}`, 'auth-token': token }
-      });
-      
-      setData(res.data.users || res.data.missions || res.data);
+        const res = await axios.get(`http://localhost:5001${endpoint}`, {
+          headers: { Authorization: `Bearer ${token}`, 'auth-token': token }
+        });
+        setData(res.data.users || res.data.missions || res.data);
+      }
     } catch (err) {
       console.error('Error fetching report data', err);
     } finally {
@@ -47,6 +67,7 @@ const ReportGeneration = () => {
       case 'documents': return 'BARANGAY DOCUMENT ISSUANCE LOG';
       case 'users': return 'REGISTERED RESIDENTS DIRECTORY';
       case 'missions': return 'CIVIC TASKS AND SDG CONTRIBUTIONS';
+      case 'analytics': return 'BARANGAY ANALYTICS SUMMARY';
       default: return 'OFFICIAL BARANGAY REPORT';
     }
   };
@@ -85,6 +106,13 @@ const ReportGeneration = () => {
           <th>SDG</th>
           <th>Points</th>
           <th>Status</th>
+        </tr>
+      );
+      case 'analytics': return (
+        <tr>
+          <th>Metric Name</th>
+          <th>Total Count</th>
+          <th>Status / Description</th>
         </tr>
       );
       default: return null;
@@ -133,6 +161,38 @@ const ReportGeneration = () => {
     });
   };
 
+  const renderAnalyticsRows = () => {
+    return (
+      <>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Registered Residents</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.users}</td>
+          <td>Total accounts in the system</td>
+        </tr>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Civic Task Submissions</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.submissions}</td>
+          <td>Total tasks submitted by residents</td>
+        </tr>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Approved Civic Tasks</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold', color: '#16a34a' }}>{data.approvedSubmissions}</td>
+          <td>Verified and recorded on blockchain</td>
+        </tr>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Document Requests</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.documents}</td>
+          <td>Total certificates/clearances requested</td>
+        </tr>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Blotter Reports</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.blotters}</td>
+          <td>Total incidents reported to barangay</td>
+        </tr>
+      </>
+    );
+  };
+
   return (
     <div className="dashboard-container">
       <Sidebar />
@@ -171,6 +231,9 @@ const ReportGeneration = () => {
                 </button>
                 <button className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
                   <Target size={16} /> Civic Tasks & SDGs
+                </button>
+                <button className={`report-type-btn ${reportType === 'analytics' ? 'active' : ''}`} onClick={() => setReportType('analytics')}>
+                  <TrendingUp size={16} /> Analytics Summary
                 </button>
               </div>
 
@@ -212,7 +275,7 @@ const ReportGeneration = () => {
                     </p>
                   </div>
 
-                  {data.length === 0 ? (
+                  {(!data || (Array.isArray(data) && data.length === 0)) ? (
                     <div className="empty-state" style={{ marginTop: '50px' }}>
                       <FileBarChart size={48} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
                       <h3 style={{ color: '#64748b' }}>No data available for this report.</h3>
@@ -220,7 +283,7 @@ const ReportGeneration = () => {
                   ) : (
                     <table className="report-table">
                       <thead>{renderTableHeaders()}</thead>
-                      <tbody>{renderTableRows()}</tbody>
+                      <tbody>{reportType === 'analytics' ? renderAnalyticsRows() : renderTableRows()}</tbody>
                     </table>
                   )}
 

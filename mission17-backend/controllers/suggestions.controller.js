@@ -2,6 +2,7 @@
 // Business logic for community suggestions — separated from routing.
 
 import Suggestion from '../models/Suggestion.js';
+import Notification from '../models/Notification.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['New', 'Under Review', 'Approved', 'Rejected'];
@@ -48,11 +49,31 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   const suggestion = await Suggestion.findByIdAndUpdate(
     req.params.id,
-    { ...(status && { status }), ...(adminReply && { adminReply }) },
+    { ...(status && { status }), ...(adminReply !== undefined && { adminReply }) },
     { new: true }
   );
 
   if (!suggestion) return res.status(404).json({ message: 'Suggestion not found.' });
 
+  // Send notification to the resident (skip anonymous)
+  if (suggestion.userId && status) {
+    const notifMap = {
+      'Approved':     { title: '✅ Feedback Approved!',     type: 'success', message: `Your suggestion "${suggestion.title}" has been approved by the Barangay!${adminReply ? ' Reply: ' + adminReply : ''}` },
+      'Rejected':     { title: '❌ Feedback Not Accepted',  type: 'error',   message: `Your suggestion "${suggestion.title}" was not accepted.${adminReply ? ' Reason: ' + adminReply : ''}` },
+      'Under Review': { title: '🔍 Feedback Under Review',  type: 'info',    message: `Your suggestion "${suggestion.title}" is now being reviewed by the Barangay.` },
+    };
+    const notif = notifMap[status];
+    if (notif) {
+      await Notification.create({ userId: suggestion.userId, ...notif });
+    }
+  }
+
   res.json(suggestion);
+});
+
+// DELETE /:id — Admin: Delete a suggestion
+export const deleteSuggestion = asyncHandler(async (req, res) => {
+  const suggestion = await Suggestion.findByIdAndDelete(req.params.id);
+  if (!suggestion) return res.status(404).json({ message: 'Suggestion not found.' });
+  res.json({ message: 'Suggestion deleted successfully.' });
 });

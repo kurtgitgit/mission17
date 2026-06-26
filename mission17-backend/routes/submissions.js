@@ -480,8 +480,26 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
 // 9. ANALYTICS PAGE STATS
 router.get('/analytics-stats', verifyAdmin, async (req, res) => {
   try {
-    const submissions = await Submission.find().select('status createdAt').lean();
-    res.json(submissions);
+    // Fetch all submissions (status + date for trend/status charts)
+    const submissions = await Submission.find()
+      .select('status createdAt missionId')
+      .lean();
+
+    // Fetch all approved analysis reports that have an SDG label
+    const reports = await AnalysisReport.find({ sdg: { $exists: true, $ne: '' } })
+      .select('submissionId sdg')
+      .lean();
+
+    // Build SDG counts from real AnalysisReport data
+    const sdgCounts = {};
+    reports.forEach(r => {
+      if (r.sdg) {
+        const key = r.sdg.trim();
+        sdgCounts[key] = (sdgCounts[key] || 0) + 1;
+      }
+    });
+
+    res.json({ submissions, sdgCounts });
   } catch (error) {
     console.error('Error fetching analytics stats:', error);
     res.status(500).json({ message: 'Server Error' });

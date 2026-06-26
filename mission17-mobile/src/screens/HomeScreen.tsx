@@ -61,17 +61,18 @@ const HomeScreen: React.FC = () => {
         }
         if (subRes.ok)   {
           const s = await subRes.json();
+          const sArray = Array.isArray(s) ? s : [];
           setStats({
-            total:    s.length,
-            approved: s.filter((x: any) => x.status === 'Approved').length,
-            pending:  s.filter((x: any) => x.status === 'Pending').length,
+            total:    sArray.length,
+            approved: sArray.filter((x: any) => x.status === 'Approved').length,
+            pending:  sArray.filter((x: any) => x.status === 'Pending').length,
           });
         }
         // unread notifications
         const auth = await getAuthData();
         if (auth?.token) {
           const nr = await fetch(endpoints.auth.getNotifications(userId), { headers: { 'auth-token': auth.token } });
-          if (nr.ok) { const notifs = await nr.json(); setHasUnread(notifs.some((n: any) => !n.read)); }
+          if (nr.ok) { const notifs = await nr.json(); setHasUnread(Array.isArray(notifs) ? notifs.some((n: any) => !n.read) : false); }
         }
       }
       // public endpoints
@@ -79,8 +80,16 @@ const HomeScreen: React.FC = () => {
         fetch(endpoints.announcements),
         fetch(endpoints.events),
       ]);
-      if (annRes.ok) { const d = await annRes.json(); setAnnouncements(d.slice(0, 3)); }
-      if (evtRes.ok) { const d = await evtRes.json(); setEvents(d.slice(0, 4)); }
+      if (annRes.ok) { 
+        const d = await annRes.json(); 
+        const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+        setAnnouncements(dArr.slice(0, 3)); 
+      }
+      if (evtRes.ok) { 
+        const d = await evtRes.json(); 
+        const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
+        setEvents(dArr.slice(0, 4)); 
+      }
     } catch (e) {
       console.error('Home fetch error:', e);
     } finally {

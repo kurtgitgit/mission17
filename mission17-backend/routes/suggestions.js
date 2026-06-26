@@ -3,7 +3,7 @@
 
 import express from 'express';
 import { verifyAdmin } from '../utils/authMiddleware.js';
-import { submitSuggestion, getAllSuggestions, getMySuggestions, updateStatus } from '../controllers/suggestions.controller.js';
+import { submitSuggestion, getAllSuggestions, getMySuggestions, updateStatus, deleteSuggestion } from '../controllers/suggestions.controller.js';
 
 const router = express.Router();
 
@@ -11,5 +11,6 @@ router.post('/',             submitSuggestion);
 router.get('/',              getAllSuggestions);
 router.get('/my/:userId',    getMySuggestions);
 router.patch('/:id/status', verifyAdmin, updateStatus);
+router.delete('/:id',       verifyAdmin, deleteSuggestion);
 
 export default router;
