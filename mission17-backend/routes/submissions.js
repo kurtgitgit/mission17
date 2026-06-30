@@ -27,6 +27,7 @@ import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
 import { awardSdgPoints } from '../utils/blockchain.js';
 import { isValidImageUri, callAIServer, saveAnalysisReport } from '../utils/aiVerification.js';
+import { cloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
 
@@ -56,13 +57,10 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
 
     let finalImageUri = null;
     
-    // Save base64 images to local filesystem to prevent DB bloat
+    // Save base64 images to Cloudinary to prevent DB bloat and support ephemeral disk
     if (image && image.startsWith('data:image')) {
-      const base64Data = image.split(',')[1];
-      const filename = `proof_${Date.now()}_${userId}.jpg`;
-      const filepath = path.join(UPLOADS_DIR, filename);
-      fs.writeFileSync(filepath, base64Data, 'base64');
-      finalImageUri = `/uploads/${filename}`;
+      const uploadResult = await cloudinary.uploader.upload(image, { folder: 'mission17-uploads' });
+      finalImageUri = uploadResult.secure_url;
     } else if (isValidImageUri(image)) {
         finalImageUri = image;
     }

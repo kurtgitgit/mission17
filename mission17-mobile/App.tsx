@@ -142,40 +142,40 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      <NotificationProvider>
-        <GestureHandlerRootView style={{ flex: 1 }}>
-        <NavigationContainer>
-          <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-            {/* Auth */}
-            <Stack.Screen name="Login"         component={LoginScreen} />
-            <Stack.Screen name="Signup"        component={SignupScreen} />
-            <Stack.Screen name="VerifySignup"  component={VerifySignup} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <NotificationProvider>
+          <NavigationContainer>
+            <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+              {/* Auth */}
+              <Stack.Screen name="Login"         component={LoginScreen} />
+              <Stack.Screen name="Signup"        component={SignupScreen} />
+              <Stack.Screen name="VerifySignup"  component={VerifySignup} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
 
-            {/* Main */}
-            <Stack.Screen name="Home"          component={MainTabs} />
+              {/* Main */}
+              <Stack.Screen name="Home"          component={MainTabs} />
 
-            {/* Detail Screens */}
-            <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
-            <Stack.Screen name="EventDetail"   component={EventDetailScreen} />
-            <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
-            <Stack.Screen name="Settings"      component={SettingsScreen} />
-            <Stack.Screen name="SDGDetail"     component={SDGDetailScreen} />
-            <Stack.Screen name="AuditLogs"     component={AuditLogScreen} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              {/* Detail Screens */}
+              <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
+              <Stack.Screen name="EventDetail"   component={EventDetailScreen} />
+              <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
+              <Stack.Screen name="Settings"      component={SettingsScreen} />
+              <Stack.Screen name="SDGDetail"     component={SDGDetailScreen} />
+              <Stack.Screen name="AuditLogs"     component={AuditLogScreen} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
 
-            {/* Barangay Screens (pushable from Home quick actions) */}
-            <Stack.Screen name="Services"      component={ServicesScreen} />
-            <Stack.Screen name="Officials"     component={OfficialsScreen} />
-            <Stack.Screen name="ChatBot"       component={ChatBotScreen} />
-            <Stack.Screen name="BlotterReport" component={BlotterReportScreen} />
-            <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
-            <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
-          </StackNavigator>
-        </NavigationContainer>
-      </GestureHandlerRootView>
-      </NotificationProvider>
-    </ThemeProvider>
+              {/* Barangay Screens (pushable from Home quick actions) */}
+              <Stack.Screen name="Services"      component={ServicesScreen} />
+              <Stack.Screen name="Officials"     component={OfficialsScreen} />
+              <Stack.Screen name="ChatBot"       component={ChatBotScreen} />
+              <Stack.Screen name="BlotterReport" component={BlotterReportScreen} />
+              <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
+              <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
+            </StackNavigator>
+          </NavigationContainer>
+        </NotificationProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

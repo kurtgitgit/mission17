@@ -11,7 +11,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0038A8"
     },
     "ios": {
       "supportsTablet": true
@@ -22,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.anonymous.mission17app"
+      "package": "com.barangaypantal.mission17",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"

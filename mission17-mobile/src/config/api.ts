@@ -7,14 +7,21 @@ import { Platform } from 'react-native';
 const LAN_IP = "192.168.1.101"; 
 
 // 🛠️ APK DEPLOYMENT CONFIG:
-// We use the LAN_IP for both DEV and PRODUCTION builds so your APK can talk to your laptop.
-const API_URL = `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`;
+const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
 
-const AI_URL = `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/predict`;
+const API_URL = __DEV__ 
+  ? `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`
+  : `${RENDER_BACKEND_URL}/api`;
+
+const AI_URL = __DEV__ 
+  ? `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/predict`
+  : `http://10.42.160.98:5000/predict`; // This won't work in prod unless deployed separately
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
-console.log(`🏛️ Brgy. Pantal Portal (${__DEV__ ? 'DEV' : 'PROD'}) API: ${API_URL}`);
+if (__DEV__) {
+  console.log(`🏛️ Brgy. Pantal Portal (DEV) API: ${API_URL}`);
+}
 
 // 🖼️ IMAGE HELPER
 export const formatImageUri = (uri: string) => {
