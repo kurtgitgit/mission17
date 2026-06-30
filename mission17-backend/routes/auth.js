@@ -306,8 +306,8 @@ router.post('/signup', upload.fields([
     // 🔒 LOG ACTION
     logAudit(newUser._id, newUser.username, "SIGNUP_INITIATED", "New account created (Unverified)", req);
 
-    // 🔑 Send Activation OTP
-    await sendOTP(newUser, 'signup');
+    // 🔑 Send Activation OTP (Fire and forget so it doesn't block response)
+    sendOTP(newUser, 'signup').catch(console.error);
 
     res.status(201).json({
       message: "Account created! Check your email for a verification code.",
@@ -355,7 +355,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     // 🔒 CHECK: Email Verification
     if (!user.isVerified) {
-      await sendOTP(user, 'signup'); // Resend code if they try to login while unverified
+      sendOTP(user, 'signup').catch(console.error); // Resend code without blocking
       return res.status(401).json({
         message: "Account not verified. A new code has been sent to your email.",
         unverified: true,
@@ -369,7 +369,7 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     if (user.mfaEnabled) {
-      await sendOTP(user);
+      sendOTP(user).catch(console.error); // Fire and forget
       return res.status(202).json({
         message: "OTP Sent",
         mfaRequired: true,
