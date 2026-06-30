@@ -30,15 +30,7 @@ import path from 'path';
 // ==========================================
 // 📂 MULTER CONFIGURATION FOR FILE UPLOADS
 // ==========================================
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
+import { upload } from '../utils/upload.js';
 
 // 🛡️ ANTI-FRAUD: Known disposable email domains
 const DISPOSABLE_DOMAINS = [
@@ -289,8 +281,8 @@ router.post('/signup', upload.fields([
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Grab file URLs if they exist
-    const validIdUrl = req.files && req.files['validIdImage'] ? `/uploads/${req.files['validIdImage'][0].filename}` : null;
-    const profileImageUrl = req.files && req.files['profileImage'] ? `/uploads/${req.files['profileImage'][0].filename}` : null;
+    const validIdUrl = req.files && req.files['validIdImage'] ? req.files['validIdImage'][0].path : null;
+    const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
 
     const newUser = new User({
       username: cleanUsername,

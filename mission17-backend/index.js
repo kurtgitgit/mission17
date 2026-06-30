@@ -27,7 +27,7 @@ import { upload } from './utils/upload.js';
 import { logAudit } from './utils/authMiddleware.js';
 
 // ✅ NEW: Check for required environment variables on startup
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 for (const v of requiredEnvVars) {
     if (!process.env[v]) {
         console.error(`\n❌ FATAL ERROR: Environment variable ${v} is missing in .env file.`);
@@ -98,7 +98,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Note: '/uploads' static route removed as Cloudinary handles images now
 
 // --- ROUTES ---
 app.get('/api/health', (req, res) => {

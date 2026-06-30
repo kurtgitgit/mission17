@@ -140,6 +140,7 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
+    let isMfaTriggered = false;
 
     try {
       const cleanEmail = email.trim();
@@ -157,6 +158,7 @@ export default function LoginScreen() {
         setTempUserId(data.userId);
         showNotification("We sent a 6-digit code to your email.", "info");
         setLoading(false);
+        isMfaTriggered = true;
         return;
       }
 
@@ -181,7 +183,9 @@ export default function LoginScreen() {
       console.error(error);
       refreshCaptcha();
     } finally {
-      if (!mfaRequired) setLoading(false);
+      if (!isMfaTriggered) {
+        setLoading(false);
+      }
     }
   };
 
