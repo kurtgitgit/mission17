@@ -1,6 +1,5 @@
-const API_URL = import.meta.env.DEV 
-  ? `http://${window.location.hostname}:5001/api` 
-  : "https://mission17-backend.onrender.com/api"; 
+// Temporarily force Admin to use the live cloud backend for testing
+const API_URL = "https://mission17-backend.onrender.com/api"; 
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
