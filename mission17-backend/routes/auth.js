@@ -18,7 +18,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
@@ -71,12 +71,7 @@ const sendOTP = async (user, type = 'mfa') => {
   });
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     const htmlTemplate = `
       <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
@@ -102,7 +97,7 @@ const sendOTP = async (user, type = 'mfa') => {
       </div>
     `;
 
-    await transporter.sendMail({
+    await sgMail.send({
       from: `"Mission 17 Security" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: subject,
@@ -120,12 +115,7 @@ const sendOTP = async (user, type = 'mfa') => {
 // ==========================================
 const sendWelcomeEmail = async (user) => {
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     const htmlTemplate = `
       <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
@@ -145,8 +135,8 @@ const sendWelcomeEmail = async (user) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: '"Mission 17" <' + process.env.EMAIL_USER + '>',
+    await sgMail.send({
+      from: `"Mission 17" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'Welcome to Mission 17! 🎉',
       text: 'Hi ' + user.username + ', welcome to Mission 17! Your account was successfully created.',
@@ -172,12 +162,7 @@ const sendPasswordResetEmail = async (user) => {
   });
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-    });
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
     const htmlTemplate = `
       <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #fffaf0; border-radius: 12px; border: 1px solid #fed7aa;">
@@ -199,7 +184,7 @@ const sendPasswordResetEmail = async (user) => {
       </div>
     `;
 
-    await transporter.sendMail({
+    await sgMail.send({
       from: `"Mission 17 Support" <${process.env.EMAIL_USER}>`,
       to: user.email,
       subject: 'Password Reset Code - Mission 17',
@@ -235,15 +220,15 @@ const loginLimiter = rateLimit({
 
 // 1. REGISTER
 router.post('/signup', upload.fields([
-  { name: 'validIdImage', maxCount: 1 }, 
+  { name: 'validIdImage', maxCount: 1 },
   { name: 'profileImage', maxCount: 1 }
 ]), async (req, res) => {
-  let { 
-    email, password, role, 
-    firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus, 
-    nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber, 
-    voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson, 
-    numberOfFamilyMembers, educationalAttainment, bloodType, disability 
+  let {
+    email, password, role,
+    firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+    nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
+    voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
+    numberOfFamilyMembers, educationalAttainment, bloodType, disability
   } = req.body;
 
   // Since we don't collect a specific 'username' anymore on the form, we can generate one or use email
@@ -292,11 +277,11 @@ router.post('/signup', upload.fields([
       points: 0,
       isVerified: false, // 🔒 Default to unverified email
       accountStatus: 'pending', // 🔒 Admin approval required
-      
+
       // Expanded fields
-      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus, 
-      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber, 
-      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson, 
+      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
+      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
       numberOfFamilyMembers, educationalAttainment, bloodType, disability,
       validIdUrl, profileImageUrl
     });

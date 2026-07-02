@@ -9,9 +9,8 @@ const LAN_IP = "192.168.1.101";
 // 🛠️ APK DEPLOYMENT CONFIG:
 const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
 
-const API_URL = __DEV__ 
-  ? `http://${Platform.OS === 'web' ? (typeof window !== 'undefined' ? window.location.hostname : 'localhost') : LAN_IP}:5001/api`
-  : `${RENDER_BACKEND_URL}/api`;
+// Temporarily force Mobile to use the live cloud backend for Expo testing
+const API_URL = `${RENDER_BACKEND_URL}/api`;
 
 const AI_URL = __DEV__ 
   ? `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/predict`
