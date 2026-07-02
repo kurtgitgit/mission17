@@ -21,6 +21,9 @@ const UserSchema = new mongoose.Schema({
     enum: ['resident', 'lgu', 'admin'],
     default: 'resident' 
   },
+  expoPushToken: {
+    type: String
+  },
   // ==================================================
   // 📝 EXTENDED RESIDENT INFORMATION
   // ==================================================
