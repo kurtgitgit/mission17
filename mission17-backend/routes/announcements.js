@@ -2,7 +2,9 @@
 // Prefix: /api/announcements
 
 import express from 'express';
+import { Expo } from 'expo-server-sdk';
 import Announcement from '../models/Announcement.js';
+import User from '../models/User.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
@@ -35,6 +37,34 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
     isPinned:  isPinned || false,
     postedBy:  req.user?.username || 'Admin',
   });
+
+  // 🚀 SEND PUSH NOTIFICATIONS
+  try {
+    const expo = new Expo();
+    // Get all users who have registered a push token
+    const usersWithTokens = await User.find({ expoPushToken: { $exists: true, $ne: '' } });
+    
+    let messages = [];
+    for (let user of usersWithTokens) {
+      if (!Expo.isExpoPushToken(user.expoPushToken)) {
+        continue;
+      }
+      messages.push({
+        to: user.expoPushToken,
+        sound: 'default',
+        title: `📢 New Barangay Announcement`,
+        body: title,
+        data: { announcementId: announcement._id },
+      });
+    }
+
+    const chunks = expo.chunkPushNotifications(messages);
+    for (let chunk of chunks) {
+      await expo.sendPushNotificationsAsync(chunk);
+    }
+  } catch (error) {
+    console.error("Push Notification Error:", error);
+  }
 
   logAudit(req.user.id, req.user.username, 'ANNOUNCEMENT_POST', `Posted: ${title}`, req);
   res.status(201).json({ message: 'Announcement posted.', announcement });

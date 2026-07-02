@@ -606,5 +606,23 @@ router.get('/audit-logs', verifyAdmin, async (req, res) => {
   }
 });
 
+// ==========================================
+// 🔔 SAVE EXPO PUSH TOKEN
+// ==========================================
+router.post('/save-push-token', async (req, res) => {
+  const { userId, expoPushToken } = req.body;
+  if (!userId || !expoPushToken) {
+    return res.status(400).json({ message: "User ID and Push Token are required." });
+  }
+
+  try {
+    await User.findByIdAndUpdate(userId, { expoPushToken });
+    res.json({ message: "Push token saved successfully." });
+  } catch (error) {
+    console.error("Error saving push token:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default router;
 
