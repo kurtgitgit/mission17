@@ -98,7 +98,7 @@ const sendOTP = async (user, type = 'mfa') => {
     `;
 
     await sgMail.send({
-      from: `"Mission 17 Security" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: user.email,
       subject: subject,
       text: `${title}: ${otp}. it expires in 10 minutes.`,
@@ -107,6 +107,7 @@ const sendOTP = async (user, type = 'mfa') => {
     console.log('✅ Email sent successfully!');
   } catch (error) {
     console.error('❌ Email Send Failed:', error);
+    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
   }
 };
 
@@ -136,7 +137,7 @@ const sendWelcomeEmail = async (user) => {
     `;
 
     await sgMail.send({
-      from: `"Mission 17" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Welcome to Mission 17! 🎉',
       text: 'Hi ' + user.username + ', welcome to Mission 17! Your account was successfully created.',
@@ -145,6 +146,7 @@ const sendWelcomeEmail = async (user) => {
     console.log('✅ Welcome email sent successfully to ' + user.email);
   } catch (error) {
     console.error('❌ Welcome Email Send Failed:', error);
+    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
   }
 };
 
@@ -185,7 +187,7 @@ const sendPasswordResetEmail = async (user) => {
     `;
 
     await sgMail.send({
-      from: `"Mission 17 Support" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Password Reset Code - Mission 17',
       html: htmlTemplate,
@@ -193,6 +195,7 @@ const sendPasswordResetEmail = async (user) => {
     console.log('✅ Reset email sent to:', user.email);
   } catch (error) {
     console.error('❌ Reset Email Failed:', error);
+    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
   }
 };
 
