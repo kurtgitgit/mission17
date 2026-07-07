@@ -38,7 +38,7 @@ if (Platform.OS !== 'web' && NativeModules.RNGoogleSignin) {
 }
 
 export default function LoginScreen() {
-  const { showNotification } = useNotification();
+  const { showNotification, registerPushToken } = useNotification();
   const navigation = useNavigation<any>();
   
   const [email, setEmail] = useState('');
@@ -226,6 +226,11 @@ export default function LoginScreen() {
     GlobalState.auth = { token: data.token };
     await saveAuthData(data.token, userData);
     showNotification(`Welcome back, ${data.user.username}!`, "success");
+    
+    // Register device for push notifications
+    if (registerPushToken) {
+      registerPushToken(userId);
+    }
     
     navigation.replace('Home', { 
         screen: 'HomeTab', 

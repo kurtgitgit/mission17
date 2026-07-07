@@ -1,0 +1,11 @@
+dataset/
+__pycache__/
+*.pyc
+.env
+.git
+.vscode
+.gemini
+scripts/testing/mission_dataset_split.zip
+venv/
+.venv/
+env/

@@ -13,8 +13,8 @@ print("⏳ Loading AI Model...")
 model = tf.keras.models.load_model(os.path.join(BASE_DIR, '..', '..', 'mission_model.h5')) 
 
 print("📁 Loading Test Dataset...")
-# 👇 Using the correct path you established
-test_dir = os.path.join(BASE_DIR, '..', '..', '..', 'dataset', 'mission_dataset')
+# 👇 Pointing to the new TEST split folder
+test_dir = os.path.join(BASE_DIR, '..', '..', '..', 'dataset', 'mission_dataset_split', 'test')
 
 test_datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
 test_generator = test_datagen.flow_from_directory(

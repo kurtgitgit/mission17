@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api';
 import '../styles/Auth.css';
@@ -44,20 +44,20 @@ const Login = () => {
     // 📧 EMAIL VALIDATION
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address.");
+      showNotification("Please enter a valid email address.", "error");
       setLoading(false);
       return;
     }
 
     // 🤖 CAPTCHA VALIDATION
     if (!captchaAnswer.trim()) {
-      setError("Please answer the security math question.");
+      showNotification("Please answer the security math question.", "error");
       setLoading(false);
       return;
     }
 
     if (parseInt(captchaAnswer) !== num1 * num2) {
-      setError("Incorrect security answer. Please try again.");
+      showNotification("Incorrect security answer. Please try again.", "error");
       refreshCaptcha();
       setLoading(false);
       return;
@@ -97,7 +97,7 @@ const Login = () => {
 
     } catch (err) {
       console.error("Login Error:", err);
-      setError(err.message);
+      showNotification(err.message || "Failed to log in", "error");
       refreshCaptcha();
     } finally {
       setLoading(false);
@@ -107,7 +107,6 @@ const Login = () => {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
@@ -128,7 +127,7 @@ const Login = () => {
 
       navigate('/dashboard');
     } catch (err) {
-      setError(err.message);
+      showNotification(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -164,24 +163,6 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="auth-form">
             
-            {/* 🔴 ERROR MESSAGE DISPLAY */}
-            {error && (
-              <div className="error-banner" style={{ 
-                backgroundColor: '#fee2e2', 
-                color: '#ef4444', 
-                padding: '12px', 
-                borderRadius: '8px', 
-                marginBottom: '20px',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <AlertCircle size={18} />
-                <span>{error}</span>
-              </div>
-            )}
-
             {!mfaRequired ? (
               <>
                 {/* EMAIL INPUT */}
@@ -244,10 +225,7 @@ const Login = () => {
                   <input
                     type="text"
                     value={captchaAnswer}
-                    onChange={(e) => {
-                      setCaptchaAnswer(e.target.value);
-                      if (error) setError('');
-                    }}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
                     placeholder="#"
                     maxLength={3}
                     style={{ 
@@ -260,7 +238,7 @@ const Login = () => {
                 </div>
 
                 <button type="submit" className="submit-btn" disabled={loading}>
-                  {loading ? "Verifying..." : "Sign In"} 
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : "Sign In"}
                   {!loading && <ArrowRight size={18} />}
                 </button>
               </>

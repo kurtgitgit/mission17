@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Target, BookOpen, Megaphone, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import ToastMessage from 'react-native-toast-message';
 
 // ─── SCREENS ───────────────────────────────────────────
 import LoginScreen       from './src/screens/LoginScreen';
@@ -175,6 +176,7 @@ export default function App() {
             </StackNavigator>
           </NavigationContainer>
         </NotificationProvider>
+        <ToastMessage />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

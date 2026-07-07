@@ -1,28 +1,34 @@
 import os
 import traceback
-import numpy as np
-import io
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from tensorflow.keras.models import load_model
-from tensorflow.keras.applications.efficientnet import preprocess_input
 from werkzeug.utils import secure_filename
-from PIL import Image
-import imagehash
+from dotenv import load_dotenv
 
-# 🎯 MODULE 11: In-memory database to store hashes of previously uploaded photos
-UPLOADED_HASHES = set()
-ANTI_CHEAT_ENABLED = True # 🛡️ Re-enabled to prevent duplicate farming
+from utils.anticheat import AntiCheatEngine
+from utils.predictor import Predictor
+from utils.verdict import get_verdict
 
+load_dotenv()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Initialize components
 app = Flask(__name__)
-# Enable CORS for all routes and explicitly support error codes
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
-@app.route('/reset-anti-cheat', methods=['POST', 'GET'])
-def reset_anti_cheat():
-    global UPLOADED_HASHES
-    UPLOADED_HASHES.clear()
-    return jsonify({"message": "Anti-cheat hash database cleared!", "count": 0}), 200
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Limit upload to 100MB
+
+logger.info("🧠 Loading the MISSION 17 AI Brain (Ollama Vision)...")
+anticheat = AntiCheatEngine()
+predictor = Predictor()
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.after_request
 def after_request(response):
@@ -31,213 +37,80 @@ def after_request(response):
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
 
-print("🧠 Loading the MISSION 17 AI Brain...")
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({
+        "status": "ok",
+        "model": predictor.get_model_name(),
+        "anticheat_hashes": anticheat.count()
+    }), 200
 
-# 🔒 SECURITY CONFIGURATION (Rubric Category 2)
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-MAX_CONTENT_LENGTH = 100 * 1024 * 1024  # Limit upload to 100MB
-
-app.config['MAX_CONTENT_LENGTH'] = MAX_CONTENT_LENGTH
-print(f"⚙️  Upload Limit set to: {MAX_CONTENT_LENGTH / (1024 * 1024)} MB")
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
-# 1. LOAD THE MODEL
-MODEL_PATH = 'mission_model.h5' 
-if not os.path.exists(MODEL_PATH):
-    print(f"❌ ERROR: {MODEL_PATH} not found. Did you run train_ai.py?")
-    model = None
-else:
-    model = load_model(MODEL_PATH)
-    print("✅ Model loaded successfully!")
-
-# 2. LOAD LABELS
-try:
-    with open('labels.txt', 'r') as f:
-        class_names = [line.strip() for line in f.readlines()]
-    print(f"🏷️  Labels loaded: {class_names}")
-except FileNotFoundError:
-    print("❌ ERROR: labels.txt not found.")
-    class_names = []
-
-def get_image_hash(file_bytes):
-    """Calculates a unique 64-bit Perceptual Hash (dHash) of an image."""
-    img = Image.open(io.BytesIO(file_bytes))
-    return str(imagehash.phash(img))
+@app.route('/reset-anti-cheat', methods=['POST', 'GET'])
+def reset_anti_cheat():
+    count = anticheat.clear()
+    logger.info("🛡️ Anti-cheat hash database cleared!")
+    return jsonify({"message": "Anti-cheat hash database cleared!", "count": count}), 200
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    if not model:
-        return jsonify({'error': 'AI Model is offline'}), 503
-
-    # 🔒 CHECK 1: File Presence
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file uploaded'}), 400
-    
-    file = request.files['file']
-
-    # 👇 ADD THIS CHECK: Stop empty files from crashing the AI math!
-    file.seek(0, os.SEEK_END) # Go to end of file
-    if file.tell() == 0:      # If end of file is 0 bytes
-        return jsonify({"error": "Processing failed: Empty file"}), 400
-    file.seek(0)              # Reset back to start of file for reading
-
-    # 🔒 CHECK 2: Empty Filename
-    if file.filename == '':
-        return jsonify({'error': 'No selected file'}), 400
-
-    # 🔒 CHECK 3: File Type Validation
-    # 🛡️ SECURE CODE: Input Validation.
-    # Ensures only allowed image types are processed to prevent RCE or file upload attacks.
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type. Only JPG/PNG allowed.'}), 400
-
-    file_bytes = file.read()
-    file.seek(0) # Reset file pointer for the AI to use later
-    
-    # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
-    img_hash = get_image_hash(file_bytes)
-    
-    if ANTI_CHEAT_ENABLED and img_hash in UPLOADED_HASHES:
-        print(f"🚨 ANTI-CHEAT: Duplicate image detected! Hash: {img_hash}")
-        return jsonify({
-            "status": "REJECTED",
-            "error": "Duplicate image detected. You cannot farm points!",
-            "prediction": "Anti-Cheat: Duplicate"
-        }), 400
-        
-    # If it's a brand new photo, save the hash to memory to block future attempts
-    UPLOADED_HASHES.add(img_hash)
-    print(f"✅ Unique image logged with hash: {img_hash}")
-
     try:
-        # Preprocessing — mirrors EXACTLY what train_ai.py does during training
-        # 1. Read image using PIL
+        # 🔒 CHECK 1: File Presence
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file uploaded'}), 400
+        
+        file = request.files['file']
+
+        # 🔒 CHECK 2: Empty File Detection (Bug Fix)
+        file.seek(0, os.SEEK_END)
+        if file.tell() == 0:
+            return jsonify({"error": "Processing failed: Empty file"}), 400
+        file.seek(0)
+
+        # 🔒 CHECK 3: Empty Filename
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        # 🔒 CHECK 4: File Type Validation
+        if not allowed_file(file.filename):
+            return jsonify({'error': 'Invalid file type. Only JPG/PNG allowed.'}), 400
+
+        # Read file bytes ONCE and reuse them
         file_bytes = file.read()
-        try:
-            img = Image.open(io.BytesIO(file_bytes)).convert('RGB')
-        except Exception:
-            return jsonify({'error': 'Uploaded file is not a valid or readable image.'}), 400
-
-        # 🔒 CHECK 4: Valid image content
-        if img is None:
-            return jsonify({'error': 'Uploaded file is not a valid or readable image.'}), 400
-
-        # 2. Resize to 224x224 (EfficientNetB0 input size)
-        img = img.resize((224, 224), Image.LANCZOS)
-
-        # 3. Apply EfficientNetB0 preprocess_input — matches training pipeline exactly
-        #    This scales raw 0-255 values correctly for EfficientNet (NOT /255).
-        img_array = np.array(img, dtype=np.float32)
-        img_array = preprocess_input(img_array)          # ✅ EfficientNet-compatible
-        img_array = np.expand_dims(img_array, axis=0)
-
-        # Prediction
-        predictions = model.predict(img_array)
-        score = predictions[0]
-
-        top_index = np.argmax(score)
-        label = class_names[top_index] 
         
-        # Confidence Calculation
-        raw_confidence = float(np.max(score) * 100)
-        sanitized_confidence = int(raw_confidence)
-
-        # --- 🤖 MISSION VERIFICATION LOGIC ---
+        # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
+        if anticheat.is_duplicate(file_bytes):
+            logger.warning("🚨 ANTI-CHEAT: Duplicate image detected!")
+            return jsonify({
+                "status": "REJECTED",
+                "error": "Duplicate image detected. You cannot farm points!",
+                "prediction": "Anti-Cheat: Duplicate"
+            }), 400
+            
+        # 🤖 AI Vision Prediction via Ollama
+        logger.info("🤖 Sending image to Ollama Vision...")
+        ai_result = predictor.predict(file_bytes)
         
-        verdict = "REJECT" # Default assumption
-        is_verified = False
-        message = "Unknown Image"
-
-        # 1. CHECK FOR ANTI-CHEAT (The "Invalid" Class)
-        if "Non_SDG" in label or "Invalid" in label:
-            verdict = "REJECTED"
-            message = "⚠️ Image Rejected: Does not match any mission criteria."
+        category = ai_result.get('category', 'Non_SDG_Invalid')
+        confidence = ai_result.get('confidence', 0)
+        reason = ai_result.get('reason', '')
         
-        # 2. CHECK FOR LOW CONFIDENCE
-        elif sanitized_confidence < 40:
-            verdict = "UNCERTAIN"
-            message = f"❓ Unclear Image ({sanitized_confidence}%). Please take a clearer photo."
-        
-        # 3. VERIFY SPECIFIC MISSIONS
-        else:
-            # 🌍 EXISTING MISSIONS
-            if "Planting" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Planting Mission (SDG 13/15)"
-                is_verified = True
-            
-            elif "Recycling" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Recycling Mission (SDG 12)"
-                is_verified = True
+        # ⚖️ Get formatted verdict based on AI output
+        verdict_response = get_verdict(category, confidence, threshold=55)
+        verdict_response['reason'] = reason
+        verdict_response['model'] = predictor.get_model_name()
 
-            elif "Cleanup" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Cleanup Mission (SDG 6/14)"
-                is_verified = True
-            
-            elif "Donation" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Donation Mission (SDG 1/2)"
-                is_verified = True
+        # Only register hash if the image was VERIFIED (save memory/prevent false positives on bad images)
+        if verdict_response['is_verified']:
+            anticheat.register(file_bytes)
+            logger.info(f"✅ Unique verified image logged to anticheat.")
 
-            # 🚀 NEW MISSIONS (LIFESTYLE)
-            elif "Health" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Health & Wellness Activity (SDG 3)"
-                is_verified = True
-
-            elif "Education" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Education Activity (SDG 4)"
-                is_verified = True
-
-            elif "Energy" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Energy Saving Action (SDG 7)"
-                is_verified = True
-            
-            elif "Cities" in label or "Sustainable" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Sustainable Commute (SDG 11)"
-                is_verified = True
-            
-            elif "Support_Local" in label or "Decent_Work" in label:
-                verdict = "VERIFIED"
-                message = "✅ Valid Support for Local Business (SDG 8)"
-                is_verified = True
-
-        # --- FORMAT OUTPUT FOR UI ---
-        # 1. Extract SDG (e.g., "SDG12_Recycling" -> "SDG 12")
-        sdg_display = "N/A"
-        if "SDG" in label and "Non_SDG" not in label:
-            # Takes the first part "SDG12" and adds a space "SDG 12"
-            sdg_display = label.split('_')[0].replace("SDG", "SDG ")
-
-        # 2. Determine Source (Heuristic based on verification)
-        if is_verified:
-            source_check = "📸 Raw Picture"
-        else:
-            source_check = "🤖 AI Generated / Invalid"
-
-        response = {
-            'prediction': label,
-            'confidence': f"{sanitized_confidence}%",
-            'verdict': verdict,
-            'message': message,
-            'is_verified': is_verified,
-            'sdg': sdg_display,
-            'source_check': source_check
-        }
-        return jsonify(response)
+        return jsonify(verdict_response)
 
     except Exception as e:
-        print(f"❌ Processing Error: {str(e)}")
+        logger.error(f"❌ Processing Error: {str(e)}")
         traceback.print_exc()
-        return jsonify({'error': "Processing failed", 'detail': str(e)}), 400
+        return jsonify({'error': "Processing failed", 'detail': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    # Hugging Face requires the app to listen on 0.0.0.0:7860
+    app.run(host='0.0.0.0', port=7860, debug=False)

@@ -1,11 +1,11 @@
-Flask==2.2.2
+Flask
 Flask-Cors==3.0.10
 numpy
-tensorflow
 Pillow
 imagehash
 gunicorn
-werkzeug==2.2.2
+tensorflow
 scikit-learn
 matplotlib
 seaborn
+python-dotenv

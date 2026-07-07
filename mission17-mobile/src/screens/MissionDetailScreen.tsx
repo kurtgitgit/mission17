@@ -91,81 +91,16 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
-      // 🎯 MODULE 10 FIX: 1. Send to Python AI First
+      // 🎯 MODULE 10 FIX: Temporarily skipping mobile AI pre-check due to 502 Bad Gateway
+      // We will let the Admin Dashboard do the AI verification instead to prevent OOM/Upload crashes.
       setIsAnalyzing(true);
-      // Step A: Convert Image to Base64 (Do this BEFORE AI upload)
       const imagePayload = await getBase64(imageUri);
+      
+      // Removed the direct fetch to endpoints.predict here to bypass the 502 crash.
+      setIsAnalyzing(false);
 
-      const formData = new FormData();
-      if (Platform.OS === 'web') {
-        // Safe conversion of base64 to Blob for web
-        const base64Data = (imagePayload as string).split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/jpeg' });
-        formData.append('file', blob, 'photo.jpg');
-      } else {
-        formData.append('file', {
-          uri: imageUri,
-          type: 'image/jpeg',
-          name: 'photo.jpg',
-        } as any);
-      }
+      // Step B: Send to Node.js Backend directly
 
-      const aiResponse = await fetch(endpoints.predict, {
-        method: 'POST',
-        body: formData
-      });
-
-      let aiResult;
-      try {
-        aiResult = await aiResponse.json();
-        console.log("AI Server Response parsed:", aiResult);
-      } catch (e) {
-        console.error("Failed to parse AI response:", e);
-        setIsAnalyzing(false);
-        // 🎯 MODULE 11: Fallback if CORS blocks the 400 Bad Request error payload
-        if (!aiResponse.ok && aiResponse.status === 400) {
-          showNotification('Anti-Cheat / AI Error: Duplicate image detected or invalid submission request!', 'error');
-          setLoading(false);
-          return;
-        }
-        showNotification('Failed to connect to AI server.', 'error');
-        setLoading(false);
-        return;
-      }
-      setIsAnalyzing(false); // Turn off AI spinner
-
-      // 🎯 MODULE 11: Display specific Anti-Cheat notification
-      // Look for the specific error property returned by the backend on duplicate.
-      if (aiResult?.status === 'REJECTED' || (aiResult?.error && aiResult.error.includes("Duplicate"))) {
-        const errorMsg = aiResult.error || "Duplicate image detected. Please submit original proof.";
-        showNotification(`🚨 Anti-Cheat Alert: ${errorMsg}`, "error");
-        setLoading(false);
-        return;
-      }
-
-      if (!aiResponse.ok && aiResult?.error) {
-        showNotification(`AI Error: ${aiResult.error}`, "error");
-        setLoading(false);
-        return;
-      }
-
-      // If AI rejects it, stop the submission process!
-      if (aiResult?.verdict !== 'VERIFIED') {
-        const msg = aiResult?.message || 'The AI could not confidently identify a seedling. Please retake the photo.';
-        showNotification(`AI Verification Failed: ${msg}`, "error");
-        setLoading(false);
-        return;
-      }
-
-      // (imagePayload is already generated above)
-
-      // Step B: Send to Node.js Backend
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

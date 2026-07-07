@@ -12,9 +12,7 @@ const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
 // Temporarily force Mobile to use the live cloud backend for Expo testing
 const API_URL = `${RENDER_BACKEND_URL}/api`;
 
-const AI_URL = __DEV__ 
-  ? `http://${Platform.OS === 'web' ? 'localhost' : LAN_IP}:5000/predict`
-  : `http://10.42.160.98:5000/predict`; // This won't work in prod unless deployed separately
+const AI_URL = "https://kurtgitgit-mission17-ai.hf.space/predict";
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
