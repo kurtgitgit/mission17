@@ -1,30 +1,22 @@
-import http from 'http';
+import fs from 'fs';
 
-const data = JSON.stringify({
-  email: 'capstone.mission17@gmail.com'
-});
+async function test() {
+  const url = "https://kurtgitgit-mission17-ai.hf.space/predict";
+  console.log("Pinging:", url);
 
-const options = {
-  hostname: 'localhost',
-  port: 5001,
-  path: '/api/auth/forgot-password',
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Content-Length': data.length
+  const formData = new FormData();
+  formData.append('file', new Blob([Buffer.from('dummy')]), 'test.jpg');
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      body: formData
+    });
+    console.log("Status:", res.status);
+    const text = await res.text();
+    console.log("Response:", text.substring(0, 200));
+  } catch (err) {
+    console.error("Fetch failed:", err);
   }
-};
-
-const req = http.request(options, (res) => {
-  console.log(`Status: ${res.statusCode}`);
-  res.on('data', (d) => {
-    process.stdout.write(d);
-  });
-});
-
-req.on('error', (error) => {
-  console.error(error);
-});
-
-req.write(data);
-req.end();
+}
+test();
