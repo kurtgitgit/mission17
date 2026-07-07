@@ -55,9 +55,12 @@ export async function buildAIFormData(imageUri) {
 export async function callAIServer(imageUri) {
   const formData = await buildAIFormData(imageUri);
 
-  let aiUrl = process.env.AI_SERVER_URL;
-  if (aiUrl && !aiUrl.endsWith('/predict')) {
-    aiUrl = aiUrl.endsWith('/') ? `${aiUrl}predict` : `${aiUrl}/predict`;
+  let aiUrl = process.env.AI_SERVER_URL || 'https://kurtgitgit-mission17-ai.hf.space/predict';
+  
+  // Clean up the URL in case the user added extra slashes or /predict already
+  aiUrl = aiUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  if (!aiUrl.endsWith('/predict')) {
+    aiUrl = `${aiUrl}/predict`;
   }
 
   console.log(`📡 AI Analysis: Fetching ${aiUrl}...`);
