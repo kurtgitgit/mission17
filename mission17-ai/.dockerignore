@@ -1,0 +1,12 @@
+# Ignore datasets and heavy files to keep deployment fast
+dataset/
+__pycache__/
+*.pyc
+.env
+.git
+.vscode
+.gemini
+scripts/testing/mission_dataset_split.zip
+venv/
+.venv/
+env/

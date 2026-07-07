@@ -3,6 +3,10 @@ import Layout from '../../components/Layout';
 import { Users, Activity, AlertCircle, CheckSquare, FileText, Megaphone } from 'lucide-react';
 import '../../styles/DashboardHome.css';
 import { endpoints } from '../../config/api';
+import { 
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+  Tooltip, Legend, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
 
 const DashboardHome = () => {
   const [stats, setStats] = useState({
@@ -73,6 +77,17 @@ const DashboardHome = () => {
     fetchDashboardData();
   }, []);
 
+  // 📈 DUMMY DATA FOR CHARTS (Wow Factor)
+  const chartData = [
+    { name: 'Mon', tasks: 12, requests: 5, reports: 2 },
+    { name: 'Tue', tasks: 19, requests: 8, reports: 1 },
+    { name: 'Wed', tasks: 15, requests: 12, reports: 3 },
+    { name: 'Thu', tasks: 22, requests: 15, reports: 0 },
+    { name: 'Fri', tasks: 30, requests: 20, reports: 5 },
+    { name: 'Sat', tasks: 45, requests: 10, reports: 8 },
+    { name: 'Sun', tasks: 38, requests: 6,  reports: 4 },
+  ];
+
   const STATUS_COLORS = {
     'Pending': '#b45309',
     'Processing': '#0891b2',
@@ -119,6 +134,56 @@ const DashboardHome = () => {
               <span className="stat-label">Tasks Completed</span>
             </div>
           </div>
+        </div>
+
+        {/* 📈 NEW: RECHARTS DATA VISUALIZATION BLOCK */}
+        <div className="charts-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px', marginBottom: '24px' }}>
+          
+          {/* Chart 1: Civic Tasks Overview (Area Chart) */}
+          <div className="chart-card" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#1e293b' }}>Weekly Civic Engagement</h3>
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer>
+                <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#16a34a" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                  />
+                  <Area type="monotone" dataKey="tasks" stroke="#16a34a" strokeWidth={3} fillOpacity={1} fill="url(#colorTasks)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Chart 2: Services & Reports Breakdown (Bar Chart) */}
+          <div className="chart-card" style={{ backgroundColor: '#fff', padding: '24px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '20px', fontSize: '16px', color: '#1e293b' }}>Services & Reports Breakdown</h3>
+            <div style={{ width: '100%', height: 280 }}>
+              <ResponsiveContainer>
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
+                  <Tooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    cursor={{ fill: '#f1f5f9' }}
+                  />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="requests" name="Doc Requests" stackId="a" fill="#3b82f6" radius={[0, 0, 4, 4]} />
+                  <Bar dataKey="reports" name="Blotters" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
         </div>
 
         <div className="dashboard-lower-section">

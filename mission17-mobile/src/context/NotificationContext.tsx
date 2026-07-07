@@ -1,7 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { View, StyleSheet, AppState } from 'react-native';
-import Toast from '../components/Toast';
+import { View, StyleSheet, AppState, Platform } from 'react-native';
+import ToastMessage from 'react-native-toast-message';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
 import { GlobalState, endpoints } from '../config/api';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 type NotificationType = 'success' | 'error' | 'info';
 
@@ -14,6 +24,7 @@ interface Notification {
 
 interface NotificationContextType {
   showNotification: (arg1: any, arg2?: any, arg3?: string) => void;
+  registerPushToken: (userId: string) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -61,15 +72,20 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       title = arg3;
     }
 
-    const id = Math.random().toString(36).substr(2, 9);
-    setNotifications((prev) => [...prev, { id, title, message, type }]);
-    setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    }, 5000);
+    const finalMessage = typeof message === 'string' ? message : JSON.stringify(message);
+
+    // Map to react-native-toast-message
+    if (type === 'success') {
+      ToastMessage.show({ type: 'success', text1: title || 'Success', text2: finalMessage });
+    } else if (type === 'error') {
+      ToastMessage.show({ type: 'error', text1: title || 'Error', text2: finalMessage });
+    } else {
+      ToastMessage.show({ type: 'info', text1: title || 'Info', text2: finalMessage });
+    }
   }, []);
 
   const removeNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    // ToastMessage handles its own removal automatically
   }, []);
 
   // ─── Background polling ───────────────────────────────────────────────────
@@ -98,70 +114,94 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         seenIds.current.add(n._id);
 
         // Map backend type to toast type
-        const toastType: NotificationType =
-          n.type === 'success' ? 'success' : n.type === 'error' ? 'error' : 'info';
+        let tType: NotificationType = 'info';
+        if (n.type === 'Mission_Approved') tType = 'success';
+        if (n.type === 'Mission_Rejected') tType = 'error';
 
-        showNotification({ title: n.title, message: n.message, type: toastType });
+        showNotification(n.title, n.message, tType);
       });
-    } catch {
-      // Silently ignore polling errors (app might be offline briefly)
+    } catch (e) {
+      // Silently fail polling
     }
   }, [showNotification]);
 
-  // Start polling when the provider mounts, stop when it unmounts
+  // Start/Stop polling based on AppState
   useEffect(() => {
-    // Run once immediately, then on interval
-    pollNotifications();
-    pollTimer.current = setInterval(pollNotifications, POLL_INTERVAL);
-
-    // Pause polling when app goes to background, resume on foreground
-    const sub = AppState.addEventListener('change', (nextState) => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        // App came to foreground — poll immediately
-        pollNotifications();
-        if (!pollTimer.current) {
-          pollTimer.current = setInterval(pollNotifications, POLL_INTERVAL);
-        }
-      } else if (nextState.match(/inactive|background/)) {
-        // App went to background — pause polling to save battery
-        if (pollTimer.current) {
-          clearInterval(pollTimer.current);
-          pollTimer.current = null;
-        }
+    const startPolling = () => {
+      if (!pollTimer.current) {
+        pollTimer.current = setInterval(pollNotifications, POLL_INTERVAL);
+        pollNotifications(); // do one immediately
       }
-      appState.current = nextState;
-    });
+    };
+
+    const stopPolling = () => {
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
+    };
+
+    const handleAppStateChange = (nextAppState: any) => {
+      if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+        startPolling();
+      } else if (nextAppState.match(/inactive|background/)) {
+        stopPolling();
+      }
+      appState.current = nextAppState;
+    };
+
+    // Initial check
+    if (appState.current === 'active') {
+      startPolling();
+    }
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current);
-      sub.remove();
+      stopPolling();
+      subscription.remove();
     };
   }, [pollNotifications]);
 
+  // ─── Push Notifications Registration ─────────────────────────────────────────
+  const registerPushToken = useCallback(async (userId: string) => {
+    if (Platform.OS === 'web') return;
+    if (!Device.isDevice) {
+      console.log('Must use physical device for Push Notifications');
+      return;
+    }
+
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        console.log('Failed to get push token for push notification!');
+        return;
+      }
+      
+      const projectId = "d87a4192-3a7c-4734-9388-7ff53f533cc2"; // From app.json or dynamically fetched
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+      console.log("Expo Push Token:", token);
+
+      // Save token to backend
+      await fetch(`${endpoints.auth.baseUrl}/save-push-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, expoPushToken: token }),
+      });
+    } catch (e) {
+      console.log("Error registering push token:", e);
+    }
+  }, []);
+
   return (
-    <NotificationContext.Provider value={{ showNotification }}>
+    <NotificationContext.Provider value={{ showNotification, registerPushToken }}>
       {children}
-      <View style={styles.container} pointerEvents="box-none">
-        {notifications.map((n) => (
-          <Toast
-            key={n.id}
-            title={n.title}
-            message={n.message}
-            type={n.type}
-            onClose={() => removeNotification(n.id)}
-          />
-        ))}
-      </View>
+      {/* react-native-toast-message component is rendered at the root level in App.tsx */}
     </NotificationContext.Provider>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 9999,
-    paddingTop: 50,
-    alignItems: 'center',
-    pointerEvents: 'box-none',
-  },
-});
