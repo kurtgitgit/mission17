@@ -2,8 +2,10 @@
 // Business logic for blotter reports — separated from routing.
 
 import BlotterReport from '../models/BlotterReport.js';
+import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { logAudit } from '../utils/authMiddleware.js';
+import { awardSdgPoints } from '../utils/blockchain.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import fs from 'fs';
 import path from 'path';
@@ -82,6 +84,27 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   report.status = status;
   if (adminRemarks) report.adminRemarks = adminRemarks;
+
+  // ⛓️ Record on blockchain when a blotter is Resolved
+  if (status === 'Resolved') {
+    try {
+      const reporter = await User.findById(report.userId);
+      if (reporter?.walletAddress) {
+        console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter.username}...`);
+        const txHash = await awardSdgPoints(reporter.walletAddress, 1);
+        report.blockchainTxHash = txHash;
+        console.log(`✅ Blotter blockchain TX: ${txHash}`);
+      } else {
+        console.warn(`🟡 User has no wallet address — skipping blockchain record.`);
+        report.blockchainTxHash = 'SKIPPED_NO_WALLET';
+      }
+    } catch (blockchainError) {
+      // Non-blocking: log the error but still resolve the report
+      console.error('❌ Blockchain record failed for blotter:', blockchainError.message);
+      report.blockchainTxHash = 'TX_FAILED';
+    }
+  }
+
   await report.save();
 
   // Notify the resident
