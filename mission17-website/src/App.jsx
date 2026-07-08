@@ -116,13 +116,14 @@ function App() {
             This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and gamified digital governance.
           </p>
           <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <button 
+            <a 
               className="btn-primary" 
               style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}
-              onClick={() => window.open('https://expo.dev/artifacts/eas/iOGD7szbpBrtYw11qU2Jj0PjUkiZLKiprjJTdhsk_Lg.apk', '_blank')}
+              href="https://expo.dev/artifacts/eas/iOGD7szbpBrtYw11qU2Jj0PjUkiZLKiprjJTdhsk_Lg.apk"
+              download
             >
               <Smartphone size={20} /> Download App
-            </button>
+            </a>
             <button className="btn-outline" style={{ borderColor: 'white', color: 'white' }}>
               Learn More About Us
             </button>
