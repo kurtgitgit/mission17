@@ -89,8 +89,8 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (status === 'Resolved') {
     try {
       const reporter = await User.findById(report.userId);
-      // ALWAYS use the Barangay's official admin wallet for the transaction
-      const ADMIN_WALLET = '0x7db79ec78E6e345fE23cf7fB790846365D107FFB';
+      // ALWAYS use the Barangay's official admin wallet for the transaction (lowercase to avoid checksum errors)
+      const ADMIN_WALLET = '0x7db79ec78e6e345fe23cf7fb790846365d107ffb';
       
       console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter?.username || 'Unknown'} (Using Admin Wallet)...`);
       const txHash = await awardSdgPoints(ADMIN_WALLET, 1);
