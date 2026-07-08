@@ -23,6 +23,8 @@ import User from '../models/User.js';
 import Mission from '../models/Mission.js';
 import AnalysisReport from '../models/AnalysisReport.js';
 import Notification from '../models/Notification.js';
+import DocumentRequest from '../models/DocumentRequest.js';
+import BlotterReport from '../models/BlotterReport.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
 import { isValidImageUri, callAIServer, saveAnalysisReport } from '../utils/aiVerification.js';
@@ -443,6 +445,34 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
       .lean(),
     ]);
 
+    // 📈 REAL ANALYTICS CHART DATA (Last 7 Days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const [recentTasks, recentRequests, recentReports] = await Promise.all([
+      Submission.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt').lean(),
+      DocumentRequest.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt').lean(),
+      BlotterReport.find({ createdAt: { $gte: sevenDaysAgo } }).select('createdAt').lean()
+    ]);
+
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Build an ordered array of the last 7 days
+    const chartDataArray = [];
+    const chartMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayName = days[d.getDay()];
+      const emptyDay = { name: dayName, tasks: 0, requests: 0, reports: 0 };
+      chartDataArray.push(emptyDay);
+      chartMap[dayName] = emptyDay;
+    }
+
+    recentTasks.forEach(doc => { if (chartMap[days[new Date(doc.createdAt).getDay()]]) chartMap[days[new Date(doc.createdAt).getDay()]].tasks++; });
+    recentRequests.forEach(doc => { if (chartMap[days[new Date(doc.createdAt).getDay()]]) chartMap[days[new Date(doc.createdAt).getDay()]].requests++; });
+    recentReports.forEach(doc => { if (chartMap[days[new Date(doc.createdAt).getDay()]]) chartMap[days[new Date(doc.createdAt).getDay()]].reports++; });
+
     dashboardCache = {
       stats: {
         volunteers: volunteerCount,
@@ -452,6 +482,7 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
       },
       topAgents,
       recentPending,
+      chartData: chartDataArray
     };
     lastCacheUpdate = now;
 

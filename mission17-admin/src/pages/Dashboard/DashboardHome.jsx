@@ -35,6 +35,7 @@ const DashboardHome = () => {
 
         setStats(data.stats);
         setRecentActivity(data.recentPending || []);
+        if (data.chartData) setChartData(data.chartData);
 
         // Fetch recent document requests
         try {
@@ -77,16 +78,15 @@ const DashboardHome = () => {
     fetchDashboardData();
   }, []);
 
-  // 📈 DUMMY DATA FOR CHARTS (Wow Factor)
-  const chartData = [
-    { name: 'Mon', tasks: 12, requests: 5, reports: 2 },
-    { name: 'Tue', tasks: 19, requests: 8, reports: 1 },
-    { name: 'Wed', tasks: 15, requests: 12, reports: 3 },
-    { name: 'Thu', tasks: 22, requests: 15, reports: 0 },
-    { name: 'Fri', tasks: 30, requests: 20, reports: 5 },
-    { name: 'Sat', tasks: 45, requests: 10, reports: 8 },
-    { name: 'Sun', tasks: 38, requests: 6,  reports: 4 },
-  ];
+  const [chartData, setChartData] = useState([
+    { name: 'Mon', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Tue', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Wed', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Thu', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Fri', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Sat', tasks: 0, requests: 0, reports: 0 },
+    { name: 'Sun', tasks: 0, requests: 0, reports: 0 },
+  ]);
 
   const STATUS_COLORS = {
     'Pending': '#b45309',
