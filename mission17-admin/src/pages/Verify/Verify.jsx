@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { 
-  CheckCircle, XCircle, Clock, FileImage, User, 
+import {
+  CheckCircle, XCircle, Clock, FileImage, User,
   Sparkles, X, AlertTriangle, ExternalLink, ShieldCheck,
   HelpCircle, Leaf, Recycle, Droplets, Heart, BookOpen,
   Zap, Building2, ShoppingBag, Info
-} from 'lucide-react'; 
+} from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Verify.css';
@@ -17,33 +17,33 @@ const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x79f116E8e42788C07B3
 // VERDICT CONFIG - drives all styling
 // ==========================================
 const VERDICT_CONFIG = {
-  VERIFIED:   { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: CheckCircle,  label: 'Verified' },
-  REJECTED:   { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: XCircle,       label: 'Rejected' },
-  ANTI_CHEAT: { color: '#701a75', bg: '#fdf4ff', border: '#f5d0fe', icon: ShieldCheck,  label: 'Anti-Cheat' },
-  UNCERTAIN:  { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: HelpCircle,    label: 'Uncertain' },
+  VERIFIED: { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: CheckCircle, label: 'Verified' },
+  REJECTED: { color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: XCircle, label: 'Rejected' },
+  ANTI_CHEAT: { color: '#701a75', bg: '#fdf4ff', border: '#f5d0fe', icon: ShieldCheck, label: 'Anti-Cheat' },
+  UNCERTAIN: { color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: HelpCircle, label: 'Uncertain' },
 };
 
 // SDG icon mapping - picks a relevant icon per SDG label
 const sdgIcon = (sdg) => {
   if (!sdg || sdg === 'N/A') return null;
-  if (sdg.includes('13') || sdg.includes('15')) return <Leaf    size={12} />;
-  if (sdg.includes('12'))                        return <Recycle  size={12} />;
-  if (sdg.includes('6')  || sdg.includes('14')) return <Droplets size={12} />;
-  if (sdg.includes('3'))                         return <Heart    size={12} />;
-  if (sdg.includes('4'))                         return <BookOpen size={12} />;
-  if (sdg.includes('7'))                         return <Zap      size={12} />;
-  if (sdg.includes('11'))                        return <Building2 size={12} />;
-  if (sdg.includes('8'))                         return <ShoppingBag size={12} />;
+  if (sdg.includes('13') || sdg.includes('15')) return <Leaf size={12} />;
+  if (sdg.includes('12')) return <Recycle size={12} />;
+  if (sdg.includes('6') || sdg.includes('14')) return <Droplets size={12} />;
+  if (sdg.includes('3')) return <Heart size={12} />;
+  if (sdg.includes('4')) return <BookOpen size={12} />;
+  if (sdg.includes('7')) return <Zap size={12} />;
+  if (sdg.includes('11')) return <Building2 size={12} />;
+  if (sdg.includes('8')) return <ShoppingBag size={12} />;
   return null;
 };
 
 const shapeReport = (report) => ({
-  status:     report.verdict,
+  status: report.verdict,
   isPositive: report.isVerified,
   isPlanting: report.sdg && report.sdg.includes('13'),
   prediction: report.prediction,
-  message:    report.message,
-  sdg:        report.sdg,
+  message: report.message,
+  sdg: report.sdg,
   reasons: [
     `Detected: ${report.prediction}`,
     ...(report.sdg && report.sdg !== 'N/A' ? [`SDG: ${report.sdg}`] : []),
@@ -53,15 +53,15 @@ const shapeReport = (report) => ({
 
 const Verify = () => {
   const { showNotification } = useNotification();
-  const [submissions, setSubmissions]   = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [viewImage, setViewImage]       = useState(null);
-  const [analyzingId, setAnalyzingId]   = useState(null);
+  const [submissions, setSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [viewImage, setViewImage] = useState(null);
+  const [analyzingId, setAnalyzingId] = useState(null);
   const [analysisResults, setAnalysisResults] = useState({});
-  const [page, setPage]                 = useState(1);
-  const [totalCount, setTotalCount]     = useState(0);
-  const [totalPages, setTotalPages]     = useState(0);
-  const [activeTab, setActiveTab]       = useState('Mission'); // 'Mission' or 'Event'
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [activeTab, setActiveTab] = useState('Mission'); // 'Mission' or 'Event'
 
   // MODAL STATE
   const [modalConfig, setModalConfig] = useState({
@@ -71,14 +71,14 @@ const Verify = () => {
     type: 'info',
     showInput: false,
     confirmText: 'Confirm',
-    onConfirm: () => {},
+    onConfirm: () => { },
     subId: null
   });
 
   const getToken = () => localStorage.getItem('token');
 
-  useEffect(() => { 
-    fetchSubmissions(); 
+  useEffect(() => {
+    fetchSubmissions();
   }, [page]);
 
   const fetchSubmissions = async () => {
@@ -117,16 +117,16 @@ const Verify = () => {
         body: JSON.stringify({ submissionId: submission._id })
       });
       const data = await backendResponse.json();
-      if (!backendResponse.ok) throw new Error(data.message || 'Analysis failed');
+      if (!backendResponse.ok) throw new Error(data.error || data.message || 'Analysis failed');
       setAnalysisResults(prev => ({
         ...prev,
         [submission._id]: {
-          status:     data.verdict,
+          status: data.verdict,
           isPositive: data.isVerified,
           isPlanting: data.sdg && data.sdg.includes('13'),
           prediction: data.prediction,
-          message:    data.message,
-          sdg:        data.sdg,
+          message: data.message,
+          sdg: data.sdg,
           reasons: [
             `Detected: ${data.prediction}`,
             ...(data.sdg && data.sdg !== 'N/A' ? [`SDG: ${data.sdg}`] : []),
@@ -178,7 +178,7 @@ const Verify = () => {
         setTotalCount(prev => Math.max(0, prev - 1));
         showNotification("Submission approved successfully!", "success");
       }
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       showNotification("Failed to approve submission.", "error");
     } finally {
@@ -211,7 +211,7 @@ const Verify = () => {
         setTotalCount(prev => Math.max(0, prev - 1));
         showNotification("Submission rejected.", "info");
       }
-    } catch (e) { 
+    } catch (e) {
       console.error(e);
       showNotification("Failed to reject submission.", "error");
     } finally {
@@ -243,13 +243,13 @@ const Verify = () => {
 
         {/* TAB CONTROLS */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-          <button 
+          <button
             style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeTab === 'Mission' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'Mission' ? 'white' : '#475569', fontWeight: 'bold', cursor: 'pointer' }}
             onClick={() => setActiveTab('Mission')}
           >
             Missions
           </button>
-          <button 
+          <button
             style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: activeTab === 'Event' ? '#3b82f6' : '#e2e8f0', color: activeTab === 'Event' ? 'white' : '#475569', fontWeight: 'bold', cursor: 'pointer' }}
             onClick={() => setActiveTab('Event')}
           >
@@ -289,10 +289,10 @@ const Verify = () => {
                 <p>No pending {activeTab.toLowerCase()} submissions to review.</p>
               </div>
             ) : submissions.filter(sub => (sub.type || 'Mission') === activeTab).map((sub) => {
-              const aiResult  = analysisResults[sub._id];
-              const hasImage  = sub.hasImage;
+              const aiResult = analysisResults[sub._id];
+              const hasImage = sub.hasImage;
               const isFlagged = sub.status === 'Pending Admin Review';
-              const vc        = aiResult ? (VERDICT_CONFIG[aiResult.status] || VERDICT_CONFIG.UNCERTAIN) : null;
+              const vc = aiResult ? (VERDICT_CONFIG[aiResult.status] || VERDICT_CONFIG.UNCERTAIN) : null;
               const VerdictIcon = vc?.icon;
 
               return (
@@ -348,7 +348,7 @@ const Verify = () => {
                           <span className="ai-label">Detected</span>
                           <code className="ai-class">
                             {aiResult.prediction?.includes('Non_SDG') || aiResult.prediction?.includes('Invalid')
-                              ? 'Non-SDG Related' 
+                              ? 'Non-SDG Related'
                               : aiResult.prediction === 'Duplicate Detection'
                                 ? 'Duplicate Upload'
                                 : aiResult.prediction?.replace(/_/g, ' ')}
@@ -404,7 +404,13 @@ const Verify = () => {
                       Ledger
                     </button>
                     <div className="action-divider" />
-                    <button onClick={() => handleApprove(sub._id)} className="btn-approve">
+                    <button
+                      onClick={() => handleApprove(sub._id)}
+                      className="btn-approve"
+                      disabled={aiResult?.status === 'ANTI_CHEAT'}
+                      title={aiResult?.status === 'ANTI_CHEAT' ? 'Cannot approve — duplicate image detected. Re-scan to override.' : undefined}
+                      style={aiResult?.status === 'ANTI_CHEAT' ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                    >
                       <CheckCircle size={15} /> Approve
                     </button>
                     <button onClick={() => handleReject(sub._id)} className="btn-reject">
@@ -420,8 +426,8 @@ const Verify = () => {
         {/* PAGINATION CONTROLS */}
         {!loading && totalPages > 1 && (
           <div className="pagination-controls">
-            <button 
-              className="page-btn" 
+            <button
+              className="page-btn"
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
             >
@@ -430,8 +436,8 @@ const Verify = () => {
             <span className="page-info">
               Page <strong>{page}</strong> of <strong>{totalPages}</strong>
             </span>
-            <button 
-              className="page-btn" 
+            <button
+              className="page-btn"
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
             >
@@ -440,7 +446,7 @@ const Verify = () => {
           </div>
         )}
 
-        <Modal 
+        <Modal
           isOpen={modalConfig.isOpen}
           onClose={closeModal}
           onConfirm={modalConfig.onConfirm}
