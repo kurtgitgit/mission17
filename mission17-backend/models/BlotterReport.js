@@ -18,7 +18,8 @@ const BlotterReportSchema = new mongoose.Schema({
     default: 'Pending'
   },
   adminRemarks: { type: String },
-  referenceNumber: { type: String, unique: true }
+  referenceNumber: { type: String, unique: true },
+  blockchainTxHash: { type: String, default: null }, // Set when status → Resolved
 }, { timestamps: true });
 
 // Auto-generate reference number

@@ -25,7 +25,6 @@ import AnalysisReport from '../models/AnalysisReport.js';
 import Notification from '../models/Notification.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
-import { awardSdgPoints } from '../utils/blockchain.js';
 import { isValidImageUri, callAIServer, saveAnalysisReport } from '../utils/aiVerification.js';
 import { cloudinary } from '../utils/cloudinary.js';
 
@@ -269,22 +268,8 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
 
     let txHash = null;
 
-    // ⛓️ Step 1: Record on the blockchain (transparency, not rewards)
-    if (!user.walletAddress) {
-      console.warn(`🟡 User ${user.username} has no wallet address. Skipping blockchain record.`);
-    }
-
-    try {
-      if (user.walletAddress) {
-        // 🛡️ SECURE CODE: Blockchain Integration with dynamic gas fees.
-        txHash = await awardSdgPoints(user.walletAddress, 1); // Value of 1 = submission unit (no points meaning)
-      }
-    } catch (blockchainError) {
-      return res.status(500).json({
-        message: 'Blockchain transaction failed. Mission not approved.',
-        error: blockchainError.message,
-      });
-    }
+    // ⛓️ Blockchain recording moved to Blotter Report resolution.
+    // Mission approvals no longer trigger blockchain transactions.
 
     // ✅ Step 2: Update DB only after blockchain success (or skip)
     sub.status = 'Approved';
