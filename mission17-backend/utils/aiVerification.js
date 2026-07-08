@@ -90,8 +90,8 @@ export async function callAIServer(imageUri) {
 
   let aiUrl = process.env.AI_SERVER_URL || 'https://kurtgitgit-mission17-ai.hf.space/predict';
   
-  // Clean up the URL in case the user added extra slashes or /predict already
-  aiUrl = aiUrl.replace(/\/+$/, ''); // Remove trailing slashes
+  // Trim whitespace/newlines from env var, then normalize the /predict suffix
+  aiUrl = aiUrl.trim().replace(/\/+$/, ''); // Remove trailing whitespace AND slashes
   if (!aiUrl.endsWith('/predict')) {
     aiUrl = `${aiUrl}/predict`;
   }
