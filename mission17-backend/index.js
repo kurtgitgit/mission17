@@ -111,7 +111,8 @@ app.post('/api/auth/upload', upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
   }
-  const fileUrl = `/uploads/${req.file.filename}`;
+  // Fix: return the actual Cloudinary URL (req.file.path) instead of a fake local path
+  const fileUrl = req.file.path;
   res.status(200).json({ url: fileUrl });
 });
 
