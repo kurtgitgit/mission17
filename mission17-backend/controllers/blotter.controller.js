@@ -89,15 +89,14 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (status === 'Resolved') {
     try {
       const reporter = await User.findById(report.userId);
-      if (reporter?.walletAddress) {
-        console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter.username}...`);
-        const txHash = await awardSdgPoints(reporter.walletAddress, 1);
-        report.blockchainTxHash = txHash;
-        console.log(`✅ Blotter blockchain TX: ${txHash}`);
-      } else {
-        console.warn(`🟡 User has no wallet address — skipping blockchain record.`);
-        report.blockchainTxHash = 'SKIPPED_NO_WALLET';
-      }
+      // Fallback to the Barangay's official wallet if the user doesn't have one
+      const walletToUse = reporter?.walletAddress || '0x7db79ec78E6e345fE23cf7fB790846365D107FFB';
+      
+      console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter?.username || 'Unknown'} (Wallet: ${walletToUse})...`);
+      const txHash = await awardSdgPoints(walletToUse, 1);
+      report.blockchainTxHash = txHash;
+      console.log(`✅ Blotter blockchain TX: ${txHash}`);
+      
     } catch (blockchainError) {
       // Non-blocking: log the error but still resolve the report
       console.error('❌ Blockchain record failed for blotter:', blockchainError.message);
