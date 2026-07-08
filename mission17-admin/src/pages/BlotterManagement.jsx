@@ -60,6 +60,12 @@ const BlotterManagement = () => {
     r.username.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getImageUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http') || url.startsWith('data:')) return url;
+    return `${endpoints.auth.backendBaseUrl}${url}`;
+  };
+
   const getStatusBadge = (status) => {
     switch(status) {
       case 'Pending': return <span className="status-badge pending" style={{ padding: '4px 8px', fontSize: '11px' }}><Clock size={12}/> Pending</span>;
@@ -226,6 +232,19 @@ const BlotterManagement = () => {
                       {selectedReport.description}
                     </p>
                   </div>
+
+                  {selectedReport.evidenceUrl && (
+                    <div style={{ marginBottom: '30px' }}>
+                      <h3 style={{ fontSize: '14px', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Photo Evidence</h3>
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block' }}>
+                        <img 
+                          src={getImageUrl(selectedReport.evidenceUrl)} 
+                          alt="Incident Evidence" 
+                          style={{ maxWidth: '100%', maxHeight: '400px', display: 'block', objectFit: 'contain' }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* ACTION FORM */}
                   <div className="no-print" style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '30px' }}>
