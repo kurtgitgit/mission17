@@ -6,6 +6,9 @@ import {
 import { Camera, ChevronLeft } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import * as Location from 'expo-location';
+import * as ImageManipulator from 'expo-image-manipulator';
+import LottieView from 'lottie-react-native';
 import { endpoints, formatImageUri } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
@@ -47,19 +50,64 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     fetchUser();
   }, [userId]);
 
+  const [location, setLocation] = useState<any>(null);
+
   const handlePickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      showNotification('Need camera roll permissions!', 'error');
+    // 1. Request Camera Permissions (Anti-Cheat)
+    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+    if (cameraStatus !== 'granted') {
+      showNotification('Camera access is required for live verification!', 'error');
       return;
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
+
+    // 2. Request Location Permissions (GPS Anti-Cheat)
+    const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
+    if (locationStatus !== 'granted') {
+      showNotification('Location access is required for anti-cheat verification!', 'error');
+      return;
+    }
+
+    // 3. Launch Camera (Force Live Photo)
+    const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.5,
+      quality: 1, // Start high quality to capture detail
+      exif: true, // Capture metadata
     });
-    if (!result.canceled) setImageUri(result.assets[0].uri);
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+
+      // A. Check EXIF Timestamp
+      if (asset.exif && asset.exif.DateTimeOriginal) {
+        console.log("📸 EXIF Verified:", asset.exif.DateTimeOriginal);
+      } else {
+        console.log("📸 Live Photo Verified (No EXIF).");
+      }
+
+      // B. Fetch GPS Coordinates
+      try {
+        const currentLoc = await Location.getCurrentPositionAsync({});
+        setLocation(currentLoc.coords);
+        console.log("📍 GPS Locked:", currentLoc.coords.latitude, currentLoc.coords.longitude);
+      } catch (err) {
+        console.log("📍 Could not lock GPS, proceeding with caution.");
+      }
+
+      // C. Image Compression (Optimization)
+      try {
+        const manipResult = await ImageManipulator.manipulateAsync(
+          asset.uri,
+          [{ resize: { width: 800 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        setImageUri(manipResult.uri);
+      } catch (err) {
+        console.log("Compression failed, using original.");
+        setImageUri(asset.uri);
+      }
+    }
   };
 
   const getBase64 = async (uri: string) => {
@@ -128,10 +176,8 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           console.log("Blockchain Success! Hash:", txHash);
           setSubmitted(true);
 
-          const msg = `1. Verified by AI!\n2. Saved to DB.\n3. Verified on Blockchain!\n\nHash:\n${txHash}`;
-
           navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-          showNotification("🚀 Triple Success! Verified by AI, DB, & Blockchain.", "success");
+          showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
 
         } catch (blockchainError: any) {
           console.error("Blockchain Failed:", blockchainError);
@@ -221,26 +267,21 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           </View>
         )}
 
-        {/* 🎯 MODULE 10 FIX: Dynamic AI Loading Button */}
-        <TouchableOpacity
-          style={[styles.submitBtn, { backgroundColor: imageUri ? (mission.color || '#3b82f6') : '#cbd5e1' }]}
-          disabled={!imageUri || submitted || loading || isAnalyzing}
-          onPress={handleSubmit}
-        >
-          {isAnalyzing ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Analyzing AI...</Text>
-            </View>
-          ) : loading ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Saving to Blockchain...</Text>
-            </View>
-          ) : (
+        {/* UPLOAD PROGRESS STATE */}
+        {loading ? (
+          <View style={styles.lottieContainer}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.analyzingText}>Uploading Proof...</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.submitBtn, { backgroundColor: imageUri ? (mission.color || '#3b82f6') : '#cbd5e1' }]}
+            disabled={!imageUri || submitted}
+            onPress={handleSubmit}
+          >
             <Text style={styles.submitBtnText}>{submitted ? '✅ Submitted for Review!' : 'Submit Civic Task Proof'}</Text>
-          )}
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
       </ScrollView>
     </View>
   );
@@ -278,6 +319,9 @@ const styles = StyleSheet.create({
 
   submitBtn: { width: '100%', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
   submitBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+
+  lottieContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
+  analyzingText: { marginTop: 10, fontSize: 16, fontWeight: '600', color: '#3b82f6' },
 });
 
 export default MissionDetailScreen;

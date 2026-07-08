@@ -6,6 +6,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { logAudit } from '../utils/authMiddleware.js';
 import { awardSdgPoints } from '../utils/blockchain.js';
+import { sendPushNotification } from '../utils/pushNotifier.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import fs from 'fs';
 import path from 'path';
@@ -107,15 +108,43 @@ export const updateStatus = asyncHandler(async (req, res) => {
   await report.save();
 
   // Notify the resident
+  const notificationTitle = 'Blotter Report Update';
+  const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${status}".`;
+
   await Notification.create({
     userId:  report.userId,
-    title:   'Blotter Report Update',
-    message: `Your report (Ref: ${report.referenceNumber}) status is now "${status}".`,
+    title:   notificationTitle,
+    message: notificationMessage,
     type:    status === 'Resolved' ? 'success' : 'info',
   });
+
+  const resident = await User.findById(report.userId);
+  if (resident && resident.expoPushToken) {
+    await sendPushNotification(resident.expoPushToken, notificationTitle, notificationMessage, { screen: 'BlotterHistory' });
+  }
 
   logAudit(req.user.id, req.user.username, 'BLOTTER_UPDATE',
     `Updated blotter ${report.referenceNumber} → ${status}`, req);
 
   res.json({ message: `Report updated to "${status}".`, report });
+});
+
+// GET /public/:referenceNumber — Public: Verify a report's blockchain status
+export const getPublicReport = asyncHandler(async (req, res) => {
+  const { referenceNumber } = req.params;
+  const report = await BlotterReport.findOne({ referenceNumber });
+  
+  if (!report) {
+    return res.status(404).json({ message: 'Report not found.' });
+  }
+
+  // Return only safe, public verification data
+  res.json({
+    referenceNumber: report.referenceNumber,
+    status: report.status,
+    blockchainTxHash: report.blockchainTxHash,
+    incidentType: report.incidentType,
+    dateOfIncident: report.dateOfIncident,
+    // explicitly NOT returning description, location, or user details for privacy
+  });
 });
