@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight } from 'lucide-react';
+import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
@@ -159,8 +159,18 @@ const BlotterManagement = () => {
                     <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#0f172a' }}>Case: {selectedReport.referenceNumber}</h2>
                     <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>{selectedReport.incidentType}</span>
                   </div>
-                  <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     {getStatusBadge(selectedReport.status)}
+                    {selectedReport.blockchainTxHash && selectedReport.blockchainTxHash.startsWith('0x') && (
+                      <button 
+                        onClick={() => window.open(`https://sepolia.etherscan.io/tx/${selectedReport.blockchainTxHash}`, '_blank')}
+                        style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}
+                        title="View on Sepolia Etherscan"
+                      >
+                        <ExternalLink size={14} />
+                        Ledger
+                      </button>
+                    )}
                   </div>
                 </div>
 
