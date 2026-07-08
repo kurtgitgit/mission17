@@ -89,9 +89,7 @@ function App() {
           <a href="#services" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Services</a>
           <a href="#officials" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Officials</a>
           <a href="#news" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Barangay Bulletin</a>
-          <button className="btn-primary" onClick={() => window.open('http://localhost:5173', '_blank')}>
-            <ShieldCheck size={18} /> Admin Portal
-          </button>
+
         </div>
       </nav>
 
