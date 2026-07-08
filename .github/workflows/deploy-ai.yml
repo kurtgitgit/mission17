@@ -1,0 +1,44 @@
+name: Deploy AI Server to Hugging Face
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mission17-ai/**'   # Only triggers when AI files change
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push mission17-ai/ to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Configure git with HF credentials
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+          # Clone the HF Space repo
+          git clone https://Kurtgitgit:${HF_TOKEN}@huggingface.co/spaces/Kurtgitgit/mission17-ai hf_space
+
+          # Sync only the mission17-ai/ subfolder into the HF Space
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='venv/' \
+            --exclude='__pycache__/' \
+            --exclude='*.pyc' \
+            mission17-ai/ hf_space/
+
+          # Commit and push to HF
+          cd hf_space
+          git add -A
+          git diff --cached --quiet && echo "No changes to deploy." && exit 0
+          git commit -m "sync: ${{ github.event.head_commit.message }}"
+          git push
