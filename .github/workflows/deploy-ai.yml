@@ -29,11 +29,13 @@ jobs:
           git clone https://Kurtgitgit:${HF_TOKEN}@huggingface.co/spaces/Kurtgitgit/mission17-ai hf_space
 
           # Sync only the mission17-ai/ subfolder into the HF Space
-          rsync -av --delete \
+          # Note: no --delete so HF-specific files (.gitattributes etc.) are preserved
+          rsync -av \
             --exclude='.git' \
             --exclude='venv/' \
             --exclude='__pycache__/' \
             --exclude='*.pyc' \
+            --exclude='.env' \
             mission17-ai/ hf_space/
 
           # Commit and push to HF
