@@ -9,15 +9,15 @@ The platform features a modern, "Human-Designed" mobile app for residents (inspi
 ## 🚀 Key Features
 
 ### 🏛️ Barangay E-Services
-* **📝 Blotter Reports:** Residents can submit incident reports with photo evidence. Admins can track, update, and resolve cases.
+* **📝 Blotter Reports (Blockchain Enabled):** Residents submit incident reports. Admins resolve them, and the resolution event is immutably recorded on the **Ethereum Blockchain (Sepolia Testnet)** using a Gasless Sponsor Wallet.
 * **📄 Document Requests:** Streamlined requesting for barangay clearances and certificates with status tracking.
 * **💡 Community Suggestions:** Anonymous or public suggestion box for community improvement.
 * **📢 Announcements:** Real-time updates and pinned announcements from barangay officials.
 * **🤖 Smart Chatbot:** AI-powered digital assistant (using **Groq** for blazing-fast responses) to help residents navigate services.
 
 ### 🌍 Mission 17 (SDG Gamification)
-* **📸 AI Verification:** Uses a custom Computer Vision model (CNN) to verify photo evidence of civic duties like "Tree Planting" (SDG 13/15) and "Recycling" (SDG 12).
-* **🔗 Blockchain Integration:** Verified missions are hashed and stored immutably on the **Ethereum Blockchain (Sepolia Testnet)**.
+* **📸 AI Verification:** Uses a custom Computer Vision model (CNN) hosted on Hugging Face to verify photo evidence of civic duties like "Tree Planting" (SDG 13/15) and "Recycling" (SDG 12).
+* **🛡️ Anti-Cheat System:** Duplicate image detection ensures users cannot farm points using old photos.
 * **🏆 Gamification:** Residents earn points and climb the community leaderboard for valid contributions.
 
 ---
@@ -41,7 +41,7 @@ The platform features a modern, "Human-Designed" mobile app for residents (inspi
 * **Authentication:** JSON Web Tokens (JWT) + Bcrypt
 
 ### **Artificial Intelligence**
-* **Proof Verification Server:** Python (Flask), TensorFlow / Keras, MobileNetV2
+* **Proof Verification Server:** Python (Flask), TensorFlow, Docker (Hosted on **Hugging Face Spaces**)
 * **Chatbot Engine:** Groq API (LLaMA 3)
 
 ### **Blockchain**
@@ -90,14 +90,14 @@ npm run dev
 ```
 
 ### **4. AI Proof Verification Server Setup**
+The AI Server is automatically deployed to **Hugging Face Spaces** via GitHub Actions. No local setup is required for production, but to run it locally:
 ```bash
 cd mission17-ai
-# Create virtual env (optional but recommended)
 python -m venv venv
 .\venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 python app.py
-# AI runs on http://localhost:5000
+# AI runs on http://localhost:7860
 ```
 
 ### **5. Mobile App Setup**
@@ -113,9 +113,8 @@ npx expo start
 ## 🧪 Testing
 
 * **Resident Login:** Register a new account on the mobile app or use existing credentials.
-* **E-Services:** Test submitting a Blotter Report or Document Request from the mobile app and verify it appears in the Admin Portal.
-* **AI Verification:** Go to "Missions" > Select "Tree Planting" > Upload a photo. The Python AI server will analyze and accept/reject the image.
-* **Check Blockchain:** Verified missions will generate a Transaction Hash viewable on **Sepolia Etherscan**.
+* **AI Verification (Missions):** Go to "Missions" > Select "Tree Planting" > Upload a photo. The Hugging Face AI server will analyze and accept/reject the image.
+* **Blockchain (Blotter Reports):** Submit a Blotter Report on mobile. Go to the Admin Portal, find the report, and click **Resolved**. A "Ledger" button will appear linking directly to the transaction on **Sepolia Etherscan**.
 
 ---
 
