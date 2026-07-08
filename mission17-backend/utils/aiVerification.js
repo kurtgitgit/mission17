@@ -27,10 +27,10 @@ export async function buildAIFormData(imageUri) {
   let imageBuffer;
 
   if (imageUri.startsWith('/uploads/')) {
-     const relativePath = imageUri.replace(/^\//, ''); // Remove leading slash for join
-     const filePath = path.join(__dirname, '..', relativePath);
-     console.log(`📂 AI Analysis: Reading local file: ${filePath}`);
-     imageBuffer = fs.readFileSync(filePath);
+    const relativePath = imageUri.replace(/^\//, ''); // Remove leading slash for join
+    const filePath = path.join(__dirname, '..', relativePath);
+    console.log(`📂 AI Analysis: Reading local file: ${filePath}`);
+    imageBuffer = fs.readFileSync(filePath);
   } else if (imageUri.startsWith('data:image')) {
     // 🛡️ Base64 path — no network fetch needed
     const base64Data = imageUri.split(',')[1];
@@ -84,12 +84,17 @@ export async function buildAIFormData(imageUri) {
 /**
  * Calls the Python AI server and returns the raw aiData object.
  * Throws on failure so callers can decide how to handle it.
+ * @param {string} imageUri
+ * @param {boolean} skipAntiCheat - Pass true for admin re-scans to bypass duplicate detection.
  */
-export async function callAIServer(imageUri) {
+export async function callAIServer(imageUri, skipAntiCheat = false) {
   const formData = await buildAIFormData(imageUri);
+  if (skipAntiCheat) {
+    formData.append('skip_anticheat', '1');
+  }
 
   let aiUrl = process.env.AI_SERVER_URL || 'https://kurtgitgit-mission17-ai.hf.space/predict';
-  
+
   // Trim whitespace/newlines from env var, then normalize the /predict suffix
   aiUrl = aiUrl.trim().replace(/\/+$/, ''); // Remove trailing whitespace AND slashes
   if (!aiUrl.endsWith('/predict')) {
@@ -118,7 +123,7 @@ export async function callAIServer(imageUri) {
   if (!aiResponse.ok) {
     const errText = await aiResponse.text();
     console.error(`❌ AI Analysis: AI Server HTTP ${aiResponse.status} - ${errText.slice(0, 100)}`);
-    
+
     // Check if it's a controlled rejection (Anti-Cheat or Invalid Image)
     try {
       const errJson = JSON.parse(errText);
@@ -139,7 +144,7 @@ export async function callAIServer(imageUri) {
 
     throw new Error(`AI Server Error (${aiResponse.status}): ${errText.slice(0, 100)}`);
   }
-  
+
   return aiResponse.json();
 }
 
@@ -152,14 +157,14 @@ export async function saveAnalysisReport(submissionId, userId, aiData) {
     {
       submissionId,
       userId,
-      prediction:  aiData.prediction,
-      confidence:  aiData.confidence, 
-      verdict:     aiData.verdict,
-      message:     aiData.message,
-      isVerified:  aiData.is_verified,
-      sdg:         aiData.sdg,
+      prediction: aiData.prediction,
+      confidence: aiData.confidence,
+      verdict: aiData.verdict,
+      message: aiData.message,
+      isVerified: aiData.is_verified,
+      sdg: aiData.sdg,
       sourceCheck: aiData.source_check,
-      analyzedAt:  new Date(),
+      analyzedAt: new Date(),
     },
     { upsert: true, new: true }
   );

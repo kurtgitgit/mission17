@@ -373,10 +373,12 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
       });
     }
 
-    // 2. Call AI server (handles base64 and URL correctly)
+    // 2. Call AI server (skip anti-cheat for admin re-scans — the image hash
+    //    is already registered from the original submission scan, so it would
+    //    always falsely trigger duplicate detection on a re-scan.)
     let aiData;
     try {
-      aiData = await callAIServer(submission.imageUri);
+      aiData = await callAIServer(submission.imageUri, true /* skipAntiCheat */);
       console.log('✅ AI Response received');
     } catch (aiError) {
       console.error('❌ Error communicating with AI Server:', aiError.message);
