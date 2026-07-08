@@ -30,12 +30,15 @@ jobs:
 
           # Sync only the mission17-ai/ subfolder into the HF Space
           # Note: no --delete so HF-specific files (.gitattributes etc.) are preserved
+          # Exclude large binary files (model.h5 already on HF via LFS, outputs/ not needed)
           rsync -av \
             --exclude='.git' \
             --exclude='venv/' \
             --exclude='__pycache__/' \
             --exclude='*.pyc' \
             --exclude='.env' \
+            --exclude='*.h5' \
+            --exclude='outputs/' \
             mission17-ai/ hf_space/
 
           # Commit and push to HF
