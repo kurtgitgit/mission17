@@ -98,7 +98,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Note: '/uploads' static route removed as Cloudinary handles images now
+// Restored static route for local uploads (e.g. Blotter Reports)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // --- ROUTES ---
 app.get('/api/health', (req, res) => {
