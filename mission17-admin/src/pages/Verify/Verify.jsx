@@ -395,14 +395,6 @@ const Verify = () => {
                       <FileImage size={15} />
                       Proof
                     </button>
-                    <button
-                      className="btn-ledger"
-                      onClick={openBlockchain}
-                      title="View on Sepolia Etherscan"
-                    >
-                      <ExternalLink size={15} />
-                      Ledger
-                    </button>
                     <div className="action-divider" />
                     <button
                       onClick={() => handleApprove(sub._id)}
