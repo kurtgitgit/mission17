@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import PublicVerify from './pages/PublicVerify';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 import Missions from './pages/Missions/Missions';
 import Events from './pages/Events';
@@ -29,6 +30,7 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/public-verify" element={<PublicVerify />} />
           
           {/* Protected Admin Routes */}
           <Route path="/dashboard" element={<DashboardHome />} />

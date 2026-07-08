@@ -351,3 +351,39 @@
 .skeleton-line.wide  { width: 140px; height: 14px; }
 .skeleton-line.narrow { width: 60px;  height: 14px; }
 .skeleton-circle      { width: 28px;  height: 28px; border-radius: 50%; flex-shrink: 0; }
+
+/* --- PRINT LAYOUT --- */
+@media print {
+  /* Hide sidebar and unnecessary UI */
+  .sidebar, .top-header, .search-box, .no-print {
+    display: none !important;
+  }
+  
+  /* Expand the main content */
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Make sure the case details expand fully */
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Select the right side case details div */
+  .dashboard-container > main > div > div:nth-child(2),
+  .dashboard-container > main > div > div:nth-child(2) * {
+    visibility: visible;
+  }
+
+  .dashboard-container > main > div > div:nth-child(2) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}

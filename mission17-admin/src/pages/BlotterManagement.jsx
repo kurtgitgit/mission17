@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink } from 'lucide-react';
+import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
@@ -87,7 +87,7 @@ const BlotterManagement = () => {
         <div style={{ display: 'flex', gap: '20px', flex: 1, overflow: 'hidden', paddingBottom: '20px' }}>
           
           {/* LEFT: CASE LIST (MASTER) */}
-          <div style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div className="no-print" style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
             <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
               <div className="search-box" style={{ margin: 0, width: '100%' }}>
                 <Search size={18} color="#64748b" />
@@ -163,6 +163,7 @@ const BlotterManagement = () => {
                     {getStatusBadge(selectedReport.status)}
                     {selectedReport.blockchainTxHash && selectedReport.blockchainTxHash.startsWith('0x') && (
                       <button 
+                        className="no-print"
                         onClick={() => window.open(`https://sepolia.etherscan.io/tx/${selectedReport.blockchainTxHash}`, '_blank')}
                         style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}
                         title="View on Sepolia Etherscan"
@@ -171,6 +172,15 @@ const BlotterManagement = () => {
                         Ledger
                       </button>
                     )}
+                    <button 
+                      className="no-print"
+                      onClick={() => window.print()}
+                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}
+                      title="Print Official Report"
+                    >
+                      <Printer size={14} />
+                      Print
+                    </button>
                   </div>
                 </div>
 
@@ -218,7 +228,7 @@ const BlotterManagement = () => {
                   </div>
 
                   {/* ACTION FORM */}
-                  <div style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '30px' }}>
+                  <div className="no-print" style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '30px' }}>
                     <h3 style={{ fontSize: '16px', color: '#0f172a', marginBottom: '20px' }}>Case Resolution & Updates</h3>
                     
                     <div className="form-group" style={{ marginBottom: '20px' }}>
