@@ -22,6 +22,11 @@ const BlotterReportSchema = new mongoose.Schema({
   blockchainTxHash: { type: String, default: null }, // Set when status → Resolved
 }, { timestamps: true });
 
+// ⚡ PERFORMANCE INDEXES
+// Optimize dashboard queries for pending/resolved reports and recent activity
+BlotterReportSchema.index({ status: 1, createdAt: -1 });
+BlotterReportSchema.index({ createdAt: -1 });
+
 // Auto-generate reference number
 BlotterReportSchema.pre('save', function(next) {
   if (!this.referenceNumber) {

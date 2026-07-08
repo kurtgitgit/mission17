@@ -10,6 +10,7 @@ import { sendPushNotification } from '../utils/pushNotifier.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import fs from 'fs';
 import path from 'path';
+import sharp from 'sharp';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,9 +34,17 @@ export const submitReport = asyncHandler(async (req, res) => {
   let finalEvidenceUrl = evidenceUrl;
   if (evidenceUrl && evidenceUrl.startsWith('data:image')) {
     const base64Data = evidenceUrl.split(',')[1];
-    const filename = `blotter_${Date.now()}_${userId}.jpg`;
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    // Save as highly compressed webp to save server storage
+    const filename = `blotter_${Date.now()}_${userId}.webp`;
     const filepath = path.join(UPLOADS_DIR, filename);
-    fs.writeFileSync(filepath, base64Data, 'base64');
+    
+    await sharp(buffer)
+      .resize({ width: 1000, withoutEnlargement: true }) // Prevent massive 4k uploads
+      .webp({ quality: 80 })
+      .toFile(filepath);
+      
     finalEvidenceUrl = `/uploads/${filename}`;
   }
 
@@ -65,10 +74,20 @@ export const getMyReports = asyncHandler(async (req, res) => {
   res.json(reports);
 });
 
-// GET / — Admin: Get all reports (with optional status filter)
+// GET / — Admin: Get all reports (with optional status filter and pagination)
 export const getAllReports = asyncHandler(async (req, res) => {
   const filter = req.query.status ? { status: req.query.status } : {};
-  const reports = await BlotterReport.find(filter).sort({ createdAt: -1 });
+  
+  // Anti-Crash Pagination
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 50;
+  const skip = (page - 1) * limit;
+
+  const reports = await BlotterReport.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+    
   res.json(reports);
 });
 
