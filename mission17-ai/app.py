@@ -78,7 +78,10 @@ def predict():
         file_bytes = file.read()
         
         # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
-        if anticheat.is_duplicate(file_bytes):
+        # skip_anticheat=1 is sent by the admin re-scan endpoint so that
+        # already-registered hashes don't falsely trigger duplicate detection.
+        skip_anticheat = request.form.get('skip_anticheat', '0') == '1'
+        if not skip_anticheat and anticheat.is_duplicate(file_bytes):
             logger.warning("🚨 ANTI-CHEAT: Duplicate image detected!")
             return jsonify({
                 "status": "REJECTED",
