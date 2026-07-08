@@ -30,6 +30,11 @@ const DocumentRequestSchema = new mongoose.Schema({
   referenceNumber: { type: String, unique: true }  // auto-generated ref number
 }, { timestamps: true });
 
+// ⚡ PERFORMANCE INDEXES
+// Optimize dashboard queries for pending requests and recent activity
+DocumentRequestSchema.index({ status: 1, createdAt: -1 });
+DocumentRequestSchema.index({ createdAt: -1 });
+
 // Auto-generate reference number before save
 DocumentRequestSchema.pre('save', function(next) {
   if (!this.referenceNumber) {
