@@ -50,6 +50,7 @@ function FadeInSection(props) {
 function App() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [selectedSdg, setSelectedSdg] = useState(null);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -91,6 +92,27 @@ function App() {
           <a href="#news" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Barangay Bulletin</a>
 
         </div>
+        
+        {/* Hamburger Icon (Mobile Only) */}
+        <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          {isMenuOpen ? <X size={28} color="var(--primary-blue)" /> : <Menu size={28} color="var(--primary-blue)" />}
+        </button>
+
+        {/* Mobile Dropdown Menu */}
+        {isMenuOpen && (
+          <div className="mobile-dropdown" style={{
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            background: 'white', borderBottom: '1px solid var(--border-light)',
+            padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem',
+            boxShadow: '0 10px 20px rgba(0,0,0,0.1)', zIndex: 1000
+          }}>
+            <a href="#services" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Home</a>
+            <a href="#about" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>About Us</a>
+            <a href="#services" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Services</a>
+            <a href="#officials" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Officials</a>
+            <a href="#news" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Barangay Bulletin</a>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
