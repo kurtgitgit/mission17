@@ -25,7 +25,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 const missionLogo = require('../../assets/logo.png');
 
 // Custom Cross-Platform Dropdown
-const CustomDropdown = ({ label, value, options, onSelect }: { label: string, value: string, options: string[], onSelect: (val: string) => void }) => {
+const CustomDropdown = ({ label, value, options, onSelect, required = false }: { label: string, value: string, options: string[], onSelect: (val: string) => void, required?: boolean }) => {
   const [visible, setVisible] = useState(false);
   return (
     <View style={styles.inputContainer}>
@@ -35,6 +35,7 @@ const CustomDropdown = ({ label, value, options, onSelect }: { label: string, va
       >
         <Text style={{ color: value ? '#1e293b' : '#94a3b8', fontSize: 15 }}>
           {value || label}
+          {required && !value && <Text style={{ color: '#ef4444', fontWeight: 'bold' }}> *</Text>}
         </Text>
         <ChevronDown color="#94a3b8" size={20} />
       </TouchableOpacity>
@@ -368,6 +369,7 @@ export default function SignupScreen() {
                   >
                     <Text style={{ flex: 1, fontSize: 15, color: formData.birthDate ? '#1e293b' : '#94a3b8' }}>
                       {formData.birthDate || "Birthdate (MM/DD/YYYY)"}
+                      {!formData.birthDate && <Text style={{ color: '#ef4444', fontWeight: 'bold' }}> *</Text>}
                     </Text>
                   </TouchableOpacity>
 
@@ -390,13 +392,14 @@ export default function SignupScreen() {
                     </TouchableOpacity>
                   )}
                   {renderInput("Age", "age", "numeric")}
-                  {renderInput("Place of Birth", "placeOfBirth")}
+                  {renderInput("Place of Birth", "placeOfBirth", "default", true)}
                   
                   <CustomDropdown 
                     label="Gender" 
                     value={formData.gender} 
                     options={["Male", "Female", "Other", "Prefer not to say"]} 
                     onSelect={(val) => handleInputChange("gender", val)} 
+                    required
                   />
                   
                   <CustomDropdown 
@@ -404,20 +407,14 @@ export default function SignupScreen() {
                     value={formData.civilStatus} 
                     options={["Single", "Married", "Widowed", "Separated"]} 
                     onSelect={(val) => handleInputChange("civilStatus", val)} 
+                    required
                   />
 
                   <Text style={styles.sectionTitle}>Demographics & Contact</Text>
-                  {renderInput("Mobile Number (Example: 09***)", "mobileNumber", "phone-pad")}
-                  {renderInput("Nationality", "nationality")}
+                  {renderInput("Mobile Number (Example: 09***)", "mobileNumber", "phone-pad", true)}
+                  {renderInput("Nationality", "nationality", "default", true)}
                   {renderInput("Religion", "religion")}
-                  {renderInput("Complete Address", "completeAddress")}
-                  
-                  <CustomDropdown 
-                    label="Purok" 
-                    value={formData.purok} 
-                    options={["Purok 1", "Purok 2", "Purok 3", "Purok 4", "Purok 5", "Purok 6"]} 
-                    onSelect={(val) => handleInputChange("purok", val)} 
-                  />
+                  {renderInput("Complete Address", "completeAddress", "default", true)}
 
                   {renderInput("Years of Residency", "yearsOfResidency", "numeric")}
 
@@ -426,6 +423,7 @@ export default function SignupScreen() {
                     value={formData.voterStatus} 
                     options={["Registered", "Not Registered"]} 
                     onSelect={(val) => handleInputChange("voterStatus", val)} 
+                    required
                   />
                   
                   <CustomDropdown 
