@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock } from 'lucide-react';
+import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Users.css';
@@ -39,6 +39,8 @@ const Users = () => {
     type: 'info',
     onConfirm: () => { }
   });
+
+  const [idModal, setIdModal] = useState({ isOpen: false, front: null, back: null, loading: false });
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
@@ -200,6 +202,27 @@ const Users = () => {
 
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleViewID = async (user) => {
+    setIdModal({ isOpen: true, front: null, back: null, loading: true });
+    try {
+      const res = await fetch(`${endpoints.auth.baseUrl}/user-ids/${user._id}`, {
+        headers: {
+          'auth-token': getToken()
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIdModal({ isOpen: true, front: data.front, back: data.back, loading: false });
+      } else {
+        showNotification('Failed to fetch ID images', 'error');
+        setIdModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (error) {
+      showNotification('Network error', 'error');
+      setIdModal(prev => ({ ...prev, loading: false }));
+    }
   };
 
   // Helper to color-code roles
@@ -368,6 +391,9 @@ const Users = () => {
                       </td>
                       <td style={styles.td}>
                         <div style={{ display: 'flex', gap: '10px' }}>
+                          <button onClick={() => handleViewID(user)} style={styles.actionBtn('#0284c7')} title="View ID">
+                            <Contact size={18} />
+                          </button>
                           <button onClick={() => openEditModal(user)} style={styles.actionBtn('#64748b')} title="Edit">
                             <Edit size={18} />
                           </button>
@@ -417,6 +443,31 @@ const Users = () => {
           type={modalConfig.type}
           confirmText="Delete User"
         />
+
+        {idModal.isOpen && (
+          <div style={styles.modalOverlay}>
+            <div style={{...styles.modalContent, width: '600px'}}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>User Verification IDs</h2>
+                <button onClick={() => setIdModal({ isOpen: false, front: null, back: null, loading: false })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+              </div>
+              {idModal.loading ? (
+                <p>Loading IDs...</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>Front of ID</h3>
+                    {idModal.front ? <img src={idModal.front} alt="Front ID" style={{ width: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#f1f5f9' }} /> : <p>No Front ID uploaded.</p>}
+                  </div>
+                  <div>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>Back of ID</h3>
+                    {idModal.back ? <img src={idModal.back} alt="Back ID" style={{ width: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#f1f5f9' }} /> : <p>No Back ID uploaded.</p>}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

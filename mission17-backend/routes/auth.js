@@ -222,10 +222,13 @@ const loginLimiter = rateLimit({
 // ==========================================
 
 // 1. REGISTER
-router.post('/signup', upload.fields([
-  { name: 'validIdImage', maxCount: 1 },
+const cpUpload = upload.fields([
+  { name: 'validIdFront', maxCount: 1 },
+  { name: 'validIdBack', maxCount: 1 },
   { name: 'profileImage', maxCount: 1 }
-]), async (req, res) => {
+]);
+
+router.post('/signup', cpUpload, async (req, res) => {
   let {
     email, password, role,
     firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
@@ -269,7 +272,8 @@ router.post('/signup', upload.fields([
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Grab file URLs if they exist
-    const validIdUrl = req.files && req.files['validIdImage'] ? req.files['validIdImage'][0].path : null;
+    const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
+    const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
     const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
 
     const newUser = new User({
@@ -286,7 +290,7 @@ router.post('/signup', upload.fields([
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
       voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
       numberOfFamilyMembers, educationalAttainment, bloodType, disability,
-      validIdUrl, profileImageUrl
+      validIdFrontUrl, validIdBackUrl, profileImageUrl
     });
 
     await newUser.save();

@@ -109,6 +109,31 @@ router.get('/user/:id', async (req, res) => {
   }
 });
 
+// 5b. GET USER IDS (Admin)
+router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id).select('validIdFrontUrl validIdBackUrl');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const formatUrl = (uri) => {
+      if (!uri) return null;
+      if (uri.startsWith('http')) return uri;
+      if (uri.startsWith('uploads\\') || uri.startsWith('uploads/')) {
+         const norm = uri.replace(/\\/g, '/');
+         return `${req.protocol}://${req.get('host')}/${norm}`;
+      }
+      return uri;
+    };
+
+    res.json({
+      front: formatUrl(user.validIdFrontUrl),
+      back: formatUrl(user.validIdBackUrl)
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 // 6. UPDATE OWN PROFILE
 router.put('/update-profile/:id', async (req, res) => {
   try {
