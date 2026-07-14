@@ -5,8 +5,19 @@ import express from 'express';
 import Mission from '../models/Mission.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { uploadCloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
+
+// POST /upload — Admin: Upload a mission/event image to Cloudinary
+// Called by admin when user picks an image file in the Missions or Events form
+router.post('/upload', verifyAdmin, uploadCloudinary.single('image'), asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No image file provided.' });
+  }
+  // Cloudinary storage automatically uploads and provides the URL on req.file
+  res.json({ url: req.file.path });
+}));
 
 // GET /all-missions — Public - With Pagination & Search
 router.get('/all-missions', asyncHandler(async (req, res) => {
