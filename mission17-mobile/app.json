@@ -1,8 +1,17 @@
 {
   "expo": {
-    "name": "mission17-app",
+    "name": "Mission 17",
     "slug": "mission17-app",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/69ab462e-4c5c-4165-90f6-22e3a602c04d",
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -19,7 +28,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0038A8"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.barangaypantal.mission17",
@@ -29,6 +38,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "expo-updates",
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-google-signin/google-signin",
