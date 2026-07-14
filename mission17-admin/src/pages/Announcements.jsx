@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
-import { Plus, Pin, Trash2, Edit3, X } from 'lucide-react';
+import { Plus, Pin, Trash2, Edit3, X, Link as LinkIcon, Upload, Loader } from 'lucide-react';
 import { endpoints } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/PortalAdmin.css';
@@ -28,6 +28,9 @@ const Announcements = () => {
   const [submitting, setSubmitting] = useState(false);
   const [filterCat, setFilterCat] = useState('all');
   const [form, setForm] = useState({ title: '', body: '', category: 'general', isPinned: false, image: '' });
+  const [imageMode, setImageMode] = useState('url'); // 'url' | 'upload'
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
@@ -46,6 +49,33 @@ const Announcements = () => {
     setForm({ title: '', body: '', category: 'general', isPinned: false, image: '' });
     setEditItem(null);
     setShowForm(false);
+    setImageMode('url');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const uploadData = new FormData();
+    uploadData.append('image', file);
+    setUploading(true);
+    try {
+      const res = await fetch(`${endpoints.auth.baseUrl}/upload`, {
+        method: 'POST',
+        headers: { 'auth-token': token },
+        body: uploadData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setForm(prev => ({ ...prev, image: data.url }));
+        showNotification('Image uploaded successfully!', 'success');
+      } else {
+        showNotification(data.message || 'Upload failed.', 'error');
+      }
+    } catch {
+      showNotification('Network error during upload.', 'error');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -133,14 +163,78 @@ const Announcements = () => {
                     value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} required />
                 </div>
                 <div className="pa-form-group full">
-                  <label className="pa-label">Cover Image URL <span style={{fontWeight:400,color:'#94a3b8'}}>(optional — leave blank for auto-category image)</span></label>
-                  <input className="pa-input" placeholder="https://images.unsplash.com/..."
-                    value={form.image} onChange={e => setForm({ ...form, image: e.target.value })} />
-                  {form.image && (
-                    <img src={form.image} alt="preview"
-                      style={{ marginTop: 8, height: 80, borderRadius: 10, objectFit: 'cover', maxWidth: 200, border: '2px solid #e2e8f0' }}
-                      onError={e => { e.target.style.display = 'none'; }}
+                  <label className="pa-label">
+                    Cover Image
+                    <span style={{fontWeight:400,color:'#94a3b8',marginLeft:6}}>(optional)</span>
+                  </label>
+
+                  {/* ── IMAGE MODE TOGGLE ── */}
+                  <div style={{ display:'flex', gap:8, marginBottom:10 }}>
+                    <button
+                      type="button"
+                      onClick={() => { setImageMode('url'); }}
+                      style={{
+                        display:'flex', alignItems:'center', gap:6, padding:'7px 14px',
+                        borderRadius:8, border:'1.5px solid', cursor:'pointer', fontSize:13, fontWeight:600,
+                        backgroundColor: imageMode === 'url' ? '#0038A8' : '#f1f5f9',
+                        color: imageMode === 'url' ? 'white' : '#64748b',
+                        borderColor: imageMode === 'url' ? '#0038A8' : '#e2e8f0',
+                      }}
+                    >
+                      <LinkIcon size={14} /> URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setImageMode('upload'); fileInputRef.current?.click(); }}
+                      style={{
+                        display:'flex', alignItems:'center', gap:6, padding:'7px 14px',
+                        borderRadius:8, border:'1.5px solid', cursor:'pointer', fontSize:13, fontWeight:600,
+                        backgroundColor: imageMode === 'upload' ? '#0038A8' : '#f1f5f9',
+                        color: imageMode === 'upload' ? 'white' : '#64748b',
+                        borderColor: imageMode === 'upload' ? '#0038A8' : '#e2e8f0',
+                      }}
+                    >
+                      {uploading ? <Loader size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Upload size={14} />}
+                      {uploading ? 'Uploading...' : 'Upload File'}
+                    </button>
+                  </div>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleImageUpload}
+                  />
+
+                  {/* URL Input (shown when mode = url) */}
+                  {imageMode === 'url' && (
+                    <input
+                      className="pa-input"
+                      placeholder="https://images.unsplash.com/..."
+                      value={form.image}
+                      onChange={e => setForm({ ...form, image: e.target.value })}
                     />
+                  )}
+
+                  {/* Preview */}
+                  {form.image && (
+                    <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:10 }}>
+                      <img
+                        src={form.image}
+                        alt="preview"
+                        style={{ height:80, borderRadius:10, objectFit:'cover', maxWidth:220, border:'2px solid #e2e8f0' }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, image: '' }))}
+                        style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', fontSize:12, fontWeight:600, padding:'4px 8px' }}
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
