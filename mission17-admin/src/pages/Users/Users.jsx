@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact } from 'lucide-react';
+import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact, Info } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Users.css';
@@ -41,6 +41,7 @@ const Users = () => {
   });
 
   const [idModal, setIdModal] = useState({ isOpen: false, front: null, back: null, loading: false });
+  const [userInfoModal, setUserInfoModal] = useState({ isOpen: false, user: null });
 
   // Helper to get token
   const getToken = () => localStorage.getItem('token');
@@ -391,6 +392,9 @@ const Users = () => {
                       </td>
                       <td style={styles.td}>
                         <div style={{ display: 'flex', gap: '10px' }}>
+                          <button onClick={() => setUserInfoModal({ isOpen: true, user })} style={styles.actionBtn('#10b981')} title="View Info">
+                            <Info size={18} />
+                          </button>
                           <button onClick={() => handleViewID(user)} style={styles.actionBtn('#0284c7')} title="View ID">
                             <Contact size={18} />
                           </button>
@@ -465,6 +469,38 @@ const Users = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {userInfoModal.isOpen && userInfoModal.user && (
+          <div style={styles.modalOverlay}>
+            <div style={{...styles.modalContent, width: '600px', maxHeight: '90vh', overflowY: 'auto'}}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+                <h2 style={{ margin: 0 }}>User Details</h2>
+                <button onClick={() => setUserInfoModal({ isOpen: false, user: null })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div><strong>Full Name:</strong> {userInfoModal.user.firstName} {userInfoModal.user.middleName} {userInfoModal.user.lastName}</div>
+                <div><strong>Email:</strong> {userInfoModal.user.email}</div>
+                <div><strong>Username:</strong> {userInfoModal.user.username}</div>
+                <div><strong>Mobile:</strong> {userInfoModal.user.mobileNumber || 'N/A'}</div>
+                <div><strong>Birthdate:</strong> {userInfoModal.user.birthDate || 'N/A'}</div>
+                <div><strong>Age:</strong> {userInfoModal.user.age || 'N/A'}</div>
+                <div><strong>Gender:</strong> {userInfoModal.user.gender || 'N/A'}</div>
+                <div><strong>Civil Status:</strong> {userInfoModal.user.civilStatus || 'N/A'}</div>
+                <div><strong>Place of Birth:</strong> {userInfoModal.user.placeOfBirth || 'N/A'}</div>
+                <div><strong>Nationality:</strong> {userInfoModal.user.nationality || 'N/A'}</div>
+                <div><strong>Religion:</strong> {userInfoModal.user.religion || 'N/A'}</div>
+                <div><strong>Purok:</strong> {userInfoModal.user.purok || 'N/A'}</div>
+                <div><strong>Residency (Yrs):</strong> {userInfoModal.user.yearsOfResidency || 'N/A'}</div>
+                <div><strong>Voter Status:</strong> {userInfoModal.user.voterStatus || 'N/A'}</div>
+                <div><strong>Employment:</strong> {userInfoModal.user.employmentStatus || 'N/A'}</div>
+                <div><strong>Occupation:</strong> {userInfoModal.user.occupation || 'N/A'}</div>
+                <div><strong>Education:</strong> {userInfoModal.user.educationalAttainment || 'N/A'}</div>
+                <div><strong>Disability:</strong> {userInfoModal.user.disability || 'None'}</div>
+                <div style={{ gridColumn: '1 / -1' }}><strong>Address:</strong> {userInfoModal.user.completeAddress || 'N/A'}</div>
+              </div>
             </div>
           </div>
         )}
