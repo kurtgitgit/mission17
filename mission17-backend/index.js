@@ -8,6 +8,7 @@ import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import xss from 'xss-clean';
+import compression from 'compression';
 
 // IMPORTS
 import authRoutes           from './routes/auth.js';              // signup, login, otp, mfa, password, audit-logs
@@ -38,6 +39,9 @@ for (const v of requiredEnvVars) {
 
 const app = express();
 const PORT = process.env.PORT || 5001; 
+
+// ⚡ OPTIMIZATION MIDDLEWARE
+app.use(compression());
 
 // --- 🔒 SECURITY MIDDLEWARE ---
 
