@@ -175,7 +175,7 @@ export default function ForgotPasswordScreen() {
                         placeholderTextColor="#94a3b8"
                     />
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                        {showPassword ? <EyeOff color="#94a3b8" size={20} /> : <Eye color="#94a3b8" size={20} />}
+                        {showPassword ? <Eye color="#94a3b8" size={20} /> : <EyeOff color="#94a3b8" size={20} />}
                     </TouchableOpacity>
                 </View>
 

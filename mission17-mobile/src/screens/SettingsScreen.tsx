@@ -215,7 +215,7 @@ const SettingsScreen = ({ navigation }: any) => {
                         placeholderTextColor={theme.textTertiary}
                     />
                     <TouchableOpacity onPress={() => setShowOldPass(!showOldPass)} style={styles.eyeIcon}>
-                        {showOldPass ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
+                        {showOldPass ? <Eye size={20} color={theme.textSecondary} /> : <EyeOff size={20} color={theme.textSecondary} />}
                     </TouchableOpacity>
                 </View>
 
@@ -229,7 +229,7 @@ const SettingsScreen = ({ navigation }: any) => {
                         placeholderTextColor={theme.textTertiary}
                     />
                     <TouchableOpacity onPress={() => setShowNewPass(!showNewPass)} style={styles.eyeIcon}>
-                        {showNewPass ? <EyeOff size={20} color={theme.textSecondary} /> : <Eye size={20} color={theme.textSecondary} />}
+                        {showNewPass ? <Eye size={20} color={theme.textSecondary} /> : <EyeOff size={20} color={theme.textSecondary} />}
                     </TouchableOpacity>
                 </View>
 

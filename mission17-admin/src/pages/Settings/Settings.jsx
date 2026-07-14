@@ -398,7 +398,7 @@ const Settings = () => {
                     onChange={(e) => setOldPassword(e.target.value)}
                   />
                   <button className="eye-btn" type="button" onClick={() => setShowOldPw(!showOldPw)}>
-                    {showOldPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showOldPw ? <Eye size={14} /> : <EyeOff size={14} />}
                   </button>
                 </div>
               </div>
@@ -413,7 +413,7 @@ const Settings = () => {
                     onChange={(e) => setNewPassword(e.target.value)}
                   />
                   <button className="eye-btn" type="button" onClick={() => setShowNewPw(!showNewPw)}>
-                    {showNewPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showNewPw ? <Eye size={14} /> : <EyeOff size={14} />}
                   </button>
                 </div>
               </div>
@@ -428,7 +428,7 @@ const Settings = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                   />
                   <button className="eye-btn" type="button" onClick={() => setShowConfirmPw(!showConfirmPw)}>
-                    {showConfirmPw ? <EyeOff size={14} /> : <Eye size={14} />}
+                    {showConfirmPw ? <Eye size={14} /> : <EyeOff size={14} />}
                   </button>
                 </div>
               </div>
