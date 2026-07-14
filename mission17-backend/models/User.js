@@ -50,8 +50,10 @@ const UserSchema = new mongoose.Schema({
   educationalAttainment: { type: String },
   bloodType: { type: String },
   disability: { type: String },
-  validIdUrl: { type: String },
   profileImageUrl: { type: String },
+  validIdFrontUrl: { type: String },
+  validIdBackUrl: { type: String },
+  fcmToken: { type: String },
   accountStatus: { 
     type: String, 
     enum: ['pending', 'approved', 'rejected'],

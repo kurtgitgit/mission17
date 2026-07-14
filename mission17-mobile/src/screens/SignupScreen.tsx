@@ -20,6 +20,7 @@ import { ArrowLeft, Eye, EyeOff, Upload, CheckSquare, Square, ChevronDown } from
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const missionLogo = require('../../assets/logo.png');
 
@@ -73,8 +74,7 @@ export default function SignupScreen() {
     placeOfBirth: '', gender: '', civilStatus: '', nationality: '', religion: '',
     completeAddress: '', purok: '', yearsOfResidency: '', mobileNumber: '',
     email: '', voterStatus: '', employmentStatus: '', occupation: '',
-    householdHead: '', emergencyContactPerson: '', numberOfFamilyMembers: '',
-    educationalAttainment: '', bloodType: '', disability: '',
+    educationalAttainment: '', disability: '',
     password: '', confirmPassword: ''
   });
 
@@ -82,23 +82,64 @@ export default function SignupScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [noMiddleName, setNoMiddleName] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateObj, setDateObj] = useState(new Date());
 
-  const [validIdImage, setValidIdImage] = useState<any>(null);
+  const [validIdFront, setValidIdFront] = useState<any>(null);
+  const [validIdBack, setValidIdBack] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<any>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const pickImage = async (type: 'id' | 'profile') => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 0.8,
-    });
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setDateObj(selectedDate);
+      const formattedDate = selectedDate.toLocaleDateString('en-US', {
+        month: '2-digit', day: '2-digit', year: 'numeric'
+      });
+      handleInputChange('birthDate', formattedDate);
+
+      // Auto calculate age
+      const today = new Date();
+      let calcAge = today.getFullYear() - selectedDate.getFullYear();
+      const m = today.getMonth() - selectedDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < selectedDate.getDate())) {
+        calcAge--;
+      }
+      handleInputChange('age', calcAge.toString());
+    }
+  };
+
+  const pickImage = async (type: 'idFront' | 'idBack' | 'profile') => {
+    let result;
+    
+    if (type === 'idFront' || type === 'idBack') {
+      const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+      if (permissionResult.granted === false) {
+        showNotification('Camera permission is required to take a photo of your ID.', 'error');
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+    }
 
     if (!result.canceled) {
-      if (type === 'id') setValidIdImage(result.assets[0]);
+      if (type === 'idFront') setValidIdFront(result.assets[0]);
+      if (type === 'idBack') setValidIdBack(result.assets[0]);
       if (type === 'profile') setProfileImage(result.assets[0]);
     }
   };
@@ -111,6 +152,11 @@ export default function SignupScreen() {
       }
       if (!formData.email) {
         showNotification('Email Address is required.', 'error');
+        return;
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        showNotification('Please enter a valid email address.', 'error');
         return;
       }
     }
@@ -132,8 +178,8 @@ export default function SignupScreen() {
       return;
     }
 
-    if (!validIdImage) {
-      showNotification('Please attach a Valid ID.', 'error');
+    if (!validIdFront || !validIdBack) {
+      showNotification('Please attach both the front and back of a Valid ID.', 'error');
       return;
     }
 
@@ -152,10 +198,17 @@ export default function SignupScreen() {
       });
       formPayload.append('role', role.toLowerCase());
 
-      if (validIdImage) {
-        formPayload.append('validIdImage', {
-          uri: validIdImage.uri,
-          name: 'valid_id.jpg',
+      if (validIdFront) {
+        formPayload.append('validIdFront', {
+          uri: validIdFront.uri,
+          name: 'valid_id_front.jpg',
+          type: 'image/jpeg'
+        } as any);
+      }
+      if (validIdBack) {
+        formPayload.append('validIdBack', {
+          uri: validIdBack.uri,
+          name: 'valid_id_back.jpg',
           type: 'image/jpeg'
         } as any);
       }
@@ -196,7 +249,7 @@ export default function SignupScreen() {
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
   const webInputStyle = Platform.OS === 'web' ? { outlineStyle: 'none' } : {};
 
-  const renderInput = (placeholder: string, field: string, keyboardType: any = "default") => (
+  const renderInput = (placeholder: string, field: string, keyboardType: any = "default", required: boolean = false) => (
     <View style={styles.inputContainer}>
       <TextInput 
         placeholder={placeholder} 
@@ -206,6 +259,7 @@ export default function SignupScreen() {
         keyboardType={keyboardType}
         placeholderTextColor="#94a3b8"
       />
+      {required && <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }}>*</Text>}
     </View>
   );
 
@@ -249,7 +303,7 @@ export default function SignupScreen() {
                 <>
                   <View style={styles.row}>
                     <View style={{ flex: 2, marginRight: 10 }}>
-                      {renderInput("First Name", "firstName")}
+                      {renderInput("First Name", "firstName", "default", true)}
                     </View>
                     <View style={{ flex: 1 }}>
                       <CustomDropdown 
@@ -280,8 +334,8 @@ export default function SignupScreen() {
                     <Text style={styles.checkboxLabelRight}>I have no middle name</Text>
                   </TouchableOpacity>
 
-                  {renderInput("Last Name", "lastName")}
-                  {renderInput("Email Address", "email", "email-address")}
+                  {renderInput("Last Name", "lastName", "default", true)}
+                  {renderInput("Email Address", "email", "email-address", true)}
 
                   <Text style={styles.disclaimerText}>
                     By tapping <Text style={{fontWeight: 'bold', color: '#1e293b'}}>Continue</Text>, you agree with the <Text style={styles.linkTextBlue}>Terms and Conditions</Text> and <Text style={styles.linkTextBlue}>Privacy Notice</Text>
@@ -307,7 +361,34 @@ export default function SignupScreen() {
               {step === 2 && (
                 <>
                   <Text style={styles.sectionTitle}>Basic Information</Text>
-                  {renderInput("Birthdate (MM/DD/YYYY)", "birthDate")}
+                  
+                  <TouchableOpacity 
+                    style={styles.inputContainer} 
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Text style={{ flex: 1, fontSize: 15, color: formData.birthDate ? '#1e293b' : '#94a3b8' }}>
+                      {formData.birthDate || "Birthdate (MM/DD/YYYY)"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={dateObj}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      maximumDate={new Date()}
+                      onChange={handleDateChange}
+                    />
+                  )}
+
+                  {Platform.OS === 'ios' && showDatePicker && (
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#0038A8', padding: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
+                      onPress={() => setShowDatePicker(false)}
+                    >
+                      <Text style={{ color: 'white', fontWeight: 'bold' }}>Confirm Date</Text>
+                    </TouchableOpacity>
+                  )}
                   {renderInput("Age", "age", "numeric")}
                   {renderInput("Place of Birth", "placeOfBirth")}
                   
@@ -356,15 +437,6 @@ export default function SignupScreen() {
                   
                   {renderInput("Occupation", "occupation")}
                   
-                  <CustomDropdown 
-                    label="Household Head?" 
-                    value={formData.householdHead} 
-                    options={["Yes", "No"]} 
-                    onSelect={(val) => handleInputChange("householdHead", val)} 
-                  />
-
-                  {renderInput("Emergency Contact Person", "emergencyContactPerson")}
-                  {renderInput("Number of Family Members", "numberOfFamilyMembers", "numeric")}
                   
                   <CustomDropdown 
                     label="Educational Attainment" 
@@ -373,7 +445,6 @@ export default function SignupScreen() {
                     onSelect={(val) => handleInputChange("educationalAttainment", val)} 
                   />
 
-                  {renderInput("Blood Type", "bloodType")}
                   {renderInput("Disability / Special Needs (if any)", "disability")}
 
                   <View style={styles.navButtonsContainer}>
@@ -389,11 +460,19 @@ export default function SignupScreen() {
                   <Text style={styles.sectionTitle}>Attachments</Text>
                   
                   <View style={styles.uploadRow}>
-                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('id')}>
+                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idFront')}>
                       <Upload color="#475569" size={20} />
-                      <Text style={styles.uploadButtonText}>Attach Valid ID *</Text>
+                      <Text style={styles.uploadButtonText}>Attach Valid ID (Front) <Text style={{ color: '#ef4444' }}>*</Text></Text>
                     </TouchableOpacity>
-                    {validIdImage && <Text style={styles.fileLabel}>ID Selected</Text>}
+                    {validIdFront && <Text style={styles.fileLabel}>Front Selected</Text>}
+                  </View>
+
+                  <View style={styles.uploadRow}>
+                    <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idBack')}>
+                      <Upload color="#475569" size={20} />
+                      <Text style={styles.uploadButtonText}>Attach Valid ID (Back) <Text style={{ color: '#ef4444' }}>*</Text></Text>
+                    </TouchableOpacity>
+                    {validIdBack && <Text style={styles.fileLabel}>Back Selected</Text>}
                   </View>
 
                   <View style={styles.uploadRow}>
@@ -407,13 +486,14 @@ export default function SignupScreen() {
                   <Text style={styles.sectionTitle}>Security</Text>
                   <View style={styles.inputContainer}>
                     <TextInput 
-                      placeholder="Password (min 8 chars) *" 
+                      placeholder="Password (min 8 chars)" 
                       style={[styles.input, webInputStyle as any]} 
                       value={formData.password}
                       onChangeText={(val) => handleInputChange('password', val)}
                       secureTextEntry={!showPassword}
                       placeholderTextColor="#94a3b8"
                     />
+                    <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: 'bold', marginRight: 12 }}>*</Text>
                     <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                       {showPassword ? <Eye color="#94a3b8" size={20} /> : <EyeOff color="#94a3b8" size={20} />}
                     </TouchableOpacity>
@@ -421,13 +501,14 @@ export default function SignupScreen() {
 
                   <View style={styles.inputContainer}>
                     <TextInput 
-                      placeholder="Confirm Password *" 
+                      placeholder="Confirm Password" 
                       style={[styles.input, webInputStyle as any]} 
                       value={formData.confirmPassword}
                       onChangeText={(val) => handleInputChange('confirmPassword', val)}
                       secureTextEntry={!showPassword}
                       placeholderTextColor="#94a3b8"
                     />
+                    <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }}>*</Text>
                   </View>
 
                   <View style={styles.navButtonsContainer}>
