@@ -27,7 +27,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
     const search = req.query.search || '';
-    const verified = req.query.verified; // 'true', 'false', or undefined
+    const status = req.query.status;
 
     const query = {};
     if (search) {
@@ -38,8 +38,8 @@ router.get('/users', verifyAdmin, async (req, res) => {
       ];
     }
     
-    if (verified === 'true') query.isVerified = true;
-    if (verified === 'false') query.isVerified = false;
+    if (status === 'approved') query.accountStatus = 'approved';
+    if (status === 'pending') query.accountStatus = { $ne: 'approved' };
 
     const users = await User.find(query)
       .select('-password')

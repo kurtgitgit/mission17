@@ -18,6 +18,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Key, Eye, EyeOff, RotateCcw } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
+import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 
@@ -40,6 +41,8 @@ if (Platform.OS !== 'web' && NativeModules.RNGoogleSignin) {
 export default function LoginScreen() {
   const { showNotification, registerPushToken } = useNotification();
   const navigation = useNavigation<any>();
+  const { theme } = useTheme();
+  const styles = getStyles(theme);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -375,17 +378,17 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (theme: any) => StyleSheet.create({
   root: { 
     flex: 1, 
-    backgroundColor: '#f8fafc', 
+    backgroundColor: theme.background, 
   },
   scrollContent: {
     flexGrow: 1,
     paddingBottom: 40,
   },
   header: { 
-    backgroundColor: '#0038A8',
+    backgroundColor: theme.primary,
     paddingTop: Platform.OS === 'android' ? 60 : 40,
     paddingHorizontal: 20,
     paddingBottom: 60, // Space for overlapping card
@@ -409,7 +412,7 @@ const styles = StyleSheet.create({
 
   // OVERLAPPING CARD
   cardContainer: {
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
     marginHorizontal: 16,
     borderRadius: 16,
     marginTop: -30,
@@ -425,10 +428,10 @@ const styles = StyleSheet.create({
   inputContainer: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#f8fafc', 
+    backgroundColor: theme.surfaceSecondary, 
     borderRadius: 12, 
     borderWidth: 1, 
-    borderColor: '#e2e8f0', 
+    borderColor: theme.border, 
     paddingHorizontal: 16, 
     height: 54 
   },
@@ -438,7 +441,7 @@ const styles = StyleSheet.create({
   input: { 
     flex: 1, 
     fontSize: 15, 
-    color: '#1e293b',
+    color: theme.text,
     ...Platform.select({
       web: { outlineStyle: 'none' as any }
     }) 
@@ -451,12 +454,12 @@ const styles = StyleSheet.create({
   },
   mfaInstruction: {
     textAlign: 'center',
-    color: '#64748b',
+    color: theme.textSecondary,
     marginBottom: 10,
     paddingHorizontal: 10
   },
   primaryButton: { 
-    backgroundColor: '#0038A8', 
+    backgroundColor: theme.primary, 
     height: 54, 
     borderRadius: 12, 
     justifyContent: 'center', 
@@ -470,7 +473,7 @@ const styles = StyleSheet.create({
   },
   cancelLink: {
     textAlign: 'center',
-    color: '#ef4444',
+    color: theme.danger,
     marginTop: 10,
     fontWeight: '600'
   },
@@ -482,25 +485,25 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: theme.border,
   },
   dividerText: {
     marginHorizontal: 10,
-    color: '#64748b',
+    color: theme.textSecondary,
     fontWeight: '600',
     fontSize: 13
   },
   googleButton: {
-    backgroundColor: 'white',
+    backgroundColor: theme.surface,
     height: 54,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: theme.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
   googleButtonText: {
-    color: '#1e293b',
+    color: theme.text,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -510,19 +513,19 @@ const styles = StyleSheet.create({
     marginTop: 24 
   },
   footerText: { 
-    color: '#64748b', 
+    color: theme.textSecondary, 
     fontSize: 14 
   },
   linkText: { 
-    color: '#0038A8', 
+    color: theme.primary, 
     fontSize: 14, 
     fontWeight: '700' 
   },
   forgotPasswordContainer: { alignSelf: 'flex-end', marginTop: -6, marginBottom: 6 },
-  forgotPasswordText: { color: '#64748b', fontSize: 13, fontWeight: '600' },
-  captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: '#f0f5ff', borderRadius: 12, borderWidth: 1, borderColor: '#bfdbfe' },
+  forgotPasswordText: { color: theme.textSecondary, fontSize: 13, fontWeight: '600' },
+  captchaContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, backgroundColor: theme.primaryLight, borderRadius: 12, borderWidth: 1, borderColor: theme.border },
   captchaLeft: { flexDirection: 'row', alignItems: 'center' },
   refreshButton: { marginLeft: 12, padding: 4 },
-  captchaText: { fontSize: 15, fontWeight: '600', color: '#0038A8', flexShrink: 1 },
-  captchaInput: { width: 50, height: 40, borderColor: '#0038A8', borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: '#fff', color: '#1e293b', fontWeight: 'bold' },
+  captchaText: { fontSize: 15, fontWeight: '600', color: theme.primary, flexShrink: 1 },
+  captchaInput: { width: 50, height: 40, borderColor: theme.primary, borderWidth: 1, borderRadius: 8, textAlign: 'center', backgroundColor: theme.surface, color: theme.text, fontWeight: 'bold' },
 });

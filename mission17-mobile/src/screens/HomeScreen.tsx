@@ -114,6 +114,7 @@ const HomeScreen: React.FC = () => {
       <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* ══════════ HEADER ══════════ */}
@@ -188,13 +189,13 @@ const HomeScreen: React.FC = () => {
         {/* ══════════ DOCUMENT REQUESTS BANNER ══════════ */}
         <TouchableOpacity style={styles.docBanner} onPress={() => navigation.navigate('Services')} activeOpacity={0.85}>
           <View style={styles.docBannerLeft}>
-            <FileText size={22} color="#7c3aed" />
+            <FileText size={22} color={theme.primary} />
             <View>
               <Text style={styles.docBannerTitle}>Request Barangay Documents</Text>
               <Text style={styles.docBannerSub}>Clearance • Indigency • Residency</Text>
             </View>
           </View>
-          <ChevronRight size={18} color="#7c3aed" />
+          <ChevronRight size={18} color={theme.primary} />
         </TouchableOpacity>
 
         {/* ══════════ BLOTTER REPORT BANNER ══════════ */}
@@ -306,7 +307,6 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={{ height: 32 }} />
       </ScrollView>
 
       {/* FAB FOR CHATBOT */}
@@ -377,12 +377,12 @@ const getStyles = (theme: any) => StyleSheet.create({
   // DOC BANNER
   docBanner: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: theme.isDark ? 'rgba(124, 58, 237, 0.15)' : '#eff6ff', borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(124, 58, 237, 0.3)' : '#bfdbfe',
+    backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : theme.primaryLight, borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14,
+    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(59, 130, 246, 0.3)' : '#bfdbfe',
   },
   docBannerLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  docBannerTitle: { fontSize: 14, fontWeight: '800', color: theme.isDark ? '#a78bfa' : '#1e3a8a' },
-  docBannerSub:   { fontSize: 12, color: theme.isDark ? '#8b5cf6' : '#3b82f6', marginTop: 1 },
+  docBannerTitle: { fontSize: 14, fontWeight: '800', color: theme.isDark ? theme.text : theme.primary },
+  docBannerSub:   { fontSize: 12, color: theme.primary, marginTop: 1 },
 
   // ANNOUNCEMENTS
   annCard: {
