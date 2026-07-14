@@ -61,8 +61,8 @@ const Users = () => {
     try {
       let url = `${endpoints.users.getAll}?page=${currentPage}&limit=${limit}`;
       if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
-      if (filterTab === 'verified') url += `&verified=true`;
-      if (filterTab === 'unverified') url += `&verified=false`;
+      if (filterTab === 'verified') url += `&status=approved`;
+      if (filterTab === 'unverified') url += `&status=pending`;
 
       const response = await fetch(url, {
         headers: {
@@ -187,7 +187,7 @@ const Users = () => {
       });
 
       if (res.ok) {
-        setUsers(users.map(u => u._id === user._id ? { ...u, isVerified: true } : u));
+        setUsers(users.map(u => u._id === user._id ? { ...u, accountStatus: 'approved', isVerified: true } : u));
         showNotification(`${user.username} has been manually activated!`, "success");
       } else {
         showNotification("Failed to activate user", "error");
@@ -345,7 +345,7 @@ const Users = () => {
                       </td>
                       <td style={styles.td}>{user.points || 0}</td>
                       <td style={styles.td}>
-                        {user.isVerified ? (
+                        {user.accountStatus === 'approved' ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px' }}>
                             <CheckCircle size={14} /> Active
                           </span>

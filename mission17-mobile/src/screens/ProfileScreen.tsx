@@ -187,12 +187,12 @@ const ProfileScreen = ({ navigation }: any) => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#16a34a' }]}>{approvedCount}</Text>
+            <Text style={[styles.statValue, { color: theme.success }]}>{approvedCount}</Text>
             <Text style={styles.statLabel}>Approved</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: '#b45309' }]}>{pendingCount}</Text>
+            <Text style={[styles.statValue, { color: theme.warning }]}>{pendingCount}</Text>
             <Text style={styles.statLabel}>Pending</Text>
           </View>
         </View>
@@ -232,8 +232,6 @@ const ProfileScreen = ({ navigation }: any) => {
             </View>
           ))
         )}
-        
-        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* --- LOGOUT CONFIRMATION MODAL --- */}
@@ -265,7 +263,7 @@ const ProfileScreen = ({ navigation }: any) => {
 const getStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.background },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 24 },
+  content: { padding: 24, paddingBottom: 100 },
   
   pageTitle: { fontSize: 18, fontWeight: '700', color: theme.text, textAlign: 'center', marginBottom: 24, marginTop: Platform.OS === 'android' ? 24 : 0 },
 
@@ -314,7 +312,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   // MODAL STYLES
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
   modalCard: { backgroundColor: theme.surface, borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
-  modalIconContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.danger + '1A', justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalIconContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.dangerLight, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   modalTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 8 },
   modalMessage: { fontSize: 15, color: theme.textSecondary, textAlign: 'center', marginBottom: 24, paddingHorizontal: 10 },
   modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
