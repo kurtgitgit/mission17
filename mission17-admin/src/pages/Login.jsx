@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, AlertCircle, ShieldCheck, Loader2 } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
@@ -18,6 +18,7 @@ const Login = () => {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
+  const isSubmitting = useRef(false);
 
   // 🤖 CAPTCHA STATE (Harder Math)
   const [captchaAnswer, setCaptchaAnswer] = useState('');
@@ -38,6 +39,8 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting.current) return;
+    isSubmitting.current = true;
     setLoading(true);
     setError("");
 
@@ -46,6 +49,7 @@ const Login = () => {
     if (!emailRegex.test(formData.email)) {
       showNotification("Please enter a valid email address.", "error");
       setLoading(false);
+      isSubmitting.current = false;
       return;
     }
 
@@ -53,6 +57,7 @@ const Login = () => {
     if (!captchaAnswer.trim()) {
       showNotification("Please answer the security math question.", "error");
       setLoading(false);
+      isSubmitting.current = false;
       return;
     }
 
@@ -60,6 +65,7 @@ const Login = () => {
       showNotification("Incorrect security answer. Please try again.", "error");
       refreshCaptcha();
       setLoading(false);
+      isSubmitting.current = false;
       return;
     }
 
@@ -85,6 +91,7 @@ const Login = () => {
       if (response.status === 202) {
         setMfaRequired(true);
         setTempUserId(data.userId);
+        isSubmitting.current = false;
         return;
       }
 
@@ -101,6 +108,7 @@ const Login = () => {
       refreshCaptcha();
     } finally {
       setLoading(false);
+      isSubmitting.current = false;
     }
   };
 
