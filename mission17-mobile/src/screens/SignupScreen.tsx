@@ -161,6 +161,47 @@ export default function SignupScreen() {
         return;
       }
     }
+
+    if (step === 2) {
+      if (!formData.birthDate) {
+        showNotification('Birthdate is required.', 'error');
+        return;
+      }
+      if (!formData.placeOfBirth) {
+        showNotification('Place of Birth is required.', 'error');
+        return;
+      }
+      if (!formData.gender) {
+        showNotification('Gender is required.', 'error');
+        return;
+      }
+      if (!formData.civilStatus) {
+        showNotification('Civil Status is required.', 'error');
+        return;
+      }
+      if (!formData.mobileNumber) {
+        showNotification('Mobile Number is required.', 'error');
+        return;
+      }
+      const mobileRegex = /^09\d{9}$/;
+      if (!mobileRegex.test(formData.mobileNumber.trim())) {
+        showNotification('Enter a valid PH mobile number (e.g. 09XXXXXXXXX).', 'error');
+        return;
+      }
+      if (!formData.nationality) {
+        showNotification('Nationality is required.', 'error');
+        return;
+      }
+      if (!formData.completeAddress) {
+        showNotification('Complete Address is required.', 'error');
+        return;
+      }
+      if (!formData.voterStatus) {
+        showNotification('Voter Status is required.', 'error');
+        return;
+      }
+    }
+
     setStep(prev => Math.min(prev + 1, 3));
   };
 
