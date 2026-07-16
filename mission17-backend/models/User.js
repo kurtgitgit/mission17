@@ -27,9 +27,9 @@ const UserSchema = new mongoose.Schema({
   // ==================================================
   // 📝 EXTENDED RESIDENT INFORMATION
   // ==================================================
-  firstName: { type: String },
+  firstName: { type: String, required: true },
   middleName: { type: String },
-  lastName: { type: String },
+  lastName: { type: String, required: true },
   birthDate: { type: String },
   age: { type: String },
   placeOfBirth: { type: String },

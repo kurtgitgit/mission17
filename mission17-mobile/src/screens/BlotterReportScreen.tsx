@@ -15,6 +15,8 @@ const INCIDENT_TYPES = ['Theft', 'Vandalism', 'Disturbance', 'Accident', 'Other'
 const BlotterReportScreen = () => {
   const navigation = useNavigation<any>();
   const [loading, setLoading]           = useState(false);
+  const [fullName, setFullName]         = useState('');
+  const [contactNumber, setContactNumber] = useState('');
   const [incidentType, setIncidentType] = useState('Disturbance');
   const [description, setDescription]   = useState('');
   const [location, setLocation]         = useState('');
@@ -45,6 +47,14 @@ const BlotterReportScreen = () => {
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
+    const cleanFullName = fullName.trim();
+    if (!cleanFullName || cleanFullName.length < 3 || !/[a-zA-Z]/.test(cleanFullName))
+      newErrors.fullName = 'Please enter your full name.';
+
+    const cleanContact = contactNumber.trim().replace(/\s/g, '');
+    if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact))
+      newErrors.contactNumber = 'Enter a valid PH mobile number (e.g. 09123456789).';
+
     const cleanLocation = location.trim();
     if (!cleanLocation || cleanLocation.length < 5 || !/[a-zA-Z]/.test(cleanLocation) || /^(.)\1+$/.test(cleanLocation))
       newErrors.location = 'Please enter a valid and specific location.';
@@ -71,6 +81,8 @@ const BlotterReportScreen = () => {
         body: JSON.stringify({
           userId:          GlobalState.userId,
           username:        GlobalState.username || 'Resident',
+          fullName:        fullName.trim(),
+          contactNumber:   contactNumber.trim(),
           incidentType,
           description,
           location,
@@ -82,6 +94,8 @@ const BlotterReportScreen = () => {
       const data = await res.json();
       if (res.ok) {
         setSuccessRef(data.referenceNumber || data.blotter?.referenceNumber || 'N/A');
+        setFullName('');
+        setContactNumber('');
         setDescription('');
         setLocation('');
         setEvidenceUri('');
@@ -145,6 +159,30 @@ const BlotterReportScreen = () => {
             Falsifying a barangay report is a violation of law. Please provide accurate and truthful information.
           </Text>
         </View>
+
+        {/* FULL NAME */}
+        <Text style={styles.label}>Full Name</Text>
+        <TextInput
+          style={[sharedStyles.input, errors.fullName ? styles.inputError : null, { marginBottom: spacing.md }]}
+          placeholder="Juan dela Cruz"
+          placeholderTextColor={colors.textMuted}
+          value={fullName}
+          onChangeText={(t) => { setFullName(t); setErrors(e => ({ ...e, fullName: '' })); }}
+        />
+        {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
+
+        {/* CONTACT NUMBER */}
+        <Text style={styles.label}>Contact Number</Text>
+        <TextInput
+          style={[sharedStyles.input, errors.contactNumber ? styles.inputError : null, { marginBottom: spacing.md }]}
+          placeholder="09XX XXX XXXX"
+          placeholderTextColor={colors.textMuted}
+          value={contactNumber}
+          onChangeText={(t) => { setContactNumber(t); setErrors(e => ({ ...e, contactNumber: '' })); }}
+          keyboardType="phone-pad"
+          maxLength={11}
+        />
+        {errors.contactNumber ? <Text style={styles.errorText}>{errors.contactNumber}</Text> : null}
 
         {/* INCIDENT TYPE */}
         <Text style={styles.label}>Incident Type</Text>

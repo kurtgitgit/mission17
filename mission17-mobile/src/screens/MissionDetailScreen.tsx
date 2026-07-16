@@ -13,8 +13,7 @@ import { endpoints, formatImageUri } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 
-// --- IMPORT BLOCKCHAIN SERVICE ---
-import { saveMissionToBlockchain } from '../../MissionBlockchain';
+// --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
   const { showNotification } = useNotification();
@@ -164,30 +163,9 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
       if (response.ok) {
 
-        // --- START BLOCKCHAIN SAVE ---
-        try {
-          console.log("Backend success. Now saving to Blockchain...");
-
-          const txHash = await saveMissionToBlockchain(
-            `Agent ${username}`,
-            mission.title
-          );
-
-          console.log("Blockchain Success! Hash:", txHash);
-          setSubmitted(true);
-
-          navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-          showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
-
-        } catch (blockchainError: any) {
-          console.error("Blockchain Failed:", blockchainError);
-          const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
-
-          showNotification(errorMsg, "info");
-          setSubmitted(true);
-          setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
-        }
-        // --------------------------------
+        setSubmitted(true);
+        navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+        showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
 
       } else {
         showNotification(data.message || "Submission failed", "error");

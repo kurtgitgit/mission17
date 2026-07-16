@@ -56,6 +56,17 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    // Prevent duplicate submissions
+    const existingSubmission = await Submission.findOne({
+      userId: user._id,
+      missionId,
+      status: { $in: ['Pending', 'Pending Admin Review', 'Approved'] }
+    });
+
+    if (existingSubmission) {
+      return res.status(400).json({ message: 'You have already submitted this mission. Check your history for its status.' });
+    }
+
     let finalImageUri = null;
     
     // Save base64 images to Cloudinary to prevent DB bloat and support ephemeral disk
@@ -151,7 +162,7 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
 
     if (submissions.length === 0) return res.json({ submissions: [], totalPages: 0, currentPage: page, totalCount });
 
-    // Step 2: Find which ones already have an analysis report
+    // Step 2: Find which ones already have an analysis report in the new collection
     const submissionIds = submissions.map(s => s._id);
     const existingReports = await AnalysisReport.find({
       submissionId: { $in: submissionIds },
@@ -160,6 +171,14 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
     const reportMap = {};
     existingReports.forEach(r => {
       reportMap[r.submissionId.toString()] = r;
+    });
+
+    // Step 2.5: For legacy submissions that have analysisReport embedded in the document itself, map them!
+    submissions.forEach(s => {
+      const rawObj = s.toObject ? s.toObject() : s;
+      if (rawObj.analysisReport && !reportMap[s._id.toString()]) {
+        reportMap[s._id.toString()] = rawObj.analysisReport;
+      }
     });
 
     // Step 3: Identify submissions that are missing a report AND have a real image
@@ -178,7 +197,18 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
           reportMap[sub._id.toString()] = report;
           console.log(`✅ Auto-analyzed submission ${sub._id}: ${aiData.verdict}`);
         } catch (e) {
-          console.warn(`⚠️ Auto-AI skipped for submission ${sub._id}: ${e.message}`);
+          console.warn(`⚠️ Auto-AI failed for submission ${sub._id}: ${e.message}`);
+          // Prevent infinite re-scans for broken images by saving a fallback report
+          const fallbackData = {
+             verdict: 'UNCERTAIN',
+             prediction: 'AI Scan Failed',
+             is_verified: false,
+             message: `AI analysis failed: ${e.message.slice(0, 60)}. Please verify manually.`,
+             sdg: 'N/A',
+             source_check: 'Error'
+          };
+          const report = await saveAnalysisReport(sub._id, sub.userId, fallbackData);
+          reportMap[sub._id.toString()] = report;
         }
       }
     }

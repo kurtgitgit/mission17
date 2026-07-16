@@ -137,13 +137,36 @@ router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
 // 6. UPDATE OWN PROFILE
 router.put('/update-profile/:id', async (req, res) => {
   try {
-    const { username, bio, walletAddress } = req.body;
+    const { 
+      username, bio, walletAddress,
+      firstName, middleName, lastName, email, mobileNumber,
+      birthDate, age, gender, civilStatus, placeOfBirth,
+      completeAddress, nationality, religion, yearsOfResidency, voterStatus,
+      employmentStatus, occupation, educationalAttainment
+    } = req.body;
 
-    // Only update provided fields
     const updateData = {};
-    if (username)      updateData.username      = username;
-    if (bio)           updateData.bio           = bio;
-    if (walletAddress) updateData.walletAddress = walletAddress;
+    if (username !== undefined) updateData.username = username;
+    if (bio !== undefined) updateData.bio = bio;
+    if (walletAddress !== undefined) updateData.walletAddress = walletAddress;
+    if (firstName !== undefined) updateData.firstName = firstName;
+    if (middleName !== undefined) updateData.middleName = middleName;
+    if (lastName !== undefined) updateData.lastName = lastName;
+    if (email !== undefined) updateData.email = email;
+    if (mobileNumber !== undefined) updateData.mobileNumber = mobileNumber;
+    if (birthDate !== undefined) updateData.birthDate = birthDate;
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = gender;
+    if (civilStatus !== undefined) updateData.civilStatus = civilStatus;
+    if (placeOfBirth !== undefined) updateData.placeOfBirth = placeOfBirth;
+    if (completeAddress !== undefined) updateData.completeAddress = completeAddress;
+    if (nationality !== undefined) updateData.nationality = nationality;
+    if (religion !== undefined) updateData.religion = religion;
+    if (yearsOfResidency !== undefined) updateData.yearsOfResidency = yearsOfResidency;
+    if (voterStatus !== undefined) updateData.voterStatus = voterStatus;
+    if (employmentStatus !== undefined) updateData.employmentStatus = employmentStatus;
+    if (occupation !== undefined) updateData.occupation = occupation;
+    if (educationalAttainment !== undefined) updateData.educationalAttainment = educationalAttainment;
 
     const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
     logAudit(req.params.id, updatedUser.username, 'PROFILE_UPDATE', 'User updated profile information', req);

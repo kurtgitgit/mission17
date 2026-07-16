@@ -201,6 +201,29 @@ const Users = () => {
     }
   };
 
+  const handleRejectUser = async (user) => {
+    try {
+      const res = await fetch(endpoints.users.update(user._id), {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': getToken()
+        },
+        body: JSON.stringify({ accountStatus: 'rejected' })
+      });
+
+      if (res.ok) {
+        setUsers(users.map(u => u._id === user._id ? { ...u, accountStatus: 'rejected' } : u));
+        showNotification(`${user.username}'s account has been rejected.`, "success");
+      } else {
+        showNotification("Failed to reject user", "error");
+      }
+    } catch (error) {
+      console.error("Rejection error:", error);
+      showNotification("Connection error", "error");
+    }
+  };
+
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
@@ -357,8 +380,24 @@ const Users = () => {
                   const badge = getRoleBadgeStyle(user.role);
                   return (
                     <tr key={user._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={styles.td}><strong>{user.username}</strong></td>
-                      <td style={styles.td}>{user.email}</td>
+                      <td style={styles.td}>
+                        <strong>{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username}</strong>
+                        {user.firstName && <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}>@{user.username}</div>}
+                      </td>
+                      <td style={styles.td}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <span>{user.email}</span>
+                          {user.isVerified ? (
+                            <span style={{ fontSize: '10px', color: '#16a34a', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              ✓ VERIFIED
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                              ⚠️ UNVERIFIED
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td style={styles.td}>
                         <span style={{
                           padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold',
@@ -373,20 +412,35 @@ const Users = () => {
                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px' }}>
                             <CheckCircle size={14} /> Active
                           </span>
+                        ) : user.accountStatus === 'rejected' ? (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ef4444', fontWeight: '600', fontSize: '13px' }}>
+                            <X size={14} /> Rejected
+                          </span>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#f59e0b', fontWeight: '600', fontSize: '13px' }}>
                               <Clock size={14} /> Pending
                             </span>
-                            <button
-                              onClick={() => handleActivateUser(user)}
-                              style={{
-                                padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6',
-                                color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
-                              }}
-                            >
-                              Verify
-                            </button>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              <button
+                                onClick={() => handleActivateUser(user)}
+                                style={{
+                                  padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6',
+                                  color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
+                                }}
+                              >
+                                Verify
+                              </button>
+                              <button
+                                onClick={() => handleRejectUser(user)}
+                                style={{
+                                  padding: '2px 8px', fontSize: '10px', backgroundColor: '#ef4444',
+                                  color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
+                                }}
+                              >
+                                Reject
+                              </button>
+                            </div>
                           </div>
                         )}
                       </td>
@@ -450,7 +504,7 @@ const Users = () => {
 
         {idModal.isOpen && (
           <div style={styles.modalOverlay}>
-            <div style={{...styles.modalContent, width: '600px'}}>
+            <div style={{...styles.modalContent, width: '600px', maxHeight: '90vh', overflowY: 'auto'}}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <h2 style={{ margin: 0 }}>User Verification IDs</h2>
                 <button onClick={() => setIdModal({ isOpen: false, front: null, back: null, loading: false })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>

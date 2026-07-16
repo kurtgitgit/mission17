@@ -4,13 +4,14 @@ import { Platform } from 'react-native';
 // 🏠 LOCALHOST / LAN IP
 // IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
 // Home: 192.168.1.x | Hotspot: 192.168.43.x (Android) or 172.20.10.x (iPhone)
-const LAN_IP = "192.168.1.101"; 
+const LAN_IP = "192.168.1.101";
 
 // 🛠️ APK DEPLOYMENT CONFIG:
 const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
 
 // Temporarily force Mobile to use the live cloud backend for Expo testing
 const API_URL = `${RENDER_BACKEND_URL}/api`;
+// const API_URL = `http://${LAN_IP}:5001/api`;
 
 const AI_URL = "https://kurtgitgit-mission17-ai.hf.space/predict";
 
@@ -23,7 +24,7 @@ if (__DEV__) {
 // 🖼️ IMAGE HELPER
 export const formatImageUri = (uri: string) => {
   if (!uri) return null;
-  
+
   // 1. Handle failing loremflickr links (swap for unsplash)
   if (uri.includes('loremflickr.com')) {
     return `https://images.unsplash.com/photo-1501854140801-50d01698950b?q=80&w=800&auto=format&fit=crop`;
@@ -48,13 +49,13 @@ export const GlobalState = {
 export const endpoints = {
   auth: {
     // ✅ NEW: Added 'baseUrl' to fix the "Property does not exist" error
-    baseUrl: `${API_URL}/auth`, 
+    baseUrl: `${API_URL}/auth`,
     backendBaseUrl: BACKEND_BASE_URL,
 
     login: `${API_URL}/auth/login`,
     signup: `${API_URL}/auth/signup`,
     getUser: (id: string) => `${API_URL}/auth/user/${id}`,
-    submitMission: `${API_URL}/auth/submit-mission`, 
+    submitMission: `${API_URL}/auth/submit-mission`,
     getUserSubmissions: (id: string) => `${API_URL}/auth/user-submissions/${id}`,
     changePassword: `${API_URL}/auth/change-password`,
     forgotPassword: `${API_URL}/auth/forgot-password`,
