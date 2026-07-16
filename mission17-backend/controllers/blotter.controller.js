@@ -25,7 +25,7 @@ const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 
 // POST / — Resident: Submit a new blotter report
 export const submitReport = asyncHandler(async (req, res) => {
-  const { userId, username, incidentType, description, location, dateOfIncident, evidenceUrl } = req.body;
+  const { userId, username, fullName, contactNumber, incidentType, description, location, dateOfIncident, evidenceUrl } = req.body;
 
   if (!userId || !incidentType || !description || !location || !dateOfIncident) {
     return res.status(400).json({ message: 'Missing required fields: userId, incidentType, description, location, dateOfIncident.' });
@@ -49,7 +49,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   }
 
   const report = await BlotterReport.create({
-    userId, username, incidentType, description, location,
+    userId, username, fullName, contactNumber, incidentType, description, location,
     dateOfIncident: new Date(dateOfIncident),
     evidenceUrl: finalEvidenceUrl,
   });
@@ -84,6 +84,7 @@ export const getAllReports = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const reports = await BlotterReport.find(filter)
+    .populate('userId', 'firstName lastName middleName username')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);

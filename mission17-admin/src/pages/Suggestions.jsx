@@ -84,6 +84,14 @@ const Suggestions = () => {
     }
   };
 
+  const getResidentName = (item) => {
+    if (item.isAnonymous) return 'Anonymous';
+    if (item.userId && (item.userId.firstName || item.userId.lastName)) {
+      return `${item.userId.firstName || ''} ${item.userId.lastName || ''}`.trim();
+    }
+    return item.username || (item.userId && item.userId.username) || 'Resident';
+  };
+
   return (
     <div className="dashboard-container">
       <Sidebar />
@@ -224,7 +232,7 @@ const Suggestions = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Submitted By</div>
-                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{selectedItem.isAnonymous ? 'Anonymous' : selectedItem.username}</div>
+                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{getResidentName(selectedItem)}</div>
                       </div>
                     </div>
                     

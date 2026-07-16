@@ -16,7 +16,7 @@ export const submitSuggestion = asyncHandler(async (req, res) => {
   }
 
   const suggestion = await Suggestion.create({
-    userId:      isAnonymous ? null : userId,
+    userId, // Always store userId so the user can see their own history
     username:    isAnonymous ? 'Anonymous' : username,
     title,
     category,
@@ -29,8 +29,18 @@ export const submitSuggestion = asyncHandler(async (req, res) => {
 
 // GET / — Admin: Get all suggestions
 export const getAllSuggestions = asyncHandler(async (req, res) => {
-  const suggestions = await Suggestion.find().sort({ createdAt: -1 });
-  res.json(suggestions);
+  const suggestions = await Suggestion.find().populate('userId', 'firstName lastName username').sort({ createdAt: -1 });
+  
+  // Hide userId from admin for anonymous suggestions
+  const sanitizedSuggestions = suggestions.map(s => {
+    const doc = s.toObject();
+    if (doc.isAnonymous) {
+      delete doc.userId;
+    }
+    return doc;
+  });
+
+  res.json(sanitizedSuggestions);
 });
 
 // GET /my/:userId — Resident: Get own suggestions
@@ -56,7 +66,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (!suggestion) return res.status(404).json({ message: 'Suggestion not found.' });
 
   // Send notification to the resident (skip anonymous)
-  if (suggestion.userId && status) {
+  if (suggestion.userId && status && !suggestion.isAnonymous) {
     const notifMap = {
       'Approved':     { title: '✅ Feedback Approved!',     type: 'success', message: `Your suggestion "${suggestion.title}" has been approved by the Barangay!${adminReply ? ' Reply: ' + adminReply : ''}` },
       'Rejected':     { title: '❌ Feedback Not Accepted',  type: 'error',   message: `Your suggestion "${suggestion.title}" was not accepted.${adminReply ? ' Reason: ' + adminReply : ''}` },

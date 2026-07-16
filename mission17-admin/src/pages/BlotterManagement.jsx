@@ -3,6 +3,7 @@ import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, Use
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
+import { endpoints } from '../config/api';
 import '../styles/DashboardHome.css';
 
 const BlotterManagement = () => {
@@ -40,11 +41,12 @@ const BlotterManagement = () => {
   const handleUpdateStatus = async () => {
     setUpdating(true);
     try {
-      await blotterApi.updateStatus(selectedReport._id, { status: newStatus, adminRemarks });
+      const res = await blotterApi.updateStatus(selectedReport._id, { status: newStatus, adminRemarks });
+      const updatedReport = res.data?.report || { ...selectedReport, status: newStatus, adminRemarks };
       
       // Update local state to reflect change instantly
-      setReports(reports.map(r => r._id === selectedReport._id ? { ...r, status: newStatus, adminRemarks } : r));
-      setSelectedReport({ ...selectedReport, status: newStatus, adminRemarks });
+      setReports(reports.map(r => r._id === selectedReport._id ? updatedReport : r));
+      setSelectedReport(updatedReport);
       showNotification('Case updated successfully.', 'success');
     } catch (err) {
       console.error('Failed to update status', err);
@@ -54,16 +56,35 @@ const BlotterManagement = () => {
     }
   };
 
+  const getComplainantName = (report) => {
+    if (report.fullName) return report.fullName;
+    
+    if (report.userId && (report.userId.firstName || report.userId.lastName)) {
+      return `${report.userId.firstName || ''} ${report.userId.middleName || ''} ${report.userId.lastName || ''}`.replace(/\s+/g, ' ').trim();
+    }
+    return report.username;
+  };
+
   const filteredReports = reports.filter(r => 
     r.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.incidentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.username.toLowerCase().includes(searchTerm.toLowerCase())
+    getComplainantName(r).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getImageUrl = (url) => {
     if (!url) return null;
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${endpoints.auth.backendBaseUrl}${url}`;
+    
+    // Legacy support: if the URL doesn't have /uploads/ in it, add it
+    let path = url;
+    if (!path.startsWith('/uploads/') && !path.startsWith('uploads/')) {
+      path = `/uploads/${path.startsWith('/') ? path.substring(1) : path}`;
+    } else if (!path.startsWith('/')) {
+      path = `/${path}`;
+    }
+
+    const baseUrl = endpoints.auth.backendBaseUrl.replace(/\/$/, '');
+    return `${baseUrl}${path}`;
   };
 
   const getStatusBadge = (status) => {
@@ -135,7 +156,7 @@ const BlotterManagement = () => {
                       {getStatusBadge(report.status)}
                     </div>
                     <div style={{ fontSize: '13px', color: '#475569', fontWeight: '600', marginBottom: '4px' }}>
-                      {report.incidentType}
+                      {report.incidentType} • {getComplainantName(report)}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '12px', color: '#64748b' }}>
@@ -199,7 +220,12 @@ const BlotterManagement = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Complainant</div>
-                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{selectedReport.username}</div>
+                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{getComplainantName(selectedReport)}</div>
+                        {selectedReport.contactNumber && (
+                          <div style={{ fontSize: '13px', color: '#475569', marginTop: '2px' }}>
+                            📞 {selectedReport.contactNumber}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
@@ -233,15 +259,51 @@ const BlotterManagement = () => {
                     </p>
                   </div>
 
-                  {selectedReport.evidenceUrl && (
-                    <div style={{ marginBottom: '30px' }}>
-                      <h3 style={{ fontSize: '14px', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Photo Evidence</h3>
-                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block' }}>
+                  <div style={{ marginBottom: '30px' }}>
+                    <h3 style={{ fontSize: '14px', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Photo Evidence</h3>
+                    {selectedReport.evidenceUrl ? (
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block', padding: '10px' }}>
                         <img 
                           src={getImageUrl(selectedReport.evidenceUrl)} 
                           alt="Incident Evidence" 
-                          style={{ maxWidth: '100%', maxHeight: '400px', display: 'block', objectFit: 'contain' }}
+                          style={{ maxWidth: '100%', maxHeight: '400px', display: 'block', objectFit: 'contain', marginBottom: '10px' }}
                         />
+                        <div style={{ fontSize: '10px', color: 'red' }}>
+                          Raw URL: {selectedReport.evidenceUrl}
+                          <br/>
+                          Parsed URL: {getImageUrl(selectedReport.evidenceUrl)}
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ padding: '15px', backgroundColor: '#f1f5f9', borderRadius: '8px', color: '#64748b', fontSize: '14px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FileText size={18} /> No photo evidence was attached to this report.
+                      </div>
+                    )}
+                  </div>
+
+                  {/* BLOCKCHAIN VERIFICATION */}
+                  {selectedReport.blockchainTxHash && selectedReport.blockchainTxHash.startsWith('0x') && (
+                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
+                      <h3 style={{ fontSize: '14px', color: '#16a34a', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <CheckCircle size={16} /> Blockchain Verification
+                      </h3>
+                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '10px', margin: 0 }}>
+                        Immutable record found on Ethereum Sepolia Testnet.
+                      </p>
+                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                        <input 
+                          type="text" 
+                          readOnly 
+                          value={selectedReport.blockchainTxHash} 
+                          style={{ flex: 1, padding: '8px 12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}
+                        />
+                        <button 
+                          onClick={() => window.open(`https://sepolia.etherscan.io/tx/${selectedReport.blockchainTxHash}`, '_blank')}
+                          className="btn primary"
+                          style={{ padding: '0 16px', fontSize: '13px', width: 'auto' }}
+                        >
+                          View Ledger
+                        </button>
                       </div>
                     </div>
                   )}

@@ -9,8 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { endpoints, formatImageUri } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 
-// --- IMPORT BLOCKCHAIN SERVICE ---
-import { saveMissionToBlockchain } from '../../MissionBlockchain';
+// --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
 
 const EventDetailScreen = ({ route, navigation }: any) => {
   const { showNotification } = useNotification();
@@ -173,29 +172,9 @@ const EventDetailScreen = ({ route, navigation }: any) => {
       const data = await response.json();
 
       if (response.ok) {
-        try {
-          console.log("Backend success. Now saving to Blockchain...");
-          const txHash = await saveMissionToBlockchain(
-            `Agent ${username}`,
-            event.title
-          );
-
-          console.log("Blockchain Success! Hash:", txHash);
-          setSubmitted(true);
-
-          const msg = `1. Verified by AI!\n2. Saved to DB.\n3. Verified on Blockchain!\n\nHash:\n${txHash}`;
-
-          navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-          showNotification("🚀 Triple Success! Verified by AI, DB, & Blockchain.", "success");
-
-        } catch (blockchainError: any) {
-          console.error("Blockchain Failed:", blockchainError);
-          const errorMsg = "Photo saved, but Blockchain verification failed: " + blockchainError.message;
-
-          showNotification(errorMsg, "info");
-          setSubmitted(true);
-          setTimeout(() => navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } }), 2000);
-        }
+        setSubmitted(true);
+        navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
+        showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
       } else {
         showNotification(data.message || "Submission failed", "error");
       }
