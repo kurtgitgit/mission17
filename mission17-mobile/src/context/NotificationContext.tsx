@@ -183,7 +183,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         return;
       }
       
-      const projectId = "d87a4192-3a7c-4734-9388-7ff53f533cc2"; // From app.json or dynamically fetched
+      const projectId = "69ab462e-4c5c-4165-90f6-22e3a602c04d"; // Match projectId from app.json
       const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
       console.log("Expo Push Token:", token);
 
