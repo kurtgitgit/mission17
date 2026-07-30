@@ -139,7 +139,7 @@ function App() {
             <a 
               className="btn-primary" 
               style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}
-              href="https://expo.dev/artifacts/eas/rEMUXHRxXb9H1FUEHg86bIZWB3A23gBWDJt9mNBDvKw.apk"
+              href="https://expo.dev/artifacts/eas/5CN_ZGzISsQ1rWD55opjFDPeoEFMVIrAVbE-iQPRtk0.apk"
               download
             >
               <Smartphone size={20} /> Download App
