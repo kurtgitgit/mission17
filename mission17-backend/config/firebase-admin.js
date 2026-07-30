@@ -24,7 +24,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 }
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.cert(serviceAccount)
 });
 
 export default admin;
