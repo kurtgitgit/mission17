@@ -22,7 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 import { auth } from '../config/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 
 // Safe configuration for Expo Go
 let isGoogleAvailable = false;
@@ -101,19 +101,38 @@ export default function LoginScreen() {
   const handleGoogleLogin = async (idToken: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`${endpoints.auth.baseUrl}/google`, {
+      // 1. Authenticate with Firebase using the Google ID Token
+      const credential = GoogleAuthProvider.credential(idToken);
+      const userCredential = await signInWithCredential(auth, credential);
+      const firebaseToken = await userCredential.user.getIdToken();
+
+      // 2. Sync with Backend
+      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken })
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${firebaseToken}`
+        },
+        body: JSON.stringify({}),
       });
-      const data = await res.json();
-      if (res.ok) {
+
+      const data = await response.json();
+
+      if (response.status === 403) {
+        showNotification(data.message, "error");
+        setLoading(false);
+        return;
+      }
+
+      if (response.ok) {
+        data.token = firebaseToken; 
         await processLoginSuccess(data);
       } else {
         showNotification(data.message || "Invalid Google token", "error");
       }
-    } catch (error) {
-      showNotification("Could not connect to server.", "error");
+    } catch (error: any) {
+      console.error(error);
+      showNotification("Could not connect to server or authenticate.", "error");
     } finally {
       setLoading(false);
     }
