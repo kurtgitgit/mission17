@@ -12,9 +12,10 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email address']
   },
-  password: {
+  firebaseUid: {
     type: String,
-    required: true
+    required: true,
+    unique: true
   },
   role: {
     type: String,

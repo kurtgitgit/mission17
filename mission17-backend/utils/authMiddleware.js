@@ -6,7 +6,8 @@
  * can import them instead of redefining them locally.
  */
 
-import jwt from 'jsonwebtoken';
+import admin from '../config/firebase-admin.js';
+import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
 
 // ==========================================
@@ -27,7 +28,7 @@ export const logAudit = async (userId, username, action, details, req) => {
 // ==========================================
 // 🛡️ ADMIN-ONLY MIDDLEWARE (RBAC)
 // ==========================================
-export const verifyAdmin = (req, res, next) => {
+export const verifyAdmin = async (req, res, next) => {
   const token =
     req.header('auth-token') ||
     req.header('Authorization')?.replace('Bearer ', '');
@@ -36,17 +37,16 @@ export const verifyAdmin = (req, res, next) => {
     return res.status(401).json({ message: '⛔ Access Denied: No Token Provided' });
 
   try {
-    if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET missing in .env');
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-
-    if (verified.role !== 'admin') {
+    if (!user || user.role !== 'admin') {
       return res.status(403).json({ message: '⛔ Forbidden: Admins Only' });
     }
 
-    req.user = verified;
+    req.user = user;
     next();
   } catch (err) {
-    res.status(400).json({ message: 'Invalid Token' });
+    res.status(400).json({ message: 'Invalid Token', error: err.message });
   }
 };

@@ -21,6 +21,8 @@ import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
+import { auth } from '../config/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 // Safe configuration for Expo Go
 let isGoogleAvailable = false;
@@ -143,52 +145,50 @@ export default function LoginScreen() {
     }
 
     setLoading(true);
-    let isMfaTriggered = false;
 
     try {
       const cleanEmail = email.trim();
+      
+      // 1. Authenticate with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const firebaseToken = await userCredential.user.getIdToken();
 
-      const response = await fetch(endpoints.auth.login, {
+      // 2. Sync with Backend
+      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: cleanEmail, password }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${firebaseToken}`
+        },
+        body: JSON.stringify({}),
       });
 
       const data = await response.json();
 
-      if (response.status === 202) {
-        setMfaRequired(true);
-        setTempUserId(data.userId);
-        showNotification("We sent a 6-digit code to your email.", "info");
-        setLoading(false);
-        isMfaTriggered = true;
-        return;
-      }
-
-      if (response.status === 401 && data.unverified) {
-        showNotification(data.message, "info");
-        navigation.navigate('VerifySignup', { 
-          userId: data.userId, 
-          email: cleanEmail 
-        });
+      if (response.status === 403) {
+        showNotification(data.message, "error");
         setLoading(false);
         return;
       }
 
       if (response.ok) {
+        // Make sure token is passed so processLoginSuccess can save it
+        data.token = firebaseToken; 
         await processLoginSuccess(data);
       } else {
         showNotification(data.message || 'Invalid credentials', 'error');
         refreshCaptcha();
       }
-    } catch (error) {
-      showNotification('Could not connect to server.', 'error');
-      console.error(error);
+    } catch (error: any) {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+        showNotification('Invalid email or password.', 'error');
+      } else {
+        showNotification('Could not connect to server.', 'error');
+        console.error(error);
+      }
       refreshCaptcha();
     } finally {
-      if (!isMfaTriggered) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 

@@ -221,71 +221,65 @@ const loginLimiter = rateLimit({
 // 🔓 PUBLIC ROUTES
 // ==========================================
 
-// 1. REGISTER
+// 1. SYNC USER (Called after Firebase Signup or Login)
 const cpUpload = upload.fields([
   { name: 'validIdFront', maxCount: 1 },
   { name: 'validIdBack', maxCount: 1 },
   { name: 'profileImage', maxCount: 1 }
 ]);
 
-router.post('/signup', cpUpload, async (req, res) => {
-  let {
-    email, password, role,
-    firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
-    nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
-    voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
-    numberOfFamilyMembers, educationalAttainment, bloodType, disability
-  } = req.body;
-
-  // Since we don't collect a specific 'username' anymore on the form, we can generate one or use email
-  let username = req.body.username || (email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : '');
+router.post('/sync-user', cpUpload, async (req, res) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
   try {
-    // Basic validation to stop XSS/Empty fields before hitting the DB
-    if (!email || !password || !firstName || !lastName) {
-      return res.status(400).json({ message: "Required fields are missing." });
+    const { default: admin } = await import('../config/firebase-admin.js');
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const firebaseUid = decodedToken.uid;
+    const email = decodedToken.email;
+
+    let user = await User.findOne({ firebaseUid });
+    
+    // If user already exists in MongoDB, just return it (Login Flow)
+    if (user) {
+      // 🔒 CHECK: Admin Approval
+      if (user.accountStatus === 'pending') {
+        return res.status(403).json({ message: "Your account is currently pending admin approval." });
+      }
+      if (user.accountStatus === 'rejected') {
+        return res.status(403).json({ message: "Your account registration was rejected." });
+      }
+
+      logAudit(user._id, user.username, "LOGIN_SUCCESS", "User synced successfully via Firebase", req);
+      return res.status(200).json({ user });
     }
-    if (password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters long." });
-    }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address." });
-    }
-
-    const cleanEmail = email.toLowerCase().trim();
-
-    // 🛡️ CHECK 1: Disposable Domain
-    if (isDisposableEmail(cleanEmail)) {
-      return res.status(400).json({
-        message: "Disposable email accounts are not allowed for security reasons."
-      });
-    }
-
-    const cleanUsername = username.trim();
-
-    const existingUser = await User.findOne({ email: cleanEmail });
-    if (existingUser) return res.status(400).json({ message: "User already exists" });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Otherwise, create a new user in MongoDB (Signup Flow)
+    let {
+      role, firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
+      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
+      numberOfFamilyMembers, educationalAttainment, bloodType, disability, username
+    } = req.body;
 
     // Grab file URLs if they exist
     const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
     const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
     const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
 
-    const newUser = new User({
+    // Use firstName+lastName for the auto-generated username
+    const generatedUsername = `${firstName || ''}${lastName || ''}`.replace(/\s+/g, '') + Math.floor(Math.random() * 100);
+    let cleanUsername = username || generatedUsername || (email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : '');
+
+    user = new User({
+      firebaseUid,
       username: cleanUsername,
-      email: cleanEmail,
-      password: hashedPassword,
+      email: email,
       role: role ? role.toLowerCase() : 'resident',
       points: 0,
-      isVerified: false, // 🔒 Default to unverified email
-      accountStatus: 'pending', // 🔒 Admin approval required
+      isVerified: decodedToken.email_verified || false,
+      accountStatus: 'pending',
 
-      // Expanded fields
       firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
       voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
@@ -293,158 +287,14 @@ router.post('/signup', cpUpload, async (req, res) => {
       validIdFrontUrl, validIdBackUrl, profileImageUrl
     });
 
-    await newUser.save();
-
-    // 🔒 LOG ACTION
-    logAudit(newUser._id, newUser.username, "SIGNUP_INITIATED", "New account created (Unverified)", req);
-
-    // 🔑 Send Activation OTP (Fire and forget so it doesn't block response)
-    sendOTP(newUser, 'signup').catch(console.error);
-
-    res.status(201).json({
-      message: "Account created! Check your email for a verification code.",
-      userId: newUser._id
-    });
-  } catch (error) {
-    console.error("Signup Error:", error.message);
-
-    // 🛡️ Handle Duplicate Key Errors (MongoDB code 11000)
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyValue)[0];
-      return res.status(400).json({
-        message: `That ${field} is already taken. Please try another.`
-      });
-    }
-
-    return res.status(500).json({ message: "Registration failed. Please try again later." });
-  }
-});
-
-// 2. LOGIN (🛡️ UPDATED WITH MFA, AUDIT & RATE LIMITER)
-// 🆕 Added 'loginLimiter' middleware here
-router.post('/login', loginLimiter, async (req, res) => {
-  try {
-    const email = req.body.email.toLowerCase().trim();
-
-    const user = await User.findOne({ email: email });
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const isPasswordValid = await bcrypt.compare(req.body.password, user.password);
-    if (!isPasswordValid) {
-      logAudit(user._id, user.username, "LOGIN_FAILED", "Failed login attempt (Wrong Password)", req);
-      return res.status(400).json({ message: "Invalid Password!" });
-    }
-
-    // 🔒 CHECK: Admin Approval
-    if (user.accountStatus === 'pending') {
-      logAudit(user._id, user.username, "LOGIN_DENIED", "Pending Admin Approval", req);
-      return res.status(403).json({ message: "Your account is currently pending admin approval." });
-    }
-    if (user.accountStatus === 'rejected') {
-      logAudit(user._id, user.username, "LOGIN_DENIED", "Account Rejected by Admin", req);
-      return res.status(403).json({ message: "Your account registration was rejected." });
-    }
-
-    // 🔒 CHECK: Email Verification
-    if (!user.isVerified) {
-      sendOTP(user, 'signup').catch(console.error); // Resend code without blocking
-      return res.status(401).json({
-        message: "Account not verified. A new code has been sent to your email.",
-        unverified: true,
-        userId: user._id
-      });
-    }
-
-    if (req.body.isAdminLogin && user.role !== 'admin') {
-      logAudit(user._id, user.username, "LOGIN_DENIED", "Unauthorized Admin login attempt", req);
-      return res.status(403).json({ message: "⛔ Access Denied: Admins Only" });
-    }
-
-    if (user.mfaEnabled) {
-      sendOTP(user).catch(console.error); // Fire and forget
-      return res.status(202).json({
-        message: "OTP Sent",
-        mfaRequired: true,
-        userId: user._id
-      });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    // 🔒 LOG ACTION
-    logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in successfully", req);
-
-    const { password, ...others } = user._doc;
-    res.status(200).json({ token, user: others });
-
-  } catch (err) {
-    res.status(500).json({ message: "Login failed" });
-  }
-});
-
-// 3. VERIFY OTP (Used for MFA)
-router.post('/verify-otp', async (req, res) => {
-  const { userId, otp } = req.body;
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
-      logAudit(user._id, user.username, "MFA_FAILED", "Invalid or expired OTP entered", req);
-      return res.status(400).json({ message: "Invalid or Expired Code" });
-    }
-
-    await User.findByIdAndUpdate(user._id, {
-      otpCode: null,
-      otpExpires: null
-    });
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    logAudit(user._id, user.username, "MFA_SUCCESS", "MFA verification successful", req);
-
-    const { password, ...others } = user._doc;
-    res.status(200).json({ token, user: others });
-
-  } catch (error) {
-    res.status(500).json({ message: "Server Error" });
-  }
-});
-
-// 3a. VERIFY SIGNUP (New Account Activation)
-router.post('/verify-signup', async (req, res) => {
-  const { userId, otp } = req.body;
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
-      logAudit(user._id, user.username, "SIGNUP_VERIFY_FAILED", "Invalid signup OTP", req);
-      return res.status(400).json({ message: "Invalid or Expired Code" });
-    }
-
-    // Activate the account
-    user.isVerified = true;
-    user.otpCode = null;
-    user.otpExpires = null;
     await user.save();
+    
+    logAudit(user._id, user.username, "SIGNUP_INITIATED", "New account synced via Firebase", req);
 
-    logAudit(user._id, user.username, "SIGNUP_VERIFIED", "Email successfully verified", req);
-
-    // Send Welcome Email now that they are verified
-    sendWelcomeEmail(user).catch(err => console.error("Welcome Email Error:", err));
-
-    res.status(200).json({ message: "Account verified! You can now log in." });
+    res.status(201).json({ message: "Account created and synced!", user });
   } catch (error) {
-    res.status(500).json({ message: "Verification failed" });
+    console.error("Sync Error:", error);
+    res.status(500).json({ message: "Failed to sync user data with Firebase." });
   }
 });
 
