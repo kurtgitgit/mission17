@@ -21,6 +21,8 @@ import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { auth } from '../config/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 const missionLogo = require('../../assets/logo.png');
 
@@ -228,9 +230,15 @@ export default function SignupScreen() {
     setLoading(true);
 
     try {
+      // 1. Create User in Firebase
+      const cleanEmail = formData.email.trim();
+      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
+      const firebaseToken = await userCredential.user.getIdToken();
+
+      // 2. Prepare Form Data for Sync
       const formPayload = new FormData();
       Object.keys(formData).forEach(key => {
-        if (key !== 'confirmPassword') {
+        if (key !== 'confirmPassword' && key !== 'password') {
           if (key === 'middleName' && noMiddleName) {
             formPayload.append(key, '');
           } else {
@@ -263,8 +271,12 @@ export default function SignupScreen() {
         } as any);
       }
 
-      const response = await fetch(endpoints.auth.signup, {
+      // 3. Sync with Backend
+      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
+        headers: { 
+          'Authorization': `Bearer ${firebaseToken}` 
+        },
         body: formPayload,
       });
 
@@ -272,17 +284,18 @@ export default function SignupScreen() {
 
       if (response.ok) {
         showNotification('Account created successfully! It is now pending admin approval.', 'success');
-        navigation.navigate('VerifySignup', { 
-          userId: data.userId, 
-          email: formData.email.trim() 
-        });
+        navigation.navigate('Login');
       } else {
         const msg = data.message || 'Something went wrong';
         showNotification(msg, 'error');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      showNotification('Connection Error. Is the backend running?', 'error');
+      if (error.code === 'auth/email-already-in-use') {
+         showNotification('That email is already registered.', 'error');
+      } else {
+         showNotification('Connection Error. Is the backend running?', 'error');
+      }
     } finally {
       setLoading(false);
     }

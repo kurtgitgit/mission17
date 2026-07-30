@@ -137,7 +137,7 @@ const HomeScreen: React.FC = () => {
             </View>
             <View>
               <Text style={styles.welcomeGreet}>Good day,</Text>
-              <Text style={styles.welcomeName}>{username}!</Text>
+              <Text style={styles.welcomeName}>@{username}</Text>
             </View>
           </View>
         </View>
