@@ -311,66 +311,10 @@ router.post('/toggle-mfa', async (req, res) => {
 });
 
 // ==========================================
-// 🌐 GOOGLE AUTHENTICATION
+// 🌐 GOOGLE AUTHENTICATION (Migrated to Firebase)
 // ==========================================
-router.post('/google', async (req, res) => {
-  const { idToken, role } = req.body;
-
-  try {
-    // 1. Verify token with Google
-    const ticket = await googleClient.verifyIdToken({
-      idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-
-    const payload = ticket.getPayload();
-    const { email, name, sub: googleId } = payload;
-    const cleanEmail = email.toLowerCase().trim();
-
-    // 2. Check if user already exists
-    let user = await User.findOne({ email: cleanEmail });
-
-    if (!user) {
-      // 3. User doesn't exist -> Create new account
-      // We generate a random password because Google users don't need a password to login,
-      // but the DB schema requires one.
-      const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-8);
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(randomPassword, salt);
-
-      user = new User({
-        username: name.replace(/\s+/g, '') + Math.floor(Math.random() * 1000), // e.g. JohnDoe42
-        email: cleanEmail,
-        password: hashedPassword,
-        role: role ? role.toLowerCase() : 'resident',
-        points: 0,
-        // Optional: you could add a 'isGoogleUser' boolean to the schema later
-      });
-
-      await user.save();
-      logAudit(user._id, user.username, "SIGNUP", "New user signed up via Google", req);
-
-      // 💌 Send welcome email asynchronously
-      sendWelcomeEmail(user).catch(err => console.error(err));
-    }
-
-    // 4. Existing User Login OR New User Login -> Generate JWT
-    const token = jwt.sign(
-      { id: user._id, role: user.role, username: user.username },
-      process.env.JWT_SECRET,
-      { expiresIn: "1d" }
-    );
-
-    logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in successfully via Google", req);
-
-    const { password, ...others } = user._doc;
-    res.status(200).json({ token, user: others });
-
-  } catch (error) {
-    console.error("Google Auth Error:", error);
-    res.status(401).json({ message: "Invalid Google Token" });
-  }
-});
+// Google Sign-In is now handled on the client via Firebase Auth.
+// The client gets a Firebase ID Token and passes it to /sync-user.
 
 // 5. CHANGE PASSWORD
 router.put('/change-password', async (req, res) => {
