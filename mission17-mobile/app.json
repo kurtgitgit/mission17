@@ -32,7 +32,7 @@
         "backgroundColor": "#0038A8"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.barangaypantal.mission17",
+      "package": "com.barangay.mission17",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json"
     },
