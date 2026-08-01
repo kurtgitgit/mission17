@@ -298,6 +298,70 @@ router.post('/sync-user', cpUpload, async (req, res) => {
   }
 });
 
+// 2. LOGIN
+router.post('/login', loginLimiter, async (req, res) => {
+  const { email, password, isAdminLogin } = req.body;
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (!user.password) {
+       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ message: 'Invalid credentials' });
+
+    if (user.accountStatus === 'pending' || user.accountStatus === 'rejected') {
+      return res.status(403).json({ message: 'Account not active.' });
+    }
+
+    if (isAdminLogin && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: Admins only.' });
+    }
+
+    // MFA check
+    if (user.mfaEnabled) {
+      await sendOTP(user, 'mfa');
+      logAudit(user._id, user.username, "MFA_REQUIRED", "Login requires MFA", req);
+      return res.status(202).json({ userId: user._id, message: 'MFA code sent to email.' });
+    }
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in", req);
+    res.json({ token, user });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// 3. VERIFY OTP
+router.post('/verify-otp', async (req, res) => {
+  const { userId, otp } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
+      return res.status(400).json({ message: 'Invalid or expired code' });
+    }
+
+    // Clear OTP
+    user.otpCode = null;
+    user.otpExpires = null;
+    await user.save();
+
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    logAudit(user._id, user.username, "LOGIN_SUCCESS", "User logged in with MFA", req);
+    res.json({ token, user });
+  } catch (error) {
+    console.error("OTP Verify Error:", error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // 4. TOGGLE MFA
 router.post('/toggle-mfa', async (req, res) => {
   const { userId, enable } = req.body;
