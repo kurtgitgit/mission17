@@ -242,12 +242,11 @@ router.post('/sync-user', cpUpload, async (req, res) => {
     
     // If not found by UID, check if they exist by email (Legacy Account Migration)
     if (!user && email) {
-      user = await User.findOne({ email: email.toLowerCase() });
+      user = await User.findOne({ email: new RegExp('^' + email + '$', 'i') });
       if (user) {
-        // Link the existing legacy account to the new Firebase UID
-        user.firebaseUid = firebaseUid;
-        // If they had a legacy password, we can technically leave it or clear it.
-        await user.save();
+        // Link the existing legacy account to the new Firebase UID using updateOne to bypass strict validation
+        await User.updateOne({ _id: user._id }, { $set: { firebaseUid } });
+        user.firebaseUid = firebaseUid; // Update local object for subsequent logic
       }
     }
     // If user already exists in MongoDB, just return it (Login Flow)
