@@ -191,9 +191,16 @@ export default function LoginScreen() {
       }
 
       if (response.ok) {
-        // Make sure token is passed so processLoginSuccess can save it
-        data.token = firebaseToken; 
-        await processLoginSuccess(data);
+        if (data.mfaRequired) {
+          setTempUserId(data.tempUserId);
+          GlobalState.tempToken = firebaseToken; // Store temporarily
+          setMfaRequired(true);
+          showNotification('Please enter the OTP sent to your email.', 'info');
+        } else {
+          // Make sure token is passed so processLoginSuccess can save it
+          data.token = firebaseToken; 
+          await processLoginSuccess(data);
+        }
       } else {
         showNotification(data.message || 'Invalid credentials', 'error');
         refreshCaptcha();
@@ -228,6 +235,7 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok) {
+        data.token = GlobalState.tempToken;
         await processLoginSuccess(data);
       } else {
         showNotification("Invalid Code. Please try again.", "error");
