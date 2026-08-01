@@ -234,7 +234,8 @@ router.post('/sync-user', cpUpload, async (req, res) => {
 
   try {
     const { default: admin } = await import('../config/firebase-admin.js');
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { getAuth } = await import('firebase-admin/auth');
+    const decodedToken = await getAuth().verifyIdToken(token);
     const firebaseUid = decodedToken.uid;
     const email = decodedToken.email;
 

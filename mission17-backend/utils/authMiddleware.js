@@ -37,7 +37,8 @@ export const verifyAdmin = async (req, res, next) => {
     return res.status(401).json({ message: '⛔ Access Denied: No Token Provided' });
 
   try {
-    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { getAuth } = await import('firebase-admin/auth');
+    const decodedToken = await getAuth().verifyIdToken(token);
     const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
     if (!user || user.role !== 'admin') {
