@@ -224,7 +224,7 @@ export const useSignup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Account created successfully! It is now pending admin approval.', 'success');
+        showNotification('Account created! Please log in to verify your email address.', 'success');
         navigation.navigate('Login');
       } else {
         const msg = data.message || 'Something went wrong';

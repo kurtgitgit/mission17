@@ -252,10 +252,7 @@ router.post('/sync-user', cpUpload, async (req, res) => {
     }
     // If user already exists in MongoDB, just return it (Login Flow)
     if (user) {
-      // 🔒 CHECK: Admin Approval
-      if (user.accountStatus === 'pending') {
-        return res.status(403).json({ message: "Your account is currently pending admin approval." });
-      }
+      // If they were rejected, completely block login
       if (user.accountStatus === 'rejected') {
         return res.status(403).json({ message: "Your account registration was rejected." });
       }
@@ -265,7 +262,8 @@ router.post('/sync-user', cpUpload, async (req, res) => {
       }
 
       // 🛡️ MFA (OTP) Check with Gmail API
-      if (user.role === 'admin' || user.mfaEnabled) {
+      // We also trigger this for 'pending' users so they can verify their email!
+      if (user.accountStatus === 'pending' || user.role === 'admin' || user.mfaEnabled) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         
         await User.updateOne(
@@ -388,10 +386,15 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP after success
+    // Clear OTP after success and auto-verify if they were pending
     await User.updateOne(
       { _id: user._id },
-      { $set: { otpCode: null, otpExpires: null } }
+      { $set: { 
+          otpCode: null, 
+          otpExpires: null,
+          accountStatus: 'verified' 
+        } 
+      }
     );
 
     logAudit(userId, user.username, "LOGIN_SUCCESS", "OTP Verified Successfully", req);
