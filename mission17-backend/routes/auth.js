@@ -18,7 +18,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import sgMail from '@sendgrid/mail';
+import nodemailer from 'nodemailer';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
@@ -264,6 +264,48 @@ router.post('/sync-user', cpUpload, async (req, res) => {
         return res.status(403).json({ message: "Access denied: Admins only." });
       }
 
+      // 🛡️ MFA (OTP) Check with Nodemailer
+      if (user.role === 'admin' || user.mfaEnabled) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        await User.updateOne(
+          { _id: user._id },
+          { $set: { otpCode: otp, otpExpires: new Date(Date.now() + 10 * 60000) } }
+        );
+
+        const htmlTemplate = `
+          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #4CAF50;">Mission 17 Secure Login</h2>
+            <p>Your one-time password (OTP) is:</p>
+            <h1 style="letter-spacing: 5px; color: #222;">${otp}</h1>
+            <p>This code will expire in 10 minutes.</p>
+          </div>
+        `;
+
+        try {
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.GMAIL_APP_PASSWORD, 
+            },
+          });
+
+          await transporter.sendMail({
+            from: `"Mission17 Admin" <${process.env.EMAIL_USER}>`,
+            to: user.email,
+            subject: 'Login OTP - Mission 17',
+            html: htmlTemplate,
+          });
+          console.log(`✅ Login OTP sent to ${user.email} via Gmail`);
+        } catch (error) {
+          console.error('❌ Login OTP Email Failed:', error);
+        }
+
+        logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for 2FA via Gmail", req);
+        return res.status(200).json({ mfaRequired: true, tempUserId: user._id });
+      }
+
       logAudit(user._id, user.username, "LOGIN_SUCCESS", "User synced successfully via Firebase", req);
       return res.status(200).json({ user });
     }
@@ -313,6 +355,34 @@ router.post('/sync-user', cpUpload, async (req, res) => {
 });
 
 // ==========================================
+// ==========================================
+// 🛡️ VERIFY OTP ROUTE (Nodemailer)
+// ==========================================
+router.post('/verify-otp', async (req, res) => {
+  const { userId, otp } = req.body;
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
+      logAudit(userId, user.username, "LOGIN_FAILED", "Invalid or expired OTP", req);
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Clear OTP after success
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { otpCode: null, otpExpires: null } }
+    );
+
+    logAudit(userId, user.username, "LOGIN_SUCCESS", "OTP Verified Successfully", req);
+    res.json({ message: "Login successful", user });
+  } catch (error) {
+    console.error("Verify OTP Error:", error);
+    res.status(500).json({ message: "Error verifying OTP" });
+  }
+});
+
 // 4. TOGGLE MFA
 router.post('/toggle-mfa', async (req, res) => {
   const { userId, enable } = req.body;

@@ -54,6 +54,11 @@ export default function LoginScreen() {
   const [num1, setNum1] = useState(Math.floor(Math.random() * 10) + 1);
   const [num2, setNum2] = useState(Math.floor(Math.random() * 10) + 1);
 
+  // 🛡️ MFA STATE
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [tempUserId, setTempUserId] = useState('');
+
   const refreshCaptcha = () => {
     setNum1(Math.floor(Math.random() * 10) + 1);
     setNum2(Math.floor(Math.random() * 10) + 1);
@@ -186,17 +191,22 @@ export default function LoginScreen() {
       }
 
       if (response.ok) {
-        // Make sure token is passed so processLoginSuccess can save it
-        data.token = firebaseToken; 
-        await processLoginSuccess(data);
+        if (data.mfaRequired) {
+          setTempUserId(data.tempUserId);
+          GlobalState.tempToken = firebaseToken; // Store temporarily
+          setMfaRequired(true);
+          showNotification('Please enter the OTP sent to your email.', 'info');
+        } else {
+          // Make sure token is passed so processLoginSuccess can save it
+          data.token = firebaseToken; 
+          await processLoginSuccess(data);
+        }
       } else {
         showNotification(data.message || 'Invalid credentials', 'error');
         refreshCaptcha();
       }
     } catch (error: any) {
-      if (error.code === 'auth/multi-factor-auth-required') {
-        showNotification('Admins with 2FA enabled must log in via the Web Dashboard.', 'error');
-      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
         showNotification('Invalid email or password.', 'error');
       } else {
         showNotification('Could not connect to server.', 'error');
@@ -208,6 +218,34 @@ export default function LoginScreen() {
     }
   };
 
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6) {
+        showNotification("Please enter the full 6-digit code.", "error");
+        return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: tempUserId, otp }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        data.token = GlobalState.tempToken;
+        await processLoginSuccess(data);
+      } else {
+        showNotification("Invalid Code. Please try again.", "error");
+      }
+    } catch (error) {
+      showNotification("Could not verify code.", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const processLoginSuccess = async (data: any) => {
     const userId = data.user._id || data.user.id; 
@@ -250,7 +288,7 @@ export default function LoginScreen() {
               style={styles.logo} 
               resizeMode="contain"
             />
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>{mfaRequired ? 'Security Check' : 'Welcome Back'}</Text>
             <Text style={styles.subtitle}>Sign in to your account</Text>
           </View>
 
@@ -258,72 +296,100 @@ export default function LoginScreen() {
           <View style={styles.cardContainer}>
             <View style={styles.form}>
               
-              <View style={styles.inputContainer}>
-                  <Mail color="#94a3b8" size={20} style={styles.icon} />
-                  <TextInput 
-                      placeholder="Email Address" 
-                      style={styles.input}
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
-                      placeholderTextColor="#94a3b8"
-                  />
-              </View>
+              {!mfaRequired ? (
+                  <>
+                      <View style={styles.inputContainer}>
+                          <Mail color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="Email Address" 
+                              style={styles.input}
+                              value={email}
+                              onChangeText={setEmail}
+                              autoCapitalize="none"
+                              keyboardType="email-address"
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
 
-              <View style={styles.inputContainer}>
-                  <Lock color="#94a3b8" size={20} style={styles.icon} />
-                  <TextInput 
-                      placeholder="Password" 
-                      style={styles.input} 
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={!showPassword}
-                      placeholderTextColor="#94a3b8"
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <Eye color="#94a3b8" size={20} /> : <EyeOff color="#94a3b8" size={20} />}
-                  </TouchableOpacity>
-              </View>
+                      <View style={styles.inputContainer}>
+                          <Lock color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="Password" 
+                              style={styles.input} 
+                              value={password}
+                              onChangeText={setPassword}
+                              secureTextEntry={!showPassword}
+                              placeholderTextColor="#94a3b8"
+                          />
+                          <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                              {showPassword ? <Eye color="#94a3b8" size={20} /> : <EyeOff color="#94a3b8" size={20} />}
+                          </TouchableOpacity>
+                      </View>
 
-              <TouchableOpacity 
-                  onPress={() => navigation.navigate('ForgotPassword')}
-                  style={styles.forgotPasswordContainer}
-              >
-                  <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-              </TouchableOpacity>
+                      <TouchableOpacity 
+                          onPress={() => navigation.navigate('ForgotPassword')}
+                          style={styles.forgotPasswordContainer}
+                      >
+                          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                      </TouchableOpacity>
 
-              <View style={styles.captchaContainer}>
-                  <View style={styles.captchaLeft}>
-                    <Text style={styles.captchaText}>Verify: {num1} + {num2} = ?</Text>
-                    <TouchableOpacity onPress={refreshCaptcha} style={styles.refreshButton}>
-                      <RotateCcw color="#0038A8" size={18} />
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                      style={styles.captchaInput}
-                      placeholder="#"
-                      value={captchaAnswer}
-                      onChangeText={setCaptchaAnswer}
-                      keyboardType="numeric"
-                      maxLength={2}
-                      placeholderTextColor="#94a3b8"
-                  />
-              </View>
+                      <View style={styles.captchaContainer}>
+                          <View style={styles.captchaLeft}>
+                            <Text style={styles.captchaText}>Verify: {num1} + {num2} = ?</Text>
+                            <TouchableOpacity onPress={refreshCaptcha} style={styles.refreshButton}>
+                              <RotateCcw color="#0038A8" size={18} />
+                            </TouchableOpacity>
+                          </View>
+                          <TextInput
+                              style={styles.captchaInput}
+                              placeholder="#"
+                              value={captchaAnswer}
+                              onChangeText={setCaptchaAnswer}
+                              keyboardType="numeric"
+                              maxLength={2}
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
 
-              <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} disabled={loading}>
-                  {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Log In</Text>}
-              </TouchableOpacity>
+                      <TouchableOpacity style={styles.primaryButton} onPress={handleLogin} disabled={loading}>
+                          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Log In</Text>}
+                      </TouchableOpacity>
 
-              <View style={styles.dividerContainer}>
-                <View style={styles.divider} />
-                <Text style={styles.dividerText}>OR</Text>
-                <View style={styles.divider} />
-              </View>
+                      <View style={styles.dividerContainer}>
+                        <View style={styles.divider} />
+                        <Text style={styles.dividerText}>OR</Text>
+                        <View style={styles.divider} />
+                      </View>
 
-              <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogleAsync} disabled={loading}>
-                <Text style={styles.googleButtonText}>Sign in with Google</Text>
-              </TouchableOpacity>
+                      <TouchableOpacity style={styles.googleButton} onPress={signInWithGoogleAsync} disabled={loading}>
+                        <Text style={styles.googleButtonText}>Sign in with Google</Text>
+                      </TouchableOpacity>
+                  </>
+              ) : (
+                  <>
+                      <Text style={styles.mfaInstruction}>Enter the code sent to {email}</Text>
+                      <View style={styles.inputContainer}>
+                          <Key color="#94a3b8" size={20} style={styles.icon} />
+                          <TextInput 
+                              placeholder="123456" 
+                              style={[styles.input, styles.otpInput]} 
+                              value={otp}
+                              onChangeText={setOtp}
+                              keyboardType="number-pad"
+                              maxLength={6}
+                              placeholderTextColor="#94a3b8"
+                          />
+                      </View>
+
+                      <TouchableOpacity style={styles.primaryButton} onPress={handleVerifyOtp} disabled={loading}>
+                          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Verify Code</Text>}
+                      </TouchableOpacity>
+
+                      <TouchableOpacity onPress={() => { setMfaRequired(false); setOtp(''); }}>
+                          <Text style={styles.cancelLink}>Cancel</Text>
+                      </TouchableOpacity>
+                  </>
+              )}
             </View>
 
             <View style={styles.footer}>

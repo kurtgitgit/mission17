@@ -44,6 +44,7 @@ export const GlobalState = {
   username: null as string | null,
   token: null as string | null,
   auth: null as { token: string } | null,
+  tempToken: null as string | null,
 };
 
 export const endpoints = {
