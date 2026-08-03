@@ -18,7 +18,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer';
+import { google } from 'googleapis';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
@@ -264,7 +264,7 @@ router.post('/sync-user', cpUpload, async (req, res) => {
         return res.status(403).json({ message: "Access denied: Admins only." });
       }
 
-      // 🛡️ MFA (OTP) Check with Nodemailer
+      // 🛡️ MFA (OTP) Check with Gmail API
       if (user.role === 'admin' || user.mfaEnabled) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         
@@ -283,26 +283,45 @@ router.post('/sync-user', cpUpload, async (req, res) => {
         `;
 
         try {
-          const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-              user: process.env.EMAIL_USER,
-              pass: process.env.GMAIL_APP_PASSWORD, 
-            },
-          });
+          const oAuth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            "https://developers.google.com/oauthplayground"
+          );
+          oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
+          
+          const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+          const subject = 'Login OTP - Mission 17';
+          const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
+          const messageParts = [
+            `From: "Mission17 Admin" <${process.env.EMAIL_USER}>`,
+            `To: ${user.email}`,
+            `Content-Type: text/html; charset=utf-8`,
+            `MIME-Version: 1.0`,
+            `Subject: ${utf8Subject}`,
+            '',
+            htmlTemplate
+          ];
+          const message = messageParts.join('\r\n');
+          
+          const encodedMessage = Buffer.from(message)
+            .toString('base64')
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/, '');
 
-          await transporter.sendMail({
-            from: `"Mission17 Admin" <${process.env.EMAIL_USER}>`,
-            to: user.email,
-            subject: 'Login OTP - Mission 17',
-            html: htmlTemplate,
+          await gmail.users.messages.send({
+            userId: 'me',
+            requestBody: {
+              raw: encodedMessage
+            }
           });
-          console.log(`✅ Login OTP sent to ${user.email} via Gmail`);
+          console.log(`✅ Login OTP sent to ${user.email} via Gmail API`);
         } catch (error) {
           console.error('❌ Login OTP Email Failed:', error);
         }
 
-        logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for 2FA via Gmail", req);
+        logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for 2FA via Gmail API", req);
         return res.status(200).json({ mfaRequired: true, tempUserId: user._id });
       }
 
