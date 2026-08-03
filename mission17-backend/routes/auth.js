@@ -150,54 +150,6 @@ const sendWelcomeEmail = async (user) => {
   }
 };
 
-// ==========================================
-// 🔑 EMAIL HELPER (PASSWORD RESET)
-// ==========================================
-const sendPasswordResetEmail = async (user) => {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-  console.log(`🔍 DEBUG Password Reset OTP for ${user.email}: ${otp}`);
-
-  await User.findByIdAndUpdate(user._id, {
-    otpCode: otp,
-    otpExpires: Date.now() + 15 * 60 * 1000 // 15 mins
-  });
-
-  try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-    const htmlTemplate = `
-      <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #fffaf0; border-radius: 12px; border: 1px solid #fed7aa;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #9a3412; font-size: 28px; font-weight: 800; margin: 0;">MISSION <span style="color: #ea580c;">17</span></h1>
-          <p style="color: #c2410c; font-size: 14px; margin-top: 5px; text-transform: uppercase; letter-spacing: 1px;">Password Reset Request</p>
-        </div>
-        
-        <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #ffedd5;">
-          <h2 style="color: #431407; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Reset Your Password</h2>
-          <p style="color: #7c2d12; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">We received a request to reset your password. Use the secret code below to proceed:</p>
-          
-          <div style="background-color: #fff7ed; border: 2px solid #fb923c; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
-            <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #9a3412;">${otp}</span>
-          </div>
-          
-          <p style="color: #ef4444; font-size: 14px; font-weight: 500; margin-bottom: 0;">⏳ This code expires in 15 minutes.</p>
-        </div>
-      </div>
-    `;
-
-    await sgMail.send({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: 'Password Reset Code - Mission 17',
-      html: htmlTemplate,
-    });
-    console.log('✅ Reset email sent to:', user.email);
-  } catch (error) {
-    console.error('❌ Reset Email Failed:', error);
-    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
-  }
-};
 
 // ==========================================
 // 🚦 RATE LIMITER (Brute Force Protection)
@@ -423,79 +375,6 @@ router.post('/toggle-mfa', async (req, res) => {
 // Google Sign-In is now handled on the client via Firebase Auth.
 // The client gets a Firebase ID Token and passes it to /sync-user.
 
-// 5. CHANGE PASSWORD
-router.put('/change-password', async (req, res) => {
-  const { userId, oldPassword, newPassword } = req.body;
-  try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const isMatch = await bcrypt.compare(oldPassword, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Incorrect old password' });
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword
-    });
-    logAudit(userId, user.username, 'PASSWORD_CHANGE', 'User successfully changed their password', req);
-    res.json({ message: 'Password updated successfully!' });
-  } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
-
-// 6. FORGOT PASSWORD (REQUEST CODE)
-router.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  try {
-    if (!email) {
-      return res.status(400).json({ message: "Email is required." });
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Please enter a valid email address." });
-    }
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) return res.status(404).json({ message: "User with this email not found." });
-
-    await sendPasswordResetEmail(user);
-    logAudit(user._id, user.username, "FORGOT_PASSWORD_REQUEST", "Password reset code requested", req);
-    console.log(`✅ Success: Reset code ${user.otpCode} sent to ${user.email}`);
-    res.json({ message: "Reset code sent to your email." });
-  } catch (error) {
-    console.error("❌ Forgot Password Error:", error);
-    res.status(500).json({ message: "Error sending reset code." });
-  }
-});
-
-// 7. RESET PASSWORD (VERIFY CODE & UPDATE)
-router.post('/reset-password', async (req, res) => {
-  const { email, otp, newPassword } = req.body;
-  try {
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
-    if (!user) return res.status(404).json({ message: "User not found." });
-
-    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
-      return res.status(400).json({ message: "Invalid or expired reset code." });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(newPassword, salt);
-
-    await User.findByIdAndUpdate(user._id, {
-      password: hashedPassword,
-      otpCode: null,
-      otpExpires: null
-    });
-
-    logAudit(user._id, user.username, "PASSWORD_RESET_SUCCESS", "Password reset using OTP code", req);
-    res.json({ message: "Password reset successful! You can now log in." });
-  } catch (error) {
-    console.error("❌ Reset Password Error:", error);
-    res.status(500).json({ message: "Error resetting password." });
-  }
-});
 
 // ==========================================
 // 🔐 ADMIN ROUTES

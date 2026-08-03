@@ -5,7 +5,6 @@ import {
   TextInput, 
   TouchableOpacity, 
   StyleSheet, 
-  Alert, 
   ActivityIndicator, 
   Platform, 
   SafeAreaView, 
@@ -14,9 +13,10 @@ import {
   Image
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Mail, ArrowLeft, Key, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react-native';
-import { endpoints } from '../config/api';
+import { Mail, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
+import { auth } from '../config/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 
 const missionLogo = require('../../assets/logo.png');
 
@@ -24,14 +24,9 @@ export default function ForgotPasswordScreen() {
   const navigation = useNavigation<any>();
   const { showNotification } = useNotification();
 
-  const [step, setStep] = useState(1); // 1: Email, 2: OTP & New Password
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // --- STEP 1: REQUEST CODE ---
   const handleRequestCode = async () => {
     if (!email) {
       showNotification("Please enter your email", "error");
@@ -40,63 +35,20 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch(endpoints.auth.forgotPassword, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setStep(2);
-        showNotification("Reset code sent! Check your email.", "success");
+      await sendPasswordResetEmail(auth, email.trim());
+      showNotification("Reset link sent! Check your email inbox.", "success");
+      setTimeout(() => {
+        navigation.navigate('Login');
+      }, 2000);
+    } catch (error: any) {
+      console.error(error);
+      if (error.code === 'auth/user-not-found') {
+        showNotification("No account found with this email.", "error");
+      } else if (error.code === 'auth/invalid-email') {
+        showNotification("Invalid email address.", "error");
       } else {
-        showNotification(data.message || "Failed to send code", "error");
+        showNotification("Failed to send reset email.", "error");
       }
-    } catch (error) {
-      showNotification("Connection error. Is the backend running?", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- STEP 2: RESET PASSWORD ---
-  const handleResetPassword = async () => {
-    if (!otp || !newPassword) {
-      showNotification("Please fill in all fields", "error");
-      return;
-    }
-
-    if (newPassword.length < 8) {
-      showNotification("Password must be at least 8 characters", "error");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await fetch(endpoints.auth.resetPassword, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: email.trim(), 
-          otp: otp.trim(), 
-          newPassword 
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        showNotification("Password reset successfully!", "success");
-        setTimeout(() => {
-          navigation.navigate('Login');
-        }, 1500);
-      } else {
-        showNotification(data.message || "Failed to reset password", "error");
-      }
-    } catch (error) {
-      showNotification("Connection error", "error");
     } finally {
       setLoading(false);
     }
@@ -120,78 +72,35 @@ export default function ForgotPasswordScreen() {
             <Image source={missionLogo} style={styles.logo} resizeMode="contain" />
             <Text style={styles.title}>Reset Password</Text>
             <Text style={styles.subtitle}>
-              {step === 1 
-                ? "Enter your email to receive a password reset code." 
-                : "Enter the code sent to your email and choose a new password."}
+              Enter your email and we'll send you a link to securely reset your password.
             </Text>
           </View>
 
           <View style={styles.form}>
-            {step === 1 ? (
-              <>
-                <View style={styles.inputContainer}>
-                  <Mail color="#94a3b8" size={20} style={styles.icon} />
-                  <TextInput 
-                    placeholder="Email Address" 
-                    style={styles.input} 
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
+            <View style={styles.inputContainer}>
+              <Mail color="#94a3b8" size={20} style={styles.icon} />
+              <TextInput 
+                placeholder="Email Address" 
+                style={styles.input} 
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#94a3b8"
+              />
+            </View>
 
-                <TouchableOpacity 
-                   style={[styles.primaryButton, loading && styles.disabledButton]} 
-                   onPress={handleRequestCode}
-                   disabled={loading}
-                >
-                  {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Send Reset Code</Text>}
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
-                <View style={styles.inputContainer}>
-                  <Key color="#94a3b8" size={20} style={styles.icon} />
-                  <TextInput 
-                    placeholder="6-Digit Code" 
-                    style={styles.input} 
-                    value={otp}
-                    onChangeText={setOtp}
-                    keyboardType="number-pad"
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
+            <TouchableOpacity 
+                style={[styles.primaryButton, loading && styles.disabledButton]} 
+                onPress={handleRequestCode}
+                disabled={loading}
+            >
+              {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Send Reset Link</Text>}
+            </TouchableOpacity>
 
-                <View style={styles.inputContainer}>
-                    <Lock color="#94a3b8" size={20} style={styles.icon} />
-                    <TextInput 
-                        placeholder="New Password" 
-                        style={styles.input} 
-                        value={newPassword}
-                        onChangeText={setNewPassword}
-                        secureTextEntry={!showPassword}
-                        placeholderTextColor="#94a3b8"
-                    />
-                    <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                        {showPassword ? <Eye color="#94a3b8" size={20} /> : <EyeOff color="#94a3b8" size={20} />}
-                    </TouchableOpacity>
-                </View>
-
-                <TouchableOpacity 
-                   style={[styles.primaryButton, loading && styles.disabledButton]} 
-                   onPress={handleResetPassword}
-                   disabled={loading}
-                >
-                  {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Reset Password</Text>}
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={() => setStep(1)} style={styles.secondaryButton}>
-                  <Text style={styles.secondaryButtonText}>Back to Email</Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Back to Login</Text>
+            </TouchableOpacity>
           </View>
 
         </ScrollView>
