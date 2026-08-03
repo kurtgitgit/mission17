@@ -8,6 +8,8 @@ import { getAuthData } from '../utils/storage';
 import { GlobalState, endpoints } from '../config/api';     
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
+import { auth } from '../config/firebase';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 const SettingsScreen = ({ navigation }: any) => {
   const { showNotification } = useNotification();
@@ -82,28 +84,33 @@ const SettingsScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-        const response = await fetch(endpoints.auth.changePassword, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                userId: GlobalState.userId,
-                oldPassword: oldPass,
-                newPassword: newPass
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showNotification("Password updated successfully!", "success");
-            setShowPasswordModal(false);
-            setOldPass('');
-            setNewPass('');
-        } else {
-            showNotification(data.message || "Could not update password.", "error");
+        const user = auth.currentUser;
+        if (!user || !user.email) {
+            showNotification("You must be logged in to change your password.", "error");
+            setLoading(false);
+            return;
         }
-    } catch (error) {
-        showNotification("Server connection failed.", "error");
+
+        // 1. Re-authenticate
+        const credential = EmailAuthProvider.credential(user.email, oldPass);
+        await reauthenticateWithCredential(user, credential);
+
+        // 2. Update Password
+        await updatePassword(user, newPass);
+
+        showNotification("Password updated successfully!", "success");
+        setShowPasswordModal(false);
+        setOldPass('');
+        setNewPass('');
+    } catch (error: any) {
+        console.error("Change Password Error:", error);
+        if (error.code === 'auth/invalid-credential') {
+            showNotification("Incorrect old password.", "error");
+        } else if (error.code === 'auth/weak-password') {
+            showNotification("The new password is too weak.", "error");
+        } else {
+            showNotification("Failed to update password.", "error");
+        }
     } finally {
         setLoading(false);
     }
