@@ -47,7 +47,7 @@ const timeAgo = (dateStr: string) => {
 };
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-const PostCard: React.FC<{ item: any, theme: any, styles: any }> = ({ item, theme, styles }) => {
+const PostCard = React.memo(({ item, theme, styles }: { item: any, theme: any, styles: any }) => {
   const [expanded, setExpanded] = useState(false);
 
   const catColor = CAT_COLORS[item.category] || CAT_COLORS.general;
@@ -104,12 +104,12 @@ const PostCard: React.FC<{ item: any, theme: any, styles: any }> = ({ item, them
       />
     </View>
   );
-};
+});
 
 // ─── SCREEN ───────────────────────────────────────────────────────────────────
 const AnnouncementsScreen: React.FC = () => {
   const { theme, isDarkMode } = useTheme();
-  const styles = getStyles(theme);
+  const styles = React.useMemo(() => getStyles(theme), [theme]);
 
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading]       = useState(true);
@@ -138,6 +138,10 @@ const AnnouncementsScreen: React.FC = () => {
   const filtered = filterCat === 'all'
     ? announcements
     : announcements.filter(a => a.category === filterCat);
+
+  const renderItem = useCallback(({ item }: { item: any }) => (
+    <PostCard item={item} theme={theme} styles={styles} />
+  ), [theme, styles]);
 
   return (
     <RootComponent style={styles.root}>
@@ -179,7 +183,7 @@ const AnnouncementsScreen: React.FC = () => {
         <FlatList
           data={filtered}
           keyExtractor={item => item._id}
-          renderItem={({ item }) => <PostCard item={item} theme={theme} styles={styles} />}
+          renderItem={renderItem}
           contentContainerStyle={styles.feed}
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}

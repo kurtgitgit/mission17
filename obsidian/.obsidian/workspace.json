@@ -11,17 +11,14 @@
             "id": "65267fc5962f5f73",
             "type": "leaf",
             "state": {
-              "type": "canvas",
+              "type": "markdown",
               "state": {
-                "file": "Untitled 2.canvas",
-                "viewState": {
-                  "x": 0,
-                  "y": 0,
-                  "zoom": 0
-                }
+                "file": "Bugs_and_Tasks.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-layout-dashboard",
-              "title": "Untitled 2"
+              "icon": "lucide-file",
+              "title": "Bugs_and_Tasks"
             }
           }
         ]
@@ -102,7 +99,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Untitled 2.canvas",
+                "file": "Bugs_and_Tasks.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -121,7 +118,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "Untitled 2.canvas",
+                "file": "Bugs_and_Tasks.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
@@ -164,7 +161,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Untitled 2.canvas",
+                "file": "Bugs_and_Tasks.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
@@ -193,14 +190,14 @@
   },
   "active": "65267fc5962f5f73",
   "lastOpenFiles": [
-    "Untitled.canvas",
-    "Project_State.md",
-    "Bugs_and_Tasks.md",
     "Architecture.md",
+    "Bugs_and_Tasks.md",
     "Dashboard.md",
+    "Project_State.md",
+    "2026-08-04.md",
     "Untitled 2.canvas",
     "Untitled 1.canvas",
-    "2026-08-04.md",
+    "Untitled.canvas",
     "Untitled.base"
   ]
 }
