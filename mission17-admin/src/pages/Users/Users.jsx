@@ -421,26 +421,6 @@ const Users = () => {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#f59e0b', fontWeight: '600', fontSize: '13px' }}>
                               <Clock size={14} /> Pending
                             </span>
-                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                              <button
-                                onClick={() => handleActivateUser(user)}
-                                style={{
-                                  padding: '2px 8px', fontSize: '10px', backgroundColor: '#3b82f6',
-                                  color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
-                                }}
-                              >
-                                Verify
-                              </button>
-                              <button
-                                onClick={() => handleRejectUser(user)}
-                                style={{
-                                  padding: '2px 8px', fontSize: '10px', backgroundColor: '#ef4444',
-                                  color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
-                                }}
-                              >
-                                Reject
-                              </button>
-                            </div>
                           </div>
                         )}
                       </td>

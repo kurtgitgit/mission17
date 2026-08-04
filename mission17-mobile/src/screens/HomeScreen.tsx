@@ -42,6 +42,7 @@ const HomeScreen: React.FC = () => {
   const userId = route.params?.userId || GlobalState.userId;
 
   const [username, setUsername]           = useState('Resident');
+  const [fullName, setFullName]           = useState('Resident');
   const [refreshing, setRefreshing]       = useState(false);
   const [stats, setStats]                 = useState({ approved: 0, pending: 0, total: 0 });
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -58,6 +59,7 @@ const HomeScreen: React.FC = () => {
         if (userRes.ok)  {
           const u = await userRes.json();
           setUsername(u.username || 'Resident');
+          setFullName(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.username || 'Resident'));
         }
         if (subRes.ok)   {
           const s = await subRes.json();
@@ -133,11 +135,11 @@ const HomeScreen: React.FC = () => {
           {/* Welcome pill */}
           <View style={styles.welcomeRow}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarInitial}>{username.charAt(0).toUpperCase()}</Text>
+              <Text style={styles.avatarInitial}>{fullName.charAt(0).toUpperCase()}</Text>
             </View>
             <View>
               <Text style={styles.welcomeGreet}>Good day,</Text>
-              <Text style={styles.welcomeName}>@{username}</Text>
+              <Text style={styles.welcomeName}>{fullName}</Text>
             </View>
           </View>
         </View>

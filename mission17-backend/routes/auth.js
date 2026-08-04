@@ -260,15 +260,17 @@ router.post('/sync-user', cpUpload, async (req, res) => {
             .replace(/\//g, '_')
             .replace(/=+$/, '');
 
-          await gmail.users.messages.send({
+          // ⚡ OPTIMIZATION: Don't await the email so the client doesn't time out!
+          gmail.users.messages.send({
             userId: 'me',
             requestBody: {
               raw: encodedMessage
             }
-          });
-          console.log(`✅ Login OTP sent to ${user.email} via Gmail API`);
+          })
+          .then(() => console.log(`✅ Login OTP sent to ${user.email} via Gmail API`))
+          .catch((error) => console.error('❌ Login OTP Email Failed:', error));
         } catch (error) {
-          console.error('❌ Login OTP Email Failed:', error);
+          console.error('❌ Login OTP Email Setup Failed:', error);
         }
 
         logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for 2FA via Gmail API", req);
@@ -344,7 +346,8 @@ router.post('/verify-otp', async (req, res) => {
       { $set: { 
           otpCode: null, 
           otpExpires: null,
-          accountStatus: 'verified' 
+          accountStatus: 'approved',
+          isVerified: true
         } 
       }
     );
