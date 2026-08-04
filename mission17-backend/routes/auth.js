@@ -18,6 +18,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import sgMail from '@sendgrid/mail';
 import { google } from 'googleapis';
 import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';

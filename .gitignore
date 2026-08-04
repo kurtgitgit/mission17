@@ -12,3 +12,6 @@ node_modules/
 # OS metadata and secrets
 .DS_Store
 .env
+
+# Agent Customizations
+.agents/

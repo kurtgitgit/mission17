@@ -1,32 +1,41 @@
 import os
-import json
+import sqlite3
 import io
 import imagehash
 from PIL import Image
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-HASH_FILE = os.path.join(BASE_DIR, 'anticheat_hashes.json')
+DB_FILE = os.path.join(BASE_DIR, 'anticheat.db')
 
 class AntiCheatEngine:
     def __init__(self):
-        self.hashes = set()
-        self._load_hashes()
+        self._init_db()
 
-    def _load_hashes(self):
-        if os.path.exists(HASH_FILE):
-            try:
-                with open(HASH_FILE, 'r') as f:
-                    data = json.load(f)
-                    self.hashes = set(data.get("hashes", []))
-            except Exception as e:
-                print(f"⚠️ Could not load anticheat hashes: {e}")
+    def _get_connection(self):
+        # Create a new connection per thread/request
+        conn = sqlite3.connect(DB_FILE)
+        # Register hamming distance function in SQLite to offload calculation
+        conn.create_function("hamming_distance", 2, self._hamming_distance)
+        return conn
 
-    def _save_hashes(self):
+    def _init_db(self):
+        with self._get_connection() as conn:
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS hashes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    hash_str TEXT UNIQUE
+                )
+            ''')
+            conn.execute('CREATE INDEX IF NOT EXISTS idx_hash_str ON hashes(hash_str)')
+            conn.commit()
+
+    def _hamming_distance(self, hash1_str, hash2_str):
         try:
-            with open(HASH_FILE, 'w') as f:
-                json.dump({"hashes": list(self.hashes)}, f)
-        except Exception as e:
-            print(f"⚠️ Could not save anticheat hashes: {e}")
+            h1 = imagehash.hex_to_hash(hash1_str)
+            h2 = imagehash.hex_to_hash(hash2_str)
+            return h1 - h2
+        except Exception:
+            return 999
 
     def get_hashes(self, file_bytes):
         """Calculates pHash and dHash for better duplicate detection."""
@@ -40,59 +49,55 @@ class AntiCheatEngine:
 
     def is_duplicate(self, file_bytes, similarity_threshold=8):
         """
-        Checks if the image is a duplicate based on stored hashes.
-        similarity_threshold: the max hamming distance to be considered a duplicate.
+        Checks if the image is a duplicate using SQLite optimized functions.
         """
         p_hash_str, d_hash_str = self.get_hashes(file_bytes)
         
         if not p_hash_str or not d_hash_str:
             return False
 
-        # Check exact matches first for speed
-        if p_hash_str in self.hashes or d_hash_str in self.hashes:
-            return True
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 1. Fast exact match
+            cursor.execute('SELECT 1 FROM hashes WHERE hash_str = ? OR hash_str = ? LIMIT 1', (p_hash_str, d_hash_str))
+            if cursor.fetchone():
+                return True
 
-        p_hash = imagehash.hex_to_hash(p_hash_str)
-        d_hash = imagehash.hex_to_hash(d_hash_str)
-
-        # Check similarity (hamming distance)
-        for stored_hash_str in self.hashes:
-            try:
-                stored_hash = imagehash.hex_to_hash(stored_hash_str)
-                # Compare both pHash and dHash representation lengths isn't an issue since they are stored as strings
-                # but we should compare apples to apples. Let's simplify and just do exact match on dHash and pHash, 
-                # but also check similarity if we parse them properly.
-                
-                # For safety, let's just do an exact match on string representations for now, 
-                # or a simple distance check if we assume all stored are pHashes.
-                # Since we store both, some might be dHash, some pHash. 
-                # Let's just compare distances safely.
-                distance = p_hash - stored_hash
-                if distance < similarity_threshold:
-                    return True
-                
-                distance = d_hash - stored_hash
-                if distance < similarity_threshold:
-                    return True
-            except Exception:
-                continue
+            # 2. Slower similarity match using the custom SQLite function
+            cursor.execute('''
+                SELECT 1 FROM hashes 
+                WHERE hamming_distance(hash_str, ?) < ? 
+                   OR hamming_distance(hash_str, ?) < ?
+                LIMIT 1
+            ''', (p_hash_str, similarity_threshold, d_hash_str, similarity_threshold))
+            
+            if cursor.fetchone():
+                return True
 
         return False
 
     def register(self, file_bytes):
         """Registers a new image hash to prevent future duplicates."""
         p_hash_str, d_hash_str = self.get_hashes(file_bytes)
-        if p_hash_str:
-            self.hashes.add(p_hash_str)
-        if d_hash_str:
-            self.hashes.add(d_hash_str)
-        self._save_hashes()
+        
+        with self._get_connection() as conn:
+            if p_hash_str:
+                conn.execute('INSERT OR IGNORE INTO hashes (hash_str) VALUES (?)', (p_hash_str,))
+            if d_hash_str:
+                conn.execute('INSERT OR IGNORE INTO hashes (hash_str) VALUES (?)', (d_hash_str,))
+            conn.commit()
+            
         return p_hash_str
 
     def clear(self):
-        self.hashes.clear()
-        self._save_hashes()
-        return len(self.hashes)
+        with self._get_connection() as conn:
+            conn.execute('DELETE FROM hashes')
+            conn.commit()
+        return 0
 
     def count(self):
-        return len(self.hashes)
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM hashes')
+            return cursor.fetchone()[0]

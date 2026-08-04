@@ -15,10 +15,14 @@ const Modal = ({
   cancelText = 'Cancel'
 }) => {
   const [inputValue, setInputValue] = useState('');
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  useEffect(() => {
-    if (isOpen) setInputValue('');
-  }, [isOpen]);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
+    if (isOpen) {
+      setInputValue('');
+    }
+  }
 
   if (!isOpen) return null;
 

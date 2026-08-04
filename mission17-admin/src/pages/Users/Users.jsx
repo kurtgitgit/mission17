@@ -178,51 +178,6 @@ const Users = () => {
     }
   };
 
-  const handleActivateUser = async (user) => {
-    try {
-      const res = await fetch(endpoints.users.update(user._id), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'auth-token': getToken()
-        },
-        body: JSON.stringify({ isVerified: true, accountStatus: 'approved' })
-      });
-
-      if (res.ok) {
-        setUsers(users.map(u => u._id === user._id ? { ...u, accountStatus: 'approved', isVerified: true } : u));
-        showNotification(`${user.username} has been manually activated!`, "success");
-      } else {
-        showNotification("Failed to activate user", "error");
-      }
-    } catch (error) {
-      console.error("Activation error:", error);
-      showNotification("Connection error", "error");
-    }
-  };
-
-  const handleRejectUser = async (user) => {
-    try {
-      const res = await fetch(endpoints.users.update(user._id), {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'auth-token': getToken()
-        },
-        body: JSON.stringify({ accountStatus: 'rejected' })
-      });
-
-      if (res.ok) {
-        setUsers(users.map(u => u._id === user._id ? { ...u, accountStatus: 'rejected' } : u));
-        showNotification(`${user.username}'s account has been rejected.`, "success");
-      } else {
-        showNotification("Failed to reject user", "error");
-      }
-    } catch (error) {
-      console.error("Rejection error:", error);
-      showNotification("Connection error", "error");
-    }
-  };
 
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
@@ -243,7 +198,8 @@ const Users = () => {
         showNotification('Failed to fetch ID images', 'error');
         setIdModal(prev => ({ ...prev, loading: false }));
       }
-    } catch (error) {
+    } catch (err) {
+      console.error(err);
       showNotification('Network error', 'error');
       setIdModal(prev => ({ ...prev, loading: false }));
     }

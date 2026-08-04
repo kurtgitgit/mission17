@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
@@ -45,6 +46,9 @@
     "xss-clean": "^0.1.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.0",
+    "globals": "^17.9.0",
     "jest": "^30.2.0",
     "nodemon": "^3.1.9"
   }

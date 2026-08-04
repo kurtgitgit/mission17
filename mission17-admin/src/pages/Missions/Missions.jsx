@@ -208,7 +208,7 @@ const Missions = () => {
     setIsEditing(false);
     setFormData({ title: '', sdgNumber: '', points: '', description: '', color: '#3b82f6', image: '' });
     setShowForm(true);
-    setAiSuggestion(null);
+    setAiSuggestions([]);
   };
 
   const openEditForm = (mission) => {
@@ -223,7 +223,7 @@ const Missions = () => {
       image: mission.image || ''
     });
     setShowForm(true);
-    setAiSuggestion(null);
+    setAiSuggestions([]);
   };
 
   // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
