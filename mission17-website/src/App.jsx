@@ -81,7 +81,7 @@ function App() {
         <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '45px', width: 'auto' }} />
           <div>
-            <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Pantal</h1>
+            <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Bagong Pag-asa</h1>
           </div>
         </div>
         <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -180,7 +180,7 @@ function App() {
               Complete <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Ecosystem</span>
             </h3>
             <p style={{ color: 'var(--text-muted)', maxWidth: '650px', margin: '0 auto', fontSize: '1.1rem', lineHeight: 1.7 }}>
-              A fully integrated digital governance and community engagement platform built to serve the citizens of Barangay Pantal efficiently.
+              A fully integrated digital governance and community engagement platform built to serve the citizens of Barangay Bagong Pag-asa efficiently.
             </p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -220,7 +220,7 @@ function App() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
               {[
-                { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Pantal River for our monthly cleanup drive. Earn SDG points via the Mission 17 App.' },
+                { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Bagong Pag-asa Plaza for our monthly cleanup drive. Earn SDG points via the Mission 17 App.' },
                 { title: 'New Barangay ID System Rollout', date: 'Oct 10, 2026', desc: 'Request your new PVC Barangay ID directly through the mobile app Document Request feature.' },
                 { title: 'Barangay Assembly Meeting', date: 'Oct 05, 2026', desc: 'All residents are invited to the bi-annual barangay assembly at the covered court.' }
               ].map((news, idx) => (
@@ -309,12 +309,12 @@ function App() {
               <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>
-              Empowering Barangay Pantal through AI-driven e-Governance, gamified civic tasks, and Sustainable Development Goals.
+              Empowering Barangay Bagong Pag-asa through AI-driven e-Governance, gamified civic tasks, and Sustainable Development Goals.
             </p>
           </div>
           <div className="footer-right" style={{ textAlign: 'right' }}>
             <h4 style={{ fontSize: '1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Hall, Pantal, Dagupan City</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Hall, Bagong Pag-asa, San Jacinto</p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>contact@mission17.gov.ph</p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 Mission 17 Project. All rights reserved.</p>
           </div>

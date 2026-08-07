@@ -260,8 +260,8 @@ const ReportGeneration = () => {
                     <div className="letterhead-text">
                       <p className="lh-republic">Republic of the Philippines</p>
                       <p className="lh-province">Province of Pangasinan</p>
-                      <p className="lh-city">City of Dagupan</p>
-                      <h2 className="lh-brgy">BARANGAY PANTAL</h2>
+                      <p className="lh-city">Municipality of San Jacinto</p>
+                      <h2 className="lh-brgy">BARANGAY BAGONG PAG-ASA</h2>
                     </div>
                     <div className="letterhead-logo logo-yellow">🏛️</div>
                   </div>

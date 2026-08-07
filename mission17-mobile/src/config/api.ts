@@ -18,7 +18,7 @@ const AI_URL = "https://kurtgitgit-mission17-ai.hf.space/predict";
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
 if (__DEV__) {
-  console.log(`🏛️ Brgy. Pantal Portal (DEV) API: ${API_URL}`);
+  console.log(`🏛️ Brgy. Bagong Pag-asa Portal (DEV) API: ${API_URL}`);
 }
 
 // 🖼️ IMAGE HELPER

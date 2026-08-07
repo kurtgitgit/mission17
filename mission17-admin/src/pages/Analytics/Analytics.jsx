@@ -219,7 +219,7 @@ const Analytics = () => {
 
         {/* ─── HEADER ─── */}
         <div className="analytics-header">
-          <h1 className="page-title">📊 Barangay Pantal Analytics</h1>
+          <h1 className="page-title">📊 Barangay Bagong Pag-asa Analytics</h1>
           <p className="page-subtitle">Comprehensive overview of civic tasks, document requests, residents, and announcements.</p>
         </div>
 

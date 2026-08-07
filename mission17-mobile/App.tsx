@@ -135,7 +135,7 @@ export default function App() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#eff6ff', gap: 16 }}>
         <Text style={{ fontSize: 48 }}>🇵🇭</Text>
-        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0038A8' }}>Barangay Pantal</Text>
+        <Text style={{ fontSize: 20, fontWeight: '900', color: '#0038A8' }}>Barangay Bagong Pag-asa</Text>
         <Text style={{ fontSize: 12, color: '#64748b', marginTop: -8 }}>Republic of the Philippines</Text>
         <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 8 }} />
       </View>

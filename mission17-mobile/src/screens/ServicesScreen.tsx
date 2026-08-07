@@ -229,7 +229,7 @@ const ServicesScreen: React.FC = () => {
             {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
 
             <Text style={styles.label}>Complete Address *</Text>
-            <TextInput style={[styles.input, errors.address ? styles.inputError : null]} placeholder="Blk 1, Lot 2, Barangay Pantal, Dagupan City" value={address} onChangeText={(t) => { setAddress(t); setErrors(e => ({...e, address: ''})); }} multiline numberOfLines={2} />
+            <TextInput style={[styles.input, errors.address ? styles.inputError : null]} placeholder="Zone 1, Bagong Pag-asa, San Jacinto" value={address} onChangeText={(t) => { setAddress(t); setErrors(e => ({...e, address: ''})); }} multiline numberOfLines={2} />
             {errors.address ? <Text style={styles.errorText}>{errors.address}</Text> : null}
 
             <Text style={styles.label}>Contact Number *</Text>
@@ -242,7 +242,7 @@ const ServicesScreen: React.FC = () => {
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>📋 Requirements: Valid government-issued ID upon pickup.</Text>
-              <Text style={styles.infoText}>🏛️ Pickup: Barangay Hall of Pantal, Dagupan City</Text>
+              <Text style={styles.infoText}>🏛️ Pickup: Barangay Hall of Bagong Pag-asa, San Jacinto</Text>
               <Text style={styles.infoText}>📞 Inquiries: Contact the Barangay Secretary</Text>
             </View>
 

@@ -135,12 +135,12 @@ const Login = () => {
         <div className="sidebar-content">
           <div className="brand-box">
             <div style={{ fontSize: '56px', marginBottom: '12px' }}>🏛️</div>
-            <h1 className="brand-title">BARANGAY PANTAL</h1>
+            <h1 className="brand-title">BARANGAY BAGONG PAG-ASA</h1>
             <p className="brand-tagline">Official Digital Portal</p>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '8px' }}>Dagupan City, Pangasinan</p>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '8px' }}>San Jacinto, Pangasinan</p>
           </div>
           <div className="sidebar-footer">
-            <p>© 2026 Barangay Pantal Admin</p>
+            <p>© 2026 Barangay Bagong Pag-asa Admin</p>
           </div>
         </div>
         <div className="circle-decoration circle-1"></div>
@@ -152,7 +152,7 @@ const Login = () => {
         <div className="form-wrapper">
           <div className="form-header">
             <h2>{showOtp ? "Two-Factor Auth" : "Admin Portal Login"}</h2>
-            <p>{showOtp ? "Enter the 6-digit code sent to your email." : "Barangay Pantal — Authorized personnel only."}</p>
+            <p>{showOtp ? "Enter the 6-digit code sent to your email." : "Barangay Bagong Pag-asa — Authorized personnel only."}</p>
           </div>
 
           {!showOtp ? (

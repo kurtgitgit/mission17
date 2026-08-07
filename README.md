@@ -1,6 +1,6 @@
-# 🏛️ Barangay Pantal E-Services & Mission 17 Portal
+# 🏛️ Barangay Bagong Pag-asa E-Services & Mission 17 Portal
 
-**Barangay Pantal E-Services** is a comprehensive digital governance platform combined with **Mission 17**, an AI & Blockchain-powered app designed to gamify sustainable actions (SDGs). 
+**Barangay Bagong Pag-asa E-Services** is a comprehensive digital governance platform combined with **Mission 17**, an AI & Blockchain-powered app designed to gamify sustainable actions (SDGs). 
 
 The platform features a modern, "Human-Designed" mobile app for residents (inspired by the eGovPH system) and a powerful web-based Admin Portal for barangay officials to manage community reports and services.
 

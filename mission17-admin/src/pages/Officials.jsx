@@ -90,7 +90,7 @@ const Officials = () => {
         <div className="pa-header">
           <div className="pa-header-left">
             <h1>👥 Barangay Officials</h1>
-            <p>Manage the resident-facing directory of Barangay Pantal officials.</p>
+            <p>Manage the resident-facing directory of Barangay Bagong Pag-asa officials.</p>
           </div>
           <button className="pa-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>
             <Plus size={16} /> Add Official

@@ -204,7 +204,7 @@ const BlotterReportScreen = () => {
         <Text style={styles.label}>Location of Incident</Text>
         <TextInput
           style={[sharedStyles.input, errors.location ? styles.inputError : null]}
-          placeholder="E.g. Pantal Bridge, Zone 4"
+          placeholder="E.g. Zone 1, Bagong Pag-asa"
           placeholderTextColor={colors.textMuted}
           value={location}
           onChangeText={(t) => { setLocation(t); setErrors(e => ({ ...e, location: '' })); }}

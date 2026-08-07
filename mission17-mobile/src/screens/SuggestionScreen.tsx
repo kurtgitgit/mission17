@@ -147,7 +147,7 @@ const SuggestionScreen = () => {
                 <CheckCircle size={40} color="#16a34a" style={{ marginBottom: 8 }} />
                 <Text style={styles.successTitle}>Feedback Submitted! 🎉</Text>
                 <Text style={styles.successBody}>
-                  Your suggestion has been sent to the Barangay. Your voice helps make Barangay Pantal better for everyone!
+                  Your suggestion has been sent to the Barangay. Your voice helps make Barangay Bagong Pag-asa better for everyone!
                 </Text>
                 <TouchableOpacity
                   style={styles.successBtn}
