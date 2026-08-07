@@ -112,7 +112,7 @@ const OfficialsScreen: React.FC = () => {
           </View>
           <View style={{ width: 40 }} />
         </View>
-        <Text style={styles.headerSub}>Barangay Pantal — Your Local Leaders</Text>
+        <Text style={styles.headerSub}>Barangay Bagong Pag-asa — Your Local Leaders</Text>
       </View>
 
       {loading ? (

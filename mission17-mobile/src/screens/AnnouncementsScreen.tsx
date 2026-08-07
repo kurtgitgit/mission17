@@ -66,7 +66,7 @@ const PostCard = React.memo(({ item, theme, styles }: { item: any, theme: any, s
           <Text style={styles.pageAvatarEmoji}>🏛️</Text>
         </View>
         <View style={styles.pageInfo}>
-          <Text style={styles.pageName}>Barangay Pantal Official</Text>
+          <Text style={styles.pageName}>Barangay Bagong Pag-asa Official</Text>
           <View style={styles.pageMetaRow}>
             <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
             <Text style={styles.dotSep}> · </Text>
@@ -153,7 +153,7 @@ const AnnouncementsScreen: React.FC = () => {
           <Megaphone size={22} color="white" />
           <Text style={styles.headerTitle}>Community Feed</Text>
         </View>
-        <Text style={styles.headerSub}>Barangay Pantal Official Updates</Text>
+        <Text style={styles.headerSub}>Barangay Bagong Pag-asa Official Updates</Text>
 
         {/* ── FILTER CHIPS ── */}
         <FlatList
@@ -192,7 +192,7 @@ const AnnouncementsScreen: React.FC = () => {
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>📢</Text>
               <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>Check back soon for updates from Barangay Pantal.</Text>
+              <Text style={styles.emptyText}>Check back soon for updates from Barangay Bagong Pag-asa.</Text>
             </View>
           }
         />

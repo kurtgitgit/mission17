@@ -26,8 +26,8 @@ const SERVICES = [
 // ─── HOTLINES ───────────────────────────────────────────────────────────────
 const HOTLINES = [
   { label: 'Barangay Hall',      number: '075-529-9999', emoji: '🏛️' },
-  { label: 'PNP Dagupan',        number: '075-515-2262', emoji: '👮' },
-  { label: 'BFP Dagupan',        number: '075-522-2222', emoji: '🚒' },
+  { label: 'PNP San Jacinto',      number: '000-000-0000', emoji: '👮' },
+  { label: 'BFP San Jacinto',      number: '000-000-0000', emoji: '🚒' },
   { label: 'City DRRMO',         number: '075-529-7911', emoji: '🆘' },
 ];
 
@@ -124,7 +124,7 @@ const HomeScreen: React.FC = () => {
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.brgyBadge}>🇵🇭 REPUBLIC OF THE PHILIPPINES</Text>
-              <Text style={styles.brgyCity}>Barangay Pantal, Dagupan City</Text>
+              <Text style={styles.brgyCity}>Barangay Bagong Pag-asa, San Jacinto</Text>
             </View>
             <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
               <Bell size={19} color="white" />

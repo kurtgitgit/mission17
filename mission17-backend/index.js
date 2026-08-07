@@ -161,5 +161,5 @@ const connectDB = async () => {
 
 app.listen(PORT, '0.0.0.0', () => {
   connectDB();
-  console.log(`🏛️  Barangay Pantal Portal Server running on http://localhost:${PORT}`);
+  console.log(`🏛️  Barangay Bagong Pag-asa Portal Server running on http://localhost:${PORT}`);
 });

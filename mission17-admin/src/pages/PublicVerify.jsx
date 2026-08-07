@@ -43,7 +43,7 @@ const PublicVerify = () => {
         </div>
         <h1 style={{ color: '#0f172a', fontSize: '28px', marginBottom: '8px' }}>Public Transparency Portal</h1>
         <p style={{ color: '#64748b', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-          Verify the authenticity and resolution status of Barangay Pantal Blotter Reports. 
+          Verify the authenticity and resolution status of Barangay Bagong Pag-asa Blotter Reports. 
           Resolved cases are immutably recorded on the Ethereum Blockchain.
         </p>
       </div>

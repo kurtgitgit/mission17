@@ -311,7 +311,7 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     const notification = new Notification({
       userId: user._id,
       title: '✅ Civic Task Approved!',
-      message: `Your proof for "${sub.missionTitle || 'Civic Task'}" has been verified and recorded on the blockchain. Thank you for your contribution to Barangay Pantal!`,
+      message: `Your proof for "${sub.missionTitle || 'Civic Task'}" has been verified and recorded on the blockchain. Thank you for your contribution to Barangay Bagong Pag-asa!`,
       type: 'success'
     });
 

@@ -100,7 +100,7 @@ const DashboardHome = () => {
     <Layout title="Dashboard">
       <div className="dashboard-container">
 
-        <h2 className="section-title">Barangay Pantal — Dashboard Overview</h2>
+        <h2 className="section-title">Barangay Bagong Pag-asa — Dashboard Overview</h2>
 
         <div className="stats-grid">
           <div className="stat-card blue-card">

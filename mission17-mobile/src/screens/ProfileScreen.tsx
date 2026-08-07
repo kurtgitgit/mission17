@@ -114,7 +114,7 @@ const ProfileScreen = ({ navigation }: any) => {
         return (
           <>
             <Text style={styles.infoModalText}>
-              Mission 17 is a centralized digital governance platform for Barangay Pantal. It aims to streamline resident-to-LGU communications, digitize civic tasks, and create a transparent, efficient ecosystem for community feedback and announcements.
+              Mission 17 is a centralized digital governance platform for Barangay Bagong Pag-asa. It aims to streamline resident-to-LGU communications, digitize civic tasks, and create a transparent, efficient ecosystem for community feedback and announcements.
             </Text>
           </>
         );
@@ -135,17 +135,17 @@ const ProfileScreen = ({ navigation }: any) => {
         return (
           <>
             <Text style={styles.infoModalText}>
-              Your privacy is our priority. Mission 17 only collects necessary demographic information to verify your residency in Barangay Pantal. Your Valid ID uploads are securely stored and exclusively accessible by authorized Barangay Administrators. We do not share your data with third-party entities.
+              Your privacy is our priority. Mission 17 only collects necessary demographic information to verify your residency in Barangay Bagong Pag-asa. Your Valid ID uploads are securely stored and exclusively accessible by authorized Barangay Administrators. We do not share your data with third-party entities.
             </Text>
           </>
         );
       case 'Contact Us':
         return (
           <>
-            <Text style={styles.contactItem}><Text style={styles.contactLabel}>Barangay Pantal Hall</Text></Text>
-            <Text style={styles.contactItem}>📍 Address: Main St., Barangay Pantal, Dagupan City</Text>
+            <Text style={styles.contactItem}><Text style={styles.contactLabel}>Barangay Bagong Pag-asa Hall</Text></Text>
+            <Text style={styles.contactItem}>📍 Address: Main St., Barangay Bagong Pag-asa, San Jacinto</Text>
             <Text style={styles.contactItem}>📞 Phone: (075) 123-4567</Text>
-            <Text style={styles.contactItem}>📧 Email: admin@brgypantal.gov.ph</Text>
+            <Text style={styles.contactItem}>📧 Email: admin@brgybagongpagasa.gov.ph</Text>
             <Text style={styles.contactItem}>🕒 Hours: Mon - Fri, 8:00 AM - 5:00 PM</Text>
           </>
         );

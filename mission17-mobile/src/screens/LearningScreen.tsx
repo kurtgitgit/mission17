@@ -83,7 +83,7 @@ const LearningScreen: React.FC = () => {
           <BookOpen size={22} color="white" />
           <Text style={styles.headerTitle}>Learning Hub</Text>
         </View>
-        <Text style={styles.headerSub}>SDGs & Barangay Pantal</Text>
+        <Text style={styles.headerSub}>SDGs & Barangay Bagong Pag-asa</Text>
 
         {/* TAB BAR */}
         <View style={styles.tabBar}>
@@ -116,7 +116,7 @@ const LearningScreen: React.FC = () => {
             <View style={styles.sdgIntro}>
               <Text style={styles.sdgIntroTitle}>17 Sustainable Development Goals</Text>
               <Text style={styles.sdgIntroText}>
-                Learn about the UN's 2030 agenda for people and the planet. Tap any goal to explore it and find out how Barangay Pantal is taking action.
+                Learn about the UN's 2030 agenda for people and the planet. Tap any goal to explore it and find out how Barangay Bagong Pag-asa is taking action.
               </Text>
             </View>
           }
@@ -129,17 +129,17 @@ const LearningScreen: React.FC = () => {
           {/* Brgy Overview */}
           <View style={styles.aboutCard}>
             <Text style={styles.aboutEmoji}>🏛️</Text>
-            <Text style={styles.aboutName}>Barangay Pantal</Text>
-            <Text style={styles.aboutCity}>Dagupan City, Pangasinan</Text>
+            <Text style={styles.aboutName}>Barangay Bagong Pag-asa</Text>
+            <Text style={styles.aboutCity}>San Jacinto, Pangasinan</Text>
             <Text style={styles.aboutBody}>
-              Barangay Pantal is a vibrant urban barangay known for its rich fishing heritage, active community programs, and commitment to sustainable development aligned with the UN Sustainable Development Goals.
+              Barangay Bagong Pag-asa is a vibrant urban barangay known for its rich fishing heritage, active community programs, and commitment to sustainable development aligned with the UN Sustainable Development Goals.
             </Text>
           </View>
 
           {/* Info Grid */}
           <View style={styles.infoGrid}>
             {[
-              { icon: '📍', label: 'Location', value: 'Dagupan City, Pangasinan' },
+              { icon: '📍', label: 'Location', value: 'San Jacinto, Pangasinan' },
               { icon: '📞', label: 'Hotline', value: '075-529-9999' },
               { icon: '🏘️', label: 'Type', value: 'Urban Barangay' },
               { icon: '🐟', label: 'Heritage', value: 'Fisherfolk Community' },

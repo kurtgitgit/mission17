@@ -39,7 +39,7 @@ const Sidebar = () => {
           <span className="brgy-logo-emoji">🇵🇭</span>
         </div>
         <div className="logo-text-col">
-          <span className="brand-name">Brgy. Pantal</span>
+          <span className="brand-name">Brgy. Bagong Pag-asa</span>
           <span className="brand-sub">eGov Portal</span>
         </div>
       </Link>
@@ -151,7 +151,7 @@ const Sidebar = () => {
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={executeLogout}
         title="Confirm Logout"
-        message="Are you sure you want to log out of the Barangay Pantal Admin Portal?"
+        message="Are you sure you want to log out of the Barangay Bagong Pag-asa Admin Portal?"
         type="danger"
         confirmText="Logout"
       />

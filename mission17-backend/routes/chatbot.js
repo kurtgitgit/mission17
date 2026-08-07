@@ -31,7 +31,7 @@ try {
 }
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are the official digital assistant for Barangay Pantal, Dagupan City, and the Mission 17 App.
+const SYSTEM_PROMPT = `You are the official digital assistant for Barangay Bagong Pag-asa, San Jacinto, and the Mission 17 App.
 
 Your purpose is to answer inquiries about:
 1. The app's features: Blotter Reports, Document Requests, Announcements, SDG Missions, Barangay Officials, and Suggestions.
@@ -56,7 +56,7 @@ TONE & FORMAT RULES:
 - Keep responses concise, friendly, and helpful.
 - Use bullet points or numbered lists when explaining steps.
 - Add relevant emojis to make responses feel friendly (🏛️, 📋, ✅, etc.).
-- If asked something outside Barangay Pantal, Mission 17, or SDGs, politely decline and steer the conversation back.
+- If asked something outside Barangay Bagong Pag-asa, Mission 17, or SDGs, politely decline and steer the conversation back.
 - Remember the context of the entire conversation — never ask for information the user already provided.`;
 
 // ─── Model URL ─────────────────────────────────────────────────────────────────
@@ -71,9 +71,9 @@ const getMockReply = (message) => {
   if (msg.includes('blotter')) return "To file a Blotter Report, go to the 'Services' section and select 'eFeedback / Blotter'. Provide as much incident detail as possible! 📋";
   if (msg.includes('sdg') || msg.includes('mission')) return "Mission 17 encourages residents to complete Civic Tasks aligned with the 17 SDGs. Earn points on the 'Missions' page! 🌍";
   if (msg.includes('document') || msg.includes('request')) return "To request a barangay document, go to 'Services' and select 'Document Requests'. Fill out the form and wait for approval. 📄";
-  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('maong')) return "Mabuhay! 🏛️ Welcome to the official eGov Portal of Barangay Pantal. What can I help you with today?";
+  if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('maong')) return "Mabuhay! 🏛️ Welcome to the official eGov Portal of Barangay Bagong Pag-asa. What can I help you with today?";
   if (msg.includes('thank') || msg.includes('salamat')) return "You're very welcome! Salamat! Let me know if you need anything else. 😊";
-  return "Hello! 🏛️ I am the Barangay Pantal digital assistant. How can I help you today?";
+  return "Hello! 🏛️ I am the Barangay Bagong Pag-asa digital assistant. How can I help you today?";
 };
 
 // ─── Route ─────────────────────────────────────────────────────────────────────

@@ -221,7 +221,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           <Text style={styles.description}>
-            {mission.description || `This civic task contributes to SDG Goal ${mission.sdgNumber}. Participate in a local activity to support Barangay Pantal's sustainability programs.`}
+            {mission.description || `This civic task contributes to SDG Goal ${mission.sdgNumber}. Participate in a local activity to support Barangay Bagong Pag-asa's sustainability programs.`}
           </Text>
 
           <View style={styles.bulletPoint}>

@@ -130,7 +130,7 @@ const Announcements = () => {
         <div className="pa-header">
           <div className="pa-header-left">
             <h1>📢 Announcements</h1>
-            <p>Post and manage official Barangay Pantal announcements for residents.</p>
+            <p>Post and manage official Barangay Bagong Pag-asa announcements for residents.</p>
           </div>
           <button className="pa-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>
             <Plus size={16} /> New Announcement
