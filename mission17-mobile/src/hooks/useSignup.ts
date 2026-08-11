@@ -110,10 +110,6 @@ export const useSignup = () => {
         showNotification('Birthdate is required.', 'error');
         return;
       }
-      if (!formData.placeOfBirth) {
-        showNotification('Place of Birth is required.', 'error');
-        return;
-      }
       if (!formData.gender) {
         showNotification('Gender is required.', 'error');
         return;

@@ -1,15 +1,20 @@
 import express from 'express';
 import Notification from '../models/Notification.js';
-import jwt from 'jsonwebtoken';
+import { getAuth } from 'firebase-admin/auth';
+import User from '../models/User.js';
 
-// Local Token Verification Middleware
-const verifyToken = (req, res, next) => {
+// Local Token Verification Middleware using Firebase
+const verifyToken = async (req, res, next) => {
   const token = req.header('auth-token') || req.header('Authorization')?.replace('Bearer ', '');
   if (!token) return res.status(401).json({ message: 'Access Denied' });
 
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
+    const decodedToken = await getAuth().verifyIdToken(token);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+    req.user = user;
     next();
   } catch (err) {
     res.status(400).json({ message: 'Invalid Token' });

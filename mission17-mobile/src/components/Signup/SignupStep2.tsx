@@ -27,33 +27,44 @@ const SignupStep2 = ({
     <View style={styles.form}>
       <Text style={styles.sectionTitle}>Basic Information</Text>
       
-      <TouchableOpacity 
-        style={styles.inputContainer} 
-        onPress={() => setShowDatePicker(true)}
-      >
-        <Text style={{ flex: 1, fontSize: 15, color: formData.birthDate ? '#1e293b' : '#94a3b8' }}>
-          {formData.birthDate || "Birthdate (MM/DD/YYYY)"}
-          {!formData.birthDate && <Text style={{ color: '#ef4444', fontWeight: 'bold' }}> *</Text>}
-        </Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={dateObj}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-          maximumDate={new Date()}
-          onChange={handleDateChange}
+      {Platform.OS === 'web' ? (
+        <FormInput
+          placeholder="Birthdate (MM/DD/YYYY)"
+          value={formData.birthDate}
+          onChangeText={(val) => handleInputChange("birthDate", val)}
+          required
         />
-      )}
+      ) : (
+        <>
+          <TouchableOpacity 
+            style={styles.inputContainer} 
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={{ flex: 1, fontSize: 15, color: formData.birthDate ? '#1e293b' : '#94a3b8' }}>
+              {formData.birthDate || "Birthdate (MM/DD/YYYY)"}
+              {!formData.birthDate && <Text style={{ color: '#ef4444', fontWeight: 'bold' }}> *</Text>}
+            </Text>
+          </TouchableOpacity>
 
-      {Platform.OS === 'ios' && showDatePicker && (
-        <TouchableOpacity 
-          style={{ backgroundColor: '#0038A8', padding: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
-          onPress={() => setShowDatePicker(false)}
-        >
-          <Text style={{ color: 'white', fontWeight: 'bold' }}>Confirm Date</Text>
-        </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={dateObj}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              maximumDate={new Date()}
+              onChange={handleDateChange}
+            />
+          )}
+
+          {Platform.OS === 'ios' && showDatePicker && (
+            <TouchableOpacity 
+              style={{ backgroundColor: '#0038A8', padding: 10, borderRadius: 8, alignItems: 'center', marginBottom: 10 }}
+              onPress={() => setShowDatePicker(false)}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>Confirm Date</Text>
+            </TouchableOpacity>
+          )}
+        </>
       )}
       
       <FormInput
@@ -61,13 +72,6 @@ const SignupStep2 = ({
         value={formData.age}
         onChangeText={(val) => handleInputChange("age", val)}
         keyboardType="numeric"
-      />
-
-      <FormInput
-        placeholder="Place of Birth"
-        value={formData.placeOfBirth}
-        onChangeText={(val) => handleInputChange("placeOfBirth", val)}
-        required
       />
       
       <CustomDropdown 
@@ -104,23 +108,10 @@ const SignupStep2 = ({
       />
 
       <FormInput
-        placeholder="Religion"
-        value={formData.religion}
-        onChangeText={(val) => handleInputChange("religion", val)}
-      />
-
-      <FormInput
         placeholder="Complete Address"
         value={formData.completeAddress}
         onChangeText={(val) => handleInputChange("completeAddress", val)}
         required
-      />
-
-      <FormInput
-        placeholder="Years of Residency"
-        value={formData.yearsOfResidency}
-        onChangeText={(val) => handleInputChange("yearsOfResidency", val)}
-        keyboardType="numeric"
       />
 
       <CustomDropdown 
@@ -136,25 +127,6 @@ const SignupStep2 = ({
         value={formData.employmentStatus} 
         options={["Employed", "Self-Employed", "Unemployed", "Student", "Retired"]} 
         onSelect={(val) => handleInputChange("employmentStatus", val)} 
-      />
-      
-      <FormInput
-        placeholder="Occupation"
-        value={formData.occupation}
-        onChangeText={(val) => handleInputChange("occupation", val)}
-      />
-      
-      <CustomDropdown 
-        label="Educational Attainment" 
-        value={formData.educationalAttainment} 
-        options={["Elementary", "High School", "College", "Post-Graduate", "None"]} 
-        onSelect={(val) => handleInputChange("educationalAttainment", val)} 
-      />
-
-      <FormInput
-        placeholder="Disability / Special Needs (if any)"
-        value={formData.disability}
-        onChangeText={(val) => handleInputChange("disability", val)}
       />
 
       <View style={styles.navButtonsContainer}>

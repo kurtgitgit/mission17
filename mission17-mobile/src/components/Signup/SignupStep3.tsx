@@ -48,13 +48,7 @@ const SignupStep3 = ({
         {validIdBack && <Text style={styles.fileLabel}>Back Selected</Text>}
       </View>
 
-      <View style={styles.uploadRow}>
-        <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('profile')}>
-          <Upload color="#475569" size={20} />
-          <Text style={styles.uploadButtonText}>Profile Image</Text>
-        </TouchableOpacity>
-        {profileImage && <Text style={styles.fileLabel}>Image Selected</Text>}
-      </View>
+
 
       <Text style={styles.sectionTitle}>Security</Text>
       
