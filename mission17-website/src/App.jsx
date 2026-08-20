@@ -65,7 +65,7 @@ function App() {
       
       {/* Top Banner */}
       <div className="top-banner-text" style={{ background: 'var(--primary-blue)', color: 'white', padding: '10px 5%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.85rem' }}>
-        <span>Welcome to the Official <span className="text-gold font-serif" style={{ fontStyle: 'italic', fontWeight: 600 }}>Mission 17</span> Website — connecting barangays digitally.</span>
+        <span>Welcome to the Official <span className="text-gold font-serif" style={{ fontStyle: 'italic', fontWeight: 600 }}>BrgyLink</span> Website — connecting barangays digitally.</span>
       </div>
 
       {/* Main Navigation */}
@@ -79,7 +79,7 @@ function App() {
         transition: 'all 0.3s'
       }}>
         <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '45px', width: 'auto' }} />
+          <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '45px', width: 'auto' }} />
           <div>
             <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Bagong Pag-asa</h1>
           </div>
@@ -130,7 +130,7 @@ function App() {
         <div className="hero-text-block" style={{ flex: '1 1 500px', maxWidth: '650px', animation: 'heroSlideLeft 0.8s ease forwards', zIndex: 2 }}>
           <h1 className="heading-hero" style={{ color: 'white' }}>
             Welcome to the <br />
-            <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Mission 17</span> Portal
+            <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>BrgyLink</span> Portal
           </h1>
           <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', lineHeight: 1.7, maxWidth: '550px' }}>
             This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and gamified digital governance.
@@ -151,25 +151,24 @@ function App() {
         </div>
       </header>
 
-      {/* Impact Stats Banner */}
-      <div style={{ padding: '0' }}>
+
+      {/* About Us Section */}
+      <section id="about" style={{ padding: '6rem 5%', background: 'white' }}>
         <FadeInSection>
-          <div className="stats-banner">
-            <div className="stat-item">
-              <div className="stat-number">15,000+</div>
-              <div className="stat-label">Registered Citizens</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">2,400+</div>
-              <div className="stat-label">SDG Tasks Completed</div>
-            </div>
-            <div className="stat-item">
-              <div className="stat-number">99.8%</div>
-              <div className="stat-label">AI Verification Accuracy</div>
-            </div>
+          <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
+            <div className="section-label">About Us</div>
+            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '2rem' }}>
+              Empowering the Community of <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Bagong Pag-asa</span>
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+              Welcome to BrgyLink, the digital heart of Barangay Bagong Pag-asa. We are committed to fostering a transparent, secure, and highly efficient ecosystem for our citizens. Our portal bridges the gap between local leaders and the community, ensuring that your voices are heard and your needs are met promptly.
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', lineHeight: 1.8 }}>
+              Through cutting-edge technology, AI verification, and blockchain-backed rewards, we are redefining civic engagement. Join us in building a sustainable, safe, and progressive neighborhood for everyone.
+            </p>
           </div>
         </FadeInSection>
-      </div>
+      </section>
 
       {/* Features Section */}
       <section id="services" style={{ padding: '6rem 5%', background: 'var(--bg-light)' }}>
@@ -244,57 +243,48 @@ function App() {
         </FadeInSection>
       </section>
 
-      {/* AI Engine Flowchart Section */}
-      <section id="ai" style={{ padding: '6rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
+      {/* Barangay Officials Section */}
+      <section id="officials" style={{ padding: '6rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
         <FadeInSection>
-          <div className="ai-engine-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center' }}>
-            <div className="ai-engine-block" style={{ flex: '1 1 500px' }}>
-              <div className="section-label">Smart Governance</div>
-              <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
-                Intelligent <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Verification Engine</span>
-              </h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: '2.5rem', lineHeight: 1.6 }}>
-                Mission 17 uses a custom-trained AI model to automatically review civic task submissions. This prevents fraud and ensures that blockchain tokens are only awarded to genuine participants.
-              </p>
+          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <div className="section-label" style={{ textAlign: 'center' }}>Leadership</div>
+            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '4rem', textAlign: 'center' }}>
+              Barangay <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Officials</span>
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', alignItems: 'center' }}>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary-blue)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>1</div>
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>User Uploads Photo</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>Citizen completes a coastal cleanup and uploads a photo proof via the mobile app.</p>
-                  </div>
+              {/* Punong Barangay */}
+              <div style={{ background: 'var(--bg-light)', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '350px', border: '1px solid var(--border-light)', boxShadow: '0 20px 40px rgba(0,43,127,0.05)' }}>
+                <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-blue), #1e40af)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', marginBottom: '1.5rem', border: '4px solid var(--accent-gold)' }}>
+                  <User size={50} />
                 </div>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-gold)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>2</div>
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>AI Model Analysis</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>Our Python server processes the image through an EfficientNet model to classify the activity.</p>
+                <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', fontWeight: 800, marginBottom: '0.25rem' }}>Juan Dela Cruz</h4>
+                <p style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Punong Barangay</p>
+              </div>
+
+              {/* Kagawads Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', width: '100%' }}>
+                {[1, 2, 3, 4, 5, 6, 7].map((num) => (
+                  <div key={num} style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}>
+                      <User size={35} />
+                    </div>
+                    <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>Kagawad Name {num}</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Barangay Kagawad</p>
                   </div>
-                </div>
-                <div style={{ display: 'flex', gap: '1.5rem' }}>
-                  <div style={{ minWidth: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-light)', border: '2px solid var(--primary-blue)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>3</div>
-                  <div>
-                    <h4 style={{ fontSize: '1.1rem', marginBottom: '0.25rem', color: 'var(--primary-blue)' }}>Smart Contract Execution</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>If validated, SDG tokens are minted on the blockchain and sent to the user's wallet.</p>
+                ))}
+                
+                {/* SK Chairperson */}
+                <div style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}>
+                    <User size={35} />
                   </div>
+                  <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>SK Name</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>SK Chairperson</p>
                 </div>
               </div>
-            </div>
-            <div className="ai-engine-block" style={{ flex: '1 1 400px', display: 'flex', justifyContent: 'center' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '350px', aspectRatio: '3/4', background: 'var(--bg-light)', borderRadius: '24px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem', boxShadow: '0 20px 40px rgba(0,43,127,0.08)' }}>
-                <Cpu size={60} color="var(--primary-blue)" style={{ marginBottom: '1.5rem' }} />
-                <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', marginBottom: '1.5rem', fontWeight: 700 }}>System Architecture</h4>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(0, 43, 127, 0.1)', borderRadius: '4px', marginBottom: '1.5rem' }}>
-                   <div style={{ width: '60%', height: '100%', background: 'var(--primary-blue)', borderRadius: '4px' }}></div>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(0, 43, 127, 0.1)', borderRadius: '4px', marginBottom: '1.5rem' }}>
-                   <div style={{ width: '80%', height: '100%', background: 'var(--accent-gold)', borderRadius: '4px' }}></div>
-                </div>
-                <div style={{ width: '100%', height: '8px', background: 'rgba(0, 43, 127, 0.1)', borderRadius: '4px' }}>
-                   <div style={{ width: '40%', height: '100%', background: 'var(--bright-blue)', borderRadius: '4px' }}></div>
-                </div>
-              </div>
+
             </div>
           </div>
         </FadeInSection>
@@ -315,8 +305,8 @@ function App() {
           <div className="footer-right" style={{ textAlign: 'right' }}>
             <h4 style={{ fontSize: '1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Hall, Bagong Pag-asa, San Jacinto</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>contact@mission17.gov.ph</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 Mission 17 Project. All rights reserved.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>contact@brgylink.gov.ph</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 BrgyLink Project. All rights reserved.</p>
           </div>
         </div>
       </footer>

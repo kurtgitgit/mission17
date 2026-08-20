@@ -126,8 +126,8 @@ const Analytics = () => {
 
         // ── RESIDENTS ────────────────────────────────────────────
         if (userRes.ok) {
-          const users = await userRes.json();
-          setResidentCount(users.length);
+          const data = await userRes.json();
+          setResidentCount(data.total || (data.data ? data.data.length : (data.length || 0)));
         }
 
         // ── DOCUMENT REQUESTS ────────────────────────────────────

@@ -17,6 +17,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
+import { getAuth } from 'firebase-admin/auth';
 
 const router = express.Router();
 
@@ -90,9 +91,22 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
 // 4. ADMIN DELETE USER
 router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
   try {
+    const userToDelete = await User.findById(req.params.id);
+    if (!userToDelete) {
+      return res.status(404).json({ message: 'User not found in database' });
+    }
+
+    if (userToDelete.firebaseUid) {
+      try {
+        await getAuth().deleteUser(userToDelete.firebaseUid);
+      } catch (fbError) {
+        console.error('Firebase delete error (continuing anyway):', fbError.message);
+      }
+    }
+
     await User.findByIdAndDelete(req.params.id);
-    logAudit(req.user.id, req.user.username, 'ADMIN_USER_DELETE', `Admin deleted user ID: ${req.params.id}`, req);
-    res.json({ message: 'User deleted' });
+    logAudit(req.user.id, req.user.username, 'ADMIN_USER_DELETE', `Admin deleted user ID: ${req.params.id} from Mongo & Firebase`, req);
+    res.json({ message: 'User completely deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Delete failed' });
   }

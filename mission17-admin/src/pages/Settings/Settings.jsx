@@ -33,9 +33,7 @@ const Settings = () => {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
 
-  // --- Audit Logs State ---
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [loadingLogs, setLoadingLogs] = useState(false);
+
 
   // ==========================================
   // Load data from localStorage on mount
@@ -58,28 +56,7 @@ const Settings = () => {
     const savedEmailNotif = localStorage.getItem('pref_email_notifications');
     if (savedEmailNotif !== null) setEmailNotifications(savedEmailNotif === 'true');
 
-    fetchAuditLogs();
   }, []);
-
-  // ==========================================
-  // Fetch Audit Logs
-  // ==========================================
-  const fetchAuditLogs = async () => {
-    setLoadingLogs(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${endpoints.auth.baseUrl}/audit-logs`, {
-        headers: { 'auth-token': token }
-      });
-      const data = await response.json();
-      if (response.ok) setAuditLogs(data.slice(0, 8));
-    } catch (error) {
-      console.error('Failed to fetch audit logs:', error);
-    } finally {
-      setLoadingLogs(false);
-    }
-  };
-
   // ==========================================
   // Update Admin Profile
   // ==========================================
@@ -460,77 +437,6 @@ const Settings = () => {
             </div>
           </div>
 
-          {/* Card 4: Audit Logs — spans all 3 columns */}
-          <div className="settings-card audit-card" style={{ gridColumn: '1 / -1' }}>
-            <div className="card-header dark-header" style={{ justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <ClipboardList size={18} />
-                <h3 style={{ color: 'white' }}>Recent Audit Trail</h3>
-              </div>
-              <button
-                onClick={fetchAuditLogs}
-                disabled={loadingLogs}
-                style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', padding: '6px 14px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px' }}
-              >
-                <RefreshCw size={13} style={{ animation: loadingLogs ? 'spin 1s linear infinite' : 'none' }} />
-                {loadingLogs ? 'Loading...' : 'Refresh'}
-              </button>
-            </div>
-            <div className="card-body" style={{ padding: '0' }}>
-              {loadingLogs ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', marginBottom: '10px' }} />
-                  <p style={{ margin: 0 }}>Loading security events...</p>
-                </div>
-              ) : auditLogs.length === 0 ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
-                  <ClipboardList size={32} style={{ marginBottom: '10px', opacity: 0.4 }} />
-                  <p style={{ margin: 0 }}>No audit logs found.</p>
-                </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                    <tr>
-                      {['Action', 'User', 'Details', 'IP Address', 'Timestamp'].map(h => (
-                        <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {auditLogs.map((log, idx) => (
-                      <tr key={log._id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '5px',
-                            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700,
-                            backgroundColor: getActionColor(log.action) + '18',
-                            color: getActionColor(log.action)
-                          }}>
-                            <Activity size={10} />
-                            {log.action}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#334155', fontWeight: 600 }}>
-                          {log.username || '—'}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#475569', maxWidth: '300px' }}>
-                          {log.details || '—'}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#94a3b8', fontFamily: 'monospace' }}>
-                          {log.ipAddress || '—'}
-                        </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#94a3b8', whiteSpace: 'nowrap' }}>
-                          {log.timestamp ? new Date(log.timestamp).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
 
         </div>
       </div>

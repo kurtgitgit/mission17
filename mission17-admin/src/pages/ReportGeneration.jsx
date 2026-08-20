@@ -4,47 +4,79 @@ import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, Alert
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';
+import { endpoints } from '../config/api';
+import logoImg from '../assets/logo.png';
 
 const ReportGeneration = () => {
-  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, missions, analytics
+  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, analytics
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  const filterByDate = (arr) => {
+    if (!startDate && !endDate) return arr;
+    if (!Array.isArray(arr)) return arr;
+    return arr.filter(item => {
+      const d = new Date(item.createdAt || item.date || item.timestamp);
+      if (isNaN(d.getTime())) return true; // If no valid date, keep it just in case
+      if (startDate && d < new Date(startDate)) return false;
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      return true;
+    });
+  };
 
   const fetchReportData = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (reportType === 'analytics') {
-        const baseUrl = 'http://localhost:5001';
         const headers = { Authorization: `Bearer ${token}`, 'auth-token': token };
         const [submRes, userRes, docRes, blotterRes] = await Promise.all([
-          axios.get(`${baseUrl}/api/auth/analytics-stats`, { headers }),
-          axios.get(`${baseUrl}/api/auth/users`, { headers }),
-          axios.get(`${baseUrl}/api/document-requests`, { headers }),
-          axios.get(`${baseUrl}/api/blotter-reports`, { headers })
+          axios.get(endpoints.submissions.stats, { headers }),
+          axios.get(endpoints.users.getAll, { headers }),
+          axios.get(`${endpoints.auth.backendBaseUrl}/api/document-requests`, { headers }),
+          axios.get(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, { headers })
         ]);
         
-        const subs = Array.isArray(submRes.data) ? submRes.data : (submRes.data.submissions || []);
+        const rawSubs = Array.isArray(submRes.data) ? submRes.data : (submRes.data.submissions || []);
+        const subs = filterByDate(rawSubs);
         const approvedSubs = subs.filter(s => s.status === 'Approved').length;
         
+        let usersArr = userRes.data.data || userRes.data;
+        if (!Array.isArray(usersArr)) usersArr = [];
+        const filteredUsers = filterByDate(usersArr);
+
+        const docs = filterByDate(docRes.data || []);
+        const blotters = filterByDate(blotterRes.data || []);
+
         setData({
-          users: userRes.data.length || 0,
-          documents: docRes.data.length || 0,
-          blotters: blotterRes.data.length || 0,
+          users: filteredUsers.length || 0,
+          documents: docs.length || 0,
+          blotters: blotters.length || 0,
           submissions: subs.length || 0,
           approvedSubmissions: approvedSubs || 0
         });
       } else {
-        let endpoint = '';
-        if (reportType === 'blotter') endpoint = '/api/blotter-reports';
-        else if (reportType === 'documents') endpoint = '/api/document-requests';
-        else if (reportType === 'users') endpoint = '/api/auth/admin/users';
-        else if (reportType === 'missions') endpoint = '/api/auth/missions';
+        let url = '';
+        if (reportType === 'blotter') url = `${endpoints.auth.backendBaseUrl}/api/blotter-reports`;
+        else if (reportType === 'documents') url = `${endpoints.auth.backendBaseUrl}/api/document-requests`;
+        else if (reportType === 'users') url = endpoints.users.getAll;
+        else if (reportType === 'missions') url = endpoints.missions.getAll;
 
-        const res = await axios.get(`http://localhost:5001${endpoint}`, {
+        const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}`, 'auth-token': token }
         });
-        setData(res.data.users || res.data.missions || res.data);
+        
+        // Handle paginated endpoints (like users) or standard arrays
+        let rawArr = res.data.data || res.data.users || res.data.missions || res.data;
+        if (!Array.isArray(rawArr)) rawArr = [];
+        
+        setData(filterByDate(rawArr));
       }
     } catch (err) {
       console.error('Error fetching report data', err);
@@ -55,7 +87,7 @@ const ReportGeneration = () => {
 
   useEffect(() => {
     fetchReportData();
-  }, [reportType]);
+  }, [reportType, startDate, endDate]);
 
   const handlePrint = () => {
     window.print();
@@ -229,9 +261,6 @@ const ReportGeneration = () => {
                 <button className={`report-type-btn ${reportType === 'users' ? 'active' : ''}`} onClick={() => setReportType('users')}>
                   <Users size={16} /> Registered Residents
                 </button>
-                <button className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
-                  <Target size={16} /> Civic Tasks & SDGs
-                </button>
                 <button className={`report-type-btn ${reportType === 'analytics' ? 'active' : ''}`} onClick={() => setReportType('analytics')}>
                   <TrendingUp size={16} /> Analytics Summary
                 </button>
@@ -240,8 +269,8 @@ const ReportGeneration = () => {
               <div style={{ marginTop: '25px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#475569' }}>DATE RANGE (Optional)</label>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <input type="date" className="form-input" style={{ padding: '8px' }} />
-                  <input type="date" className="form-input" style={{ padding: '8px' }} />
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
                 </div>
               </div>
             </div>
@@ -255,15 +284,13 @@ const ReportGeneration = () => {
               ) : (
                 <>
                   {/* LETTERHEAD */}
-                  <div className="report-letterhead">
-                    <div className="letterhead-logo">🇵🇭</div>
-                    <div className="letterhead-text">
+                  <div className="report-letterhead" style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div className="letterhead-text" style={{ textAlign: 'center' }}>
                       <p className="lh-republic">Republic of the Philippines</p>
                       <p className="lh-province">Province of Pangasinan</p>
                       <p className="lh-city">Municipality of San Jacinto</p>
                       <h2 className="lh-brgy">BARANGAY BAGONG PAG-ASA</h2>
                     </div>
-                    <div className="letterhead-logo logo-yellow">🏛️</div>
                   </div>
                   
                   <div className="report-divider"></div>

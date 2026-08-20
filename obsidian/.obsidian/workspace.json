@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "d78e8e42a21fe96b",
+        "id": "5f5060f88a71f02d",
         "type": "tabs",
         "children": [
           {
-            "id": "65267fc5962f5f73",
+            "id": "3f3709f477b7fa8e",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "Bugs_and_Tasks.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "Bugs_and_Tasks"
+              "title": "New tab"
             }
           }
         ]
@@ -188,16 +184,16 @@
       "bases:Create new base": false
     }
   },
-  "active": "65267fc5962f5f73",
+  "active": "3f3709f477b7fa8e",
   "lastOpenFiles": [
-    "Architecture.md",
-    "Bugs_and_Tasks.md",
-    "Dashboard.md",
-    "Project_State.md",
-    "2026-08-04.md",
-    "Untitled 2.canvas",
     "Untitled 1.canvas",
+    "Untitled 2.canvas",
     "Untitled.canvas",
-    "Untitled.base"
+    "Untitled.base",
+    "Dashboard.md",
+    "Bugs_and_Tasks.md",
+    "Architecture.md",
+    "2026-08-04.md",
+    "Project_State.md"
   ]
 }

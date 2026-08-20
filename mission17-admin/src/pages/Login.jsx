@@ -134,17 +134,15 @@ const Login = () => {
       <div className="auth-sidebar">
         <div className="sidebar-content">
           <div className="brand-box">
-            <div style={{ fontSize: '56px', marginBottom: '12px' }}>🏛️</div>
+            <img src={logoImg} alt="Barangay Logo" className="sidebar-logo" />
             <h1 className="brand-title">BARANGAY BAGONG PAG-ASA</h1>
             <p className="brand-tagline">Official Digital Portal</p>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '8px' }}>San Jacinto, Pangasinan</p>
           </div>
-          <div className="sidebar-footer">
-            <p>© 2026 Barangay Bagong Pag-asa Admin</p>
-          </div>
         </div>
-        <div className="circle-decoration circle-1"></div>
-        <div className="circle-decoration circle-2"></div>
+        <div className="sidebar-footer">
+          <p>© 2026 Barangay Bagong Pag-asa Admin</p>
+        </div>
       </div>
 
       {/* RIGHT SIDE: LOGIN FORM */}

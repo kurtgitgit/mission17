@@ -7,20 +7,21 @@ import {
 import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Leaf, Megaphone,
-  UserCheck, Shield, Calendar, MessageSquare, Bot
+  UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, GlobalState } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 
 // ─── QUICK SERVICES ─────────────────────────────────────────────────────────
 const SERVICES = [
-  { id: 'clearance',  label: 'eBrgy',         emoji: '📄', screen: 'Services' },
-  { id: 'officials',  label: 'eOfficials',    emoji: '👥', screen: 'Officials' },
-  { id: 'tasks',      label: 'eMissions',     emoji: '🌿', screen: 'MissionsTab' },
-  { id: 'news',       label: 'eNews',         emoji: '📢', screen: 'AnnouncementsTab' },
-  { id: 'suggestions',label: 'eFeedback',     emoji: '💡', screen: 'Suggestion' },
+  { id: 'clearance',  label: 'eBrgy',         icon: FileText, screen: 'Services' },
+  { id: 'officials',  label: 'eOfficials',    icon: Users,    screen: 'Officials' },
+  { id: 'tasks',      label: 'eMissions',     icon: Leaf,     screen: 'MissionsTab' },
+  { id: 'news',       label: 'eNews',         icon: Megaphone, screen: 'AnnouncementsTab' },
+  { id: 'suggestions',label: 'eFeedback',     icon: Lightbulb, screen: 'Suggestion' },
 ];
 
 // ─── HOTLINES ───────────────────────────────────────────────────────────────
@@ -120,10 +121,10 @@ const HomeScreen: React.FC = () => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
       >
         {/* ══════════ HEADER ══════════ */}
-        <View style={styles.header}>
+        <LinearGradient colors={['#0038A8', '#001a5e']} style={styles.header}>
           <View style={styles.headerTop}>
             <View>
-              <Text style={styles.brgyBadge}>🇵🇭 REPUBLIC OF THE PHILIPPINES</Text>
+              <Text style={styles.brgyBadge}>REPUBLIC OF THE PHILIPPINES</Text>
               <Text style={styles.brgyCity}>Barangay Bagong Pag-asa, San Jacinto</Text>
             </View>
             <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
@@ -142,12 +143,12 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.welcomeName}>{fullName}</Text>
             </View>
           </View>
-        </View>
+        </LinearGradient>
 
         {/* ══════════ DIGITAL ID (STATS) ══════════ */}
         <View style={styles.statsStrip}>
           <View style={styles.idHeader}>
-            <Text style={styles.idHeaderText}>DIGITAL RESIDENT ID</Text>
+            <Text style={styles.idHeaderText}>ACTIVITY STATS</Text>
             <Shield size={16} color="#FCD116" />
           </View>
           <View style={styles.idBody}>
@@ -172,7 +173,9 @@ const HomeScreen: React.FC = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Services</Text>
           <View style={styles.servicesGrid}>
-            {SERVICES.map(svc => (
+            {SERVICES.map(svc => {
+              const IconComp = svc.icon;
+              return (
               <TouchableOpacity
                 key={svc.id}
                 style={styles.svcCard}
@@ -180,25 +183,15 @@ const HomeScreen: React.FC = () => {
                 activeOpacity={0.8}
               >
                 <View style={styles.svcIconBox}>
-                  <Text style={styles.svcEmoji}>{svc.emoji}</Text>
+                  <IconComp size={24} color={theme.primary} />
                 </View>
                 <Text style={styles.svcLabel}>{svc.label}</Text>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         </View>
 
-        {/* ══════════ DOCUMENT REQUESTS BANNER ══════════ */}
-        <TouchableOpacity style={styles.docBanner} onPress={() => navigation.navigate('Services')} activeOpacity={0.85}>
-          <View style={styles.docBannerLeft}>
-            <FileText size={22} color={theme.primary} />
-            <View>
-              <Text style={styles.docBannerTitle}>Request Barangay Documents</Text>
-              <Text style={styles.docBannerSub}>Clearance • Indigency • Residency</Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color={theme.primary} />
-        </TouchableOpacity>
 
         {/* ══════════ BLOTTER REPORT BANNER ══════════ */}
         <TouchableOpacity style={[styles.docBanner, { backgroundColor: theme.dangerLight, borderColor: theme.dangerLight, marginTop: 10 }]} onPress={() => navigation.navigate('BlotterReport')} activeOpacity={0.85}>

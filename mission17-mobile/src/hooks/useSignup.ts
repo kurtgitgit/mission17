@@ -153,7 +153,12 @@ export const useSignup = () => {
       showNotification('Password is required.', 'error');
       return;
     }
-    
+    // Minimum 8 chars & 1 special character validation
+    if (formData.password.length < 8 || !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      showNotification('Password must be 8+ chars and have a special symbol', 'error');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       showNotification('Passwords do not match.', 'error');
       return;
@@ -185,16 +190,20 @@ export const useSignup = () => {
       });
       formPayload.append('role', role.toLowerCase());
 
+      const formatUri = (uri: string) => {
+        return Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
+      };
+
       if (validIdFront) {
         formPayload.append('validIdFront', {
-          uri: validIdFront.uri,
+          uri: formatUri(validIdFront.uri),
           name: 'valid_id_front.jpg',
           type: 'image/jpeg'
         } as any);
       }
       if (validIdBack) {
         formPayload.append('validIdBack', {
-          uri: validIdBack.uri,
+          uri: formatUri(validIdBack.uri),
           name: 'valid_id_back.jpg',
           type: 'image/jpeg'
         } as any);
@@ -202,22 +211,36 @@ export const useSignup = () => {
       
       if (profileImage) {
         formPayload.append('profileImage', {
-          uri: profileImage.uri,
+          uri: formatUri(profileImage.uri),
           name: 'profile_img.jpg',
           type: 'image/jpeg'
         } as any);
       }
 
       // 3. Sync with Backend
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+
       const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${firebaseToken}` 
         },
         body: formPayload,
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      // Handle HTML/Bad Gateway responses safely
+      const responseText = await response.text();
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Backend returned non-JSON response:", responseText);
+        throw new Error("Server returned an invalid response.");
+      }
 
       if (response.ok) {
         showNotification('Account created! Please log in to verify your email address.', 'success');
@@ -227,11 +250,13 @@ export const useSignup = () => {
         showNotification(msg, 'error');
       }
     } catch (error: any) {
-      console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
+      console.error("Signup Catch Error:", error);
+      if (error.name === 'AbortError') {
+         showNotification('Request timed out. The server might be waking up or your internet is slow. Please try again.', 'error');
+      } else if (error.code === 'auth/email-already-in-use') {
          showNotification('That email is already registered.', 'error');
       } else {
-         showNotification('Connection Error. Is the backend running?', 'error');
+         showNotification('Connection Error or Server Error. Please try again.', 'error');
       }
     } finally {
       setLoading(false);

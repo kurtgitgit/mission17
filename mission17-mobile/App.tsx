@@ -5,8 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Target, BookOpen, Megaphone, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import ToastMessage from 'react-native-toast-message';
-
+import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 // ─── SCREENS ───────────────────────────────────────────
 import LoginScreen       from './src/screens/LoginScreen';
 import SignupScreen      from './src/screens/SignupScreen';
@@ -112,6 +111,36 @@ function MainTabs() {
     </TabNavigator>
   );
 }
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      text1NumberOfLines={3}
+      text2NumberOfLines={3}
+      text1Style={{ fontSize: 14, fontWeight: 'bold' }}
+      text2Style={{ fontSize: 12 }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      text1NumberOfLines={3}
+      text2NumberOfLines={3}
+      text1Style={{ fontSize: 14, fontWeight: 'bold' }}
+      text2Style={{ fontSize: 12 }}
+    />
+  ),
+  info: (props: any) => (
+    <BaseToast
+      {...props}
+      text1NumberOfLines={3}
+      text2NumberOfLines={3}
+      style={{ borderLeftColor: '#3b82f6' }}
+      text1Style={{ fontSize: 14, fontWeight: 'bold' }}
+      text2Style={{ fontSize: 12 }}
+    />
+  )
+};
 
 // ─── ROOT APP ───────────────────────────────────────────
 export default function App() {
@@ -134,7 +163,6 @@ export default function App() {
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#eff6ff', gap: 16 }}>
-        <Text style={{ fontSize: 48 }}>🇵🇭</Text>
         <Text style={{ fontSize: 20, fontWeight: '900', color: '#0038A8' }}>Barangay Bagong Pag-asa</Text>
         <Text style={{ fontSize: 12, color: '#64748b', marginTop: -8 }}>Republic of the Philippines</Text>
         <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 8 }} />
@@ -176,7 +204,7 @@ export default function App() {
             </StackNavigator>
           </NavigationContainer>
         </NotificationProvider>
-        <ToastMessage />
+        <ToastMessage config={toastConfig} />
       </ThemeProvider>
     </GestureHandlerRootView>
   );

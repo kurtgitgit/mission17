@@ -35,29 +35,58 @@ const DashboardHome = () => {
 
         setStats(data.stats);
         setRecentActivity(data.recentPending || []);
-        if (data.chartData) setChartData(data.chartData);
+        if (data.chartData) {
+          setChartData(data.chartData);
+        } else {
+          // Fallback: manually construct chart data from real database info
+          try {
+            const [subRes, allDocRes, allBlotterRes] = await Promise.all([
+              fetch(endpoints.submissions.stats, { headers: { 'auth-token': token } }),
+              fetch(`${endpoints.auth.backendBaseUrl}/api/document-requests`, { headers: { 'auth-token': token } }),
+              fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, { headers: { 'auth-token': token } })
+            ]);
+            
+            let tasks = [];
+            if (subRes.ok) {
+               const subData = await subRes.json();
+               tasks = Array.isArray(subData) ? subData : (subData.submissions || []);
+            }
+            const docs = allDocRes.ok ? await allDocRes.json() : [];
+            const blotters = allBlotterRes.ok ? await allBlotterRes.json() : [];
 
-        // Fetch recent document requests
-        try {
-          const docRes = await fetch(`${endpoints.auth.backendBaseUrl}/api/document-requests?status=Pending`, {
-            headers: { 'auth-token': token },
-          });
-          if (docRes.ok) {
-            const docData = await docRes.json();
-            setRecentDocRequests(docData.slice(0, 5));
-          }
-        } catch (e) { /* non-critical */ }
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const newChartData = [
+              { name: 'Mon', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Tue', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Wed', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Thu', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Fri', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Sat', tasks: 0, requests: 0, reports: 0 },
+              { name: 'Sun', tasks: 0, requests: 0, reports: 0 },
+            ];
 
-        // Fetch recent blotter reports
-        try {
-          const blotterRes = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports?status=Pending`, {
-            headers: { 'auth-token': token },
-          });
-          if (blotterRes.ok) {
-            const blotterData = await blotterRes.json();
-            setRecentBlotters(blotterData.slice(0, 5));
+            const processItem = (item, key) => {
+              if (item.createdAt || item.date) {
+                const d = new Date(item.createdAt || item.date);
+                const dayName = days[d.getDay()];
+                const dayObj = newChartData.find(x => x.name === dayName);
+                if (dayObj) dayObj[key]++;
+              }
+            };
+
+            tasks.forEach(t => processItem(t, 'tasks'));
+            docs.forEach(d => processItem(d, 'requests'));
+            blotters.forEach(b => processItem(b, 'reports'));
+
+            setChartData(newChartData);
+
+            // Populate recent lists with real info
+            setRecentDocRequests(docs.filter(d => d.status === 'Pending').slice(0, 5));
+            setRecentBlotters(blotters.filter(b => b.status === 'Pending').slice(0, 5));
+          } catch(err) {
+            console.error("Aggregation error:", err);
           }
-        } catch (e) { /* non-critical */ }
+        }
 
         // Fetch recent announcements
         try {

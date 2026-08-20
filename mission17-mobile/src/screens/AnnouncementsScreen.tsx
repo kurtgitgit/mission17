@@ -100,7 +100,7 @@ const PostCard = React.memo(({ item, theme, styles }: { item: any, theme: any, s
       <Image
         source={{ uri: imgSrc }}
         style={styles.postImage}
-        resizeMode="cover"
+        resizeMode="contain"
       />
     </View>
   );
@@ -262,7 +262,7 @@ const getStyles = (theme: any) => StyleSheet.create({
   seeMore: { fontSize: 14, color: theme.primary, fontWeight: '700', paddingHorizontal: 14, marginBottom: 10 },
 
   // IMAGE
-  postImage: { width: SCREEN_W, height: SCREEN_W * 0.55 },
+  postImage: { width: '100%', height: 220, backgroundColor: theme.isDark ? '#1e293b' : '#f1f5f9' },
 
   // REACTIONS
   reactionSummary: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
