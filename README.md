@@ -49,6 +49,10 @@ The platform features a modern, "Human-Designed" mobile app for residents (inspi
 * **Smart Contracts:** Solidity
 * **Library:** Ethers.js
 
+### **Deployment & DevOps**
+* **Mobile Updates:** Over-The-Air (OTA) updates via Expo Application Services (`eas update`)
+* **CI/CD:** GitHub Actions (for automated deployment)
+
 ---
 
 ## 📂 Project Structure
