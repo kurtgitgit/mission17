@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
   Bell, CheckCircle, Clock, FileText,
-  Phone, MapPin, ChevronRight, Leaf, Megaphone,
+  Phone, MapPin, ChevronRight,
   UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
   Landmark, ShieldAlert, Flame, PhoneCall, Sparkles, ArrowRight
 } from 'lucide-react-native';
@@ -16,7 +16,6 @@ import { endpoints, GlobalState } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 
-// ─── QUICK SERVICES (2-COLUMN BALANCED GRID) ──────────────────────────────────
 const SERVICES = [
   { 
     id: 'clearance',  
@@ -44,24 +43,6 @@ const SERVICES = [
     screen: 'Officials',
     color: '#0284C7',
     bgLight: '#F0F9FF'
-  },
-  { 
-    id: 'tasks',      
-    label: 'Civic Tasks',  
-    subtitle: 'Programs & Events',     
-    icon: Leaf,     
-    screen: 'MissionsTab',
-    color: '#16A34A',
-    bgLight: '#F0FDF4'
-  },
-  { 
-    id: 'news',       
-    label: 'Barangay News',      
-    subtitle: 'Bulletins & Alerts',  
-    icon: Megaphone, 
-    screen: 'AnnouncementsTab',
-    color: '#D97706',
-    bgLight: '#FFFBEB'
   },
   { 
     id: 'suggestions',
