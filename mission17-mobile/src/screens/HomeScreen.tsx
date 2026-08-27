@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
   Bell, CheckCircle, Clock, FileText,
-  Phone, MapPin, ChevronRight,
+  Phone, MapPin, ChevronRight, Megaphone,
   UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
   Landmark, ShieldAlert, Flame, PhoneCall, Sparkles, ArrowRight
 } from 'lucide-react-native';
