@@ -290,7 +290,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     padding: 16, 
     fontSize: 16, 
     color: theme.text,
-    ...Platform.select({ web: { outlineStyle: 'none' } })
+    ...Platform.select({ web: { outlineStyle: 'none' as any } })
   },
   eyeIcon: { padding: 4 },
   saveBtn: { backgroundColor: theme.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },

@@ -7,7 +7,8 @@ import {
 import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Leaf, Megaphone,
-  UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb
+  UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
+  Landmark, ShieldAlert, Flame, PhoneCall, Sparkles, ArrowRight
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,22 +16,79 @@ import { endpoints, GlobalState } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 
-// ─── QUICK SERVICES ─────────────────────────────────────────────────────────
+// ─── QUICK SERVICES (2-COLUMN BALANCED GRID) ──────────────────────────────────
 const SERVICES = [
-  { id: 'clearance',  label: 'eBrgy',         icon: FileText, screen: 'Services' },
-  { id: 'officials',  label: 'eOfficials',    icon: Users,    screen: 'Officials' },
-  { id: 'tasks',      label: 'eMissions',     icon: Leaf,     screen: 'MissionsTab' },
-  { id: 'news',       label: 'eNews',         icon: Megaphone, screen: 'AnnouncementsTab' },
-  { id: 'suggestions',label: 'eFeedback',     icon: Lightbulb, screen: 'Suggestion' },
+  { 
+    id: 'clearance',  
+    label: 'Clearance & ID', 
+    subtitle: 'Certificates & Permits', 
+    icon: FileText, 
+    screen: 'Services',
+    color: '#0038A8',
+    bgLight: '#EFF6FF'
+  },
+  { 
+    id: 'blotter',    
+    label: 'Blotter Incident',   
+    subtitle: 'File or Track Report',  
+    icon: ShieldAlert, 
+    screen: 'BlotterReport',
+    color: '#DC2626',
+    bgLight: '#FEF2F2'
+  },
+  { 
+    id: 'officials',  
+    label: 'Barangay Council', 
+    subtitle: 'Officials & Directory',     
+    icon: Users,    
+    screen: 'Officials',
+    color: '#0284C7',
+    bgLight: '#F0F9FF'
+  },
+  { 
+    id: 'tasks',      
+    label: 'Civic Tasks',  
+    subtitle: 'Programs & Events',     
+    icon: Leaf,     
+    screen: 'MissionsTab',
+    color: '#16A34A',
+    bgLight: '#F0FDF4'
+  },
+  { 
+    id: 'news',       
+    label: 'Barangay News',      
+    subtitle: 'Bulletins & Alerts',  
+    icon: Megaphone, 
+    screen: 'AnnouncementsTab',
+    color: '#D97706',
+    bgLight: '#FFFBEB'
+  },
+  { 
+    id: 'suggestions',
+    label: 'eFeedback',   
+    subtitle: 'Citizen Voice',     
+    icon: Lightbulb, 
+    screen: 'Suggestion',
+    color: '#7C3AED',
+    bgLight: '#F5F3FF'
+  },
 ];
 
-// ─── HOTLINES ───────────────────────────────────────────────────────────────
+// ─── EMERGENCY HOTLINES (VECTOR ICONS) ───────────────────────────────────────
 const HOTLINES = [
-  { label: 'Barangay Hall',      number: '075-529-9999', emoji: '🏛️' },
-  { label: 'PNP San Jacinto',      number: '000-000-0000', emoji: '👮' },
-  { label: 'BFP San Jacinto',      number: '000-000-0000', emoji: '🚒' },
-  { label: 'City DRRMO',         number: '075-529-7911', emoji: '🆘' },
+  { label: 'Barangay Hall',      number: '075-529-9999', icon: Landmark,    color: '#0038A8' },
+  { label: 'PNP San Jacinto',    number: '0998-598-5123', icon: ShieldAlert, color: '#1e40af' },
+  { label: 'BFP Fire Station',   number: '0923-456-7890', icon: Flame,       color: '#dc2626' },
+  { label: 'City DRRMO Rescue',  number: '075-529-7911', icon: PhoneCall,   color: '#ea580c' },
 ];
+
+// ─── TIME-AWARE GREETING HELPER ──────────────────────────────────────────────
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Magandang Umaga';
+  if (hour < 18) return 'Magandang Hapon';
+  return 'Magandang Gabi';
+};
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 const HomeScreen: React.FC = () => {
@@ -106,122 +164,137 @@ const HomeScreen: React.FC = () => {
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchAll(); }, [fetchAll]);
 
-  const call = (number: string) => {
-    Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Cannot open dialer.'));
+  const call = (number: string, label: string) => {
+    Alert.alert(
+      `Call ${label}?`,
+      `Would you like to connect to ${number}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Call Now', onPress: () => Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Cannot open phone dialer on this device.')) }
+      ]
+    );
   };
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   return (
     <RootComponent style={styles.root}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
+      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
+        contentContainerStyle={{ paddingBottom: 110 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
       >
-        {/* ══════════ HEADER ══════════ */}
+        {/* ══════════ CITIZEN HEADER ══════════ */}
         <LinearGradient colors={['#0038A8', '#001a5e']} style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.brgyBadge}>REPUBLIC OF THE PHILIPPINES</Text>
               <Text style={styles.brgyCity}>Barangay Bagong Pag-asa, San Jacinto</Text>
             </View>
-            <TouchableOpacity style={styles.bellBtn} onPress={() => navigation.navigate('Notifications')}>
-              <Bell size={19} color="white" />
+            <TouchableOpacity 
+              style={styles.bellBtn} 
+              onPress={() => navigation.navigate('Notifications')}
+              accessibilityRole="button"
+              accessibilityLabel="Notifications"
+            >
+              <Bell size={19} color="#FFFFFF" />
               {hasUnread && <View style={styles.bellDot} />}
             </TouchableOpacity>
           </View>
 
-          {/* Welcome pill */}
+          {/* Welcome greeting with avatar */}
           <View style={styles.welcomeRow}>
             <View style={styles.avatar}>
               <Text style={styles.avatarInitial}>{fullName.charAt(0).toUpperCase()}</Text>
             </View>
-            <View>
-              <Text style={styles.welcomeGreet}>Good day,</Text>
-              <Text style={styles.welcomeName}>{fullName}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.welcomeGreet}>{getGreeting()},</Text>
+              <Text style={styles.welcomeName} numberOfLines={1}>{fullName}</Text>
             </View>
           </View>
         </LinearGradient>
 
-        {/* ══════════ DIGITAL ID (STATS) ══════════ */}
+        {/* ══════════ CITIZEN ID & STATS CARD ══════════ */}
         <View style={styles.statsStrip}>
           <View style={styles.idHeader}>
-            <Text style={styles.idHeaderText}>ACTIVITY STATS</Text>
-            <Shield size={16} color="#FCD116" />
+            <View style={styles.verifiedBadge}>
+              <CheckCircle size={13} color="#047857" />
+              <Text style={styles.verifiedBadgeText}>VERIFIED CITIZEN</Text>
+            </View>
+            <Text style={styles.idHeaderText}>PORTAL ACTIVITY</Text>
           </View>
           <View style={styles.idBody}>
             <View style={styles.statItem}>
               <Text style={styles.statNum}>{stats.total}</Text>
-              <Text style={styles.statLbl}>Activities</Text>
+              <Text style={styles.statLbl}>Submitted</Text>
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: theme.primary }]}>{stats.approved}</Text>
-              <Text style={styles.statLbl}>Verified</Text>
+              <Text style={[styles.statNum, { color: '#047857' }]}>{stats.approved}</Text>
+              <Text style={styles.statLbl}>Approved</Text>
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: theme.danger }]}>{stats.pending}</Text>
-              <Text style={styles.statLbl}>Pending</Text>
+              <Text style={[styles.statNum, { color: '#B45309' }]}>{stats.pending}</Text>
+              <Text style={styles.statLbl}>In Progress</Text>
             </View>
           </View>
         </View>
 
-        {/* ══════════ QUICK SERVICES ══════════ */}
+        {/* ══════════ 2-COLUMN ESSENTIAL SERVICES GRID ══════════ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Services</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Barangay E-Services</Text>
+            <Text style={styles.sectionSub}>Official community services</Text>
+          </View>
+          
           <View style={styles.servicesGrid}>
             {SERVICES.map(svc => {
               const IconComp = svc.icon;
               return (
-              <TouchableOpacity
-                key={svc.id}
-                style={styles.svcCard}
-                onPress={() => navigation.navigate(svc.screen)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.svcIconBox}>
-                  <IconComp size={24} color={theme.primary} />
-                </View>
-                <Text style={styles.svcLabel}>{svc.label}</Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  key={svc.id}
+                  style={styles.svcCard}
+                  onPress={() => navigation.navigate(svc.screen)}
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${svc.label}: ${svc.subtitle}`}
+                >
+                  <View style={[styles.svcIconBox, { backgroundColor: svc.bgLight }]}>
+                    <IconComp size={22} color={svc.color} />
+                  </View>
+                  <View style={styles.svcTextContent}>
+                    <Text style={styles.svcLabel} numberOfLines={1}>{svc.label}</Text>
+                    <Text style={styles.svcSub} numberOfLines={1}>{svc.subtitle}</Text>
+                  </View>
+                  <ChevronRight size={15} color="#94A3B8" />
+                </TouchableOpacity>
               );
             })}
           </View>
         </View>
 
-
-        {/* ══════════ BLOTTER REPORT BANNER ══════════ */}
-        <TouchableOpacity style={[styles.docBanner, { backgroundColor: theme.dangerLight, borderColor: theme.dangerLight, marginTop: 10 }]} onPress={() => navigation.navigate('BlotterReport')} activeOpacity={0.85}>
-          <View style={styles.docBannerLeft}>
-            <Shield size={22} color={theme.danger} />
-            <View>
-              <Text style={[styles.docBannerTitle, { color: theme.danger }]}>File a Blotter Report</Text>
-              <Text style={[styles.docBannerSub, { color: theme.danger }]}>Report incidents directly to the barangay</Text>
-            </View>
-          </View>
-          <ChevronRight size={18} color={theme.danger} />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={{ alignItems: 'center', marginTop: 8 }} onPress={() => navigation.navigate('BlotterHistory')}>
-          <Text style={{ fontSize: 13, color: theme.danger, fontWeight: '600' }}>View My Past Reports →</Text>
-        </TouchableOpacity>
-
-        {/* ══════════ ANNOUNCEMENTS ══════════ */}
+        {/* ══════════ ANNOUNCEMENTS & BULLETINS ══════════ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Latest Announcements</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('AnnouncementsTab')}>
+            <View>
+              <Text style={styles.sectionTitle}>Barangay Bulletins</Text>
+              <Text style={styles.sectionSub}>Official announcements</Text>
+            </View>
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('AnnouncementsTab')}
+              accessibilityRole="button"
+              accessibilityLabel="See all announcements"
+            >
               <Text style={styles.seeAll}>See all →</Text>
             </TouchableOpacity>
           </View>
 
           {announcements.length === 0 ? (
             <View style={styles.emptyState}>
-              <Megaphone size={28} color={theme.textTertiary} />
-              <Text style={styles.emptyText}>No announcements yet.</Text>
+              <Megaphone size={24} color="#94A3B8" />
+              <Text style={styles.emptyText}>No bulletins posted at this time.</Text>
             </View>
           ) : (
             announcements.map(ann => (
@@ -229,14 +302,23 @@ const HomeScreen: React.FC = () => {
                 key={ann._id}
                 style={styles.annCard}
                 onPress={() => navigation.navigate('AnnouncementsTab')}
-                activeOpacity={0.85}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel={`Announcement: ${ann.title}`}
               >
-                {ann.isPinned && <Text style={styles.pinTag}>📌 PINNED</Text>}
+                {ann.isPinned && (
+                  <View style={styles.pinTagBadge}>
+                    <Text style={styles.pinTag}>PINNED ANNOUNCEMENT</Text>
+                  </View>
+                )}
                 <Text style={styles.annTitle} numberOfLines={2}>{ann.title}</Text>
                 <Text style={styles.annBody} numberOfLines={3}>{ann.body}</Text>
-                <Text style={styles.annDate}>
-                  {new Date(ann.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </Text>
+                <View style={styles.annFooter}>
+                  <Text style={styles.annDate}>
+                    {new Date(ann.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                  <Text style={styles.readMoreText}>Read details →</Text>
+                </View>
               </TouchableOpacity>
             ))
           )}
@@ -246,34 +328,44 @@ const HomeScreen: React.FC = () => {
         {events.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Upcoming Events</Text>
-              <TouchableOpacity onPress={() => navigation.navigate('MissionsTab')}>
+              <View>
+                <Text style={styles.sectionTitle}>Upcoming Activities</Text>
+                <Text style={styles.sectionSub}>Community events schedule</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('MissionsTab', { initialTab: 'events' })}
+                accessibilityRole="button"
+                accessibilityLabel="See all events"
+              >
                 <Text style={styles.seeAll}>See all →</Text>
               </TouchableOpacity>
             </View>
-            {events.map(evt => {
-              const d    = new Date(evt.date + 'T00:00:00');
-              const mon  = d.toLocaleString('default', { month: 'short' }).toUpperCase();
-              const day  = d.getDate();
+
+            {events.map(ev => {
+              const d = new Date(ev.date);
+              const mon = d.toLocaleString('en-PH', { month: 'short' });
+              const day = d.getDate();
               return (
                 <TouchableOpacity
-                  key={evt._id}
+                  key={ev._id}
                   style={styles.evtRow}
-                  onPress={() => navigation.navigate('MissionsTab')}
-                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('EventDetail', { event: ev, userId })}
+                  activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Event: ${ev.title}`}
                 >
-                  <View style={[styles.evtDate, { backgroundColor: evt.color || theme.primary }]}>
-                    <Text style={[styles.evtMon, { color: 'white' }]}>{mon}</Text>
-                    <Text style={[styles.evtDay, { color: 'white' }]}>{day}</Text>
+                  <View style={[styles.evtDate, { backgroundColor: ev.color || '#0F2942' }]}>
+                    <Text style={styles.evtMon}>{mon}</Text>
+                    <Text style={styles.evtDay}>{day}</Text>
                   </View>
                   <View style={styles.evtInfo}>
-                    <Text style={styles.evtTitle} numberOfLines={1}>{evt.title}</Text>
+                    <Text style={styles.evtTitle} numberOfLines={1}>{ev.title}</Text>
                     <View style={styles.evtLocRow}>
-                      <MapPin size={12} color={theme.textTertiary} />
-                      <Text style={styles.evtLoc} numberOfLines={1}>{evt.location}</Text>
+                      <MapPin size={12} color="#64748B" />
+                      <Text style={styles.evtLoc} numberOfLines={1}>{ev.location || 'Barangay Hall'}</Text>
                     </View>
                   </View>
-                  <ChevronRight size={16} color={theme.textTertiary} />
+                  <ChevronRight size={16} color="#94A3B8" />
                 </TouchableOpacity>
               );
             })}
@@ -282,148 +374,343 @@ const HomeScreen: React.FC = () => {
 
         {/* ══════════ EMERGENCY HOTLINES ══════════ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Emergency Hotlines</Text>
+          <View style={styles.sectionHeader}>
+            <View>
+              <Text style={styles.sectionTitle}>Emergency Hotlines</Text>
+              <Text style={styles.sectionSub}>24/7 San Jacinto emergency response</Text>
+            </View>
+          </View>
+
           <View style={styles.hotlinesCard}>
-            {HOTLINES.map((h, i) => (
-              <TouchableOpacity
-                key={h.label}
-                style={[styles.hotlineRow, i < HOTLINES.length - 1 && styles.hotlineDivider]}
-                onPress={() => call(h.number)}
-                activeOpacity={0.75}
-              >
-                <Text style={styles.hotlineEmoji}>{h.emoji}</Text>
-                <View style={styles.hotlineInfo}>
-                  <Text style={styles.hotlineLabel}>{h.label}</Text>
-                  <Text style={styles.hotlineNumber}>{h.number}</Text>
-                </View>
-                <Phone size={15} color={theme.primary} />
-              </TouchableOpacity>
-            ))}
+            {HOTLINES.map((h, i) => {
+              const IconComp = h.icon;
+              return (
+                <TouchableOpacity
+                  key={h.number}
+                  style={[styles.hotlineRow, i < HOTLINES.length - 1 && styles.hotlineDivider]}
+                  onPress={() => call(h.number, h.label)}
+                  activeOpacity={0.7}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Call ${h.label} at ${h.number}`}
+                >
+                  <View style={[styles.hotlineIconCircle, { backgroundColor: '#F1F5F9' }]}>
+                    <IconComp size={18} color={h.color} />
+                  </View>
+                  <View style={styles.hotlineInfo}>
+                    <Text style={styles.hotlineLabel}>{h.label}</Text>
+                    <Text style={styles.hotlineNumber}>{h.number}</Text>
+                  </View>
+                  <View style={styles.callBadge}>
+                    <Text style={styles.callBadgeText}>Call</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
       </ScrollView>
 
-      {/* FAB FOR CHATBOT */}
-      <TouchableOpacity 
-        style={styles.fab} 
-        onPress={() => navigation.navigate('ChatBot')}
-        activeOpacity={0.9}
+      {/* FAB - AI ASSISTANT */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('Chatbot')}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel="Chat with Barangay AI Assistant"
       >
-        <Bot size={28} color="#0038A8" />
+        <Bot size={28} color="#0F2942" />
       </TouchableOpacity>
     </RootComponent>
   );
 };
 
-// ─── STYLES ──────────────────────────────────────────────────────────────────
+// ─── STYLES ───────────────────────────────────────────────────────────────────
 const getStyles = (theme: any) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.background },
+  root: { flex: 1, backgroundColor: '#F8FAFC' },
 
   // HEADER
   header: {
-    backgroundColor: '#0038A8', // Brand blue stays same for header
-    paddingTop: Platform.OS === 'android' ? 44 : 18,
-    paddingHorizontal: 20,
-    paddingBottom: 40, // More space for overlapping card
+    paddingTop: Platform.OS === 'android' ? 44 : 20,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
   },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 },
-  brgyBadge: { fontSize: 13, fontWeight: '900', color: '#FCD116', letterSpacing: 0.3 },
-  brgyCity: { fontSize: 11, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
-  bellBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  bellDot: { position: 'absolute', top: 9, right: 9, width: 7, height: 7, borderRadius: 4, backgroundColor: theme.danger, borderWidth: 1.5, borderColor: '#0038A8' },
-  welcomeRow: { flexDirection: 'row', alignItems: 'center', gap: 13 },
-  avatar: { width: 50, height: 50, borderRadius: 25, backgroundColor: 'rgba(255,255,255,0.22)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FCD116' },
-  avatarInitial: { fontSize: 20, fontWeight: '900', color: 'white' },
-  welcomeGreet: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
-  welcomeName: { fontSize: 20, fontWeight: '800', color: 'white' },
+  headerTop: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-start', 
+    marginBottom: 16 
+  },
+  brgyBadge: { 
+    fontSize: 10, 
+    fontWeight: '800', 
+    color: '#93C5FD', 
+    letterSpacing: 1.2,
+    textTransform: 'uppercase' 
+  },
+  brgyCity:  { 
+    fontSize: 13, 
+    fontWeight: '700', 
+    color: '#FFFFFF', 
+    marginTop: 1 
+  },
+  bellBtn:   { 
+    padding: 8, 
+    backgroundColor: 'rgba(255,255,255,0.12)', 
+    borderRadius: 20,
+    position: 'relative'
+  },
+  bellDot:   { 
+    position: 'absolute', 
+    top: 6, 
+    right: 6, 
+    width: 8, 
+    height: 8, 
+    borderRadius: 4, 
+    backgroundColor: '#EF4444',
+    borderWidth: 1.5,
+    borderColor: '#0F2942'
+  },
 
-  // DIGITAL ID / STATS STRIP
-  statsStrip: {
-    backgroundColor: theme.surface, marginHorizontal: 16,
-    borderRadius: 16, marginTop: -30,
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.3 : 0.1, shadowRadius: 15, elevation: 6,
-    overflow: 'hidden', borderWidth: 1, borderColor: theme.border
+  welcomeRow:   { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  avatar: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    backgroundColor: 'rgba(255,255,255,0.2)', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.4)'
   },
-  idHeader: { backgroundColor: theme.surfaceSecondary, paddingVertical: 8, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: theme.border },
-  idHeaderText: { fontSize: 11, fontWeight: '800', color: theme.primary, letterSpacing: 1 },
-  idBody: { flexDirection: 'row', paddingVertical: 16 },
-  statItem: { flex: 1, alignItems: 'center', gap: 4 },
-  statNum:  { fontSize: 22, fontWeight: '900', color: theme.text },
-  statLbl:  { fontSize: 11, color: theme.textSecondary, fontWeight: '700', textTransform: 'uppercase' },
-  statDiv:  { width: 1, backgroundColor: theme.border, alignSelf: 'stretch', marginVertical: 4 },
+  avatarInitial: { fontSize: 20, fontWeight: '900', color: '#FFFFFF' },
+  welcomeGreet:  { fontSize: 13, color: '#93C5FD', fontWeight: '600' },
+  welcomeName:   { fontSize: 19, fontWeight: '800', color: '#FFFFFF', marginTop: 1, letterSpacing: -0.2 },
+
+  // STATS STRIP
+  statsStrip: {
+    marginHorizontal: 16,
+    marginTop: -16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  idHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 14, 
+    paddingVertical: 10, 
+    alignItems: 'center', 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F1F5F9' 
+  },
+  verifiedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  verifiedBadgeText: { fontSize: 10, fontWeight: '800', color: '#047857', letterSpacing: 0.5 },
+  idHeaderText: { fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.8 },
+  idBody: { flexDirection: 'row', paddingVertical: 12 },
+  statItem: { flex: 1, alignItems: 'center', gap: 2 },
+  statNum:  { fontSize: 19, fontWeight: '800', color: '#0F172A' },
+  statLbl:  { fontSize: 11, color: '#64748B', fontWeight: '600' },
+  statDiv:  { width: 1, backgroundColor: '#E2E8F0', alignSelf: 'stretch', marginVertical: 2 },
 
   // SECTIONS
-  section: { paddingHorizontal: 16, marginTop: 24 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: theme.primary },
-  seeAll: { fontSize: 13, color: theme.danger, fontWeight: '700' },
+  section: { paddingHorizontal: 16, marginTop: 20 },
+  sectionHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'flex-end', 
+    marginBottom: 10 
+  },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', letterSpacing: -0.2 },
+  sectionSub: { fontSize: 12, color: '#64748B', marginTop: 1, fontWeight: '500' },
+  seeAll: { fontSize: 12.5, color: '#1D4ED8', fontWeight: '700' },
 
-  // QUICK SERVICES
-  servicesGrid: { flexDirection: 'row', gap: 10 },
+  // 2-COLUMN SERVICES GRID
+  servicesGrid: { 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 10 
+  },
   svcCard: {
-    flex: 1, backgroundColor: theme.surface, borderRadius: 14, paddingVertical: 16, alignItems: 'center', gap: 8,
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.06, shadowRadius: 8, elevation: 3, borderWidth: 1, borderColor: theme.border
+    width: '48.5%', 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 14, 
+    padding: 12, 
+    flexDirection: 'row',
+    alignItems: 'center', 
+    gap: 8,
+    shadowColor: '#0F172A', 
+    shadowOpacity: 0.04, 
+    shadowRadius: 5, 
+    elevation: 1.5, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0',
+    minHeight: 64,
   },
-  svcIconBox: { width: 46, height: 46, borderRadius: 12, backgroundColor: theme.background, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: theme.border },
-  svcEmoji:  { fontSize: 22 },
-  svcLabel:  { fontSize: 11, fontWeight: '700', color: theme.primary, textAlign: 'center' },
-
-  // DOC BANNER
-  docBanner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: theme.isDark ? 'rgba(59, 130, 246, 0.15)' : theme.primaryLight, borderRadius: 14, padding: 16, marginHorizontal: 16, marginTop: 14,
-    borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(59, 130, 246, 0.3)' : '#bfdbfe',
+  svcIconBox: { 
+    width: 38, 
+    height: 38, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
   },
-  docBannerLeft:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  docBannerTitle: { fontSize: 14, fontWeight: '800', color: theme.isDark ? theme.text : theme.primary },
-  docBannerSub:   { fontSize: 12, color: theme.primary, marginTop: 1 },
+  svcTextContent: { flex: 1 },
+  svcLabel:  { fontSize: 12, fontWeight: '800', color: '#0F172A' },
+  svcSub:    { fontSize: 10.5, color: '#64748B', marginTop: 1, fontWeight: '500' },
 
   // ANNOUNCEMENTS
   annCard: {
-    backgroundColor: theme.surface, borderRadius: 14, padding: 16, marginBottom: 10,
-    borderLeftWidth: 4, borderLeftColor: theme.primary,
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.03, shadowRadius: 6, elevation: 1,
-    borderWidth: 1, borderColor: theme.border
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 14, 
+    padding: 14, 
+    marginBottom: 8,
+    borderLeftWidth: 3.5, 
+    borderLeftColor: '#0F2942',
+    shadowColor: '#0F172A', 
+    shadowOpacity: 0.03, 
+    shadowRadius: 5, 
+    elevation: 1.5, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0'
   },
-  pinTag:   { fontSize: 10, fontWeight: '800', color: theme.warning, marginBottom: 5 },
-  annTitle: { fontSize: 15, fontWeight: '800', color: theme.text, marginBottom: 5, lineHeight: 22 },
-  annBody:  { fontSize: 13, color: theme.textSecondary, lineHeight: 20, marginBottom: 8 },
-  annDate:  { fontSize: 11, color: theme.textTertiary },
-  emptyState: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: theme.surface, borderRadius: 14, padding: 20, marginBottom: 10, borderWidth: 1, borderColor: theme.border },
-  emptyText:  { color: theme.textTertiary, fontStyle: 'italic', fontSize: 14 },
+  pinTagBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 2.5,
+    paddingHorizontal: 7,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  pinTag:   { fontSize: 9.5, fontWeight: '800', color: '#B45309', letterSpacing: 0.5 },
+  annTitle: { fontSize: 14.5, fontWeight: '800', color: '#0F172A', marginBottom: 4, lineHeight: 20 },
+  annBody:  { fontSize: 12.5, color: '#475569', lineHeight: 18, marginBottom: 8 },
+  annFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  annDate:  { fontSize: 11, color: '#94A3B8', fontWeight: '500' },
+  readMoreText: { fontSize: 11.5, fontWeight: '700', color: '#1D4ED8' },
+  emptyState: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 10, 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    padding: 16, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0' 
+  },
+  emptyText:  { color: '#64748B', fontSize: 13, fontWeight: '500' },
 
   // EVENTS
   evtRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: theme.surface, borderRadius: 14, padding: 14, marginBottom: 8,
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.03, shadowRadius: 6, elevation: 1,
-    borderWidth: 1, borderColor: theme.border
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 12,
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 14, 
+    padding: 12, 
+    marginBottom: 8,
+    shadowColor: '#0F172A', 
+    shadowOpacity: 0.03, 
+    shadowRadius: 5, 
+    elevation: 1.5, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0'
   },
-  evtDate: { width: 48, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  evtMon:  { fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
-  evtDay:  { fontSize: 18, fontWeight: '900', lineHeight: 22 },
+  evtDate: { 
+    width: 44, 
+    height: 44, 
+    borderRadius: 10, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  evtMon:  { fontSize: 9.5, fontWeight: '800', color: '#FFFFFF', textTransform: 'uppercase' },
+  evtDay:  { fontSize: 16, fontWeight: '800', color: '#FFFFFF', lineHeight: 19 },
   evtInfo: { flex: 1 },
-  evtTitle: { fontSize: 14, fontWeight: '700', color: theme.text, marginBottom: 3 },
+  evtTitle: { fontSize: 13.5, fontWeight: '700', color: '#0F172A', marginBottom: 2 },
   evtLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  evtLoc:    { fontSize: 12, color: theme.textTertiary, flex: 1 },
+  evtLoc:    { fontSize: 11.5, color: '#64748B', flex: 1, fontWeight: '500' },
 
   // HOTLINES
-  hotlinesCard: { backgroundColor: theme.surface, borderRadius: 16, overflow: 'hidden', shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 8, elevation: 2, borderWidth: 1, borderColor: theme.border },
-  hotlineRow:   { flexDirection: 'row', alignItems: 'center', padding: 16 },
-  hotlineDivider: { borderBottomWidth: 1, borderBottomColor: theme.border },
-  hotlineEmoji:  { fontSize: 22, marginRight: 12 },
-  hotlineInfo:   { flex: 1 },
-  hotlineLabel:  { fontSize: 14, fontWeight: '700', color: theme.text },
-  hotlineNumber: { fontSize: 13, color: theme.primary, fontWeight: '600', marginTop: 1 },
+  hotlinesCard: { 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 14, 
+    overflow: 'hidden', 
+    shadowColor: '#0F172A', 
+    shadowOpacity: 0.04, 
+    shadowRadius: 6, 
+    elevation: 2, 
+    borderWidth: 1, 
+    borderColor: '#E2E8F0' 
+  },
+  hotlineRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    paddingVertical: 12,
+    paddingHorizontal: 14 
+  },
+  hotlineDivider: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  hotlineIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  hotlineInfo: { flex: 1 },
+  hotlineLabel: { fontSize: 13.5, fontWeight: '700', color: '#0F172A' },
+  hotlineNumber: { fontSize: 12, color: '#64748B', fontWeight: '500', marginTop: 1 },
+  callBadge: {
+    backgroundColor: '#EFF6FF',
+    paddingVertical: 5,
+    paddingHorizontal: 11,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  callBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
   
   // FAB
   fab: {
-    position: 'absolute', bottom: 24, right: 20, width: 64, height: 64, borderRadius: 32,
-    backgroundColor: '#FCD116', alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 8, shadowOffset: { width: 0, height: 4 },
-    borderWidth: 2, borderColor: '#fff'
+    position: 'absolute', 
+    bottom: 24, 
+    right: 20, 
+    width: 58, 
+    height: 58, 
+    borderRadius: 29, 
+    backgroundColor: '#FCD116', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    shadowColor: '#0F172A', 
+    shadowOpacity: 0.2, 
+    shadowRadius: 8, 
+    elevation: 6, 
+    shadowOffset: { width: 0, height: 3 },
+    borderWidth: 2, 
+    borderColor: '#FFFFFF'
   }
 });
 
 export default HomeScreen;
+

@@ -1,52 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Platform, SafeAreaView, ActivityIndicator, StatusBar, Linking, Alert
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  Platform, SafeAreaView, ActivityIndicator, StatusBar, Linking, Alert,
+  RefreshControl
 } from 'react-native';
-import { User, Phone, Mail, Shield, ArrowLeft } from 'lucide-react-native';
+import { User, Phone, Mail, Shield, ArrowLeft, Building2, ExternalLink } from 'lucide-react-native';
 import { endpoints } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
-
-const POSITION_ORDER = [
-  'Punong Barangay',
-  'Barangay Kagawad',
-  'SK Chairperson',
-  'Barangay Secretary',
-  'Barangay Treasurer',
-];
+import { sharedStyles } from '../config/theme';
 
 const OfficialsScreen: React.FC = () => {
   const [officials, setOfficials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation<any>();
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  useEffect(() => {
-    const fetchOfficials = async () => {
-      try {
-        const res = await fetch(endpoints.officials);
-        if (res.ok) {
-          const data = await res.json();
-          setOfficials(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch officials:', err);
-      } finally {
-        setLoading(false);
+  const fetchOfficials = useCallback(async () => {
+    try {
+      const res = await fetch(endpoints.officials);
+      if (res.ok) {
+        const data = await res.json();
+        setOfficials(Array.isArray(data) ? data : []);
       }
-    };
-    fetchOfficials();
+    } catch (err) {
+      console.error('Failed to fetch officials:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchOfficials();
+  }, [fetchOfficials]);
 
   const handleCall = (number: string) => {
     Linking.openURL(`tel:${number}`).catch(() =>
-      Alert.alert('Error', 'Could not open dialer.')
+      Alert.alert('Unable to Call', `Could not open dialer for ${number}.`)
     );
   };
 
   const handleEmail = (email: string) => {
     Linking.openURL(`mailto:${email}`).catch(() =>
-      Alert.alert('Error', 'Could not open email app.')
+      Alert.alert('Unable to Email', `Could not open email client for ${email}.`)
     );
   };
 
@@ -56,42 +53,56 @@ const OfficialsScreen: React.FC = () => {
   const sk = officials.filter(o => o.position === 'SK Chairperson');
   const others = officials.filter(o => !['Punong Barangay', 'Barangay Kagawad', 'SK Chairperson'].includes(o.position));
 
-  const renderOfficial = ({ item }: { item: any }) => (
-    <View style={styles.card}>
+  const renderOfficial = (item: any) => (
+    <View key={item._id || item.name} style={styles.card}>
       <View style={styles.avatarBox}>
-        <User size={28} color="#0038A8" />
+        <User size={26} color="#0038A8" />
       </View>
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.position}>{item.position}</Text>
-        {item.committee && <Text style={styles.committee}>Committee on {item.committee}</Text>}
-        {item.term && <Text style={styles.term}>Term: {item.term}</Text>}
+        <View style={styles.positionBadge}>
+          <Text style={styles.positionText}>{item.position}</Text>
+        </View>
+        {item.committee ? <Text style={styles.committee}>Chairperson, Committee on {item.committee}</Text> : null}
+        {item.term ? <Text style={styles.term}>Term: {item.term}</Text> : null}
+
         <View style={styles.contactRow}>
-          {item.contact && (
-            <TouchableOpacity style={styles.contactBtn} onPress={() => handleCall(item.contact)}>
+          {item.contact ? (
+            <TouchableOpacity 
+              style={styles.contactBtn} 
+              onPress={() => handleCall(item.contact)}
+              accessibilityRole="button"
+              accessibilityLabel={`Call ${item.name} at ${item.contact}`}
+            >
               <Phone size={13} color="#0038A8" />
               <Text style={styles.contactText}>{item.contact}</Text>
             </TouchableOpacity>
-          )}
-          {item.email && (
-            <TouchableOpacity style={styles.contactBtn} onPress={() => handleEmail(item.email)}>
+          ) : null}
+          {item.email ? (
+            <TouchableOpacity 
+              style={styles.contactBtn} 
+              onPress={() => handleEmail(item.email)}
+              accessibilityRole="button"
+              accessibilityLabel={`Email ${item.name} at ${item.email}`}
+            >
               <Mail size={13} color="#0038A8" />
               <Text style={styles.contactText}>{item.email}</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
     </View>
   );
 
-  const renderSection = (title: string, data: any[]) => {
+  const renderSection = (title: string, subtitle: string, data: any[]) => {
     if (data.length === 0) return null;
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>{title}</Text>
-        {data.map((item) => (
-          <React.Fragment key={item._id}>{renderOfficial({ item })}</React.Fragment>
-        ))}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={styles.sectionSub}>{subtitle}</Text>
+        </View>
+        {data.map(renderOfficial)}
       </View>
     );
   };
@@ -101,88 +112,151 @@ const OfficialsScreen: React.FC = () => {
       <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
 
       {/* HEADER */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ArrowLeft size={20} color="white" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Shield size={20} color="white" />
-            <Text style={styles.headerTitle}>Barangay Officials</Text>
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={styles.headerSub}>Barangay Bagong Pag-asa — Your Local Leaders</Text>
+      <View style={sharedStyles.header}>
+        <TouchableOpacity 
+          style={sharedStyles.backBtn} 
+          onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to dashboard"
+        >
+          <ArrowLeft size={24} color="white" />
+        </TouchableOpacity>
+        <Text style={sharedStyles.headerTitle}>Barangay Officials</Text>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#0038A8" style={{ marginTop: 50 }} />
-      ) : officials.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Shield size={48} color="#cbd5e1" />
-          <Text style={styles.emptyTitle}>No Officials Listed</Text>
-          <Text style={styles.emptyText}>Officials information will appear here once added by the admin.</Text>
+      <ScrollView
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchOfficials(); }} tintColor="#0038A8" />
+        }
+      >
+        {/* BANNER */}
+        <View style={styles.bannerCard}>
+          <Building2 size={24} color="#0038A8" style={{ marginTop: 2 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.bannerTitle}>Barangay Bagong Pag-asa Council</Text>
+            <Text style={styles.bannerText}>
+              San Jacinto, Pangasinan • Office Hours: Mon–Fri, 8:00 AM – 5:00 PM
+            </Text>
+          </View>
         </View>
-      ) : (
-        <FlatList
-          data={[]}
-          ListHeaderComponent={
-            <View style={{ paddingBottom: 40 }}>
-              {renderSection('Punong Barangay', kapitan)}
-              {renderSection('Barangay Kagawads', kagawads)}
-              {renderSection('Sangguniang Kabataan', sk)}
-              {renderSection('Other Officials', others)}
-            </View>
-          }
-          renderItem={() => null}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+
+        {loading ? (
+          <View style={styles.centerLoading}>
+            <ActivityIndicator size="large" color="#0038A8" />
+            <Text style={styles.loadingText}>Retrieving council directory...</Text>
+          </View>
+        ) : officials.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Shield size={48} color="#cbd5e1" />
+            <Text style={styles.emptyTitle}>No Officials Listed</Text>
+            <Text style={styles.emptyText}>Officials directory will appear once registered in the portal.</Text>
+          </View>
+        ) : (
+          <View style={{ paddingBottom: 40 }}>
+            {renderSection('Punong Barangay', 'Head of Barangay Government', kapitan)}
+            {renderSection('Sangguniang Barangay Members', 'Barangay Kagawad & Legislators', kagawads)}
+            {renderSection('Sangguniang Kabataan', 'Youth Governance & Development', sk)}
+            {renderSection('Appointed Officials', 'Secretariat & Treasury', others)}
+          </View>
+        )}
+      </ScrollView>
     </RootComponent>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0fdf4' },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  listContent: { padding: 14, paddingBottom: 60 },
 
-  header: {
-    backgroundColor: '#0038A8',
-    paddingTop: Platform.OS === 'android' ? 44 : 18,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  bannerCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
-  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
-  headerContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: 'white' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.8)' },
+  bannerTitle: { fontSize: 14.5, fontWeight: '800', color: '#0f172a' },
+  bannerText: { fontSize: 12, color: '#64748b', marginTop: 2, lineHeight: 17 },
 
-  listContent: { paddingHorizontal: 16 },
-  section: { marginTop: 20 },
-  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#0038A8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, paddingHorizontal: 4 },
+  section: { marginTop: 14 },
+  sectionHeader: { marginBottom: 8, paddingHorizontal: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '900', color: '#0038A8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionSub: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 1 },
 
   card: {
-    flexDirection: 'row', backgroundColor: 'white', borderRadius: 16,
-    padding: 16, marginBottom: 10,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 6, elevation: 2,
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
   avatarBox: {
-    width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7',
-    justifyContent: 'center', alignItems: 'center', marginRight: 14,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#eff6ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+    borderWidth: 1.5,
+    borderColor: '#bfdbfe',
   },
   info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
-  position: { fontSize: 13, fontWeight: '600', color: '#0038A8', marginBottom: 2 },
-  committee: { fontSize: 12, color: '#64748b', marginBottom: 2 },
-  term: { fontSize: 11, color: '#94a3b8', marginBottom: 6 },
-  contactRow: { gap: 6 },
-  contactBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  contactText: { fontSize: 12, color: '#0038A8', fontWeight: '600' },
+  name: { fontSize: 15.5, fontWeight: '800', color: '#0f172a' },
+  positionBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#eff6ff',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginTop: 3,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  positionText: { fontSize: 11.5, fontWeight: '800', color: '#0038A8' },
+  committee: { fontSize: 12, color: '#334155', fontWeight: '600', marginBottom: 2 },
+  term: { fontSize: 11, color: '#64748b', marginBottom: 8 },
 
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: '#475569', marginTop: 16, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 22 },
+  contactRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  contactText: { fontSize: 12, color: '#0038A8', fontWeight: '700' },
+
+  centerLoading: { alignItems: 'center', marginTop: 50 },
+  loadingText: { fontSize: 13.5, color: '#64748b', marginTop: 12, fontWeight: '600' },
+
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 30 },
+  emptyTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginTop: 14, marginBottom: 6 },
+  emptyText: { fontSize: 13, color: '#64748b', textAlign: 'center', lineHeight: 20 },
 });
 
 export default OfficialsScreen;
+

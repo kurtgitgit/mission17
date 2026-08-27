@@ -2,37 +2,31 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
-  RefreshControl, Image, Dimensions, Alert
+  RefreshControl, Image, Dimensions
 } from 'react-native';
-import { Megaphone, Pin } from 'lucide-react-native';
+import { Megaphone, Pin, Calendar, Building, Globe, ChevronRight } from 'lucide-react-native';
 import { endpoints } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
+import { sharedStyles } from '../config/theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-// ─── Category → Unsplash image ───────────────────────────────────────────────
-const CAT_IMAGES: Record<string, string> = {
-  general:     'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&q=80',
-  health:      'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=900&q=80',
-  safety:      'https://images.unsplash.com/photo-1593240637049-8e26750afa8a?w=900&q=80',
-  environment: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=900&q=80',
-  events:      'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=900&q=80',
-  services:    'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=900&q=80',
+const CAT_LABELS: Record<string, string> = {
+  general: 'General',
+  health: 'Health & Wellness',
+  safety: 'Public Safety',
+  environment: 'Environment',
+  events: 'Community Events',
+  services: 'Public Services',
 };
 
 const CAT_COLORS: Record<string, string> = {
-  general: '#0038A8', health: '#0891b2', safety: '#dc2626',
-  environment: '#15803d', events: '#7c3aed', services: '#b45309',
-};
-const CAT_LABELS: Record<string, string> = {
-  general: 'General', health: 'Health', safety: 'Safety & Security',
-  environment: 'Environment', events: 'Events', services: 'Services',
-};
-
-// Randomized reaction counts seeded from announcement id
-const fakeStats = (id: string) => {
-  const seed = parseInt(id?.slice(-4) || '1234', 16) % 400;
-  return { likes: 30 + seed, comments: 3 + (seed % 22), shares: 1 + (seed % 12) };
+  general: '#0F2942',
+  health: '#0891B2',
+  safety: '#DC2626',
+  environment: '#16A34A',
+  events: '#7C3AED',
+  services: '#B45309',
 };
 
 const timeAgo = (dateStr: string) => {
@@ -46,82 +40,88 @@ const timeAgo = (dateStr: string) => {
   return 'Just now';
 };
 
-// ─── POST CARD ────────────────────────────────────────────────────────────────
-const PostCard = React.memo(({ item, theme, styles }: { item: any, theme: any, styles: any }) => {
+const PostCard = React.memo(({ item }: { item: any }) => {
   const [expanded, setExpanded] = useState(false);
-
-  const catColor = CAT_COLORS[item.category] || CAT_COLORS.general;
+  const catColor = CAT_COLORS[item.category] || '#0F2942';
   const catLabel = CAT_LABELS[item.category] || 'General';
-  const imgSrc   = item.image || CAT_IMAGES[item.category] || CAT_IMAGES.general;
 
-  const bodyPreview = item.body?.length > 160 && !expanded
-    ? item.body.slice(0, 160) + '…'
+  const bodyPreview = item.body?.length > 180 && !expanded
+    ? item.body.slice(0, 180) + '…'
     : item.body;
 
   return (
     <View style={styles.postCard}>
-      {/* ── HEADER (Page info) ── */}
+      {/* HEADER */}
       <View style={styles.postHeader}>
-        <View style={[styles.pageAvatar, { backgroundColor: catColor }]}>
-          <Text style={styles.pageAvatarEmoji}>🏛️</Text>
+        <View style={styles.avatarCircle}>
+          <Building size={18} color="#0F2942" />
         </View>
         <View style={styles.pageInfo}>
-          <Text style={styles.pageName}>Barangay Bagong Pag-asa Official</Text>
+          <Text style={styles.pageName}>Barangay Bagong Pag-asa</Text>
           <View style={styles.pageMetaRow}>
             <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
             <Text style={styles.dotSep}> · </Text>
-            <Text style={styles.postGlobe}>🌐 Public</Text>
+            <Text style={styles.postGlobe}>Official Bulletin</Text>
           </View>
         </View>
         {item.isPinned && (
           <View style={styles.pinnedBadge}>
-            <Pin size={11} color={theme.warning} />
-            <Text style={styles.pinnedText}>Pinned</Text>
+            <Pin size={11} color="#B45309" />
+            <Text style={styles.pinnedText}>PINNED</Text>
           </View>
         )}
       </View>
 
-      {/* ── CATEGORY TAG ── */}
-      <View style={[styles.catTag, { backgroundColor: catColor + '20' }]}>
-        <View style={[styles.catDot, { backgroundColor: catColor }]} />
-        <Text style={[styles.catTagText, { color: theme.isDark ? '#e2e8f0' : catColor }]}>{catLabel}</Text>
+      {/* CATEGORY PILL */}
+      <View style={styles.catTagRow}>
+        <View style={[styles.catTag, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
+          <View style={[styles.catDot, { backgroundColor: catColor }]} />
+          <Text style={[styles.catTagText, { color: '#334155' }]}>{catLabel}</Text>
+        </View>
       </View>
 
-      {/* ── BODY TEXT ── */}
+      {/* BODY */}
       <Text style={styles.postTitle}>{item.title}</Text>
       <Text style={styles.postBody}>{bodyPreview}</Text>
-      {item.body?.length > 160 && (
-        <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-          <Text style={styles.seeMore}>{expanded ? 'See less' : 'See more'}</Text>
+      {item.body?.length > 180 && (
+        <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.seeMoreBtn}>
+          <Text style={styles.seeMoreText}>{expanded ? 'Show less' : 'Read full announcement →'}</Text>
         </TouchableOpacity>
       )}
 
-      {/* ── COVER IMAGE ── */}
-      <Image
-        source={{ uri: imgSrc }}
-        style={styles.postImage}
-        resizeMode="contain"
-      />
+      {/* IMAGE (IF PRESENT) */}
+      {item.image ? (
+        <Image
+          source={{ uri: item.image }}
+          style={styles.postImage}
+          resizeMode="cover"
+        />
+      ) : null}
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.footerDate}>
+          📅 {new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+        </Text>
+      </View>
     </View>
   );
 });
 
-// ─── SCREEN ───────────────────────────────────────────────────────────────────
 const AnnouncementsScreen: React.FC = () => {
-  const { theme, isDarkMode } = useTheme();
-  const styles = React.useMemo(() => getStyles(theme), [theme]);
-
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filterCat, setFilterCat]   = useState('all');
+  const [filterCat, setFilterCat] = useState('all');
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const fetchAnnouncements = useCallback(async () => {
     try {
       const res = await fetch(endpoints.announcements);
-      if (res.ok) setAnnouncements(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setAnnouncements(Array.isArray(data) ? data : []);
+      }
     } catch (err) {
       console.error('Failed to fetch announcements:', err);
     } finally {
@@ -130,69 +130,74 @@ const AnnouncementsScreen: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { fetchAnnouncements(); }, []);
+  useEffect(() => {
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
 
-  const onRefresh = useCallback(() => { setRefreshing(true); fetchAnnouncements(); }, []);
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAnnouncements();
+  }, [fetchAnnouncements]);
 
   const categories = ['all', 'general', 'health', 'safety', 'environment', 'events', 'services'];
   const filtered = filterCat === 'all'
     ? announcements
     : announcements.filter(a => a.category === filterCat);
 
-  const renderItem = useCallback(({ item }: { item: any }) => (
-    <PostCard item={item} theme={theme} styles={styles} />
-  ), [theme, styles]);
-
   return (
     <RootComponent style={styles.root}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
+      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
 
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <View style={styles.headerRow}>
-          <Megaphone size={22} color="white" />
-          <Text style={styles.headerTitle}>Community Feed</Text>
-        </View>
-        <Text style={styles.headerSub}>Barangay Bagong Pag-asa Official Updates</Text>
+      {/* HEADER */}
+      <View style={sharedStyles.header}>
+        <Text style={sharedStyles.headerTitle}>Barangay Bulletins & News</Text>
+      </View>
 
-        {/* ── FILTER CHIPS ── */}
+      {/* CATEGORY FILTER STRIP */}
+      <View style={styles.filterStrip}>
         <FlatList
           horizontal
           data={categories}
           keyExtractor={c => c}
           showsHorizontalScrollIndicator={false}
-          style={{ marginHorizontal: -5, marginTop: 10 }}
-          contentContainerStyle={{ paddingHorizontal: 5 }}
+          contentContainerStyle={{ paddingHorizontal: 14, gap: 8 }}
           renderItem={({ item: cat }) => (
             <TouchableOpacity
               style={[styles.filterChip, filterCat === cat && styles.filterChipActive]}
               onPress={() => setFilterCat(cat)}
+              accessibilityRole="button"
+              accessibilityLabel={`Filter by ${cat === 'all' ? 'All' : CAT_LABELS[cat]}`}
             >
               <Text style={[styles.filterText, filterCat === cat && styles.filterTextActive]}>
-                {cat === 'all' ? 'All' : CAT_LABELS[cat]}
+                {cat === 'all' ? 'All Bulletins' : CAT_LABELS[cat]}
               </Text>
             </TouchableOpacity>
           )}
         />
       </View>
 
-      {/* ── FEED ── */}
+      {/* FEED */}
       {loading ? (
-        <ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 60 }} />
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color="#0038A8" />
+          <Text style={styles.loadingText}>Fetching official bulletins...</Text>
+        </View>
       ) : (
         <FlatList
           data={filtered}
-          keyExtractor={item => item._id}
-          renderItem={renderItem}
+          keyExtractor={item => item._id || Math.random().toString()}
+          renderItem={({ item }) => <PostCard item={item} />}
           contentContainerStyle={styles.feed}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />}
-          ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
+          ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           ListEmptyComponent={
-            <View style={styles.empty}>
-              <Text style={styles.emptyEmoji}>📢</Text>
-              <Text style={styles.emptyTitle}>No posts yet</Text>
-              <Text style={styles.emptyText}>Check back soon for updates from Barangay Bagong Pag-asa.</Text>
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconCircle}>
+                <Megaphone size={36} color="#0038A8" />
+              </View>
+              <Text style={styles.emptyTitle}>No Bulletins Posted</Text>
+              <Text style={styles.emptyText}>There are no announcements in this category right now. Check back soon!</Text>
             </View>
           }
         />
@@ -201,87 +206,115 @@ const AnnouncementsScreen: React.FC = () => {
   );
 };
 
-// ─── STYLES ───────────────────────────────────────────────────────────────────
-const getStyles = (theme: any) => StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.background },
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F8FAFC' },
 
-  // HEADER
-  header: {
-    backgroundColor: '#0038A8', // Brand blue for header always
-    paddingTop: Platform.OS === 'android' ? 44 : 18,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+  filterStrip: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
   },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 2 },
-  headerTitle: { fontSize: 22, fontWeight: '900', color: 'white' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)' },
   filterChip: {
-    paddingHorizontal: 14, paddingVertical: 7, marginRight: 8,
-    backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
   },
-  filterChipActive: { backgroundColor: 'white' },
-  filterText: { color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: '700' },
-  filterTextActive: { color: '#0038A8' },
+  filterChipActive: {
+    backgroundColor: '#0038A8',
+    borderColor: '#0038A8',
+  },
+  filterText: {
+    color: '#475569',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  filterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
 
-  // FEED
-  feed: { paddingTop: 8, paddingBottom: 60 },
+  feed: { padding: 14, paddingBottom: 60 },
 
-  // POST CARD
   postCard: {
-    backgroundColor: theme.surface,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: theme.border,
-    ...Platform.select({
-      ios:     { shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-      android: { elevation: theme.isDark ? 0 : 2 },
-      default: {},
-    }),
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-
-  // POST HEADER
-  postHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
-  pageAvatar: { width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', marginRight: 10 },
-  pageAvatarEmoji: { fontSize: 22 },
+  postHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  avatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
   pageInfo: { flex: 1 },
-  pageName: { fontSize: 15, fontWeight: '800', color: theme.text },
+  pageName: { fontSize: 14, fontWeight: '800', color: '#0F172A' },
   pageMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 1 },
-  postTime: { fontSize: 12, color: theme.textSecondary },
-  dotSep: { fontSize: 12, color: theme.textSecondary },
-  postGlobe: { fontSize: 12, color: theme.textSecondary },
-  pinnedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.surfaceSecondary, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: theme.border },
-  pinnedText: { fontSize: 10, fontWeight: '800', color: theme.warning },
+  postTime: { fontSize: 11.5, color: '#64748B' },
+  dotSep: { fontSize: 11.5, color: '#94A3B8' },
+  postGlobe: { fontSize: 11.5, color: '#64748B', fontWeight: '500' },
+  pinnedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  pinnedText: { fontSize: 9.5, fontWeight: '800', color: '#B45309', letterSpacing: 0.5 },
 
-  // CAT TAG
-  catTag: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: 14, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, alignSelf: 'flex-start' },
+  catTagRow: { marginBottom: 8 },
+  catTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+  },
   catDot: { width: 6, height: 6, borderRadius: 3 },
-  catTagText: { fontSize: 11, fontWeight: '800' },
+  catTagText: { fontSize: 11, fontWeight: '700' },
 
-  // POST CONTENT
-  postTitle: { fontSize: 16, fontWeight: '800', color: theme.text, paddingHorizontal: 14, marginBottom: 6, lineHeight: 22 },
-  postBody: { fontSize: 14, color: theme.textSecondary, paddingHorizontal: 14, lineHeight: 21, marginBottom: 6 },
-  seeMore: { fontSize: 14, color: theme.primary, fontWeight: '700', paddingHorizontal: 14, marginBottom: 10 },
+  postTitle: { fontSize: 15.5, fontWeight: '800', color: '#0F172A', marginBottom: 4, lineHeight: 21 },
+  postBody: { fontSize: 13.5, color: '#475569', lineHeight: 20, marginBottom: 8 },
+  seeMoreBtn: { marginBottom: 8 },
+  seeMoreText: { fontSize: 12.5, color: '#1D4ED8', fontWeight: '700' },
 
-  // IMAGE
-  postImage: { width: '100%', height: 220, backgroundColor: theme.isDark ? '#1e293b' : '#f1f5f9' },
+  postImage: { width: '100%', height: 180, borderRadius: 12, marginBottom: 10, backgroundColor: '#F1F5F9' },
 
-  // REACTIONS
-  reactionSummary: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10 },
-  reactionEmojis: { flexDirection: 'row', marginRight: 6 },
-  reactionEmoji: { fontSize: 16, marginRight: -3 },
-  reactionCount: { fontSize: 14, color: theme.textSecondary, flex: 1, marginLeft: 6 },
-  reactionRight: { fontSize: 13, color: theme.textSecondary },
+  cardFooter: { borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 8, marginTop: 4 },
+  footerDate: { fontSize: 11.5, color: '#94A3B8' },
 
-  // ACTIONS
-  actionDivider: { height: 1, backgroundColor: theme.border, marginHorizontal: 14 },
-  actionRow: { flexDirection: 'row', paddingVertical: 4 },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10 },
-  actionText: { fontSize: 14, color: theme.textSecondary, fontWeight: '600' },
+  centerLoading: { alignItems: 'center', marginTop: 60 },
+  loadingText: { fontSize: 13.5, color: '#64748B', marginTop: 12, fontWeight: '600' },
 
-  // EMPTY
-  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 40 },
-  emptyEmoji: { fontSize: 52, marginBottom: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: theme.textSecondary, marginBottom: 8 },
-  emptyText: { fontSize: 14, color: theme.textTertiary, textAlign: 'center', lineHeight: 22 },
+  emptyState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 30 },
+  emptyIconCircle: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#BFDBFE' },
+  emptyTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  emptyText: { fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 19 },
 });
 
 export default AnnouncementsScreen;

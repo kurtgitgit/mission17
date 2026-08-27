@@ -11,10 +11,14 @@
             "id": "3f3709f477b7fa8e",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "Dashboard.md",
+                "mode": "source",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "Dashboard"
             }
           }
         ]
@@ -186,14 +190,14 @@
   },
   "active": "3f3709f477b7fa8e",
   "lastOpenFiles": [
-    "Untitled 1.canvas",
+    "2026-08-04.md",
+    "Architecture.md",
+    "Project_State.md",
     "Untitled 2.canvas",
+    "Bugs_and_Tasks.md",
+    "Untitled 1.canvas",
     "Untitled.canvas",
     "Untitled.base",
-    "Dashboard.md",
-    "Bugs_and_Tasks.md",
-    "Architecture.md",
-    "2026-08-04.md",
-    "Project_State.md"
+    "Dashboard.md"
   ]
 }

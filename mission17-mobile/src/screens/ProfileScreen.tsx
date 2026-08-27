@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
-  SafeAreaView, ActivityIndicator, Linking, Alert, Modal, FlatList
+  SafeAreaView, ActivityIndicator, Linking, Alert, Modal, FlatList, RefreshControl, StatusBar
 } from 'react-native';
 import { 
   User, Settings, ShieldCheck, Clock, XCircle, CheckCircle, 
-  ChevronRight, HelpCircle, Info, ShieldAlert, PhoneCall, ThumbsUp, LogOut, X
+  ChevronRight, HelpCircle, Info, ShieldAlert, PhoneCall, ThumbsUp, LogOut, X,
+  Building, Lock, FileText, ChevronDown, Check
 } from 'lucide-react-native'; 
 import { useIsFocused, CommonActions } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
 import { clearAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
+import { sharedStyles } from '../config/theme';
 
 // YOUR SYSTEM RELAYER ADDRESS
 const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
@@ -24,6 +26,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [infoModal, setInfoModal] = useState<string | null>(null);
   
@@ -32,7 +35,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  const fetchProfileData = async () => {
+  const fetchProfileData = useCallback(async () => {
     try {
       const userRes = await fetch(endpoints.auth.getUser(userId));
       const userJson = await userRes.json();
@@ -41,17 +44,18 @@ const ProfileScreen = ({ navigation }: any) => {
       const histJson = await histRes.json();
 
       setUserData(userJson);
-      setHistory(histJson);
+      setHistory(Array.isArray(histJson) ? histJson : []);
     } catch (error) {
       console.error(error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (userId && isFocused) fetchProfileData();
-  }, [userId, isFocused]);
+  }, [userId, isFocused, fetchProfileData]);
 
   const approvedCount = history.filter((h: any) => h.status === 'Approved').length;
   const pendingCount = history.filter((h: any) => h.status === 'Pending').length;
@@ -75,8 +79,6 @@ const ProfileScreen = ({ navigation }: any) => {
         type: "success"
       });
       
-      // In a nested navigator (Profile -> Tabs -> Stack), getParent() returns Tabs.
-      // We need to go one level higher to the Root Stack to reset to Login.
       const rootNav = navigation.getParent('RootStack') || navigation.getParent()?.getParent() || navigation;
       
       rootNav.dispatch(
@@ -90,21 +92,34 @@ const ProfileScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
-
   const handleComingSoon = (feature: string) => {
-    Alert.alert(feature, "This feature will be available soon.");
+    Alert.alert(feature, "This feature will be available in the upcoming update.");
   };
 
-  if (loading) return <View style={styles.centered}><ActivityIndicator size="large" color={theme.primary} /></View>;
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#0038A8" />
+        <Text style={styles.loadingText}>Loading citizen profile...</Text>
+      </View>
+    );
+  }
 
-  const MenuItem = ({ icon, title, onPress, isLast = false }: any) => (
-    <TouchableOpacity style={[styles.menuItem, !isLast && styles.menuItemBorder]} onPress={onPress}>
-      <View style={styles.menuIconContainer}>{icon}</View>
-      <Text style={styles.menuText}>{title}</Text>
-      <ChevronRight size={20} color={theme.primary} />
+  const MenuItem = ({ icon, title, subtitle, onPress, isDestructive = false, isLast = false }: any) => (
+    <TouchableOpacity 
+      style={[styles.menuItem, !isLast && styles.menuItemBorder]} 
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={title}
+    >
+      <View style={[styles.menuIconContainer, isDestructive && styles.destructiveIconBg]}>
+        {icon}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.menuText, isDestructive && styles.destructiveText]}>{title}</Text>
+        {subtitle ? <Text style={styles.menuSubText}>{subtitle}</Text> : null}
+      </View>
+      <ChevronRight size={18} color={isDestructive ? '#dc2626' : '#94a3b8'} />
     </TouchableOpacity>
   );
 
@@ -112,42 +127,43 @@ const ProfileScreen = ({ navigation }: any) => {
     switch(infoModal) {
       case 'About Mission 17':
         return (
-          <>
+          <View style={{ gap: 10 }}>
             <Text style={styles.infoModalText}>
-              Mission 17 is a centralized digital governance platform for Barangay Bagong Pag-asa. It aims to streamline resident-to-LGU communications, digitize civic tasks, and create a transparent, efficient ecosystem for community feedback and announcements.
+              Mission 17 (BrgyLink) is the official digital governance and community portal for Barangay Bagong Pag-asa, San Jacinto, Pangasinan.
             </Text>
-          </>
+            <Text style={styles.infoModalText}>
+              It empowers residents to request official documents, file incident blotters, track civic tasks, and stay updated on community bulletins with transparency and security.
+            </Text>
+          </View>
         );
-      case 'FAQs':
+      case 'FAQs & Document Guide':
         return (
-          <>
-            <Text style={styles.faqQuestion}>Q: How long does ID verification take?</Text>
-            <Text style={styles.faqAnswer}>A: Verification typically takes 1-2 business days as it is manually reviewed by the Barangay Admin.</Text>
+          <View style={{ gap: 12 }}>
+            <Text style={styles.faqQuestion}>Q: How long does document processing take?</Text>
+            <Text style={styles.faqAnswer}>A: Most clearances take 1–2 working days. You will receive an SMS and in-app notification when ready for pickup.</Text>
             
-            <Text style={styles.faqQuestion}>Q: Are my feedback submissions really anonymous?</Text>
-            <Text style={styles.faqAnswer}>A: Yes! If you toggle "Submit Anonymously", your account details are completely hidden from the Admin dashboard.</Text>
+            <Text style={styles.faqQuestion}>Q: Are my blotter reports secure?</Text>
+            <Text style={styles.faqAnswer}>A: Yes. Only authorized Barangay Desk Officers and the Punong Barangay have access to evaluated blotter statements.</Text>
             
-            <Text style={styles.faqQuestion}>Q: Why can't I edit my address?</Text>
-            <Text style={styles.faqAnswer}>A: Critical demographic details are tied to your valid ID. To change them, please visit the Barangay Hall in person for reverification.</Text>
-          </>
+            <Text style={styles.faqQuestion}>Q: How do I update my registered address or name?</Text>
+            <Text style={styles.faqAnswer}>A: Because records are verified against official government IDs, please present your proof of billing or updated ID at the Barangay Hall.</Text>
+          </View>
         );
       case 'Privacy Notice':
         return (
-          <>
-            <Text style={styles.infoModalText}>
-              Your privacy is our priority. Mission 17 only collects necessary demographic information to verify your residency in Barangay Bagong Pag-asa. Your Valid ID uploads are securely stored and exclusively accessible by authorized Barangay Administrators. We do not share your data with third-party entities.
-            </Text>
-          </>
+          <Text style={styles.infoModalText}>
+            Your privacy is strictly safeguarded. Mission 17 only processes necessary citizen information required for official local government services in compliance with the Data Privacy Act of 2012 (RA 10173).
+          </Text>
         );
-      case 'Contact Us':
+      case 'Contact Barangay Hall':
         return (
-          <>
+          <View style={{ gap: 10 }}>
             <Text style={styles.contactItem}><Text style={styles.contactLabel}>Barangay Bagong Pag-asa Hall</Text></Text>
-            <Text style={styles.contactItem}>📍 Address: Main St., Barangay Bagong Pag-asa, San Jacinto</Text>
-            <Text style={styles.contactItem}>📞 Phone: (075) 123-4567</Text>
-            <Text style={styles.contactItem}>📧 Email: admin@brgybagongpagasa.gov.ph</Text>
-            <Text style={styles.contactItem}>🕒 Hours: Mon - Fri, 8:00 AM - 5:00 PM</Text>
-          </>
+            <Text style={styles.contactItem}>📍 Location: San Jacinto, Pangasinan</Text>
+            <Text style={styles.contactItem}>📞 Telephone: (075) 123-4567</Text>
+            <Text style={styles.contactItem}>📧 Email: brgybagongpagasa@gmail.com</Text>
+            <Text style={styles.contactItem}>🕒 Office Hours: Mon–Fri, 8:00 AM – 5:00 PM</Text>
+          </View>
         );
       default:
         return null;
@@ -156,104 +172,138 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const renderHeader = () => (
     <>
-      <Text style={styles.pageTitle}>Account</Text>
-
-      {/* ── PROFILE INFO ── */}
-      <View style={styles.profileHeader}>
+      {/* ── PROFILE HERO CARD (Hierarchy & Identity) ── */}
+      <View style={styles.profileHeroCard}>
         <View style={styles.avatarContainer}>
-            <View style={styles.avatarCircle}>
-                <User size={38} color="white" />
-            </View>
-            <View style={styles.verifiedBadge}>
-                <ShieldCheck size={14} color="white" />
-            </View>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarLetter}>
+              {(userData?.firstName || userData?.username || 'R').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.verifiedBadge}>
+            <Check size={13} color="white" />
+          </View>
         </View>
+
         <View style={styles.profileDetails}>
-          <Text style={styles.greeting}>Hi, {userData?.firstName?.toUpperCase() || userData?.username?.toUpperCase() || 'USER'}</Text>
-          {userData?.mobileNumber && <Text style={styles.contactText}>{userData.mobileNumber}</Text>}
-          <Text style={styles.contactText}>{userData?.email}</Text>
+          <View style={styles.nameBadgeRow}>
+            <Text style={styles.profileName} numberOfLines={1}>
+              {userData?.firstName && userData?.lastName ? `${userData.firstName} ${userData.lastName}` : (userData?.username || 'Verified Resident')}
+            </Text>
+          </View>
+          <View style={styles.verifiedTag}>
+            <ShieldCheck size={12} color="#15803d" />
+            <Text style={styles.verifiedTagText}>VERIFIED CITIZEN</Text>
+          </View>
+          <Text style={styles.contactEmail}>{userData?.email}</Text>
+          {userData?.mobileNumber ? <Text style={styles.contactPhone}>📱 {userData.mobileNumber}</Text> : null}
         </View>
       </View>
 
-      {/* ── ACTION MENU ── */}
-      <View style={styles.menuContainer}>
-        <MenuItem 
-          icon={<User size={22} color={theme.primary} />} 
-          title="Personal Information" 
-          onPress={() => navigation.navigate('EditProfile')} 
-        />
-        <MenuItem 
-          icon={<HelpCircle size={22} color={theme.primary} />} 
-          title="FAQs" 
-          onPress={() => setInfoModal('FAQs')} 
-        />
-        <MenuItem 
-          icon={<Info size={22} color={theme.primary} />} 
-          title="About Mission 17" 
-          onPress={() => setInfoModal('About Mission 17')} 
-        />
-        <MenuItem 
-          icon={<ShieldAlert size={22} color={theme.primary} />} 
-          title="Privacy Notice" 
-          onPress={() => setInfoModal('Privacy Notice')} 
-        />
-        <MenuItem 
-          icon={<PhoneCall size={22} color={theme.primary} />} 
-          title="Contact Us" 
-          onPress={() => setInfoModal('Contact Us')} 
-        />
-        <MenuItem 
-          icon={<ThumbsUp size={22} color={theme.primary} />} 
-          title="Rate our app" 
-          onPress={() => handleComingSoon("Rate our app")} 
-        />
-        <MenuItem 
-          icon={<Settings size={22} color={theme.primary} />} 
-          title="Settings" 
-          onPress={() => navigation.navigate('Settings')} 
-        />
-        <MenuItem 
-          icon={<ShieldCheck size={22} color={theme.primary} />} 
-          title="Blockchain Verified" 
-          onPress={openBlockchainHistory} 
-        />
-        <MenuItem 
-          icon={<LogOut size={22} color={theme.primary} />} 
-          title="Logout" 
-          onPress={handleLogout} 
-          isLast={true}
-        />
+      {/* ── DEMOGRAPHIC UPDATE GUIDANCE BANNER ── */}
+      <View style={styles.noticeBanner}>
+        <Info size={16} color="#0038A8" style={{ marginTop: 2 }} />
+        <Text style={styles.noticeText}>
+          To update your official registered name or Purok address, please visit the Barangay Hall with a valid ID.
+        </Text>
       </View>
 
       {/* ── STATS SECTION ── */}
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
           <Text style={styles.statValue}>{history.length}</Text>
-          <Text style={styles.statLabel}>Submitted</Text>
+          <Text style={styles.statLabel}>Total Tasks</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.success }]}>{approvedCount}</Text>
+          <Text style={[styles.statValue, { color: '#15803d' }]}>{approvedCount}</Text>
           <Text style={styles.statLabel}>Approved</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: theme.warning }]}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={[styles.statValue, { color: '#b45309' }]}>{pendingCount}</Text>
+          <Text style={styles.statLabel}>In Review</Text>
         </View>
       </View>
 
-      {/* ── TASK HISTORY ── */}
+      {/* ── SECTION 1: CITIZEN ACCOUNT & PREFERENCES ── */}
+      <Text style={styles.menuGroupHeader}>Account & Preferences</Text>
+      <View style={styles.menuGroupCard}>
+        <MenuItem 
+          icon={<User size={20} color="#0038A8" />} 
+          title="Personal Information" 
+          subtitle="View and manage personal details"
+          onPress={() => navigation.navigate('EditProfile')} 
+        />
+        <MenuItem 
+          icon={<Settings size={20} color="#0038A8" />} 
+          title="Security & Password" 
+          subtitle="Change password and login security"
+          onPress={() => navigation.navigate('Settings')} 
+        />
+        <MenuItem 
+          icon={<ShieldCheck size={20} color="#0038A8" />} 
+          title="Blockchain Verification" 
+          subtitle="Verify tamper-proof community records"
+          onPress={openBlockchainHistory} 
+          isLast={true}
+        />
+      </View>
+
+      {/* ── SECTION 2: BARANGAY SUPPORT & INFORMATION ── */}
+      <Text style={styles.menuGroupHeader}>Barangay Transparency & Help</Text>
+      <View style={styles.menuGroupCard}>
+        <MenuItem 
+          icon={<HelpCircle size={20} color="#0038A8" />} 
+          title="FAQs & Document Guide" 
+          subtitle="Processing times and pickup instructions"
+          onPress={() => setInfoModal('FAQs & Document Guide')} 
+        />
+        <MenuItem 
+          icon={<Building size={20} color="#0038A8" />} 
+          title="About Barangay Bagong Pag-asa" 
+          subtitle="Mission 17 civic governance portal"
+          onPress={() => setInfoModal('About Mission 17')} 
+        />
+        <MenuItem 
+          icon={<PhoneCall size={20} color="#0038A8" />} 
+          title="Contact Barangay Hall" 
+          subtitle="Office hours and contact channels"
+          onPress={() => setInfoModal('Contact Barangay Hall')} 
+        />
+        <MenuItem 
+          icon={<ShieldAlert size={20} color="#0038A8" />} 
+          title="Data Privacy & Protection" 
+          subtitle="Data Privacy Act of 2012 compliance"
+          onPress={() => setInfoModal('Privacy Notice')} 
+          isLast={true}
+        />
+      </View>
+
+      {/* ── SECTION 3: SESSION MANAGEMENT ── */}
+      <Text style={styles.menuGroupHeader}>Session</Text>
+      <View style={styles.menuGroupCard}>
+        <MenuItem 
+          icon={<LogOut size={20} color="#dc2626" />} 
+          title="Sign Out" 
+          subtitle="Securely log out of this device"
+          onPress={() => setShowLogoutModal(true)} 
+          isDestructive={true}
+          isLast={true}
+        />
+      </View>
+
+      {/* ── CIVIC TASK HISTORY HEADER ── */}
       <View style={styles.historyHeader}>
-        <Text style={styles.sectionTitle}>Civic Task History</Text>
+        <Text style={styles.sectionTitle}>Community Mission Submissions</Text>
       </View>
     </>
   );
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Clock size={40} color={theme.textTertiary} />
-      <Text style={styles.emptyText}>No missions yet. Start one today!</Text>
+      <Clock size={36} color="#94a3b8" />
+      <Text style={styles.emptyText}>No community task submissions yet.</Text>
     </View>
   );
 
@@ -262,7 +312,7 @@ const ProfileScreen = ({ navigation }: any) => {
       <View style={styles.historyInfo}>
         <Text style={styles.missionTitle}>{item.missionTitle}</Text>
         <View style={styles.historyMeta}>
-          <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+          <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
         </View>
         {item.status === 'Rejected' && <Text style={styles.reasonText}>Reason: {item.rejectionReason}</Text>}
       </View>
@@ -273,9 +323,9 @@ const ProfileScreen = ({ navigation }: any) => {
         item.status === 'Rejected' ? styles.bgDanger : 
         styles.bgWarning
       ]}>
-        {item.status === 'Approved' ? <CheckCircle size={14} color="white" /> : 
-         item.status === 'Rejected' ? <XCircle size={14} color="white" /> : 
-         <Clock size={14} color="white" />}
+        {item.status === 'Approved' ? <CheckCircle size={13} color="white" /> : 
+         item.status === 'Rejected' ? <XCircle size={13} color="white" /> : 
+         <Clock size={13} color="white" />}
         <Text style={styles.statusText}>{item.status}</Text>
       </View>
     </View>
@@ -283,14 +333,24 @@ const ProfileScreen = ({ navigation }: any) => {
 
   return (
     <RootComponent style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
+
+      {/* HEADER */}
+      <View style={sharedStyles.header}>
+        <Text style={sharedStyles.headerTitle}>Citizen Profile & Account</Text>
+      </View>
+
       <FlatList
         data={history}
-        keyExtractor={(item: any) => item._id}
+        keyExtractor={(item: any) => item._id || Math.random().toString()}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         renderItem={renderHistoryItem}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchProfileData(); }} tintColor="#0038A8" />
+        }
       />
 
       {/* --- INFO MODALS --- */}
@@ -300,7 +360,7 @@ const ProfileScreen = ({ navigation }: any) => {
             <View style={styles.bottomSheetHeader}>
               <Text style={styles.bottomSheetTitle}>{infoModal}</Text>
               <TouchableOpacity onPress={() => setInfoModal(null)} style={styles.closeBtn}>
-                <X size={24} color={theme.textSecondary} />
+                <X size={22} color="#475569" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.bottomSheetContent}>
@@ -308,7 +368,7 @@ const ProfileScreen = ({ navigation }: any) => {
             </ScrollView>
             <View style={styles.bottomSheetFooter}>
               <TouchableOpacity style={styles.primaryBtn} onPress={() => setInfoModal(null)}>
-                <Text style={styles.primaryBtnText}>Got it</Text>
+                <Text style={styles.primaryBtnText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -320,17 +380,25 @@ const ProfileScreen = ({ navigation }: any) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalIconContainer}>
-              <LogOut size={32} color={theme.danger} />
+              <LogOut size={30} color="#dc2626" />
             </View>
-            <Text style={styles.modalTitle}>Confirm Logout</Text>
-            <Text style={styles.modalMessage}>Are you sure you want to log out?</Text>
+            <Text style={styles.modalTitle}>Sign Out</Text>
+            <Text style={styles.modalMessage}>Are you sure you want to log out of Barangay Bagong Pag-asa?</Text>
             
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setShowLogoutModal(false)}>
+              <TouchableOpacity 
+                style={styles.modalBtnCancel} 
+                onPress={() => setShowLogoutModal(false)}
+                accessibilityRole="button"
+              >
                 <Text style={styles.modalBtnCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnConfirm} onPress={performLogout}>
-                <Text style={styles.modalBtnConfirmText}>Logout</Text>
+              <TouchableOpacity 
+                style={styles.modalBtnConfirm} 
+                onPress={performLogout}
+                accessibilityRole="button"
+              >
+                <Text style={styles.modalBtnConfirmText}>Sign Out</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -342,144 +410,206 @@ const ProfileScreen = ({ navigation }: any) => {
 };
 
 const getStyles = (theme: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.background },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 24, paddingBottom: 100 },
-  
-  pageTitle: { fontSize: 18, fontWeight: '700', color: theme.text, textAlign: 'center', marginBottom: 24, marginTop: Platform.OS === 'android' ? 24 : 0 },
+  container: { flex: 1, backgroundColor: '#f1f5f9' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' },
+  loadingText: { marginTop: 12, fontSize: 14, color: '#64748b', fontWeight: '600' },
+  content: { padding: 14, paddingBottom: 100 },
 
-  // PROFILE HEADER
-  profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 30 },
-  avatarContainer: { position: 'relative', marginRight: 16 },
-  avatarCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: theme.primary, justifyContent: 'center', alignItems: 'center' },
-  verifiedBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: theme.success, padding: 3, borderRadius: 12, borderWidth: 2, borderColor: theme.background },
+  // PROFILE HERO CARD
+  profileHeroCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  avatarContainer: { position: 'relative', marginRight: 14 },
+  avatarCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0038A8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarLetter: { fontSize: 24, fontWeight: '900', color: '#ffffff' },
+  verifiedBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#16a34a',
+    padding: 3,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
   profileDetails: { flex: 1 },
-  greeting: { fontSize: 18, fontWeight: '800', color: theme.text, marginBottom: 4 },
-  contactText: { fontSize: 14, color: theme.textSecondary, marginBottom: 2 },
+  nameBadgeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 2 },
+  profileName: { fontSize: 16.5, fontWeight: '800', color: '#0f172a' },
+  verifiedTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: '#86efac',
+  },
+  verifiedTagText: { fontSize: 10, fontWeight: '800', color: '#15803d', letterSpacing: 0.5 },
+  contactEmail: { fontSize: 12.5, color: '#64748b' },
+  contactPhone: { fontSize: 12, color: '#475569', marginTop: 2, fontWeight: '500' },
 
-  // MENU
-  menuContainer: { marginBottom: 30 },
-  menuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 18 },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: theme.border },
-  menuIconContainer: { width: 24, alignItems: 'center', marginRight: 16 },
-  menuText: { flex: 1, fontSize: 16, color: theme.primary, fontWeight: '600' },
+  // NOTICE BANNER
+  noticeBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: '#eff6ff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  noticeText: { flex: 1, fontSize: 12, color: '#1e3a8a', lineHeight: 17, fontWeight: '500' },
 
   // STATS
-  statsCard: { flexDirection: 'row', backgroundColor: theme.surface, borderRadius: 16, paddingVertical: 16, marginBottom: 30, borderWidth: 1, borderColor: theme.border },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 20, fontWeight: '800', color: theme.primary },
-  statLabel: { fontSize: 12, color: theme.textSecondary, marginTop: 4, fontWeight: '500' },
-  statDivider: { width: 1, height: '80%', backgroundColor: theme.border, alignSelf: 'center' },
+  statValue: { fontSize: 18, fontWeight: '900', color: '#0038A8' },
+  statLabel: { fontSize: 11.5, color: '#64748b', marginTop: 2, fontWeight: '600' },
+  statDivider: { width: 1, height: '70%', backgroundColor: '#e2e8f0', alignSelf: 'center' },
+
+  // GROUPED MENUS
+  menuGroupHeader: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#0038A8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  menuGroupCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  destructiveIconBg: {
+    backgroundColor: '#fee2e2',
+  },
+  menuText: { fontSize: 14.5, color: '#0f172a', fontWeight: '700' },
+  destructiveText: { color: '#dc2626' },
+  menuSubText: { fontSize: 11.5, color: '#64748b', marginTop: 1 },
 
   // TASK HISTORY
-  historyHeader: { marginBottom: 15 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: theme.text },
-  historyCard: { backgroundColor: theme.surface, borderRadius: 16, padding: 16, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: theme.border },
-  historyInfo: { flex: 1, paddingRight: 12 },
-  missionTitle: { fontSize: 15, fontWeight: '700', color: theme.text, marginBottom: 4 },
-  historyMeta: { flexDirection: 'row', alignItems: 'center' },
-  date: { fontSize: 12, color: theme.textSecondary },
-  reasonText: { fontSize: 12, color: theme.danger, marginTop: 6, fontWeight: '600' },
-  
-  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
-  statusText: { color: 'white', fontSize: 11, fontWeight: '700' },
-  bgSuccess: { backgroundColor: theme.success },
-  bgDanger: { backgroundColor: theme.danger },
-  bgWarning: { backgroundColor: theme.warning },
-
-  emptyState: { alignItems: 'center', padding: 30, opacity: 0.6 },
-  emptyText: { marginTop: 10, color: theme.textSecondary, fontSize: 14 },
-
-  // INFO MODALS
-  bottomSheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end'
-  },
-  bottomSheetCard: {
-    backgroundColor: theme.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '80%',
-    minHeight: '40%'
-  },
-  bottomSheetHeader: {
+  historyHeader: { marginTop: 6, marginBottom: 10, paddingHorizontal: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: '#0038A8', textTransform: 'uppercase', letterSpacing: 0.5 },
+  historyCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  bottomSheetTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.text
-  },
-  closeBtn: {
-    padding: 4,
-    backgroundColor: theme.background,
-    borderRadius: 20
-  },
-  bottomSheetContent: {
-    padding: 24
-  },
-  infoModalText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: theme.textSecondary
-  },
-  faqQuestion: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.text,
-    marginTop: 16,
-    marginBottom: 4
-  },
-  faqAnswer: {
-    fontSize: 14,
-    color: theme.textSecondary,
-    lineHeight: 22,
-    marginBottom: 8
-  },
-  contactItem: {
-    fontSize: 15,
-    color: theme.textSecondary,
-    marginBottom: 12
-  },
-  contactLabel: {
-    fontWeight: '700',
-    color: theme.text,
-    fontSize: 16
-  },
-  bottomSheetFooter: {
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: theme.border
-  },
-  primaryBtn: {
-    backgroundColor: theme.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center'
-  },
-  primaryBtnText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '700'
-  },
+  historyInfo: { flex: 1, paddingRight: 12 },
+  missionTitle: { fontSize: 14.5, fontWeight: '700', color: '#0f172a', marginBottom: 3 },
+  historyMeta: { flexDirection: 'row', alignItems: 'center' },
+  date: { fontSize: 11.5, color: '#64748b' },
+  reasonText: { fontSize: 11.5, color: '#dc2626', marginTop: 4, fontWeight: '600' },
+  
+  statusBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 16 },
+  statusText: { color: 'white', fontSize: 11, fontWeight: '800' },
+  bgSuccess: { backgroundColor: '#15803d' },
+  bgDanger: { backgroundColor: '#dc2626' },
+  bgWarning: { backgroundColor: '#b45309' },
 
-  // LOGOUT MODAL STYLES
+  emptyState: { alignItems: 'center', padding: 24, opacity: 0.7 },
+  emptyText: { marginTop: 8, color: '#64748b', fontSize: 13, fontWeight: '500' },
+
+  // INFO MODALS
+  bottomSheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  bottomSheetCard: { backgroundColor: '#ffffff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '80%', minHeight: '40%' },
+  bottomSheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  bottomSheetTitle: { fontSize: 17, fontWeight: '800', color: '#0f172a' },
+  closeBtn: { padding: 4, backgroundColor: '#f1f5f9', borderRadius: 20 },
+  bottomSheetContent: { padding: 20 },
+  infoModalText: { fontSize: 14, lineHeight: 22, color: '#334155' },
+  faqQuestion: { fontSize: 14, fontWeight: '800', color: '#0f172a', marginBottom: 2 },
+  faqAnswer: { fontSize: 13, color: '#475569', lineHeight: 20, marginBottom: 12 },
+  contactItem: { fontSize: 13.5, color: '#334155', marginBottom: 8 },
+  contactLabel: { fontWeight: '800', color: '#0038A8', fontSize: 15 },
+  bottomSheetFooter: { padding: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  primaryBtn: { backgroundColor: '#0038A8', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  primaryBtnText: { color: 'white', fontSize: 15, fontWeight: '800' },
+
+  // LOGOUT MODAL
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 },
-  modalCard: { backgroundColor: theme.surface, borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 10, elevation: 10 },
-  modalIconContainer: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.dangerLight, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: theme.text, marginBottom: 8 },
-  modalMessage: { fontSize: 15, color: theme.textSecondary, textAlign: 'center', marginBottom: 24, paddingHorizontal: 10 },
-  modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
-  modalBtnCancel: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.surface, borderWidth: 1, borderColor: theme.border, alignItems: 'center' },
-  modalBtnCancelText: { fontSize: 15, fontWeight: '700', color: theme.textSecondary },
-  modalBtnConfirm: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: theme.danger, alignItems: 'center' },
-  modalBtnConfirmText: { fontSize: 15, fontWeight: '700', color: 'white' }
+  modalCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 6 },
+  modalIconContainer: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
+  modalTitle: { fontSize: 19, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
+  modalMessage: { fontSize: 14, color: '#475569', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
+  modalActions: { flexDirection: 'row', gap: 10, width: '100%' },
+  modalBtnCancel: { flex: 1, paddingVertical: 13, borderRadius: 12, backgroundColor: '#f1f5f9', alignItems: 'center' },
+  modalBtnCancelText: { fontSize: 14.5, fontWeight: '700', color: '#475569' },
+  modalBtnConfirm: { flex: 1, paddingVertical: 13, borderRadius: 12, backgroundColor: '#dc2626', alignItems: 'center' },
+  modalBtnConfirmText: { fontSize: 14.5, fontWeight: '800', color: 'white' }
 });
 
 export default ProfileScreen;
+

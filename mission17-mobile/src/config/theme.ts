@@ -1,50 +1,52 @@
 // src/config/theme.ts
-// Central design system for Mission 17 — eGovPH Branding
-// All screens MUST use these tokens instead of hardcoded values.
+// Premium Civic & Fintech Design System for Barangay Bagong Pag-asa (BrgyLink)
+// Clean, authoritative, accessible, and high-contrast.
 
 import { Platform } from 'react-native';
 
 // ─── COLORS ────────────────────────────────────────────────────────────────────
 export const colors = {
-  // Primary palette (eGovPH Navy Blue)
+  // Primary palette (Vibrant eGovPH / Barangay Royal Blue)
   primary:        '#0038A8',
   primaryDark:    '#002580',
-  primaryLight:   '#e8eef9',
+  primaryLight:   '#EBF3FB',
+  primaryAccent:  '#1D4ED8',
 
-  // Accent palette (eGovPH Gold)
-  accent:         '#FCD116',
-  accentDark:     '#E6BC00',
+  // Accent palette
+  accent:         '#2563EB',
+  accentLight:    '#EFF6FF',
 
-  // Semantic status colors
-  statusPending:  { bg: '#fef3c7', text: '#b45309', border: '#fcd34d' },
-  statusProgress: { bg: '#dbeafe', text: '#1d4ed8', border: '#93c5fd' },
-  statusResolved: { bg: '#dcfce7', text: '#15803d', border: '#86efac' },
-  statusDismissed:{ bg: '#fee2e2', text: '#dc2626', border: '#fca5a5' },
+  // Semantic status colors (Subtle, elegant tinted pills)
+  statusPending:  { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' },
+  statusProgress: { bg: '#EFF6FF', text: '#1D4ED8', border: '#BFDBFE' },
+  statusResolved: { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' },
+  statusDismissed:{ bg: '#FEF2F2', text: '#B91C1C', border: '#FECACA' },
 
   // Neutral palette
-  background:     '#f0f4f8',
-  surface:        '#ffffff',
-  border:         '#e2e8f0',
-  borderLight:    '#f1f5f9',
+  background:     '#F8FAFC',
+  surface:        '#FFFFFF',
+  surfaceSubtle:  '#F1F5F9',
+  border:         '#E2E8F0',
+  borderLight:    '#F1F5F9',
 
   // Text
-  textPrimary:    '#0f172a',
+  textPrimary:    '#0F172A',
   textSecondary:  '#475569',
-  textMuted:      '#94a3b8',
+  textMuted:      '#94A3B8',
 
   // Danger
-  danger:         '#dc2626',
-  dangerLight:    '#fee2e2',
+  danger:         '#DC2626',
+  dangerLight:    '#FEE2E2',
 };
 
 // ─── TYPOGRAPHY ──────────────────────────────────────────────────────────────
 export const typography = {
-  h1:     { fontSize: 24, fontWeight: '800' as const, color: colors.textPrimary },
-  h2:     { fontSize: 20, fontWeight: '700' as const, color: colors.textPrimary },
-  h3:     { fontSize: 16, fontWeight: '700' as const, color: colors.textPrimary },
-  body:   { fontSize: 15, fontWeight: '400' as const, color: colors.textSecondary, lineHeight: 22 },
-  label:  { fontSize: 13, fontWeight: '600' as const, color: colors.textSecondary },
-  caption:{ fontSize: 11, fontWeight: '500' as const, color: colors.textMuted },
+  h1:     { fontSize: 24, fontWeight: '800' as const, color: colors.textPrimary, letterSpacing: -0.5 },
+  h2:     { fontSize: 19, fontWeight: '700' as const, color: colors.textPrimary, letterSpacing: -0.3 },
+  h3:     { fontSize: 15.5, fontWeight: '700' as const, color: colors.textPrimary },
+  body:   { fontSize: 14, fontWeight: '400' as const, color: colors.textSecondary, lineHeight: 21 },
+  label:  { fontSize: 12.5, fontWeight: '700' as const, color: colors.textSecondary },
+  caption:{ fontSize: 11.5, fontWeight: '500' as const, color: colors.textMuted },
 };
 
 // ─── SPACING ─────────────────────────────────────────────────────────────────
@@ -52,9 +54,9 @@ export const spacing = {
   xs:  4,
   sm:  8,
   md:  16,
-  lg:  24,
-  xl:  32,
-  xxl: 48,
+  lg:  20,
+  xl:  28,
+  xxl: 40,
 };
 
 // ─── BORDER RADIUS ───────────────────────────────────────────────────────────
@@ -62,48 +64,51 @@ export const radius = {
   sm:   8,
   md:   12,
   lg:   16,
-  xl:   24,
+  xl:   20,
   full: 9999,
 };
 
 // ─── SHADOWS ─────────────────────────────────────────────────────────────────
 export const shadow = {
   sm: {
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   md: {
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
   },
 };
 
 // ─── REUSABLE COMPONENT STYLES ───────────────────────────────────────────────
 export const sharedStyles = {
-  // Standard screen header with Navy Blue background
+  // Standard screen header
   header: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingTop: Platform.OS === 'android' ? 44 : spacing.md,
-    paddingBottom: spacing.md,
-    gap: spacing.sm,
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === 'android' ? 44 : 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
   },
   headerTitle: {
-    ...typography.h2,
-    color: colors.surface,
+    fontSize: 18,
+    fontWeight: '800' as const,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
     flex: 1,
   },
   backBtn: {
-    padding: spacing.sm,
-    marginLeft: -spacing.sm,
+    padding: 6,
+    marginRight: 6,
     borderRadius: radius.full,
   },
 
@@ -111,37 +116,46 @@ export const sharedStyles = {
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
     ...shadow.sm,
   },
 
   // Primary CTA button
   primaryBtn: {
     backgroundColor: colors.primary,
-    paddingVertical: 15,
+    paddingVertical: 14,
     borderRadius: radius.md,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     flexDirection: 'row' as const,
-    gap: spacing.sm,
+    gap: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   primaryBtnText: {
-    color: colors.surface,
-    fontSize: 16,
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700' as const,
+    letterSpacing: 0.2,
   },
 
   // Form input
   input: {
-    backgroundColor: colors.surface,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1.5,
-    borderColor: colors.border,
+    borderColor: '#CBD5E1',
     borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 13,
-    fontSize: 15,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 14.5,
     color: colors.textPrimary,
+    ...Platform.select({ web: { outlineStyle: 'none' as any } }),
   },
 
   // Chip / tag (unselected)
@@ -149,21 +163,22 @@ export const sharedStyles = {
     borderWidth: 1.5,
     borderColor: colors.border,
     borderRadius: radius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: '#F8FAFC',
   },
   chipActive: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
   },
   chipText: {
-    fontSize: 13,
-    fontWeight: '600' as const,
+    fontSize: 12.5,
+    fontWeight: '700' as const,
     color: colors.textSecondary,
   },
   chipTextActive: {
-    color: colors.surface,
+    color: '#FFFFFF',
+    fontWeight: '800' as const,
   },
 
   // Status badge
@@ -179,9 +194,9 @@ export const sharedStyles = {
       backgroundColor: s.bg,
       borderWidth: 1,
       borderColor: s.border,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: radius.full,
+      paddingHorizontal: 9,
+      paddingVertical: 3.5,
+      borderRadius: radius.sm,
     };
   },
   statusText: (status: string) => {
@@ -191,6 +206,7 @@ export const sharedStyles = {
       'Resolved':    colors.statusResolved.text,
       'Dismissed':   colors.statusDismissed.text,
     };
-    return { color: map[status] ?? colors.textMuted, fontSize: 12, fontWeight: '700' as const };
+    return { color: map[status] ?? colors.textMuted, fontSize: 11.5, fontWeight: '700' as const };
   },
 };
+

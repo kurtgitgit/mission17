@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
-  Platform, SafeAreaView, Alert, ActivityIndicator, TextStyle
+  Platform, SafeAreaView, ActivityIndicator, StatusBar, Dimensions
 } from 'react-native';
-import { Camera, ChevronLeft } from 'lucide-react-native';
+import { Camera, ArrowLeft, CheckCircle, ShieldCheck, AlertCircle, RefreshCw, UploadCloud, Award } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import * as ImageManipulator from 'expo-image-manipulator';
-import LottieView from 'lottie-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, formatImageUri } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
+import { sharedStyles } from '../config/theme';
 
-// --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
+const { width: SCREEN_W } = Dimensions.get('window');
 
 const MissionDetailScreen = ({ route, navigation }: any) => {
   const { showNotification } = useNotification();
@@ -22,16 +23,11 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // 🎯 MODULE 10 FIX: Distinct state for AI Bottleneck latency
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  // State to store the real user's name
-  const [username, setUsername] = useState<string>("Agent");
+  const [username, setUsername] = useState<string>("Resident");
+  const [location, setLocation] = useState<any>(null);
 
   const hasImage = !!mission.image;
 
-  // Fetch the real username when screen loads
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -40,7 +36,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         const data = await response.json();
         if (data && data.username) {
           setUsername(data.username);
-          console.log("Active Agent identified:", data.username);
         }
       } catch (error) {
         console.error("Could not fetch username:", error);
@@ -49,52 +44,43 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     fetchUser();
   }, [userId]);
 
-  const [location, setLocation] = useState<any>(null);
-
   const handlePickImage = async () => {
-    // 1. Request Camera Permissions (Anti-Cheat)
     const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
     if (cameraStatus !== 'granted') {
-      showNotification('Camera access is required for live verification!', 'error');
+      showNotification({
+        title: "Camera Permission Required",
+        message: "Camera access is needed to capture live proof of your civic task.",
+        type: "error"
+      });
       return;
     }
 
-    // 2. Request Location Permissions (GPS Anti-Cheat)
     const { status: locationStatus } = await Location.requestForegroundPermissionsAsync();
     if (locationStatus !== 'granted') {
-      showNotification('Location access is required for anti-cheat verification!', 'error');
-      return;
+      showNotification({
+        title: "Location Access Needed",
+        message: "Location access verifies that your activity took place in the barangay.",
+        type: "info"
+      });
     }
 
-    // 3. Launch Camera (Force Live Photo)
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 1, // Start high quality to capture detail
-      exif: true, // Capture metadata
+      quality: 0.85,
     });
 
     if (!result.canceled) {
       const asset = result.assets[0];
 
-      // A. Check EXIF Timestamp
-      if (asset.exif && asset.exif.DateTimeOriginal) {
-        console.log("📸 EXIF Verified:", asset.exif.DateTimeOriginal);
-      } else {
-        console.log("📸 Live Photo Verified (No EXIF).");
-      }
-
-      // B. Fetch GPS Coordinates
       try {
         const currentLoc = await Location.getCurrentPositionAsync({});
         setLocation(currentLoc.coords);
-        console.log("📍 GPS Locked:", currentLoc.coords.latitude, currentLoc.coords.longitude);
-      } catch (err) {
-        console.log("📍 Could not lock GPS, proceeding with caution.");
+      } catch {
+        // Continue if GPS unavailable
       }
 
-      // C. Image Compression (Optimization)
       try {
         const manipResult = await ImageManipulator.manipulateAsync(
           asset.uri,
@@ -102,8 +88,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
         );
         setImageUri(manipResult.uri);
-      } catch (err) {
-        console.log("Compression failed, using original.");
+      } catch {
         setImageUri(asset.uri);
       }
     }
@@ -127,26 +112,18 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
   const handleSubmit = async () => {
     if (!userId) {
-      showNotification("User ID missing.", "error");
+      showNotification({ message: "Please log in to submit proof.", type: "error" });
       return;
     }
     if (!imageUri) {
-      showNotification("Please select an image.", "error");
+      showNotification({ message: "Please take a photo of your activity first.", type: "info" });
       return;
     }
 
     setLoading(true);
 
     try {
-      // 🎯 MODULE 10 FIX: Temporarily skipping mobile AI pre-check due to 502 Bad Gateway
-      // We will let the Admin Dashboard do the AI verification instead to prevent OOM/Upload crashes.
-      setIsAnalyzing(true);
       const imagePayload = await getBase64(imageUri);
-      
-      // Removed the direct fetch to endpoints.predict here to bypass the 502 crash.
-      setIsAnalyzing(false);
-
-      // Step B: Send to Node.js Backend directly
 
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
@@ -162,144 +139,318 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       const data = await response.json();
 
       if (response.ok) {
-
         setSubmitted(true);
+        showNotification({
+          title: "Proof Submitted",
+          message: "Your submission is now awaiting Barangay evaluation.",
+          type: "success"
+        });
         navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-        showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
-
       } else {
-        showNotification(data.message || "Submission failed", "error");
+        showNotification({
+          title: "Submission Failed",
+          message: data.message || "Failed to submit proof. Please try again.",
+          type: "error"
+        });
       }
     } catch (error) {
       console.error("Submit Error:", error);
-      showNotification("Connection Error. Check console logs.", "error");
+      showNotification({
+        title: "Network Error",
+        message: "Could not connect to server. Please check your internet connection.",
+        type: "error"
+      });
     } finally {
       setLoading(false);
-      setIsAnalyzing(false);
     }
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* HERO HEADER */}
-      <View style={{ height: 300, width: '100%' }}>
+      <View style={styles.heroContainer}>
         {hasImage ? (
-          <Image source={{ uri: formatImageUri(mission.image)! }} style={{ width: '100%', height: '100%' }} />
+          <Image source={{ uri: formatImageUri(mission.image)! }} style={styles.heroImage} resizeMode="cover" />
         ) : (
           <Image 
-            source={SDG_HERO_IMAGES[mission.sdgNumber]} 
-            style={{ width: '100%', height: '100%' }} 
+            source={SDG_HERO_IMAGES[mission.sdgNumber] || SDG_HERO_IMAGES[17]} 
+            style={styles.heroImage} 
             resizeMode="cover"
           />
         )}
 
-        <View style={styles.imageOverlay} />
+        <LinearGradient 
+          colors={['rgba(15, 23, 42, 0.5)', 'transparent', 'rgba(15, 23, 42, 0.95)']} 
+          style={styles.heroGradient} 
+        />
 
-        <SafeAreaView style={styles.safeAreaOverlay}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtnCircle}>
-            <ChevronLeft size={24} color="#0f172a" />
+        <SafeAreaView style={styles.headerNavRow}>
+          <TouchableOpacity 
+            onPress={() => navigation.goBack()} 
+            style={styles.backBtnCircle}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <ArrowLeft size={20} color="#0F172A" />
           </TouchableOpacity>
         </SafeAreaView>
 
-        <View style={styles.heroTextContainer}>
-          <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-            <Text style={styles.badgeText}>SDG {mission.sdgNumber}</Text>
+        <View style={styles.heroContent}>
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.sdgTag}>
+              <Text style={styles.sdgTagText}>SDG {mission.sdgNumber || '17'}</Text>
+            </View>
+            {mission.points ? (
+              <View style={styles.pointsTag}>
+                <Award size={12} color="#B45309" />
+                <Text style={styles.pointsTagText}>+{mission.points} Points</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.heroTitle}>{mission.title}</Text>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* BRIEF */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Civic Task Brief</Text>
-          <View style={styles.sdgBadgeRow}>
-            <View style={[styles.sdgBadge, { backgroundColor: mission.color || '#0038A8' }]}>
-              <Text style={styles.sdgBadgeText}>SDG {mission.sdgNumber}</Text>
-            </View>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        {/* ── CARD 1: TASK BRIEF & OBJECTIVES ── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Civic Task Overview</Text>
           </View>
 
           <Text style={styles.description}>
-            {mission.description || `This civic task contributes to SDG Goal ${mission.sdgNumber}. Participate in a local activity to support Barangay Bagong Pag-asa's sustainability programs.`}
+            {mission.description || `Participate in this official community program contributing to United Nations Sustainable Development Goal ${mission.sdgNumber}.`}
           </Text>
 
-          <View style={styles.bulletPoint}>
-            <Text style={styles.bulletText}>📸 Take a clear photo of your activity.</Text>
-            <Text style={styles.bulletText}>✅ Ensure the activity is clearly visible.</Text>
-            <Text style={styles.bulletText}>🔗 Approved proofs are recorded on the blockchain.</Text>
+          {/* VERIFICATION GUIDELINES */}
+          <View style={styles.guidelinesBox}>
+            <Text style={styles.guidelinesTitle}>Submission Guidelines</Text>
+            
+            <View style={styles.guideRow}>
+              <CheckCircle size={15} color="#047857" style={{ marginTop: 2 }} />
+              <Text style={styles.guideText}>Take a clear, live photograph showing your active participation.</Text>
+            </View>
+
+            <View style={styles.guideRow}>
+              <CheckCircle size={15} color="#047857" style={{ marginTop: 2 }} />
+              <Text style={styles.guideText}>Ensure the community activity or location is clearly identifiable.</Text>
+            </View>
+
+            <View style={styles.guideRow}>
+              <ShieldCheck size={15} color="#0038A8" style={{ marginTop: 2 }} />
+              <Text style={styles.guideText}>Approved submissions are officially credited to your citizen record.</Text>
+            </View>
           </View>
         </View>
 
-        {/* UPLOAD */}
-        <Text style={styles.sectionTitle}>Proof of Work</Text>
-        {!imageUri ? (
-          <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage}>
-            <View style={styles.uploadIconCircle}><Camera size={32} color="#64748b" /></View>
-            <Text style={styles.uploadTitle}>Tap to upload photo</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.previewContainer}>
-            <Image source={{ uri: imageUri }} style={styles.previewImage} />
-            <TouchableOpacity onPress={() => setImageUri(null)}><Text style={styles.reselectText}>Retake</Text></TouchableOpacity>
+        {/* ── CARD 2: PROOF OF PARTICIPATION ── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.sectionTitle}>Proof of Participation</Text>
           </View>
-        )}
 
-        {/* UPLOAD PROGRESS STATE */}
-        {loading ? (
-          <View style={styles.lottieContainer}>
-            <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.analyzingText}>Uploading Proof...</Text>
-          </View>
-        ) : (
+          {!imageUri ? (
+            <TouchableOpacity 
+              style={styles.uploadArea} 
+              onPress={handlePickImage}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Take live photo for civic task"
+            >
+              <View style={styles.uploadIconCircle}>
+                <Camera size={26} color="#0038A8" />
+              </View>
+              <Text style={styles.uploadMainText}>Capture Live Photo</Text>
+              <Text style={styles.uploadSubText}>Tap to open camera and verify your activity</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.previewContainer}>
+              <Image source={{ uri: imageUri }} style={styles.previewImage} resizeMode="cover" />
+              <TouchableOpacity 
+                style={styles.retakeBtn} 
+                onPress={handlePickImage}
+                accessibilityRole="button"
+              >
+                <RefreshCw size={14} color="#0F172A" />
+                <Text style={styles.retakeBtnText}>Retake Photo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* SUBMIT BUTTON */}
           <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: imageUri ? (mission.color || '#3b82f6') : '#cbd5e1' }]}
-            disabled={!imageUri || submitted}
+            style={[styles.submitBtn, (!imageUri || loading || submitted) && styles.submitBtnDisabled]}
+            disabled={!imageUri || loading || submitted}
             onPress={handleSubmit}
+            accessibilityRole="button"
           >
-            <Text style={styles.submitBtnText}>{submitted ? '✅ Submitted for Review!' : 'Submit Civic Task Proof'}</Text>
+            {loading ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <UploadCloud size={18} color="#FFFFFF" />
+                <Text style={styles.submitBtnText}>
+                  {submitted ? 'Submitted for Verification' : 'Submit Task Proof →'}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
-        )}
+        </View>
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: 'white' },
-  imageOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
-  safeAreaOverlay: { position: 'absolute', top: 0, left: 0, right: 0 },
-  backBtnCircle: { marginLeft: 20, marginTop: 10, width: 40, height: 40, backgroundColor: 'white', borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
-  heroTextContainer: { position: 'absolute', bottom: 20, left: 20, right: 20 },
-  heroTitle: { color: 'white', fontSize: 28, fontWeight: '800', marginTop: 8 },
-  badge: { alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-  badgeText: { color: 'white', fontWeight: '800', fontSize: 12 },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
 
-  placeholderNumber: { fontSize: 120, fontWeight: '900', color: 'rgba(255,255,255,0.15)' } as TextStyle,
+  // HERO
+  heroContainer: { height: 260, width: '100%', position: 'relative' },
+  heroImage: { width: '100%', height: '100%' },
+  heroGradient: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  headerNavRow: { position: 'absolute', top: Platform.OS === 'android' ? 36 : 10, left: 16, zIndex: 10 },
+  backBtnCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  heroContent: { position: 'absolute', bottom: 18, left: 16, right: 16 },
+  heroBadgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  sdgTag: {
+    backgroundColor: '#0038A8',
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 6,
+  },
+  sdgTagText: { color: '#FFFFFF', fontWeight: '800', fontSize: 11, letterSpacing: 0.5 },
+  pointsTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  pointsTagText: { color: '#B45309', fontWeight: '800', fontSize: 11 },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
 
-  content: { padding: 25, paddingBottom: 50 },
-  section: { marginBottom: 30 },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a', marginBottom: 10 },
-  sdgBadgeRow: { flexDirection: 'row', marginBottom: 10 },
-  sdgBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 8, alignSelf: 'flex-start' },
-  sdgBadgeText: { color: 'white', fontWeight: '800', fontSize: 12 },
-  description: { fontSize: 15, color: '#475569', lineHeight: 24, marginBottom: 15, marginTop: 4 },
-  bulletPoint: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12 },
-  bulletText: { fontSize: 14, color: '#64748b', marginBottom: 5 },
+  content: { padding: 14, paddingBottom: 50 },
 
-  uploadBox: { borderWidth: 2, borderColor: '#e2e8f0', borderStyle: 'dashed', borderRadius: 20, height: 180, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f8fafc', marginBottom: 30 },
-  uploadIconCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  uploadTitle: { color: '#64748b', fontWeight: '600' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#0F172A',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardHeader: {
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  sectionTitle: { fontSize: 15.5, fontWeight: '800', color: '#0F172A' },
+  description: { fontSize: 13.5, color: '#475569', lineHeight: 21, marginBottom: 14 },
 
-  previewContainer: { alignItems: 'center', marginBottom: 30 },
-  previewImage: { width: '100%', height: 200, borderRadius: 16, marginBottom: 10 },
-  reselectText: { color: '#ef4444', fontWeight: '600' },
+  // GUIDELINES
+  guidelinesBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 8,
+  },
+  guidelinesTitle: { fontSize: 12, fontWeight: '800', color: '#0F172A', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  guideRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
+  guideText: { flex: 1, fontSize: 12.5, color: '#475569', lineHeight: 18, fontWeight: '500' },
 
-  submitBtn: { width: '100%', height: 56, borderRadius: 28, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 4 },
-  submitBtnText: { color: 'white', fontSize: 18, fontWeight: 'bold' },
+  // UPLOAD AREA
+  uploadArea: {
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 14,
+  },
+  uploadIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  uploadMainText: { fontSize: 14.5, fontWeight: '800', color: '#0F172A' },
+  uploadSubText: { fontSize: 12, color: '#64748B', marginTop: 2, textAlign: 'center' },
 
-  lottieContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: 20 },
-  analyzingText: { marginTop: 10, fontSize: 16, fontWeight: '600', color: '#3b82f6' },
+  previewContainer: { marginBottom: 14 },
+  previewImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 8, backgroundColor: '#F1F5F9' },
+  retakeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  retakeBtnText: { fontSize: 12.5, fontWeight: '700', color: '#0F172A' },
+
+  // CTA
+  submitBtn: {
+    backgroundColor: '#0038A8',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0038A8',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  submitBtnDisabled: { backgroundColor: '#CBD5E1', shadowOpacity: 0, elevation: 0 },
+  submitBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });
 
 export default MissionDetailScreen;
