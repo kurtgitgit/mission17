@@ -411,15 +411,15 @@ const HomeScreen: React.FC = () => {
 
       </ScrollView>
 
-      {/* FAB - AI ASSISTANT */}
+      {/* FLOATING ACTION BUTTON (AI ASSISTANT) */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('Chatbot')}
-        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ChatBot')}
         accessibilityRole="button"
-        accessibilityLabel="Chat with Barangay AI Assistant"
+        accessibilityLabel="Open Barangay AI Assistant"
+        activeOpacity={0.85}
       >
-        <Bot size={28} color="#0F2942" />
+        <Sparkles size={24} color="#0038A8" />
       </TouchableOpacity>
     </RootComponent>
   );

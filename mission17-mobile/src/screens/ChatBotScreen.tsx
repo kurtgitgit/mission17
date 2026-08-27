@@ -13,7 +13,7 @@ type Message = { id: string; text: string; isBot: boolean };
 const INITIAL_MESSAGES: Message[] = [
   {
     id: '0',
-    text: "Mabuhay! 🏛️ I'm your Barangay Bagong Pag-asa digital assistant. I can help you with Blotter Reports, document requests, barangay services, and SDG missions. How can I assist you today?",
+    text: "Mabuhay! I am your Barangay Bagong Pag-asa digital assistant. I can help you with Blotter Reports, document requests, barangay services, and civic tasks. How can I assist you today?",
     isBot: true
   }
 ];

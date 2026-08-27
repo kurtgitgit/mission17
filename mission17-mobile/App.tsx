@@ -198,6 +198,7 @@ export default function App() {
               <Stack.Screen name="Services"      component={ServicesScreen} />
               <Stack.Screen name="Officials"     component={OfficialsScreen} />
               <Stack.Screen name="ChatBot"       component={ChatBotScreen} />
+              <Stack.Screen name="Chatbot"       component={ChatBotScreen} />
               <Stack.Screen name="BlotterReport" component={BlotterReportScreen} />
               <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
               <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
