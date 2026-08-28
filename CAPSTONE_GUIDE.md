@@ -1,4 +1,4 @@
-# 🎓 Mission 17 & Barangay E-Services: Capstone Thesis Manuscript Guide
+# 🎓 Barangay Bagong Pag-asa E-Services (BrgyLink): Capstone Thesis Manuscript Guide
 
 <div align="center">
 
@@ -14,30 +14,29 @@
 ### 1.1 Background of the Study
 Local Government Units (LGUs)—particularly the Barangay level in the Philippines—form the frontline of public governance and citizen service delivery. Despite widespread digitization efforts under the national *eGovPH* framework, many barangays still rely heavily on manual paper-based workflows for document clearance requests, physical blotter record-keeping, and one-way bulletin announcements. 
 
-Furthermore, community participation in localized sustainability efforts (aligned with the United Nations Sustainable Development Goals / UN SDGs) suffers from low engagement and a lack of verifiable incentives. Traditional submission methods for civic initiatives are vulnerable to fraud and duplicate claims.
+Furthermore, community participation in localized sustainability efforts (aligned with the United Nations Sustainable Development Goals / UN SDGs) suffers from low engagement and a lack of verifiable proof submission tools. Traditional reporting and evidence submission methods for community programs are vulnerable to fraud and duplicate submissions.
 
-**Mission 17 & Barangay Bagong Pag-asa E-Services** addresses these critical gaps by uniting a modern e-Governance portal with an AI- and Blockchain-powered civic gamification system.
+**Barangay Bagong Pag-asa E-Services (BrgyLink)** addresses these critical gaps by uniting a modern e-Governance portal with an AI-verified civic program validation pipeline and a blockchain-backed dispute resolution ledger.
 
 ---
 
 ### 1.2 Statement of the Problem
 1. **Inefficient Barangay Operations**: Physical queues for clearances and manual blotter logging cause administrative backlogs and delayed dispute resolutions.
 2. **Vulnerability to Record Tampering**: Physical blotter books and traditional mutable databases lack cryptographic immutability, creating potential trust deficits during mediation.
-3. **Low Civic & SDG Participation**: Citizens lack engaging incentives and modern tools to actively participate in local climate and environmental programs.
-4. **Vulnerability to Fraud in Proof Submissions**: Manual review of community task evidence is labor-intensive and prone to fraudulent or recycled photo submissions.
-5. **Language & Accessibility Barriers**: Citizens requiring assistance in regional dialects (e.g., Tagalog, Pangasinan, Ilocano) often experience delayed support outside office hours.
+3. **Lack of Automated Verification for Civic Initiatives**: Manual review of community environmental task evidence (tree planting, cleanups) is labor-intensive and prone to fraudulent or recycled photo submissions.
+4. **Language & Accessibility Barriers**: Citizens requiring assistance in regional dialects (e.g., Tagalog, Pangasinan, Ilocano) often experience delayed support outside office hours.
 
 ---
 
 ### 1.3 Objectives of the System
 
 #### General Objective:
-To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-Governance and civic gamification platform for Barangay Bagong Pag-asa.
+To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-Governance and community management platform for Barangay Bagong Pag-asa.
 
 #### Specific Objectives:
 1. **Digitize Core Barangay Services**: Implement a mobile and web platform for instant document requests, resident profiling, and community announcements.
 2. **Implement Blockchain Immutability**: Deploy an Ethereum Sepolia smart contract utilizing gasless sponsor transactions to cryptographically anchor blotter resolution records.
-3. **Build an AI Verification & Anti-Cheat Pipeline**: Develop a Convolutional Neural Network (CNN) combined with perceptual hashing to automatically validate photo evidence and prevent duplicate claims.
+3. **Build an AI Verification & Anti-Cheat Pipeline**: Develop a Convolutional Neural Network (CNN) combined with perceptual hashing to automatically validate photo evidence of community initiatives and prevent duplicate claims.
 4. **Develop a Multilingual Civic Chatbot**: Integrate a Groq-accelerated LLaMA 3 chatbot supporting English, Tagalog, Pangasinan, and Ilocano for automated resident guidance.
 5. **Evaluate System Usability & Performance**: Measure the platform's accuracy, gas efficiency, API response times, and user satisfaction using the System Usability Scale (SUS) and ISO/IEC 25010 standards.
 
@@ -50,16 +49,16 @@ To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-
   - Public Barangay Information Website (BrgyLink).
   - Modular Node.js/Express REST API with multi-factor authentication (MFA OTP).
   - AI Proof Verification Server (Python/TensorFlow) deployed on Hugging Face Spaces.
-  - Smart contract on Ethereum Sepolia Testnet for blotter and token verification.
+  - Smart contract on Ethereum Sepolia Testnet for blotter resolution verification.
 * **Delimitations**:
   - Blockchain operations run on the Sepolia Testnet to eliminate gas costs for citizens.
-  - The AI Computer Vision model is trained specifically on targeted civic duties (e.g., Tree Planting - SDG 13/15 and Waste Recycling - SDG 12).
+  - The AI Computer Vision model is trained specifically on targeted community programs (e.g., Tree Planting - SDG 13/15 and Waste Recycling - SDG 12).
   - Monetary transactions for clearances utilize sandbox/mock payment workflows.
 
 ---
 
 ### 1.5 Significance of the Study
-* **For Residents**: Convenient 24/7 access to services, transparent dispute tracking, and gamified rewards for positive civic contributions.
+* **For Residents**: Convenient 24/7 access to services, transparent dispute tracking, and accessible channels for community participation.
 * **For Barangay Officials**: Automated queue management, tamper-evident record keeping, and reduced administrative overhead.
 * **For the Local Government Unit (LGU)**: Measurable, data-driven analytics on community sustainability and SDG compliance.
 * **For Future Researchers**: A reference implementation combining computer vision, Layer-2/testnet blockchain architecture, and localized multilingual LLMs in civic technology.
@@ -72,16 +71,16 @@ To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-
 * **Input-Process-Output (IPO) Model**:
   - *Input*: Resident requests, photo proofs, incident reports, admin actions.
   - *Process*: JWT auth, AI CNN classification, perceptual hash validation, Sepolia smart contract execution, Groq LLM inference.
-  - *Output*: Issued certificates, verified SDG points, immutable blotter receipts, multilingual responses.
+  - *Output*: Issued certificates, verified community initiative records, immutable blotter receipts, multilingual responses.
 * **Technology Acceptance Model (TAM)**: Evaluates Perceived Usefulness (PU) and Perceived Ease of Use (PEOU) among citizens and officials.
 
 ---
 
 ### 2.2 Literature Review Pillars
 1. **Digital Governance & Smart Local Communities**: Analysis of modern eGov frameworks (e.g., eGovPH, Singapore Singpass) emphasizing human-centered UI/UX.
-2. **Gamification for Sustainable Development Goals (SDGs)**: Academic evidence proving that reward tiers, leaderboards, and digital badges drive consistent citizen engagement.
+2. **Community Environmental Initiatives & SDG Tracking**: Academic evidence proving that digital proof submission tools enhance citizen participation in local sustainability programs.
 3. **Decentralized Ledgers in Public Administration**: How Ethereum smart contracts provide mathematical non-repudiation and prevent retroactive record alteration in dispute resolution.
-4. **Computer Vision & Perceptual Hashing for Anti-Fraud**: Leveraging CNN feature extraction for domain-specific classification and image hashing (pHash) to detect sybil and replay attacks.
+4. **Computer Vision & Perceptual Hashing for Anti-Fraud**: Leveraging CNN feature extraction for domain-specific classification and image hashing (pHash) to detect sybil and replay attacks in civic uploads.
 
 ---
 
@@ -97,7 +96,7 @@ The development followed an Agile Scrum framework structured across two-week spr
 
 ---
 
-### 3.2 System Architecture & Component Diagram
+### 3.2 System Architecture Diagram
 
 ```
 +-------------------------------------------------------------------------+
@@ -129,33 +128,6 @@ The development followed an Agile Scrum framework structured across two-week spr
 
 ---
 
-### 3.3 Data Dictionary & Key Schemas
-
-#### User Schema (`User.js`)
-* `username` (*String, Unique, Required*): Citizen identifier.
-* `email` (*String, Unique, Required*): Email for login and OTP dispatch.
-* `password` (*String, Required*): Bcrypt hash (Salt factor 10).
-* `role` (*String, Enum: ['resident', 'official', 'admin']*): RBAC authorization.
-* `points` (*Number, Default: 0*): Accumulated SDG civic reward balance.
-* `mfaSecret` (*String*): Temporal OTP token for 2FA.
-
-#### Blotter Report Schema (`BlotterReport.js`)
-* `incidentType` (*String*): Category of report.
-* `narrative` (*String*): Detailed statement.
-* `status` (*String, Enum: ['pending', 'investigating', 'resolved']*): Workflow state.
-* `blockchainTxHash` (*String*): On-chain transaction receipt from Sepolia.
-* `blockNumber` (*Number*): Block height where resolution hash was recorded.
-
-#### Submission Schema (`Submission.js`)
-* `userId` (*ObjectId, Ref: 'User'*): Submitting resident.
-* `missionId` (*ObjectId, Ref: 'Mission'*): Target SDG task.
-* `imageUrl` (*String*): Hosted proof image on Cloudinary CDN.
-* `aiVerdict` (*String, Enum: ['valid', 'invalid', 'flagged']*): Automated CV output.
-* `aiConfidence` (*Number*): Confidence probability (0.0 to 1.0).
-* `perceptualHash` (*String*): Visual hash for duplicate detection.
-
----
-
 ## 📊 Chapter 4: Results, Discussion & Performance Evaluation
 
 ### 4.1 AI Model Performance & Robustness
@@ -176,7 +148,7 @@ The custom CNN model was trained on validated datasets for SDG 12 (Recycling) an
 Through the implementation of `calldata`, `unchecked` arithmetic blocks, and the removal of static gas limits in Ethers.js:
 * **Gas Consumption per Resolution**: Reduced by **11.2%** (from 32,040 gas to 28,450 gas).
 * **Transaction Latency**: Average Sepolia confirmation time of **12.4 seconds**.
-* **Sponsor Wallet Efficiency**: Sponsor wallet handles 1,000+ civic transactions per 0.1 Sepolia ETH.
+* **Sponsor Wallet Efficiency**: Sponsor wallet handles 1,000+ civic resolutions per 0.1 Sepolia ETH.
 
 ---
 
@@ -200,7 +172,7 @@ A formal User Acceptance Test (UAT) was conducted across two cohorts: **Cohort A
 ---
 
 ### 5.2 Conclusions
-The **Mission 17 & Barangay Bagong Pag-asa E-Services Platform** demonstrates that modern web, mobile, artificial intelligence, and blockchain technologies can be effectively converged to modernize Philippine local government operations. The system eliminates administrative bottlenecks, provides mathematically verifiable records, and incentivizes citizen participation in sustainable civic development.
+The **Barangay Bagong Pag-asa E-Services Platform (BrgyLink)** demonstrates that modern web, mobile, artificial intelligence, and blockchain technologies can be effectively converged to modernize Philippine local government operations. The system eliminates administrative bottlenecks, provides mathematically verifiable records, and enhances citizen participation in community development.
 
 ---
 

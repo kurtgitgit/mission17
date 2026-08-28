@@ -9,7 +9,7 @@
 ---
 
 ## 📌 Overview
-The `mission17-ai` microservice handles automated image classification and anti-cheat validation for the Mission 17 civic gamification pipeline. It verifies whether submitted photo evidence legitimately portrays targeted sustainable actions (such as Tree Planting under SDG 13/15 or Waste Recycling under SDG 12) and executes perceptual hashing (pHash) to detect duplicate or recycled photos.
+The `mission17-ai` microservice handles automated image classification and anti-cheat validation for community civic initiatives in Barangay Bagong Pag-asa. It verifies whether submitted photo evidence legitimately portrays targeted community actions (such as Tree Planting under SDG 13/15 or Waste Segregation under SDG 12) and executes perceptual hashing (pHash) to detect duplicate or recycled photos.
 
 ---
 
@@ -40,15 +40,4 @@ pip install -r requirements.txt
 ```bash
 python app.py
 # Server listens on http://localhost:7860
-```
-
----
-
-## 🧪 Testing & Evaluation
-```bash
-# Evaluate model accuracy, confusion matrix, and F1-scores
-python evaluate_model.py
-
-# Run adversarial file upload security test suite
-python -m unittest test_cases/ai_file_upload_security_test.py
 ```

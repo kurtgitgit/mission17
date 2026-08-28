@@ -133,7 +133,7 @@ function App() {
             <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>BrgyLink</span> Portal
           </h1>
           <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', lineHeight: 1.7, maxWidth: '550px' }}>
-            This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and gamified digital governance.
+            This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and modern digital governance.
           </p>
           <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <a 
@@ -299,7 +299,7 @@ function App() {
               <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>
-              Empowering Barangay Bagong Pag-asa through AI-driven e-Governance, gamified civic tasks, and Sustainable Development Goals.
+              Empowering Barangay Bagong Pag-asa through AI-driven e-Governance, verified civic initiatives, and Sustainable Development Goals.
             </p>
           </div>
           <div className="footer-right" style={{ textAlign: 'right' }}>

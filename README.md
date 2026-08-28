@@ -1,4 +1,4 @@
-# 🏛️ Barangay Bagong Pag-asa E-Services & Mission 17 Portal
+# 🏛️ Barangay Bagong Pag-asa E-Services & Community Portal (BrgyLink)
 
 <div align="center">
 
@@ -12,7 +12,7 @@
 ![Blockchain](https://img.shields.io/badge/Ethereum-Sepolia%20Testnet-3C3C3D.svg)
 ![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248.svg)
 
-**A Hybrid Smart Governance & Gamified Civic Sustainability Platform for Philippine Local Government Units (LGUs)**
+**A Smart Governance & Community Management Platform for Philippine Local Government Units (LGUs)**
 
 [API Docs](./API_DOCS.md) • [Database Schema](./DATABASE_SCHEMA.md) • [User Manual](./USER_MANUAL.md) • [Test Suite](./TESTING.md) • [Smart Contracts](./SMART_CONTRACT.md) • [Capstone Guide](./CAPSTONE_GUIDE.md) • [Defense Rubric](./DEFENSE_RUBRIC_GUIDE.md) • [Security](./SECURITY.md) • [Deployment](./DEPLOYMENT.md)
 
@@ -22,13 +22,14 @@
 
 ## 📌 Executive Summary
 
-**Barangay Bagong Pag-asa E-Services & Mission 17** is an integrated e-Governance and civic gamification ecosystem designed to bridge the digital divide in local government units. By combining modern mobile e-services (inspired by the Philippine *eGovPH* initiative) with **Mission 17**—a gamified system aligned with the United Nations Sustainable Development Goals (UN SDGs)—the platform transforms civic participation from a passive obligation into an active, rewarding experience.
+**Barangay Bagong Pag-asa E-Services (BrgyLink)** is an integrated e-Governance and digital community administration platform designed to modernize public services and citizen engagement in Philippine barangays. Inspired by national *eGovPH* initiatives, the platform transforms manual, paper-based workflows into a transparent, secure, and automated digital ecosystem.
 
-The platform integrates:
-1. **AI-Powered Image Verification & Anti-Cheat Pipeline**: Computer Vision (CNN) and perceptual hashing to validate photographic proof of civic activities (e.g., Tree Planting, Waste Segregation).
-2. **Blockchain-Backed Immutability**: Ethereum Sepolia smart contracts that record blotter report resolutions and civic rewards with tamper-evident mathematical finality via gasless sponsor transactions.
-3. **Multilingual AI Assistant**: Groq-powered LLaMA 3 chatbot offering 24/7 civic guidance in **English, Tagalog, Pangasinan, and Ilocano**.
-4. **Multi-Platform Architecture**: Resident Mobile App (Expo/React Native), Official Admin Dashboard (React/Vite), and Public Barangay Web Portal (React/Vite).
+The system features:
+1. **Digital Document Issuance & Verification**: Streamlined request and tracking for Barangay Clearances, Certificates of Indigency, and Residency Certificates.
+2. **Blockchain-Backed Blotter Immutability**: Incident reporting and mediation workflow where finalized resolutions are permanently recorded on the **Ethereum Sepolia Blockchain** via a Gasless Sponsor Gateway.
+3. **AI-Powered Civic Proof Verification**: A Computer Vision (CNN) and perceptual hashing pipeline hosted on Hugging Face that automatically validates photographic evidence of community programs (e.g., Tree Planting under SDG 13/15, Waste Segregation under SDG 12) while filtering duplicate uploads.
+4. **Multilingual AI Assistant**: Groq-powered LLaMA 3 chatbot offering instant civic guidance in **English, Tagalog, Pangasinan, and Ilocano**.
+5. **Integrated Multi-Platform Suite**: Resident Mobile App (Expo/React Native), Official Admin Dashboard (React/Vite), and Public Barangay Web Portal (React/Vite).
 
 ---
 
@@ -48,9 +49,10 @@ graph TD
 
     subgraph Service & Processing Layer
         AuthSvc["🔐 Auth & 2FA Service<br/>(Bcrypt, Nodemailer OTP)"]
-        BlotterSvc["📋 Blotter & Document Engine"]
-        MissionSvc["🏆 SDG Missions & Leaderboards"]
-        AIServer["🤖 AI Verification Server<br/>(Flask / TensorFlow CNN / Hugging Face)"]
+        BlotterSvc["📋 Blotter & Mediation Engine"]
+        DocSvc["📄 Document Request Engine"]
+        CivicSvc["🌱 Civic Initiatives & Verification"]
+        AIServer["🤖 AI Vision Server<br/>(Flask / TensorFlow CNN / Hugging Face)"]
         LLM["💬 Multilingual Chatbot<br/>(Groq LLaMA 3 API)"]
     end
 
@@ -65,32 +67,33 @@ graph TD
 
     Gateway --> AuthSvc
     Gateway --> BlotterSvc
-    Gateway --> MissionSvc
+    Gateway --> DocSvc
+    Gateway --> CivicSvc
     Gateway --> AIServer
     Gateway --> LLM
 
     AuthSvc --> MongoDB
     BlotterSvc --> MongoDB
-    MissionSvc --> MongoDB
+    DocSvc --> MongoDB
+    CivicSvc --> MongoDB
     BlotterSvc -->|Gasless Sponsor TX| Blockchain
-    MissionSvc -->|Reward Token Minting| Blockchain
 ```
 
 ---
 
 ## ✨ Key Features & Capabilities
 
-### 1. 🏛️ E-Governance Core (Barangay E-Services)
+### 1. 🏛️ Digital Barangay Services
 * **📝 Tamper-Proof Blotter Resolution**: Residents submit incident reports with location tagging and evidence. Upon resolution by officials, an immutable SHA-256 event hash is minted to the Ethereum Sepolia blockchain.
-* **📄 Digital Document Requests**: Streamlined issuance for Barangay Clearances, Certificates of Indigency, and Residency IDs with real-time status tracking.
+* **📄 Digital Document Requests**: Streamlined requesting for Barangay Clearances, Certificates of Indigency, and Residency IDs with real-time status tracking.
 * **💡 Transparent Community Suggestions**: Public or anonymous suggestion box for civic infrastructure and safety improvements.
 * **📢 Community Bulletin & Alerts**: Broadcast announcements, emergency advisories, and localized push notifications.
 * **👥 Barangay Officials Directory**: Public hierarchy and contact matrix of Punong Barangay, Sangguniang Barangay Kagawads, and SK Officials.
 
-### 2. 🌍 Mission 17: SDG Civic Gamification
-* **📸 Automated AI Proof Verification**: Custom Convolutional Neural Network (CNN) hosted on Hugging Face Spaces analyzes uploaded photo evidence for missions such as Tree Planting (SDG 13/15) and Waste Recycling (SDG 12).
-* **🛡️ Perceptual Anti-Cheat Hashing**: Prevents image spoofing, recycled photos, and point farming by cross-referencing visual fingerprints against historic submissions.
-* **🏆 Community Leaderboard & Badges**: Real-time points tally, tier progression, and verified token rewards.
+### 2. 🌱 Community Civic Programs (SDGs) & AI Verification
+* **📸 Automated AI Proof Verification**: Custom Convolutional Neural Network (CNN) hosted on Hugging Face Spaces analyzes uploaded photo evidence for community initiatives like Tree Planting (SDG 13/15) and Waste Management (SDG 12).
+* **🛡️ Perceptual Anti-Cheat Hashing**: Prevents image spoofing, recycled photos, and duplicate claims by cross-referencing visual fingerprints against historic submissions.
+* **📊 Community Impact Tracking**: Real-time administrative tracking of verified environmental and community program participations.
 
 ### 3. 🤖 Multilingual Smart Chatbot
 * **Real-Time Civic Navigation**: Instant answers to common barangay inquiries, ordinance questions, and clearance guidelines.
@@ -120,13 +123,13 @@ graph TD
 ```bash
 mission17/
 ├── mission17-mobile/          # React Native (Expo) Resident Mobile App
-│   ├── src/screens/          # Mobile UI screens (Auth, Blotter, Missions, Profile, etc.)
+│   ├── src/screens/          # Mobile UI screens (Auth, Blotter, Clearances, Profile, etc.)
 │   ├── src/components/       # Reusable components & eGovPH design system
 │   ├── src/services/         # API integration, Firebase messaging & storage
 │   └── app.json              # Expo configuration & EAS OTA update channels
 │
 ├── mission17-admin/           # Vite + React Admin Dashboard
-│   ├── src/pages/            # Blotter management, Approvals, Analytics, Officials
+│   ├── src/pages/            # Blotter management, Clearances, Bulletins, Officials
 │   └── src/components/       # Admin sidebar, tables, modals, verification queues
 │
 ├── mission17-website/         # Vite + React Public Barangay Portal
@@ -184,9 +187,9 @@ EMAIL_USER=your_smtp_email@gmail.com
 EMAIL_PASS=your_google_app_password
 GROQ_API_KEY=gsk_your_groq_api_key
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your_alchemy_key
-SPONSOR_PRIVATE_KEY=0x_your_sponsor_wallet_private_key
+ADMIN_PRIVATE_KEY=0x_your_sponsor_wallet_private_key
 CONTRACT_ADDRESS=0x_your_deployed_contract_address
-AI_SERVICE_URL=http://localhost:7860
+AI_SERVER_URL=http://localhost:7860
 ```
 
 ---

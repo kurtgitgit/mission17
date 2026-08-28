@@ -1,4 +1,4 @@
-# 🗄️ Mission 17 & Barangay E-Services: Database Schema & Entity-Relationship Model
+# 🗄️ Barangay Bagong Pag-asa E-Services (BrgyLink): Database Schema & ERD
 
 <div align="center">
 
@@ -32,7 +32,6 @@ erDiagram
         string phoneNumber
         string address
         string role "resident | official | admin"
-        number points
         boolean mfaEnabled
         string mfaSecret
         date createdAt
@@ -45,7 +44,6 @@ erDiagram
         string description
         number sdgNumber "e.g., 12, 13, 15"
         string sdgCategory
-        number pointsReward
         string targetClass "e.g., tree, recycling"
         date deadline
         boolean isActive
@@ -137,7 +135,7 @@ erDiagram
         ObjectId recipientId FK
         string title
         string message
-        string type "BLOTTER | DOCUMENT | MISSION | SYSTEM"
+        string type "BLOTTER | DOCUMENT | CIVIC | SYSTEM"
         boolean isRead
         date createdAt
     }
@@ -154,20 +152,19 @@ erDiagram
 
 ---
 
-## 📑 2. Comprehensive Data Dictionary
+## 📑 2. Data Dictionary
 
 ### 2.1 `User` Collection (`users`)
 | Field Name | Type | Index | Required | Default | Description / Constraints |
 | :--- | :--- | :---: | :---: | :---: | :--- |
 | `_id` | `ObjectId` | Primary Key | Yes | Auto | Unique MongoDB Identifier |
-| `username` | `String` | Unique (`IXSCAN`) | Yes | None | Unique citizen handle (3–30 chars) |
-| `email` | `String` | Unique (`IXSCAN`) | Yes | None | RFC 5322 validated email |
+| `username` | `String` | Unique (`IXSCAN`) | Yes | None | Unique citizen handle |
+| `email` | `String` | Unique (`IXSCAN`) | Yes | None | RFC 5322 email |
 | `password` | `String` | No | Yes | None | Bcrypt hash (`saltRounds = 10`) |
 | `fullName` | `String` | No | Yes | None | Official citizen name |
 | `role` | `String` | Single (`IXSCAN`) | Yes | `'resident'` | Enum: `['resident', 'official', 'admin']` |
-| `points` | `Number` | Single (`IXSCAN`) | No | `0` | Cumulative SDG reward point balance |
 | `mfaEnabled` | `Boolean` | No | No | `true` | Enforces 6-digit email OTP |
-| `createdAt` | `Date` | No | Yes | `Date.now` | ISO 8601 registration timestamp |
+| `createdAt` | `Date` | No | Yes | `Date.now` | Registration timestamp |
 
 ---
 
@@ -182,11 +179,6 @@ erDiagram
 | `aiConfidence` | `Number` | No | No | `0.0` | Probability float ($0.0 \le x \le 1.0$) |
 | `perceptualHash`| `String` | Single (`IXSCAN`) | No | None | 64-bit hexadecimal pHash |
 | `status` | `String` | Compound Index | Yes | `'pending'` | Enum: `['pending', 'approved', 'rejected']` |
-| `blockchainTxHash`| `String`| No | No | `null` | Sepolia transaction receipt |
-
-**Compound Indices:**
-* `{ userId: 1, status: 1, createdAt: -1 }` (Accelerates user history queries)
-* `{ status: 1, createdAt: -1 }` (Accelerates admin moderation queue)
 
 ---
 
@@ -200,18 +192,3 @@ erDiagram
 | `status` | `String` | Compound Index | Yes | `'pending'` | Enum: `['pending', 'investigating', 'resolved']` |
 | `blockchainTxHash`| `String`| Single (`IXSCAN`) | No | `null` | Cryptographic Sepolia anchor |
 | `blockNumber` | `Number` | No | No | `null` | Block height where minted |
-
----
-
-### 2.4 `AuditLog` Collection (`auditlogs`)
-| Field Name | Type | Index | Required | Default | Description / Constraints |
-| :--- | :--- | :---: | :---: | :---: | :--- |
-| `_id` | `ObjectId` | Primary Key | Yes | Auto | Unique Log ID |
-| `userId` | `ObjectId` | Single (`IXSCAN`) | Yes | None | References `User._id` |
-| `action` | `String` | Compound Index | Yes | None | System action code |
-| `ipAddress` | `String` | No | Yes | None | IPv4 / IPv6 client address |
-| `userAgent` | `String` | No | Yes | None | Client browser/device string |
-| `timestamp` | `Date` | Compound Index | Yes | `Date.now` | Non-repudiable timestamp |
-
-**Compound Index:**
-* `{ timestamp: -1, action: 1 }` (Optimizes chronological security audits)
