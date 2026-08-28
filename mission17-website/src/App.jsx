@@ -139,8 +139,8 @@ function App() {
             <a 
               className="btn-primary" 
               style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}
-              href="https://expo.dev/artifacts/eas/5CN_ZGzISsQ1rWD55opjFDPeoEFMVIrAVbE-iQPRtk0.apk"
-              download
+              href="/BrgyLink.apk"
+              download="BrgyLink.apk"
             >
               <Smartphone size={20} /> Download App
             </a>
