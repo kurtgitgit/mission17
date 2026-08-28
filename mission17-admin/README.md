@@ -1,16 +1,42 @@
-# React + Vite
+# 💻 Mission 17 Admin: Barangay Officials Management Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+<div align="center">
 
-Currently, two official plugins are available:
+**Framework:** React 18 • **Build Tool:** Vite • **Design System:** Custom Human-Centered UI
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+</div>
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 📌 Overview
+The `mission17-admin` portal provides barangay officials, mediators, and administrators with a centralized web dashboard to manage citizen document requests, mediate blotter incident reports, sign resolution proofs to the Ethereum Sepolia blockchain, and moderate AI-evaluated civic submissions.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ✨ Features
+* **📋 Blotter Mediation & Blockchain Signing**: Review incident reports, conduct hearings, and cryptographically anchor resolutions to the Ethereum Sepolia ledger.
+* **📄 Document Request Processing**: Review valid IDs, issue electronic barangay clearances, and trigger resident notifications.
+* **🏆 AI Submission Moderation**: Review AI-analyzed SDG task proofs, inspect confidence scores and perceptual hashes, and approve civic points.
+* **📢 Community Announcements**: Publish pinned bulletins and localized push advisories.
+* **🛡️ Security Audit Logs**: Inspect chronological logs of logins, administrative overrides, and system events.
+
+---
+
+## ⚡ Quickstart & Local Setup
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Launch Development Server
+```bash
+npm run dev
+# Dashboard opens on http://localhost:5173
+```
+
+### 3. Production Build
+```bash
+npm run build
+# Outputs static bundle to /dist (Deployable on Vercel / Netlify)
+```

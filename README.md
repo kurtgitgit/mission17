@@ -14,7 +14,7 @@
 
 **A Hybrid Smart Governance & Gamified Civic Sustainability Platform for Philippine Local Government Units (LGUs)**
 
-[Explore API Docs](./API_DOCS.md) • [Capstone Thesis Guide](./CAPSTONE_GUIDE.md) • [Defense Rubric Guide](./DEFENSE_RUBRIC_GUIDE.md) • [Security & Threat Model](./SECURITY.md)
+[API Docs](./API_DOCS.md) • [Database Schema](./DATABASE_SCHEMA.md) • [User Manual](./USER_MANUAL.md) • [Test Suite](./TESTING.md) • [Smart Contracts](./SMART_CONTRACT.md) • [Capstone Guide](./CAPSTONE_GUIDE.md) • [Defense Rubric](./DEFENSE_RUBRIC_GUIDE.md) • [Security](./SECURITY.md) • [Deployment](./DEPLOYMENT.md)
 
 </div>
 
@@ -146,6 +146,10 @@ mission17/
 │   └── Dockerfile            # Container deployment for Hugging Face Spaces
 │
 ├── API_DOCS.md               # Complete REST API specification
+├── DATABASE_SCHEMA.md        # Entity-Relationship Diagram & Data Dictionary
+├── USER_MANUAL.md            # Citizen & Official End-User Operating Manual
+├── TESTING.md                # QA Test Matrix, Adversarial AI Tests & SUS Method
+├── SMART_CONTRACT.md         # Solidity Contracts, UUPS Proxy & Gas Benchmarks
 ├── CAPSTONE_GUIDE.md         # Academic manuscript mapping (Chapters 1–5)
 ├── DEFENSE_RUBRIC_GUIDE.md   # Oral defense scripting & panel rubric proof
 ├── SECURITY.md               # Security posture, encryption & RBAC documentation
@@ -153,7 +157,8 @@ mission17/
 ├── DEPLOYMENT.md             # Production hosting & CI/CD deployment guide
 ├── OPTIMIZATION_REPORT.md    # Database, gas, and latency optimization benchmarks
 ├── MAINTENANCE.md            # Maintenance schedules & incident response SLA
-└── TROUBLESHOOTING.md        # Subsystem triage & diagnostic handbook
+├── TROUBLESHOOTING.md        # Subsystem triage & diagnostic handbook
+└── CHANGELOG.md              # Semantic versioning release history
 ```
 
 ---
