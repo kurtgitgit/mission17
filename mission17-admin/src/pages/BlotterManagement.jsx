@@ -1,10 +1,139 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer } from 'lucide-react';
+import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer, Scale, Calendar, ShieldCheck, AlertCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api';
 import '../styles/DashboardHome.css';
+
+const LUPON_STAGES = [
+  'None',
+  'Mediation (1st Hearing)',
+  'Conciliation (2nd Hearing)',
+  'Arbitration (3rd Hearing)',
+  'Amicable Settlement',
+  'Issued Certificate to File Action (CFA)'
+];
+
+// ─── OFFICIAL KP FORM NO. 9 PRINTABLE SUMMONS (PATAWAG) MODAL ───────────────
+const KPForm9Modal = ({ report, complainantName, onClose }) => {
+  if (!report) return null;
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const hearingDateObj = report.hearingDate ? new Date(report.hearingDate) : new Date(Date.now() + 3 * 86400000);
+  const hearingDay = hearingDateObj.getDate();
+  const hearingMonth = hearingDateObj.toLocaleString('fil-PH', { month: 'long' });
+  const hearingYear = hearingDateObj.getFullYear();
+  const hearingTime = hearingDateObj.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+
+  const today = new Date();
+  const currentDay = today.getDate();
+  const currentMonth = today.toLocaleString('fil-PH', { month: 'long' });
+  const currentYear = today.getFullYear();
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)' }}>
+      <div style={{ backgroundColor: 'white', width: '100%', maxWidth: '800px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+        
+        {/* MODAL CONTROLS */}
+        <div className="no-print" style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Scale size={20} color="#0038A8" />
+            <strong style={{ fontSize: 16, color: '#0f172a' }}>Katarungang Pambarangay — KP Form No. 9 (Summons)</strong>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={handlePrint}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0038A8', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
+            >
+              <Printer size={15} /> Print Official KP Form 9
+            </button>
+            <button
+              onClick={onClose}
+              style={{ background: 'white', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: '#475569' }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+
+        {/* PRINTABLE DOCUMENT CONTENT */}
+        <div id="printable-kp-form" style={{ padding: '40px 50px', overflowY: 'auto', color: '#111827', fontFamily: 'Georgia, serif', lineHeight: 1.6, backgroundColor: 'white' }}>
+          
+          {/* HEADER */}
+          <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '16px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Republika ng Pilipinas</div>
+            <div style={{ fontSize: '13px' }}>Lalawigan ng Pangasinan</div>
+            <div style={{ fontSize: '13px' }}>Bayan ng San Jacinto</div>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: '4px' }}>BARANGAY BAGONG PAG-ASA</div>
+            <div style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.5px', marginTop: '4px' }}>TANGGAPAN NG LUPONG TAGAPAMAYAPA</div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+            <div style={{ fontSize: '13px' }}>
+              <div><strong>Nagsusumbong (Complainant):</strong></div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: 2 }}>{complainantName}</div>
+              <div style={{ color: '#4b5563', fontSize: '12.5px' }}>{report.location}</div>
+
+              <div style={{ margin: '12px 0 4px 0', fontStyle: 'italic' }}>— laban kay —</div>
+
+              <div><strong>Ipinagsumbong (Respondent):</strong></div>
+              <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: 2 }}>{report.respondentName || '[ Pangalan ng Ipinagsusumbong ]'}</div>
+            </div>
+
+            <div style={{ textAlign: 'right', fontSize: '13px' }}>
+              <div><strong>Usaping Barangay Blg.:</strong></div>
+              <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '14px' }}>{report.referenceNumber}</div>
+              <div style={{ marginTop: '8px' }}><strong>Ukol sa:</strong></div>
+              <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{report.incidentType}</div>
+            </div>
+          </div>
+
+          <div style={{ textAlign: 'center', margin: '24px 0' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textDecoration: 'underline', margin: 0 }}>
+              KP Form Blg. 9: PATAWAG (SUMMONS)
+            </h2>
+          </div>
+
+          <div style={{ fontSize: '14.5px', textAlign: 'justify', marginBottom: '20px' }}>
+            <p>
+              <strong>KAY:</strong> <u>{report.respondentName || '________________________'}</u> (Ipinagsumbong)
+            </p>
+            <p style={{ textIndent: '40px' }}>
+              Kayo ay tinatawagan at inaatasan upang humarap sa akin nang personal, kasama ang inyong mga saksi at kaukulang ebidensya, sa Tanggapan ng Lupong Tagapamayapa, Barangay Hall ng Bagong Pag-asa, San Jacinto, Pangasinan sa ika-<strong>{hearingDay}</strong> ng <strong>{hearingMonth} {hearingYear}</strong>, sa ganap na ika-<strong>{hearingTime}</strong> ng umaga/hapon para sa <strong>{report.hearingStage || 'Mediation (1st Hearing)'}</strong>, upang sagutin ang sumbong na ginawa laban sa inyo.
+            </p>
+            <p style={{ textIndent: '40px' }}>
+              Pinaaalalahanan kayo na ang inyong pagtanggi, pagliban, o hindi pagharap nang walang sapat na dahilan ay maaaring maging sanhi ng pagkawala ng inyong karapatang maghain ng kontra-sumbong o magdulot ng kaukulang kaparusahan ayon sa itinatakda ng Local Government Code of 1991 (RA 7160).
+            </p>
+            <p style={{ marginTop: '24px' }}>
+              Iginawad ngayong ika-<strong>{currentDay}</strong> ng <strong>{currentMonth} {currentYear}</strong> sa Barangay Bagong Pag-asa, San Jacinto, Pangasinan.
+            </p>
+          </div>
+
+          {/* SIGNATURE SECTION */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '50px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#4b5563', marginBottom: '30px' }}>Inihain ni (Officer Serving Summons):</div>
+              <div style={{ borderBottom: '1.5px solid #000', width: '220px', marginBottom: '4px' }}></div>
+              <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Barangay Tanod / Peace Officer</div>
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '12px', color: '#4b5563', marginBottom: '30px' }}>Pinagtibay ni:</div>
+              <div style={{ borderBottom: '1.5px solid #000', width: '220px', marginLeft: 'auto', marginBottom: '4px' }}></div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{report.luponOfficerInCharge || 'HON. PUNONG BARANGAY'}</div>
+              <div style={{ fontSize: '12px', color: '#4b5563' }}>Punong Barangay / Tagapangulo ng Lupon</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BlotterManagement = () => {
   const { showNotification } = useNotification();
@@ -15,7 +144,12 @@ const BlotterManagement = () => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [adminRemarks, setAdminRemarks] = useState('');
+  const [respondentName, setRespondentName] = useState('');
+  const [hearingDate, setHearingDate] = useState('');
+  const [hearingStage, setHearingStage] = useState('None');
+  const [luponOfficerInCharge, setLuponOfficerInCharge] = useState('Punong Barangay / Lupon Tagapamayapa');
   const [updating, setUpdating] = useState(false);
+  const [showKpModal, setShowKpModal] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -36,18 +170,37 @@ const BlotterManagement = () => {
     setSelectedReport(report);
     setNewStatus(report.status);
     setAdminRemarks(report.adminRemarks || '');
+    setRespondentName(report.respondentName || '');
+    setHearingDate(report.hearingDate ? new Date(report.hearingDate).toISOString().slice(0, 16) : '');
+    setHearingStage(report.hearingStage || 'None');
+    setLuponOfficerInCharge(report.luponOfficerInCharge || 'Punong Barangay / Lupon Tagapamayapa');
   };
 
   const handleUpdateStatus = async () => {
     setUpdating(true);
     try {
-      const res = await blotterApi.updateStatus(selectedReport._id, { status: newStatus, adminRemarks });
-      const updatedReport = res.data?.report || { ...selectedReport, status: newStatus, adminRemarks };
+      const res = await blotterApi.updateStatus(selectedReport._id, {
+        status: newStatus,
+        adminRemarks,
+        respondentName,
+        hearingDate: hearingDate || null,
+        hearingStage,
+        luponOfficerInCharge
+      });
+      const updatedReport = res.data?.report || {
+        ...selectedReport,
+        status: newStatus,
+        adminRemarks,
+        respondentName,
+        hearingDate,
+        hearingStage,
+        luponOfficerInCharge
+      };
       
       // Update local state to reflect change instantly
       setReports(reports.map(r => r._id === selectedReport._id ? updatedReport : r));
       setSelectedReport(updatedReport);
-      showNotification('Case updated successfully.', 'success');
+      showNotification('Blotter record & Lupon schedule saved successfully.', 'success');
     } catch (err) {
       console.error('Failed to update status', err);
       showNotification('Failed to update report status.', 'error');
@@ -55,6 +208,7 @@ const BlotterManagement = () => {
       setUpdating(false);
     }
   };
+
 
   const getComplainantName = (report) => {
     if (report.fullName) return report.fullName;
@@ -99,14 +253,36 @@ const BlotterManagement = () => {
 
   return (
     <div className="dashboard-container">
+      {/* KP FORM NO. 9 MODAL */}
+      {showKpModal && selectedReport && (
+        <KPForm9Modal
+          report={{ ...selectedReport, respondentName, hearingDate, hearingStage, luponOfficerInCharge }}
+          complainantName={getComplainantName(selectedReport)}
+          onClose={() => setShowKpModal(false)}
+        />
+      )}
+
       <Sidebar />
       <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', paddingBottom: 0 }}>
         
         {/* HEADER */}
-        <header className="top-header" style={{ flexShrink: 0, marginBottom: '20px' }}>
-          <div>
-            <h1 className="greeting">Blotter Management System</h1>
-            <p className="subtitle">eGov Case Review and Resolution Portal</p>
+        <header className="top-header" style={{ flexShrink: 0, marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 12 }}>
+            <div>
+              <h1 className="greeting" style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#0f172a' }}>
+                ⚖️ Blotter & Katarungang Pambarangay
+              </h1>
+              <p className="subtitle" style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 13 }}>
+                Official Peacekeeping, Lupon Conciliation & Case Records Portal
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: 10 }}>
+              <ShieldCheck size={16} color="#dc2626" />
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>
+                Strict RBAC: Authorized Officials & Lupon Only
+              </span>
+            </div>
           </div>
         </header>
 
@@ -115,12 +291,12 @@ const BlotterManagement = () => {
           
           {/* LEFT: CASE LIST (MASTER) */}
           <div className="no-print" style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-            <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
               <div className="search-box" style={{ margin: 0, width: '100%' }}>
                 <Search size={18} color="#64748b" />
                 <input 
                   type="text" 
-                  placeholder="Search reference or user..." 
+                  placeholder="Search ref no., resident, or type..." 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   style={{ width: '100%' }}
@@ -142,27 +318,35 @@ const BlotterManagement = () => {
                     key={report._id}
                     onClick={() => handleSelectReport(report)}
                     style={{ 
-                      padding: '16px', 
+                      padding: '14px', 
                       borderRadius: '10px', 
                       marginBottom: '8px',
                       cursor: 'pointer',
-                      border: `1px solid ${selectedReport?._id === report._id ? '#0038A8' : '#e2e8f0'}`,
+                      border: `1.5px solid ${selectedReport?._id === report._id ? '#0038A8' : '#e2e8f0'}`,
                       background: selectedReport?._id === report._id ? '#eff6ff' : 'white',
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '14px' }}>{report.referenceNumber}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                      <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '13.5px' }}>{report.referenceNumber}</span>
                       {getStatusBadge(report.status)}
                     </div>
-                    <div style={{ fontSize: '13px', color: '#475569', fontWeight: '600', marginBottom: '4px' }}>
-                      {report.incidentType} • {getComplainantName(report)}
+                    <div style={{ fontSize: '13px', color: '#334155', fontWeight: '700', marginBottom: '2px' }}>
+                      {report.incidentType}
                     </div>
+                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
+                      Complainant: {getComplainantName(report)}
+                    </div>
+                    {report.hearingStage && report.hearingStage !== 'None' && (
+                      <div style={{ fontSize: '11px', color: '#166534', fontWeight: 800, backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginBottom: 4 }}>
+                        ⚖️ {report.hearingStage}
+                      </div>
+                    )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>
+                      <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
                         {new Date(report.dateOfIncident || report.createdAt).toLocaleDateString()}
                       </span>
-                      <ChevronRight size={16} color={selectedReport?._id === report._id ? '#0038A8' : '#cbd5e1'} />
+                      <ChevronRight size={15} color={selectedReport?._id === report._id ? '#0038A8' : '#cbd5e1'} />
                     </div>
                   </div>
                 ))
@@ -175,35 +359,39 @@ const BlotterManagement = () => {
             {!selectedReport ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                 <FileText size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                <h3>Select a case to view details</h3>
-                <p>Click on any blotter report from the list to begin review.</p>
+                <h3 style={{ margin: '0 0 6px 0', color: '#475569' }}>Select a blotter case to view details</h3>
+                <p style={{ margin: 0, fontSize: 13 }}>Click on any incident report from the left queue to review and schedule Lupon conciliation.</p>
               </div>
             ) : (
               <>
                 {/* CASE HEADER */}
-                <div style={{ padding: '24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div>
-                    <h2 style={{ margin: '0 0 4px 0', fontSize: '20px', color: '#0f172a' }}>Case: {selectedReport.referenceNumber}</h2>
-                    <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '600' }}>{selectedReport.incidentType}</span>
+                    <h2 style={{ margin: '0 0 2px 0', fontSize: '19px', fontWeight: 800, color: '#0f172a' }}>
+                      Case: {selectedReport.referenceNumber}
+                    </h2>
+                    <span style={{ fontSize: '13.5px', color: '#64748b', fontWeight: '700' }}>
+                      Incident: {selectedReport.incidentType}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {getStatusBadge(selectedReport.status)}
-                    {selectedReport.blockchainTxHash && selectedReport.blockchainTxHash.startsWith('0x') && (
-                      <button 
-                        className="no-print"
-                        onClick={() => window.open(`https://sepolia.etherscan.io/tx/${selectedReport.blockchainTxHash}`, '_blank')}
-                        style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}
-                        title="View on Sepolia Etherscan"
-                      >
-                        <ExternalLink size={14} />
-                        Ledger
-                      </button>
-                    )}
+
+                    <button
+                      className="no-print"
+                      onClick={() => setShowKpModal(true)}
+                      style={{ background: '#0038A8', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 'bold' }}
+                      title="Print Official Katarungang Pambarangay Summons"
+                    >
+                      <Scale size={14} />
+                      KP Form 9 (Summons)
+                    </button>
+
                     <button 
                       className="no-print"
                       onClick={() => window.print()}
-                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 'bold' }}
-                      title="Print Official Report"
+                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 'bold' }}
+                      title="Print Blotter Extract"
                     >
                       <Printer size={14} />
                       Print
@@ -213,139 +401,185 @@ const BlotterManagement = () => {
 
                 {/* CASE BODY (SCROLLABLE) */}
                 <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                  <div style={{ display: 'flex', gap: '40px', marginBottom: '30px' }}>
+                  
+                  {/* COMAPLAINANT VS RESPONDENT CARD */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                    
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px' }}>
-                        <User size={20} color="#0038A8" />
+                        <User size={18} color="#0038A8" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Complainant</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Complainant</div>
                         <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{getComplainantName(selectedReport)}</div>
                         {selectedReport.contactNumber && (
-                          <div style={{ fontSize: '13px', color: '#475569', marginTop: '2px' }}>
+                          <div style={{ fontSize: '12px', color: '#475569', marginTop: '1px' }}>
                             📞 {selectedReport.contactNumber}
                           </div>
                         )}
                       </div>
                     </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ background: '#fee2e2', padding: '10px', borderRadius: '8px' }}>
+                        <AlertCircle size={18} color="#dc2626" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: '800', textTransform: 'uppercase' }}>Respondent (Complained)</div>
+                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
+                          {selectedReport.respondentName || respondentName || 'To Be Identified'}
+                        </div>
+                      </div>
+                    </div>
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px' }}>
-                        <Clock size={20} color="#0038A8" />
+                        <Clock size={18} color="#0038A8" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Date & Time</div>
-                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>
-                          {new Date(selectedReport.dateOfIncident || selectedReport.createdAt).toLocaleString()}
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Incident Date</div>
+                        <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 'bold' }}>
+                          {new Date(selectedReport.dateOfIncident || selectedReport.createdAt).toLocaleDateString()}
                         </div>
                       </div>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px' }}>
-                        <MapPin size={20} color="#0038A8" />
+                        <MapPin size={18} color="#0038A8" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Location</div>
-                        <div style={{ fontSize: '14px', color: '#0f172a', fontWeight: 'bold' }}>{selectedReport.location}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Location</div>
+                        <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 'bold' }}>{selectedReport.location}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-                    <h3 style={{ fontSize: '14px', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Incident Description</h3>
-                    <p style={{ fontSize: '15px', color: '#334155', lineHeight: '1.6', margin: 0 }}>
+                  {/* INCIDENT DETAILS */}
+                  <div style={{ background: 'white', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Incident Narrative</h3>
+                    <p style={{ fontSize: '14.5px', color: '#334155', lineHeight: '1.6', margin: 0 }}>
                       {selectedReport.description}
                     </p>
                   </div>
 
-                  <div style={{ marginBottom: '30px' }}>
-                    <h3 style={{ fontSize: '14px', color: '#475569', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Photo Evidence</h3>
+                  {/* EVIDENCE */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Photo Proof / Attachment</h3>
                     {selectedReport.evidenceUrl ? (
                       <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block', padding: '10px' }}>
                         <img 
                           src={getImageUrl(selectedReport.evidenceUrl)} 
                           alt="Incident Evidence" 
-                          style={{ maxWidth: '100%', maxHeight: '400px', display: 'block', objectFit: 'contain', marginBottom: '10px' }}
+                          style={{ maxWidth: '100%', maxHeight: '320px', display: 'block', objectFit: 'contain', borderRadius: 8 }}
                         />
-                        <div style={{ fontSize: '10px', color: 'red' }}>
-                          Raw URL: {selectedReport.evidenceUrl}
-                          <br/>
-                          Parsed URL: {getImageUrl(selectedReport.evidenceUrl)}
-                        </div>
                       </div>
                     ) : (
-                      <div style={{ padding: '15px', backgroundColor: '#f1f5f9', borderRadius: '8px', color: '#64748b', fontSize: '14px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <FileText size={18} /> No photo evidence was attached to this report.
+                      <div style={{ padding: '12px 16px', backgroundColor: '#f1f5f9', borderRadius: '8px', color: '#64748b', fontSize: '13px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FileText size={16} /> No photo evidence was attached to this report.
                       </div>
                     )}
                   </div>
 
-                  {/* BLOCKCHAIN VERIFICATION */}
-                  {selectedReport.blockchainTxHash && selectedReport.blockchainTxHash.startsWith('0x') && (
-                    <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
-                      <h3 style={{ fontSize: '14px', color: '#16a34a', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <CheckCircle size={16} /> Blockchain Verification
+                  {/* ⚖️ LUPON CONCILIATION & ACTION FORM */}
+                  <div className="no-print" style={{ borderTop: '2px solid #e2e8f0', paddingTop: '24px', marginTop: 24 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                      <Scale size={20} color="#0038A8" />
+                      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                        Lupon Tagapamayapa Conciliation & Case Actions
                       </h3>
-                      <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '10px', margin: 0 }}>
-                        Immutable record found on Ethereum Sepolia Testnet.
-                      </p>
-                      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <input 
-                          type="text" 
-                          readOnly 
-                          value={selectedReport.blockchainTxHash} 
-                          style={{ flex: 1, padding: '8px 12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}
-                        />
-                        <button 
-                          onClick={() => window.open(`https://sepolia.etherscan.io/tx/${selectedReport.blockchainTxHash}`, '_blank')}
-                          className="btn primary"
-                          style={{ padding: '0 16px', fontSize: '13px', width: 'auto' }}
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                      <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Case Status</label>
+                        <select 
+                          className="form-input" 
+                          value={newStatus}
+                          onChange={(e) => setNewStatus(e.target.value)}
                         >
-                          View Ledger
-                        </button>
+                          <option value="Pending">Pending Review</option>
+                          <option value="In Progress">Active / In Progress</option>
+                          <option value="Resolved">Resolved / Closed</option>
+                          <option value="Dismissed">Dismissed</option>
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Respondent (Person Complained)</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. Pedro C. Santos"
+                          value={respondentName}
+                          onChange={(e) => setRespondentName(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Lupon Hearing Stage</label>
+                        <select
+                          className="form-input"
+                          value={hearingStage}
+                          onChange={(e) => setHearingStage(e.target.value)}
+                        >
+                          {LUPON_STAGES.map(stage => (
+                            <option key={stage} value={stage}>{stage}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Scheduled Hearing Date & Time</label>
+                        <input
+                          type="datetime-local"
+                          className="form-input"
+                          value={hearingDate}
+                          onChange={(e) => setHearingDate(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Lupon Officer / Presiding Official</label>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="e.g. Hon. Barangay Captain / Lupon Chair"
+                          value={luponOfficerInCharge}
+                          onChange={(e) => setLuponOfficerInCharge(e.target.value)}
+                        />
                       </div>
                     </div>
-                  )}
-
-                  {/* ACTION FORM */}
-                  <div className="no-print" style={{ borderTop: '2px dashed #e2e8f0', paddingTop: '30px' }}>
-                    <h3 style={{ fontSize: '16px', color: '#0f172a', marginBottom: '20px' }}>Case Resolution & Updates</h3>
-                    
-                    <div className="form-group" style={{ marginBottom: '20px' }}>
-                      <label style={{ fontWeight: 'bold', color: '#475569' }}>Change Status</label>
-                      <select 
-                        className="form-input" 
-                        value={newStatus}
-                        onChange={(e) => setNewStatus(e.target.value)}
-                        style={{ maxWidth: '300px' }}
-                      >
-                        <option value="Pending">Pending Review</option>
-                        <option value="In Progress">Active / In Progress</option>
-                        <option value="Resolved">Resolved / Closed</option>
-                        <option value="Dismissed">Dismissed</option>
-                      </select>
-                    </div>
 
                     <div className="form-group" style={{ marginBottom: '20px' }}>
-                      <label style={{ fontWeight: 'bold', color: '#475569' }}>Official Admin Remarks (Visible to Resident)</label>
+                      <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Official Admin Remarks (Visible to Resident)</label>
                       <textarea 
                         className="form-input"
-                        rows="4"
-                        placeholder="Provide investigation details, resolution notes, or next steps for the resident..."
+                        rows="3"
+                        placeholder="Provide mediation notes, agreements, or hearing instructions for the resident..."
                         value={adminRemarks}
                         onChange={(e) => setAdminRemarks(e.target.value)}
                       />
                     </div>
 
-                    <button 
-                      className="btn primary" 
-                      onClick={handleUpdateStatus} 
-                      disabled={updating || (newStatus === selectedReport.status && adminRemarks === (selectedReport.adminRemarks || ''))}
-                      style={{ padding: '12px 24px', fontSize: '15px', width: 'auto' }}
-                    >
-                      {updating ? 'Saving Update...' : 'Save Case Update'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <button 
+                        className="btn primary" 
+                        onClick={handleUpdateStatus} 
+                        disabled={updating}
+                        style={{ padding: '10px 20px', fontSize: '14px', width: 'auto', fontWeight: 800 }}
+                      >
+                        {updating ? 'Saving Changes...' : '💾 Save Case & Schedule Hearing'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowKpModal(true)}
+                        style={{ padding: '10px 18px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}
+                      >
+                        <Scale size={15} color="#0038A8" /> Print KP Form 9 (Summons)
+                      </button>
+                    </div>
                   </div>
                 </div>
               </>
@@ -358,3 +592,4 @@ const BlotterManagement = () => {
 };
 
 export default BlotterManagement;
+

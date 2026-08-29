@@ -168,9 +168,14 @@ const ServicesScreen: React.FC = () => {
         <View style={styles.statusMeta}>
           <Text style={styles.statusMetaText}>📌 Purpose: {item.purpose}</Text>
           <Text style={styles.statusMetaText}>📅 Submitted: {date}</Text>
+          {item.pickupDate && (
+            <Text style={[styles.statusMetaText, { color: '#16a34a', fontWeight: '700' }]}>
+              🗓️ Pickup Date: {new Date(item.pickupDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </Text>
+          )}
           {item.rejectionReason && (
             <Text style={[styles.statusMetaText, { color: '#dc2626', fontWeight: '700' }]}>
-              ⚠️ Reason: {item.rejectionReason}
+              ⚠️ Notice / Missing Requirements: {item.rejectionReason}
             </Text>
           )}
         </View>
@@ -379,9 +384,11 @@ const ServicesScreen: React.FC = () => {
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>🏛️ Pickup Location: Barangay Hall, San Jacinto, Pangasinan</Text>
-              <Text style={styles.infoText}>📋 Requirements: Bring 1 Valid ID and exact fee upon release.</Text>
-              <Text style={styles.infoText}>💡 Indigent residents can present an indigent proof for fee exemption.</Text>
+              <Text style={styles.infoText}>💵 Payment Mode: Over-the-Counter Cash ({selectedDocObj.fee}) upon physical claiming.</Text>
+              <Text style={styles.infoText}>📋 Requirements: Present 1 Valid ID and Reference Number at the release desk.</Text>
+              <Text style={styles.infoText}>💡 Indigent residents are entitled to 100% free document fee exemption.</Text>
             </View>
+
 
             <TouchableOpacity 
               style={[styles.submitBtn, submitting && { opacity: 0.65 }]} 

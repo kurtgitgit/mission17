@@ -80,11 +80,11 @@ export const getAllReports = asyncHandler(async (req, res) => {
   
   // Anti-Crash Pagination
   const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 50;
+  const limit = parseInt(req.query.limit) || 100;
   const skip = (page - 1) * limit;
 
   const reports = await BlotterReport.find(filter)
-    .populate('userId', 'firstName lastName middleName username')
+    .populate('userId', 'firstName lastName middleName username completeAddress mobileNumber purok')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -92,22 +92,26 @@ export const getAllReports = asyncHandler(async (req, res) => {
   res.json(reports);
 });
 
-// PATCH /:id/status — Admin: Update report status
+// PATCH /:id/status — Admin: Update report status & schedule Lupon hearings
 export const updateStatus = asyncHandler(async (req, res) => {
-  const { status, adminRemarks } = req.body;
+  const { status, adminRemarks, respondentName, hearingDate, hearingStage, luponOfficerInCharge } = req.body;
 
-  if (!ALLOWED_STATUSES.includes(status)) {
+  if (status && !ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
   }
 
   const report = await BlotterReport.findById(req.params.id);
   if (!report) return res.status(404).json({ message: 'Report not found.' });
 
-  report.status = status;
-  if (adminRemarks) report.adminRemarks = adminRemarks;
+  if (status) report.status = status;
+  if (adminRemarks !== undefined) report.adminRemarks = adminRemarks;
+  if (respondentName !== undefined) report.respondentName = respondentName;
+  if (hearingDate !== undefined) report.hearingDate = hearingDate ? new Date(hearingDate) : null;
+  if (hearingStage !== undefined) report.hearingStage = hearingStage;
+  if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge;
 
   // ⛓️ Record on blockchain when a blotter is Resolved
-  if (status === 'Resolved') {
+  if (status === 'Resolved' && !report.blockchainTxHash) {
     try {
       const reporter = await User.findById(report.userId);
       // ALWAYS use the Barangay's official admin wallet for the transaction (lowercase to avoid checksum errors)
@@ -128,14 +132,18 @@ export const updateStatus = asyncHandler(async (req, res) => {
   await report.save();
 
   // Notify the resident
-  const notificationTitle = 'Blotter Report Update';
-  const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${status}".`;
+  const hearingStr = report.hearingDate 
+    ? ` Schedule: ${new Date(report.hearingDate).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} (${report.hearingStage || 'Lupon Hearing'}).`
+    : '';
+
+  const notificationTitle = report.hearingDate ? '⚖️ Lupon Hearing Scheduled' : 'Blotter Report Update';
+  const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${report.status}".${hearingStr}`;
 
   await Notification.create({
     userId:  report.userId,
     title:   notificationTitle,
     message: notificationMessage,
-    type:    status === 'Resolved' ? 'success' : 'info',
+    type:    report.status === 'Resolved' ? 'success' : 'info',
   });
 
   const resident = await User.findById(report.userId);
@@ -144,10 +152,11 @@ export const updateStatus = asyncHandler(async (req, res) => {
   }
 
   logAudit(req.user.id, req.user.username, 'BLOTTER_UPDATE',
-    `Updated blotter ${report.referenceNumber} → ${status}`, req);
+    `Updated blotter ${report.referenceNumber} → ${report.status}${report.hearingStage ? ` (${report.hearingStage})` : ''}`, req);
 
-  res.json({ message: `Report updated to "${status}".`, report });
+  res.json({ message: `Report updated successfully.`, report });
 });
+
 
 // GET /public/:referenceNumber — Public: Verify a report's blockchain status
 export const getPublicReport = asyncHandler(async (req, res) => {

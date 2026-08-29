@@ -62,11 +62,17 @@ const LearningScreen: React.FC = () => {
             ))}
             <TouchableOpacity
               style={[styles.joinBtn, { backgroundColor: item.color }]}
-              onPress={() => navigation.navigate('MissionsTab')}
+              onPress={() => {
+                navigation.navigate('MissionsTab', {
+                  screen: 'Missions',
+                  params: { selectedSDG: item.id }
+                });
+              }}
             >
               <Leaf size={14} color="white" />
-              <Text style={styles.joinBtnText}>Join related Civic Tasks</Text>
+              <Text style={styles.joinBtnText}>📸 Log SDG {item.id} Action & Earn Points →</Text>
             </TouchableOpacity>
+
           </View>
         )}
       </TouchableOpacity>

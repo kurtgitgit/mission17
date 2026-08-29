@@ -119,6 +119,31 @@ const BlotterHistoryScreen = () => {
         {/* STATEMENT NARRATIVE */}
         <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
 
+        {/* ⚖️ LUPON CONCILIATION SCHEDULE BANNER */}
+        {(item.hearingDate || (item.hearingStage && item.hearingStage !== 'None')) ? (
+          <View style={{ backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#86EFAC' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Text style={{ fontSize: 14 }}>⚖️</Text>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>
+                Lupon Conciliation: {item.hearingStage || 'Mediation Hearing'}
+              </Text>
+            </View>
+            {item.hearingDate && (
+              <Text style={{ fontSize: 12, color: '#15803D', fontWeight: '700' }}>
+                📅 Hearing Schedule: {new Date(item.hearingDate).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </Text>
+            )}
+            <Text style={{ fontSize: 11.5, color: '#166534', marginTop: 2 }}>
+              📍 Venue: Tanggapan ng Lupong Tagapamayapa, Barangay Hall
+            </Text>
+            {item.respondentName ? (
+              <Text style={{ fontSize: 11.5, color: '#166534', marginTop: 2 }}>
+                👤 Respondent: {item.respondentName}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* ADMIN REMARKS */}
         {item.adminRemarks ? (
           <View style={styles.remarkBox}>
@@ -132,6 +157,7 @@ const BlotterHistoryScreen = () => {
       </View>
     );
   };
+
 
   return (
     <SafeAreaView style={styles.root}>

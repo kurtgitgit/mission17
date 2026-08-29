@@ -8,7 +8,11 @@ const OfficialSchema = new mongoose.Schema({
   email: { type: String, default: null },
   term: { type: String, default: null }, // e.g. "2023-2026"
   committee: { type: String, default: null },
-  order: { type: Number, default: 99 }  // for sorting (Punong Brgy first)
+  order: { type: Number, default: 99 },  // for sorting (Punong Brgy first)
+  isArchived: { type: Boolean, default: false },
+  archivedAt: { type: Date, default: null },
+  archiveReason: { type: String, default: null }
 }, { timestamps: true });
 
 export default mongoose.model('Official', OfficialSchema);
+

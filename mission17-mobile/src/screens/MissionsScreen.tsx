@@ -67,13 +67,19 @@ const MissionsScreen = ({ navigation, route }: any) => {
     fetchData();
   }, [fetchData]);
 
-  // Effect to handle initial tab from navigation params
+  // Effect to handle initial tab or selectedSDG from navigation params
   useEffect(() => {
     if (route.params?.initialTab) {
       setActiveTab(route.params.initialTab);
       navigation.setParams({ initialTab: null });
     }
-  }, [route.params?.initialTab, navigation]);
+    if (route.params?.selectedSDG) {
+      setSelectedSDG(route.params.selectedSDG.toString());
+      setActiveTab('missions');
+      navigation.setParams({ selectedSDG: null });
+    }
+  }, [route.params?.initialTab, route.params?.selectedSDG, navigation]);
+
 
   const onRefresh = () => {
     setRefreshing(true);

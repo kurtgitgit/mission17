@@ -25,10 +25,12 @@ export const blotterApi = {
 
 // ─── SUGGESTIONS ─────────────────────────────────────────────────────────────
 export const suggestionsApi = {
-  getAll:       ()           => http.get('/api/suggestions'),
+  getAll:       (params)     => http.get('/api/suggestions', { params }),
+  getStats:     ()           => http.get('/api/suggestions/stats'),
   updateStatus: (id, payload) => http.patch(`/api/suggestions/${id}/status`, payload),
   remove:       (id)          => http.delete(`/api/suggestions/${id}`),
 };
+
 
 // ─── DOCUMENT REQUESTS ───────────────────────────────────────────────────────
 export const documentApi = {

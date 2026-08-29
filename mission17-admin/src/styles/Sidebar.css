@@ -9,7 +9,7 @@
 .sidebar {
   width: 260px;
   height: 100vh;
-  background: linear-gradient(180deg, #002266 0%, #0038A8 100%);
+  background: linear-gradient(180deg, #001f5c 0%, #003087 100%);
   color: white;
   display: flex;
   flex-direction: column;
@@ -28,9 +28,9 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 1.4rem 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-  margin-bottom: 8px;
+  padding: 1.2rem 1.4rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 10px;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -42,8 +42,8 @@
 }
 
 .logo-box {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,18 +53,18 @@
 .brgy-logo-box {
   background-color: rgba(255,255,255,0.15);
   border-radius: 12px;
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
 }
 
 .brgy-logo-emoji {
-  font-size: 24px;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   text-align: center;
-  line-height: 46px;
+  line-height: 44px;
 }
 
 .sidebar-logo-img {
@@ -80,7 +80,7 @@
 }
 
 .brand-name {
-  font-size: 17px;
+  font-size: 15.5px;
   font-weight: 800;
   color: white;
   line-height: 1.2;
@@ -89,63 +89,152 @@
 .brand-sub {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* --- NAV LIST --- */
-.nav-list {
-  list-style: none;
-  padding: 0 8px;
-  margin: 0;
+/* --- ACCORDION CONTAINER --- */
+.nav-accordion-container {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  padding: 0 12px;
   flex: 1;
 }
 
-/* Section Labels */
-.nav-section-label {
-  font-size: 9px;
-  font-weight: 800;
-  color: rgba(255,255,255,0.4);
-  letter-spacing: 1.2px;
-  padding: 14px 18px 4px;
-  list-style: none;
+.nav-group-block {
+  border-radius: 14px;
+  overflow: hidden;
+  transition: background-color 0.2s;
 }
 
-.nav-link {
+.nav-group-block.has-active {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Group Header Button (Larger & More Prominent) */
+.nav-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  border-radius: 12px;
+  font-family: inherit;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.nav-group-header:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(2px);
+}
+
+.nav-group-header.open {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.nav-group-header.active-group {
+  background-color: rgba(252, 209, 22, 0.12);
+  border-color: rgba(252, 209, 22, 0.35);
+  color: #fcd116;
+  font-weight: 800;
+}
+
+.nav-group-header-left {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 18px;
+}
+
+.nav-group-icon {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.nav-group-header.active-group .nav-group-icon {
+  color: #fcd116;
+}
+
+.nav-group-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+.nav-group-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nav-chevron {
+  transition: transform 0.25s ease;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+
+.nav-chevron.rotated {
+  transform: rotate(180deg);
+  color: #ffffff;
+}
+
+/* Sub Menu List */
+.nav-sub-list {
+  list-style: none;
+  padding: 6px 0 8px 14px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
+  margin-left: 24px;
+  margin-top: 4px;
+}
+
+.nav-sub-item {
+  list-style: none;
+}
+
+.nav-sub-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
   color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  font-size: 14px;
-  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  border-radius: 9px;
+  transition: all 0.18s ease;
 }
 
-.nav-link:hover {
+.nav-sub-link:hover {
   background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding-left: 22px;
+  color: #ffffff;
+  padding-left: 17px;
 }
 
-.nav-link.active {
-  background-color: rgba(255, 255, 255, 0.15);
-  color: white;
-  border-left: 3px solid #f59e0b;
-  font-weight: 700;
-  padding-left: 15px;
+.nav-sub-link.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 800;
+  border-left: 3px solid #fcd116;
+  padding-left: 12px;
 }
+
 
 /* --- LOGOUT --- */
 .logout-btn {
-  margin: 16px;
-  padding: 11px 18px;
+  margin: 12px;
+  padding: 10px 16px;
   background-color: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #fca5a5;
@@ -153,9 +242,10 @@
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
   transition: all 0.2s;
   flex-shrink: 0;
 }
@@ -166,3 +256,4 @@
   border-color: #ef4444;
   transform: translateY(-1px);
 }
+

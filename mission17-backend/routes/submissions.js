@@ -523,21 +523,48 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
   }
 });
 
-// 9. ANALYTICS PAGE STATS
-router.get('/analytics-stats', verifyAdmin, async (req, res) => {
+// 10. HIGH-LEVEL SDG IMPACT COUNTER (For Admin Dashboard & Resident Counter)
+router.get('/sdg-impact-counter', async (req, res) => {
   try {
-    // Fetch all submissions (status + date for trend/status charts)
-    const submissions = await Submission.find()
-      .select('status createdAt missionId')
-      .lean();
+    const approvedSubmissions = await Submission.find({ status: 'Approved' }).lean();
+    const reports = await AnalysisReport.find().lean();
+    const missions = await Mission.find().lean();
 
-    // Fetch all approved analysis reports that have an SDG label
-    const reports = await AnalysisReport.find({ sdg: { $exists: true, $ne: '' } })
-      .select('submissionId sdg')
-      .lean();
+    // Map missions by ID for SDG number
+    const missionMap = {};
+    missions.forEach(m => {
+      missionMap[m._id.toString()] = m;
+    });
 
-    // Build SDG counts from real AnalysisReport data
+    let treePlantingCount = 0;
+    let wasteRecyclingCount = 0;
+    let cleanUpCount = 0;
+    let totalPointsAwarded = 0;
+    const participantSet = new Set();
     const sdgCounts = {};
+
+    approvedSubmissions.forEach(sub => {
+      totalPointsAwarded += (sub.points || 0);
+      if (sub.userId) participantSet.add(sub.userId.toString());
+
+      const m = sub.missionId ? missionMap[sub.missionId] : null;
+      const titleLower = (sub.missionTitle || m?.title || '').toLowerCase();
+      const sdgNum = m?.sdgNumber;
+
+      if (sdgNum) {
+        sdgCounts[`SDG ${sdgNum}`] = (sdgCounts[`SDG ${sdgNum}`] || 0) + 1;
+      }
+
+      if (titleLower.includes('tree') || titleLower.includes('plant') || sdgNum === 15) {
+        treePlantingCount++;
+      } else if (titleLower.includes('waste') || titleLower.includes('recycl') || titleLower.includes('segregat') || sdgNum === 12) {
+        wasteRecyclingCount++;
+      } else if (titleLower.includes('clean') || titleLower.includes('linis') || sdgNum === 11 || sdgNum === 13) {
+        cleanUpCount++;
+      }
+    });
+
+    // Also factor in AnalysisReport SDG tags
     reports.forEach(r => {
       if (r.sdg) {
         const key = r.sdg.trim();
@@ -545,11 +572,25 @@ router.get('/analytics-stats', verifyAdmin, async (req, res) => {
       }
     });
 
-    res.json({ submissions, sdgCounts });
+    const topSdgBreakdown = Object.entries(sdgCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    res.json({
+      totalVerifiedActions: approvedSubmissions.length,
+      totalPointsAwarded,
+      activeParticipants: participantSet.size,
+      treePlantingCount,
+      wasteRecyclingCount,
+      cleanUpCount,
+      topSdgBreakdown
+    });
   } catch (error) {
-    console.error('Error fetching analytics stats:', error);
-    res.status(500).json({ message: 'Server Error' });
+    console.error('Error fetching SDG impact counter:', error);
+    res.status(500).json({ message: 'Failed to compute SDG impact counter' });
   }
 });
 
 export default router;
+

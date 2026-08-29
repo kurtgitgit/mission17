@@ -108,9 +108,10 @@ const SuggestionScreen = () => {
   };
 
   const getStatusConfig = (status: string) => {
-    if (status === 'Approved') return { color: '#15803d', bg: '#dcfce7', icon: Check, label: 'Noted by Council' };
-    if (status === 'Rejected') return { color: '#991b1b', bg: '#fee2e2', icon: X, label: 'Dismissed' };
-    return { color: '#b45309', bg: '#fef3c7', icon: Clock, label: 'Under Review' };
+    if (status === 'Resolved') return { color: '#15803d', bg: '#dcfce7', icon: CheckCircle, label: 'Resolved / Addressed' };
+    if (status === 'Dismissed') return { color: '#64748b', bg: '#f1f5f9', icon: X, label: 'Reviewed & Closed' };
+    if (status === 'Under Review') return { color: '#b45309', bg: '#fef3c7', icon: Clock, label: 'Under Review' };
+    return { color: '#0369a1', bg: '#e0f2fe', icon: Clock, label: 'Received by Desk' };
   };
 
   return (
@@ -127,7 +128,7 @@ const SuggestionScreen = () => {
         >
           <ArrowLeft size={24} color="white" />
         </TouchableOpacity>
-        <Text style={sharedStyles.headerTitle}>Citizen Voice & Feedback</Text>
+        <Text style={sharedStyles.headerTitle}>Citizen Private Feedback</Text>
       </View>
 
       {/* SEGMENTED TABS */}
@@ -139,7 +140,7 @@ const SuggestionScreen = () => {
             accessibilityRole="button"
           >
             <Text style={[styles.segmentText, activeTab === 'submit' && styles.segmentTextActive]}>
-              New Suggestion
+              Write Message
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -148,7 +149,7 @@ const SuggestionScreen = () => {
             accessibilityRole="button"
           >
             <Text style={[styles.segmentText, activeTab === 'history' && styles.segmentTextActive]}>
-              My Submissions {history.length > 0 ? `(${history.length})` : ''}
+              My Inbox & History {history.length > 0 ? `(${history.length})` : ''}
             </Text>
           </TouchableOpacity>
         </View>
@@ -156,22 +157,45 @@ const SuggestionScreen = () => {
 
       {activeTab === 'submit' ? (
         <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+          {/* CONFIDENTIALITY NOTICE */}
+          <View style={{
+            backgroundColor: '#EFF6FF',
+            borderRadius: 12,
+            padding: 12,
+            marginBottom: 12,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            borderWidth: 1,
+            borderColor: '#BFDBFE'
+          }}>
+            <Text style={{ fontSize: 18 }}>🔒</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12.5, fontWeight: '800', color: '#1E40AF' }}>
+                Direct & Confidential to Barangay Captain
+              </Text>
+              <Text style={{ fontSize: 11.5, color: '#3B82F6', marginTop: 1 }}>
+                Your feedback is private. Only authorized Barangay Officials can read your message and respond.
+              </Text>
+            </View>
+          </View>
+
           {/* SUCCESS RECEIPT */}
           {success && (
             <View style={styles.successCard}>
               <View style={styles.successBadgeCircle}>
                 <CheckCircle size={36} color="#16a34a" />
               </View>
-              <Text style={styles.successTitle}>Suggestion Submitted! 🎉</Text>
+              <Text style={styles.successTitle}>Message Received! 🎉</Text>
               <Text style={styles.successBody}>
-                Thank you for contributing to Barangay Bagong Pag-asa. Your suggestion has been forwarded to the Barangay Secretary for evaluation.
+                Thank you for reaching out to Barangay Bagong Pag-asa. Your concern has been securely delivered to the Barangay Captain and Council for evaluation.
               </Text>
               <TouchableOpacity
                 style={styles.successBtn}
                 onPress={() => { setSuccess(false); setActiveTab('history'); }}
                 accessibilityRole="button"
               >
-                <Text style={styles.successBtnText}>View My Submissions →</Text>
+                <Text style={styles.successBtnText}>View My Inbox & Updates →</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -191,7 +215,7 @@ const SuggestionScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>1</Text></View>
-              <Text style={styles.cardTitle}>Feedback Category</Text>
+              <Text style={styles.cardTitle}>Topic Category</Text>
             </View>
 
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
@@ -217,15 +241,15 @@ const SuggestionScreen = () => {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>2</Text></View>
-              <Text style={styles.cardTitle}>Proposal & Description</Text>
+              <Text style={styles.cardTitle}>Message to Barangay Officials</Text>
             </View>
 
             {/* TITLE */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Topic or Title <Text style={styles.requiredStar}>*</Text></Text>
+              <Text style={styles.label}>Subject / Title <Text style={styles.requiredStar}>*</Text></Text>
               <TextInput
                 style={[styles.inputBox, errors.title ? styles.inputBoxError : null]}
-                placeholder="e.g. Additional solar streetlights along Purok 3"
+                placeholder="e.g. Broken streetlamp at corner of Purok 2 / Clean-up drive suggestion"
                 placeholderTextColor="#94a3b8"
                 value={title}
                 onChangeText={(t) => { setTitle(t); setErrors(e => ({ ...e, title: '' })); }}
@@ -237,12 +261,12 @@ const SuggestionScreen = () => {
             {/* DESCRIPTION */}
             <View style={styles.inputGroup}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={styles.label}>Detailed Suggestion <Text style={styles.requiredStar}>*</Text></Text>
+                <Text style={styles.label}>Detailed Concern / Feedback <Text style={styles.requiredStar}>*</Text></Text>
                 <Text style={styles.charCount}>{description.length}/500</Text>
               </View>
               <TextInput
                 style={[styles.textArea, errors.description ? styles.inputBoxError : null]}
-                placeholder="Describe the issue, location, or recommended community action..."
+                placeholder="Describe your suggestion, complaint, or observation for the Barangay Captain..."
                 placeholderTextColor="#94a3b8"
                 multiline
                 numberOfLines={5}
@@ -267,8 +291,8 @@ const SuggestionScreen = () => {
                 {isAnonymous && <Check size={14} color="#ffffff" />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.checkboxLabel}>Submit as Anonymous Citizen</Text>
-                <Text style={styles.checkboxHint}>Your name and contact will not be visible on the public board.</Text>
+                <Text style={styles.checkboxLabel}>Submit Anonymously</Text>
+                <Text style={styles.checkboxHint}>Your name will be hidden from the council records.</Text>
               </View>
             </TouchableOpacity>
 
@@ -284,15 +308,17 @@ const SuggestionScreen = () => {
               ) : (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Send size={18} color="white" />
-                  <Text style={styles.submitBtnText}>Submit Suggestion →</Text>
+                  <Text style={styles.submitBtnText}>Send Message to Captain →</Text>
                 </View>
               )}
             </TouchableOpacity>
           </View>
         </ScrollView>
       ) : (
+
         <ScrollView
           contentContainerStyle={styles.container}
+
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />

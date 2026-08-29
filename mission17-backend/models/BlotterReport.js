@@ -20,9 +20,18 @@ const BlotterReportSchema = new mongoose.Schema({
     default: 'Pending'
   },
   adminRemarks: { type: String },
+  respondentName: { type: String, default: '' },
+  hearingDate: { type: Date, default: null },
+  hearingStage: {
+    type: String,
+    enum: ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'],
+    default: 'None'
+  },
+  luponOfficerInCharge: { type: String, default: 'Punong Barangay / Lupon Tagapamayapa' },
   referenceNumber: { type: String, unique: true },
   blockchainTxHash: { type: String, default: null }, // Set when status → Resolved
 }, { timestamps: true });
+
 
 // ⚡ PERFORMANCE INDEXES
 // Optimize dashboard queries for pending/resolved reports and recent activity

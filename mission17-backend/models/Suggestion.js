@@ -16,26 +16,35 @@ const suggestionSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['Infrastructure', 'Events', 'Safety', 'Cleanliness', 'Other'],
-    default: 'Other'
+    default: 'General'
   },
   description: {
     type: String,
     required: true
   },
+  sentiment: {
+    type: String,
+    enum: ['Positive', 'Neutral', 'Negative'],
+    default: 'Neutral'
+  },
+  sentimentScore: {
+    type: Number,
+    default: 0
+  },
   isAnonymous: {
     type: Boolean,
     default: false
   },
+  isPrivate: {
+    type: Boolean,
+    default: true
+  },
   status: {
     type: String,
-    enum: ['New', 'Under Review', 'Approved', 'Rejected'],
+    enum: ['New', 'Under Review', 'Resolved', 'Dismissed', 'Approved', 'Rejected'],
     default: 'New'
   },
-  upvotes: {
-    type: Number,
-    default: 0
-  },
+
   adminReply: {
     type: String,
     default: ''
@@ -43,3 +52,4 @@ const suggestionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export default mongoose.model('Suggestion', suggestionSchema);
+

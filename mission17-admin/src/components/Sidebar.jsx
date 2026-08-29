@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Target, 
@@ -7,22 +7,95 @@ import {
   BarChart3, 
   LogOut, 
   Settings, 
-  CheckCircle,
-  Calendar,
-  Shield,
-  Megaphone,
-  FileText,
-  Printer,
-  Lightbulb,
-  UserCheck,
-  ShieldAlert
+  Calendar, 
+  Shield, 
+  Megaphone, 
+  FileText, 
+  Printer, 
+  Lightbulb, 
+  UserCheck, 
+  ShieldAlert, 
+  FileCheck,
+  ChevronDown,
+  Layers,
+  Folder,
+  Briefcase
 } from 'lucide-react';
 import '../styles/Sidebar.css';
 import Modal from './Modal';
 
+const MENU_GROUPS = [
+  {
+    id: 'hub',
+    label: 'Overview & Hub',
+    icon: Layers,
+    items: [
+      { to: '/dashboard', label: 'Operations Dashboard', icon: LayoutDashboard },
+      { to: '/analytics', label: 'Civic Analytics', icon: BarChart3 },
+      { to: '/report-generation', label: 'Report Generation', icon: Printer },
+    ]
+  },
+  {
+    id: 'services',
+    label: 'Barangay Services',
+    icon: Briefcase,
+    items: [
+      { to: '/document-requests', label: 'Document Requests', icon: FileText },
+      { to: '/blotter-reports', label: 'Blotter & Peacekeeping', icon: ShieldAlert },
+      { to: '/suggestions', label: 'Citizen Feedback Desk', icon: Lightbulb },
+      { to: '/announcements', label: 'Bulletins & Alerts', icon: Megaphone },
+    ]
+  },
+  {
+    id: 'community',
+    label: 'Community & Civic',
+    icon: Folder,
+    items: [
+      { to: '/officials', label: 'Barangay Council', icon: UserCheck },
+      { to: '/events', label: 'Barangay Events', icon: Calendar },
+      { to: '/missions', label: 'Civic Tasks & Programs', icon: Target },
+      { to: '/verify', label: 'Proof Verifications', icon: FileCheck },
+    ]
+  },
+  {
+    id: 'system',
+    label: 'System & Records',
+    icon: Settings,
+    items: [
+      { to: '/users', label: 'Resident Directory', icon: Users },
+      { to: '/audit-logs', label: 'Audit Trail & Security', icon: Shield },
+      { to: '/settings', label: 'Portal Settings', icon: Settings },
+    ]
+  }
+];
+
 const Sidebar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  // Determine which group contains the active route to open by default
+  const activeGroupId = MENU_GROUPS.find(group => 
+    group.items.some(item => location.pathname.startsWith(item.to))
+  )?.id || 'hub';
+
+  const [openGroups, setOpenGroups] = useState({
+    hub: true,
+    services: true,
+    community: false,
+    system: false,
+    [activeGroupId]: true
+  });
+
+  useEffect(() => {
+    if (activeGroupId) {
+      setOpenGroups(prev => ({ ...prev, [activeGroupId]: true }));
+    }
+  }, [location.pathname]);
+
+  const toggleGroup = (id) => {
+    setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const executeLogout = () => {
     localStorage.removeItem('token');
@@ -40,109 +113,66 @@ const Sidebar = () => {
         </div>
         <div className="logo-text-col">
           <span className="brand-name">Brgy. Bagong Pag-asa</span>
-          <span className="brand-sub">eGov Portal</span>
+          <span className="brand-sub">Executive eGov Portal</span>
         </div>
       </Link>
 
-      {/* Navigation Menu */}
-      <ul className="nav-list">
+      {/* Navigation Menu (Interactive Collapsible Groups) */}
+      <div className="nav-accordion-container">
+        {MENU_GROUPS.map(group => {
+          const GroupIcon = group.icon;
+          const isOpen = openGroups[group.id];
+          const hasActiveChild = group.items.some(item => location.pathname === item.to);
 
-        <li className="nav-section-label">OVERVIEW</li>
-        <li className="nav-item">
-          <NavLink to="/dashboard" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <LayoutDashboard size={20} />
-            <span>Dashboard</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/analytics" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <BarChart3 size={20} />
-            <span>Analytics</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/report-generation" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Printer size={20} />
-            <span>Report Generation</span>
-          </NavLink>
-        </li>
+          return (
+            <div key={group.id} className={`nav-group-block ${hasActiveChild ? 'has-active' : ''}`}>
+              {/* GROUP ACCORDION HEADER */}
+              <button
+                type="button"
+                className={`nav-group-header ${isOpen ? 'open' : ''} ${hasActiveChild ? 'active-group' : ''}`}
+                onClick={() => toggleGroup(group.id)}
+              >
+                <div className="nav-group-header-left">
+                  <GroupIcon size={19} className="nav-group-icon" />
+                  <span className="nav-group-title">{group.label}</span>
+                </div>
+                <div className="nav-group-header-right">
+                  <ChevronDown 
+                    size={16} 
+                    className={`nav-chevron ${isOpen ? 'rotated' : ''}`}
+                  />
+                </div>
 
-        <li className="nav-section-label">BARANGAY MANAGEMENT</li>
-        <li className="nav-item">
-          <NavLink to="/announcements" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Megaphone size={20} />
-            <span>Announcements</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/document-requests" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <FileText size={20} />
-            <span>Document Requests</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/blotter-reports" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <ShieldAlert size={20} />
-            <span>Blotter Reports</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/suggestions" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Lightbulb size={20} />
-            <span>Community Feedback</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/officials" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <UserCheck size={20} />
-            <span>Officials</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/events" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Calendar size={20} />
-            <span>Events</span>
-          </NavLink>
-        </li>
+              </button>
 
-        <li className="nav-section-label">CIVIC PROGRAMS</li>
-        <li className="nav-item">
-          <NavLink to="/missions" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Target size={20} />
-            <span>Civic Tasks</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/verify" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <CheckCircle size={20} />
-            <span>Verify Proofs</span>
-          </NavLink>
-        </li>
+              {/* COLLAPSIBLE SUB-MENU */}
+              {isOpen && (
+                <ul className="nav-sub-list">
+                  {group.items.map(item => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <li key={item.to} className="nav-sub-item">
+                        <NavLink
+                          to={item.to}
+                          className={({ isActive }) => isActive ? "nav-sub-link active" : "nav-sub-link"}
+                        >
+                          <ItemIcon size={16} />
+                          <span>{item.label}</span>
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
 
-        <li className="nav-section-label">RESIDENTS</li>
-        <li className="nav-item">
-          <NavLink to="/users" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Users size={20} />
-            <span>Residents</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/audit-logs" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Shield size={20} />
-            <span>Audit Logs</span>
-          </NavLink>
-        </li>
-        <li className="nav-item">
-          <NavLink to="/settings" className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}>
-            <Settings size={20} />
-            <span>Settings</span>
-          </NavLink>
-        </li>
+            </div>
+          );
+        })}
+      </div>
 
-      </ul>
-
+      {/* LOGOUT BUTTON */}
       <button onClick={() => setShowLogoutConfirm(true)} className="logout-btn">
-        <LogOut size={20} />
+        <LogOut size={16} />
         <span>Logout</span>
       </button>
 
@@ -160,3 +190,5 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
+

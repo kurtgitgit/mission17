@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { onIdTokenChanged } from 'firebase/auth';
+import { auth } from './config/firebase';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import PublicVerify from './pages/PublicVerify';
@@ -23,7 +25,23 @@ import Suggestions from './pages/Suggestions';
 import { NotificationProvider } from './context/NotificationContext';
 
 function App() {
+  // 🔄 Auto-refresh Firebase ID token to prevent token expiration 400/401 errors
+  useEffect(() => {
+    const unsubscribe = onIdTokenChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const freshToken = await user.getIdToken();
+          localStorage.setItem('token', freshToken);
+        } catch (e) {
+          console.error("Token auto-refresh error:", e);
+        }
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
   return (
+
     <NotificationProvider>
       <Router>
         <Routes>

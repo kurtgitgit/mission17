@@ -1,21 +1,43 @@
 // controllers/document-requests.controller.js
-// Business logic for document requests — separated from routing.
+// Business logic for document requests with real-time Phone Push Notifications & In-App Alerts.
 
 import DocumentRequest from '../models/DocumentRequest.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
+import { sendPushNotification } from '../utils/pushNotifier.js';
 import { logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
 
 // Builds the resident notification for each status transition
-const buildNotification = (docRequest, status, rejectionReason) => {
+const buildNotification = (docRequest, status, rejectionReason, pickupDate) => {
   const { documentType, referenceNumber } = docRequest;
+  const formattedDate = pickupDate 
+    ? new Date(pickupDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
   const map = {
-    'Processing':       { title: 'Request Processing',          type: 'info',    message: `Your request for "${documentType}" (Ref: ${referenceNumber}) is now being processed.` },
-    'Ready for Pickup': { title: '📄 Document Ready for Pickup!', type: 'success', message: `Your "${documentType}" (Ref: ${referenceNumber}) is ready! Visit the Barangay Hall to pick it up.` },
-    'Completed':        { title: 'Request Completed',            type: 'success', message: `Your request for "${documentType}" (Ref: ${referenceNumber}) has been completed. Thank you!` },
-    'Rejected':         { title: 'Request Rejected',             type: 'error',   message: `Your request for "${documentType}" (Ref: ${referenceNumber}) was rejected. ${rejectionReason ? 'Reason: ' + rejectionReason : 'Please contact the barangay for details.'}` },
+    'Processing': {
+      title: '⏳ Request Under Processing',
+      type: 'info',
+      message: `Your request for "${documentType}" (Ref: ${referenceNumber}) is now being processed by the Barangay Hall.`
+    },
+    'Ready for Pickup': {
+      title: '📄 Document Ready for Pickup!',
+      type: 'success',
+      message: `Your "${documentType}" (Ref: ${referenceNumber}) is ready for pickup at the Barangay Hall! ${formattedDate ? 'Schedule: ' + formattedDate + '. ' : ''}Please present your reference number and a valid ID.`
+    },
+    'Completed': {
+      title: '✅ Document Claimed / Completed',
+      type: 'success',
+      message: `Your request for "${documentType}" (Ref: ${referenceNumber}) has been completed and claimed. Thank you!`
+    },
+    'Rejected': {
+      title: '⚠️ Missing Requirements / Request Notice',
+      type: 'error',
+      message: `Notice regarding "${documentType}" (Ref: ${referenceNumber}): ${rejectionReason ? rejectionReason : 'Incomplete supporting documents. Please contact the Barangay Hall or re-apply.'}`
+    },
   };
   return map[status] ?? { title: 'Request Updated', type: 'info', message: `Your document request status is now: ${status}` };
 };
@@ -32,12 +54,26 @@ export const submitRequest = asyncHandler(async (req, res) => {
     userId, username, fullName, address, contactNumber, documentType, purpose,
   });
 
+  const notifTitle = 'Document Request Submitted';
+  const notifMsg   = `Your request for "${documentType}" (Ref: ${docRequest.referenceNumber}) has been received and is pending review.`;
+
   await Notification.create({
     userId: docRequest.userId,
-    title: 'Document Request Submitted',
-    message: `Your request for "${documentType}" (Ref: ${docRequest.referenceNumber}) has been received and is pending review.`,
+    title: notifTitle,
+    message: notifMsg,
     type: 'info'
   });
+
+  // 🔔 Dispatched to resident phone lock screen
+  const resident = await User.findById(docRequest.userId);
+  if (resident?.expoPushToken) {
+    await sendPushNotification(
+      resident.expoPushToken,
+      notifTitle,
+      notifMsg,
+      { screen: 'Notifications', requestId: docRequest._id.toString(), type: 'DOC_SUBMITTED' }
+    );
+  }
 
   res.status(201).json({
     message: 'Document request submitted successfully!',
@@ -55,11 +91,14 @@ export const getMyRequests = asyncHandler(async (req, res) => {
 // GET / — Admin: Get all requests (with optional status filter)
 export const getAllRequests = asyncHandler(async (req, res) => {
   const filter = req.query.status ? { status: req.query.status } : {};
-  const requests = await DocumentRequest.find(filter).sort({ createdAt: -1 });
+  const requests = await DocumentRequest.find(filter)
+    .populate('userId', 'purok validIdFrontUrl validIdBackUrl accountStatus isVerified email completeAddress yearsOfResidency voterStatus mobileNumber')
+    .sort({ createdAt: -1 });
   res.json(requests);
 });
 
-// PATCH /:id/status — Admin: Update request status
+
+// PATCH /:id/status — Admin: Update request status & trigger real-time phone notification
 export const updateStatus = asyncHandler(async (req, res) => {
   const { status, rejectionReason, pickupDate } = req.body;
 
@@ -72,16 +111,45 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   docRequest.status      = status;
   docRequest.processedBy = req.user.username;
-  if (rejectionReason) docRequest.rejectionReason = rejectionReason;
-  if (pickupDate)      docRequest.pickupDate = new Date(pickupDate);
+  if (rejectionReason !== undefined) docRequest.rejectionReason = rejectionReason;
+  if (pickupDate !== undefined)      docRequest.pickupDate = pickupDate ? new Date(pickupDate) : null;
   await docRequest.save();
 
-  // Notify resident
-  const notif = buildNotification(docRequest, status, rejectionReason);
+  // Create in-app notification in DB
+  const notif = buildNotification(docRequest, status, rejectionReason, docRequest.pickupDate);
   await Notification.create({ userId: docRequest.userId, ...notif });
 
-  logAudit(req.user.id, req.user.username, 'DOC_REQUEST_UPDATE',
-    `Updated doc request ${req.params.id} → ${status}`, req);
+  // 🔔 Dispatch Real-Time Push Notification directly to Resident's Phone
+  const resident = await User.findById(docRequest.userId);
+  let pushSent = false;
+  if (resident?.expoPushToken) {
+    try {
+      await sendPushNotification(
+        resident.expoPushToken,
+        notif.title,
+        notif.message,
+        {
+          screen: 'Notifications',
+          type: 'DOCUMENT_STATUS_UPDATE',
+          documentId: docRequest._id.toString(),
+          referenceNumber: docRequest.referenceNumber,
+          status: status
+        }
+      );
+      pushSent = true;
+      console.log(`📲 [Push Sent] Notified resident ${resident.username} (${resident.expoPushToken}) for doc ${docRequest.referenceNumber} -> ${status}`);
+    } catch (pushErr) {
+      console.error('⚠️ Failed to dispatch push notification to resident:', pushErr);
+    }
+  }
 
-  res.json({ message: `Request updated to "${status}".`, documentRequest: docRequest });
+  logAudit(req.user.id, req.user.username, 'DOC_REQUEST_UPDATE',
+    `Updated doc request ${req.params.id} (${docRequest.referenceNumber}) → ${status}`, req);
+
+  res.json({
+    message: `Request updated to "${status}". ${pushSent ? 'Resident notified via Phone Push Notification.' : 'Resident in-app notification sent.'}`,
+    documentRequest: docRequest,
+    pushNotificationSent: pushSent
+  });
 });
+

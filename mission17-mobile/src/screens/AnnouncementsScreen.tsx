@@ -1,15 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
   RefreshControl, Image, Dimensions
 } from 'react-native';
-import { Megaphone, Pin, Calendar, Building, Globe, ChevronRight } from 'lucide-react-native';
+import { Megaphone, Pin, Calendar, Building, Globe, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { endpoints } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
 import { sharedStyles } from '../config/theme';
 
 const { width: SCREEN_W } = Dimensions.get('window');
+
+const BASE_CATS = ['general', 'health', 'safety', 'environment', 'events', 'services'];
 
 const CAT_LABELS: Record<string, string> = {
   general: 'General',
@@ -18,6 +20,7 @@ const CAT_LABELS: Record<string, string> = {
   environment: 'Environment',
   events: 'Community Events',
   services: 'Public Services',
+  urgent: 'Emergency Alert',
 };
 
 const CAT_COLORS: Record<string, string> = {
@@ -27,6 +30,19 @@ const CAT_COLORS: Record<string, string> = {
   environment: '#16A34A',
   events: '#7C3AED',
   services: '#B45309',
+  urgent: '#DC2626',
+};
+
+const getCategoryLabel = (cat: string) => {
+  const lower = (cat || '').toLowerCase();
+  if (CAT_LABELS[lower]) return CAT_LABELS[lower];
+  return cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : 'General';
+};
+
+const getCategoryColor = (cat: string) => {
+  const lower = (cat || '').toLowerCase();
+  if (CAT_COLORS[lower]) return CAT_COLORS[lower];
+  return '#0038A8';
 };
 
 const timeAgo = (dateStr: string) => {
@@ -42,26 +58,35 @@ const timeAgo = (dateStr: string) => {
 
 const PostCard = React.memo(({ item }: { item: any }) => {
   const [expanded, setExpanded] = useState(false);
-  const catColor = CAT_COLORS[item.category] || '#0F2942';
-  const catLabel = CAT_LABELS[item.category] || 'General';
+  const navigation = useNavigation<any>();
+  const catColor = getCategoryColor(item.category);
+  const catLabel = getCategoryLabel(item.category);
 
   const bodyPreview = item.body?.length > 180 && !expanded
     ? item.body.slice(0, 180) + '…'
     : item.body;
 
   return (
-    <View style={styles.postCard}>
+    <View style={[styles.postCard, item.isUrgent && styles.urgentCard]}>
+      {/* 🚨 URGENT EMERGENCY BANNER */}
+      {item.isUrgent && (
+        <View style={styles.urgentBanner}>
+          <AlertTriangle size={15} color="#FFFFFF" />
+          <Text style={styles.urgentBannerText}>EMERGENCY COMMUNITY ADVISORY</Text>
+        </View>
+      )}
+
       {/* HEADER */}
       <View style={styles.postHeader}>
-        <View style={styles.avatarCircle}>
-          <Building size={18} color="#0F2942" />
+        <View style={[styles.avatarCircle, item.isUrgent && { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}>
+          {item.isUrgent ? <ShieldAlert size={18} color="#DC2626" /> : <Building size={18} color="#0F2942" />}
         </View>
         <View style={styles.pageInfo}>
-          <Text style={styles.pageName}>Barangay Bagong Pag-asa</Text>
+          <Text style={[styles.pageName, item.isUrgent && { color: '#991B1B' }]}>Barangay Bagong Pag-asa</Text>
           <View style={styles.pageMetaRow}>
             <Text style={styles.postTime}>{timeAgo(item.createdAt)}</Text>
             <Text style={styles.dotSep}> · </Text>
-            <Text style={styles.postGlobe}>Official Bulletin</Text>
+            <Text style={styles.postGlobe}>{item.isUrgent ? 'Priority Broadcast' : 'Official Bulletin'}</Text>
           </View>
         </View>
         {item.isPinned && (
@@ -72,22 +97,64 @@ const PostCard = React.memo(({ item }: { item: any }) => {
         )}
       </View>
 
-      {/* CATEGORY PILL */}
+      {/* CATEGORY PILL & SDG BADGE */}
       <View style={styles.catTagRow}>
-        <View style={[styles.catTag, { backgroundColor: '#F1F5F9', borderColor: '#E2E8F0' }]}>
-          <View style={[styles.catDot, { backgroundColor: catColor }]} />
-          <Text style={[styles.catTagText, { color: '#334155' }]}>{catLabel}</Text>
+        <View style={[styles.catTag, { backgroundColor: item.isUrgent ? '#FEE2E2' : '#F1F5F9', borderColor: item.isUrgent ? '#FCA5A5' : '#E2E8F0' }]}>
+          <View style={[styles.catDot, { backgroundColor: item.isUrgent ? '#DC2626' : catColor }]} />
+          <Text style={[styles.catTagText, { color: item.isUrgent ? '#991B1B' : '#334155' }]}>{catLabel}</Text>
         </View>
+        {item.relatedSdg ? (
+          <View style={[styles.catTag, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC' }]}>
+            <Text style={{ fontSize: 11 }}>🌱</Text>
+            <Text style={[styles.catTagText, { color: '#166534', fontWeight: '800' }]}>SDG {item.relatedSdg} Initiative</Text>
+          </View>
+        ) : null}
       </View>
 
       {/* BODY */}
-      <Text style={styles.postTitle}>{item.title}</Text>
+      <Text style={[styles.postTitle, item.isUrgent && { color: '#991B1B' }]}>{item.title}</Text>
       <Text style={styles.postBody}>{bodyPreview}</Text>
       {item.body?.length > 180 && (
         <TouchableOpacity onPress={() => setExpanded(!expanded)} style={styles.seeMoreBtn}>
           <Text style={styles.seeMoreText}>{expanded ? 'Show less' : 'Read full announcement →'}</Text>
         </TouchableOpacity>
       )}
+
+      {/* 🌿 LINKED SDG ACTION INVITATION CARD */}
+      {item.relatedSdg ? (
+        <TouchableOpacity
+          style={{
+            backgroundColor: '#F0FDF4',
+            borderRadius: 12,
+            padding: 12,
+            marginTop: 10,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderWidth: 1.5,
+            borderColor: '#86EFAC'
+          }}
+          onPress={() => navigation.navigate('Missions', { selectedSDG: item.relatedSdg })}
+          activeOpacity={0.8}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 18 }}>🌱</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>
+                Join Green Action (SDG {item.relatedSdg})
+              </Text>
+              <Text style={{ fontSize: 11, color: '#15803D', marginTop: 1 }}>
+                Participate in this program & earn civic points!
+              </Text>
+            </View>
+          </View>
+          <View style={{ backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#ffffff' }}>Log Proof →</Text>
+          </View>
+        </TouchableOpacity>
+      ) : null}
 
       {/* IMAGE (IF PRESENT) */}
       {item.image ? (
@@ -106,6 +173,7 @@ const PostCard = React.memo(({ item }: { item: any }) => {
     </View>
   );
 });
+
 
 const AnnouncementsScreen: React.FC = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -139,10 +207,16 @@ const AnnouncementsScreen: React.FC = () => {
     fetchAnnouncements();
   }, [fetchAnnouncements]);
 
-  const categories = ['all', 'general', 'health', 'safety', 'environment', 'events', 'services'];
+  // Dynamically compute unique categories from live announcements data
+  const dynamicCategories = useMemo(() => {
+    const rawCategories = announcements.map(a => (a.category || '').toLowerCase()).filter(Boolean);
+    const distinct = Array.from(new Set([...BASE_CATS, ...rawCategories]));
+    return ['all', ...distinct];
+  }, [announcements]);
+
   const filtered = filterCat === 'all'
     ? announcements
-    : announcements.filter(a => a.category === filterCat);
+    : announcements.filter(a => (a.category || '').toLowerCase() === filterCat.toLowerCase());
 
   return (
     <RootComponent style={styles.root}>
@@ -153,11 +227,11 @@ const AnnouncementsScreen: React.FC = () => {
         <Text style={sharedStyles.headerTitle}>Barangay Bulletins & News</Text>
       </View>
 
-      {/* CATEGORY FILTER STRIP */}
+      {/* CATEGORY FILTER STRIP (DYNAMICALLY GENERATED) */}
       <View style={styles.filterStrip}>
         <FlatList
           horizontal
-          data={categories}
+          data={dynamicCategories}
           keyExtractor={c => c}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 14, gap: 8 }}
@@ -166,10 +240,10 @@ const AnnouncementsScreen: React.FC = () => {
               style={[styles.filterChip, filterCat === cat && styles.filterChipActive]}
               onPress={() => setFilterCat(cat)}
               accessibilityRole="button"
-              accessibilityLabel={`Filter by ${cat === 'all' ? 'All' : CAT_LABELS[cat]}`}
+              accessibilityLabel={`Filter by ${cat === 'all' ? 'All Bulletins' : getCategoryLabel(cat)}`}
             >
               <Text style={[styles.filterText, filterCat === cat && styles.filterTextActive]}>
-                {cat === 'all' ? 'All Bulletins' : CAT_LABELS[cat]}
+                {cat === 'all' ? 'All Bulletins' : getCategoryLabel(cat)}
               </Text>
             </TouchableOpacity>
           )}
@@ -251,6 +325,29 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  urgentCard: {
+    borderColor: '#F87171',
+    borderWidth: 1.5,
+    backgroundColor: '#FFFAFA',
+  },
+  urgentBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DC2626',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  urgentBannerText: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 10.5,
+    letterSpacing: 0.5,
+  },
+
   postHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -318,3 +415,4 @@ const styles = StyleSheet.create({
 });
 
 export default AnnouncementsScreen;
+

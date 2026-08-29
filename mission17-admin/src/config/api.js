@@ -1,7 +1,9 @@
-// Temporarily force Admin to use the live cloud backend for testing
-const API_URL = "https://mission17-backend.onrender.com/api"; 
+// Automatically use localhost when developing locally, and Render cloud in production
+const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const API_URL = isLocal ? "http://localhost:5001/api" : "https://mission17-backend.onrender.com/api"; 
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
+
 
 export const endpoints = {
   dashboard: {
