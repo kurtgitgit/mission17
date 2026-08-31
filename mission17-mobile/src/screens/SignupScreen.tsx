@@ -41,7 +41,7 @@ export default function SignupScreen() {
             </TouchableOpacity>
 
             <Image 
-              source={missionLogo} 
+              source={require('../../assets/logo.png')} 
               style={styles.logo} 
               resizeMode="contain"
             />
@@ -80,7 +80,15 @@ const styles = StyleSheet.create({
     position: 'relative'
   },
   backButton: { position: 'absolute', top: Platform.OS === 'android' ? 60 : 40, left: 24, zIndex: 10 },
-  logo: { width: 80, height: 80, marginBottom: 12 },
+  logo: { 
+    width: 80, 
+    height: 80, 
+    marginBottom: 12,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10, 
+  },
   title: { fontSize: 26, fontWeight: '800', color: 'white', marginBottom: 4 },
   subtitle: { fontSize: 14, color: 'rgba(255,255,255,0.8)' },
   cardContainer: {

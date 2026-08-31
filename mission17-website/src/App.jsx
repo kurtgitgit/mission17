@@ -79,7 +79,7 @@ function App() {
         transition: 'all 0.3s'
       }}>
         <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '45px', width: 'auto' }} />
+          <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '45px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
           <div>
             <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Bagong Pag-asa</h1>
           </div>
@@ -295,7 +295,7 @@ function App() {
         <div className="footer-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '3rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-              <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '40px', width: 'auto' }} />
+              <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
               <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>

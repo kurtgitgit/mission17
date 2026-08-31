@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import '../styles/Sidebar.css';
 import Modal from './Modal';
+import logoImg from '../assets/logo.png';
 
 const MENU_GROUPS = [
   {
@@ -108,8 +109,8 @@ const Sidebar = () => {
       
       {/* BRGY LOGO AREA */}
       <Link to="/settings" className="sidebar-header">
-        <div className="logo-box brgy-logo-box" style={{ background: '#FCD116' }}>
-          <span className="brgy-logo-emoji">🇵🇭</span>
+        <div className="logo-box brgy-logo-box">
+          <img src={logoImg} alt="BrgyLink Logo" className="sidebar-logo-img" />
         </div>
         <div className="logo-text-col">
           <span className="brand-name">Brgy. Bagong Pag-asa</span>

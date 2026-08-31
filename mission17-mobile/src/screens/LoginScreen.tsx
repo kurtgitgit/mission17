@@ -284,14 +284,12 @@ export default function LoginScreen() {
         >
           {/* HEADER WITH LOGO (Royal Blue Linear Gradient) */}
           <LinearGradient colors={['#0038A8', '#001a5e']} style={styles.header}>
-            <View style={styles.logoCard}>
               <Image 
                 source={require('../../assets/logo.png')} 
                 style={styles.logo} 
                 resizeMode="contain"
                 accessibilityLabel="Barangay Bagong Pag-asa Official Seal"
               />
-            </View>
             <Text style={styles.title}>{mfaRequired ? 'Security Verification' : 'Barangay Citizen Portal'}</Text>
             <Text style={styles.subtitle}>
               {mfaRequired ? 'Enter the verification code to continue' : 'Sign in to access your barangay e-services'}
@@ -468,20 +466,14 @@ const getStyles = (theme: any) => StyleSheet.create({
     paddingBottom: 56,
     alignItems: 'center',
   },
-  logoCard: {
-    backgroundColor: 'white',
-    padding: 10,
-    borderRadius: 20,
-    marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 8,
-  },
   logo: {
-    width: 72,
-    height: 72,
+    width: 90,
+    height: 90,
+    marginBottom: 14,
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
   },
   title: { 
     fontSize: 24, 

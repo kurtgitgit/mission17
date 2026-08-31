@@ -51,10 +51,17 @@
 }
 
 .brgy-logo-box {
-  background-color: rgba(255,255,255,0.15);
   border-radius: 12px;
   width: 44px;
   height: 44px;
+  /* Glow for dark background readability */
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.7));
+}
+
+.sidebar-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brgy-logo-emoji {

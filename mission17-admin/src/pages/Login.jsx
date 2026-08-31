@@ -13,7 +13,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '' });
-  
+
   // OTP State
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
@@ -52,7 +52,7 @@ const Login = () => {
       // 2. Sync with Backend
       const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`
         },
@@ -88,7 +88,7 @@ const Login = () => {
       let errorMsg = err.message || "Failed to log in";
       if (err.code === 'auth/invalid-credential') errorMsg = "Invalid email or password.";
       if (err.code === 'auth/too-many-requests') errorMsg = "Too many failed attempts. Try again later.";
-      
+
       showNotification(errorMsg, "error");
     } finally {
       setLoading(false);
@@ -129,12 +129,12 @@ const Login = () => {
 
   return (
     <div className="auth-container">
-      
+
       {/* LEFT SIDE: BRANDING PANEL */}
       <div className="auth-sidebar">
         <div className="sidebar-content">
           <div className="brand-box">
-            <img src={logoImg} alt="Barangay Logo" className="sidebar-logo" />
+            <img src={logoImg} alt="BrgyLink Logo" className="sidebar-logo" />
             <h1 className="brand-title">BARANGAY BAGONG PAG-ASA</h1>
             <p className="brand-tagline">Official Digital Portal</p>
             <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '13px', marginTop: '8px' }}>San Jacinto, Pangasinan</p>
@@ -160,13 +160,13 @@ const Login = () => {
                 <label>Email Address</label>
                 <div className="input-wrapper">
                   <Mail className="field-icon" size={18} />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="email"
-                    placeholder="Email Address" 
+                    placeholder="Email Address"
                     value={formData.email}
                     onChange={handleChange}
-                    required 
+                    required
                   />
                 </div>
               </div>
@@ -176,17 +176,17 @@ const Login = () => {
                 <label>Password</label>
                 <div className="input-wrapper">
                   <Lock className="field-icon" size={18} />
-                  <input 
-                    type={showPassword ? "text" : "password"} 
+                  <input
+                    type={showPassword ? "text" : "password"}
                     name="password"
-                    placeholder="Password" 
+                    placeholder="Password"
                     value={formData.password}
                     onChange={handleChange}
-                    required 
+                    required
                   />
-                  <button 
+                  <button
                     type="button"
-                    className="eye-btn" 
+                    className="eye-btn"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -213,13 +213,13 @@ const Login = () => {
                 <label>6-Digit OTP Code</label>
                 <div className="input-wrapper">
                   <Lock className="field-icon" size={18} />
-                  <input 
-                    type="text" 
-                    placeholder="123456" 
+                  <input
+                    type="text"
+                    placeholder="123456"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                     maxLength={6}
-                    required 
+                    required
                     style={{ letterSpacing: '4px', fontWeight: 'bold' }}
                   />
                 </div>
@@ -228,8 +228,8 @@ const Login = () => {
                 {loading ? <Loader2 className="animate-spin" size={18} /> : "Verify Code"}
                 {!loading && <ArrowRight size={18} />}
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => { setShowOtp(false); setOtpCode(''); }}
                 style={{ background: 'none', border: 'none', color: '#666', marginTop: '16px', cursor: 'pointer', width: '100%' }}
               >

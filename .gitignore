@@ -1,6 +1,7 @@
 # Ignore the dataset and venv
 dataset/
 venv/
+.venv_image/
 __pycache__/
 *.pyc
 
