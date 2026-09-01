@@ -1,3 +1,13 @@
+---
+title: Mission 17 AI
+emoji: 🤖
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🤖 Mission 17 AI: Computer Vision & Anti-Cheat Microservice
 
 <div align="center">
