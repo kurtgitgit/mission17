@@ -89,8 +89,9 @@ export async function buildAIFormData(imageUri) {
  */
 export async function callAIServer(imageUri, skipAntiCheat = false) {
   const formData = await buildAIFormData(imageUri);
-  if (skipAntiCheat) {
-    formData.append('skip_anticheat', '1');
+  const aiServiceToken = process.env.AI_SERVICE_TOKEN;
+  if (!aiServiceToken) {
+    throw new Error('AI_SERVICE_TOKEN is not configured on the backend.');
   }
 
   let aiUrl = process.env.AI_SERVER_URL || 'https://kurtgitgit-mission17-ai.hf.space/predict';
@@ -108,6 +109,10 @@ export async function callAIServer(imageUri, skipAntiCheat = false) {
   try {
     aiResponse = await fetch(aiUrl, {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${aiServiceToken}`,
+        ...(skipAntiCheat ? { 'X-Mission17-Admin-Reanalysis': '1' } : {}),
+      },
       body: formData,
       signal: aiController.signal,
     });
