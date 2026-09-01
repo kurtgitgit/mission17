@@ -1,10 +1,10 @@
 import os
-import traceback
+import hmac
 import logging
+from io import BytesIO
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
+from PIL import Image
 
 from utils.anticheat import AntiCheatEngine
 from utils.predictor import Predictor
@@ -18,10 +18,10 @@ logger = logging.getLogger(__name__)
 
 # Initialize components
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
-app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024  # Limit upload to 100MB
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+AI_SERVICE_TOKEN = os.getenv('AI_SERVICE_TOKEN', '')
 
 logger.info("🧠 Loading the MISSION 17 AI Brain (Ollama Vision)...")
 anticheat = AntiCheatEngine()
@@ -30,29 +30,38 @@ predictor = Predictor()
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+def require_backend_service_token():
+    if not AI_SERVICE_TOKEN:
+        logger.error('AI_SERVICE_TOKEN is not configured.')
+        return jsonify({'error': 'AI service is not configured.'}), 503
+
+    authorization = request.headers.get('Authorization', '')
+    if not authorization.startswith('Bearer '):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    provided_token = authorization.removeprefix('Bearer ')
+    if not hmac.compare_digest(provided_token, AI_SERVICE_TOKEN):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    return None
+
+@app.errorhandler(413)
+def request_too_large(_error):
+    return jsonify({'error': 'Image is too large. Maximum upload size is 5 MB.'}), 413
 
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
         "status": "ok",
-        "model": predictor.get_model_name(),
-        "anticheat_hashes": anticheat.count()
+        "service": "mission17-ai"
     }), 200
-
-@app.route('/reset-anti-cheat', methods=['POST', 'GET'])
-def reset_anti_cheat():
-    count = anticheat.clear()
-    logger.info("🛡️ Anti-cheat hash database cleared!")
-    return jsonify({"message": "Anti-cheat hash database cleared!", "count": count}), 200
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    auth_error = require_backend_service_token()
+    if auth_error:
+        return auth_error
+
     try:
         # 🔒 CHECK 1: File Presence
         if 'file' not in request.files:
@@ -76,11 +85,14 @@ def predict():
 
         # Read file bytes ONCE and reuse them
         file_bytes = file.read()
+        try:
+            Image.open(BytesIO(file_bytes)).verify()
+        except Exception:
+            return jsonify({'error': 'Invalid image content.'}), 400
         
         # 🎯 MODULE 11: Calculate Hash and Check for Cheaters
-        # skip_anticheat=1 is sent by the admin re-scan endpoint so that
-        # already-registered hashes don't falsely trigger duplicate detection.
-        skip_anticheat = request.form.get('skip_anticheat', '0') == '1'
+        # Only the authenticated backend can request a re-analysis bypass.
+        skip_anticheat = request.headers.get('X-Mission17-Admin-Reanalysis') == '1'
         if not skip_anticheat and anticheat.is_duplicate(file_bytes):
             logger.warning("🚨 ANTI-CHEAT: Duplicate image detected!")
             return jsonify({
@@ -110,9 +122,8 @@ def predict():
         return jsonify(verdict_response)
 
     except Exception as e:
-        logger.error(f"❌ Processing Error: {str(e)}")
-        traceback.print_exc()
-        return jsonify({'error': "Processing failed", 'detail': str(e)}), 500
+        logger.exception('Processing Error')
+        return jsonify({'error': "Processing failed"}), 500
 
 if __name__ == '__main__':
     # Hugging Face requires the app to listen on 0.0.0.0:7860
