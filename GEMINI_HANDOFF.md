@@ -1,23 +1,26 @@
-# Gemini Handoff Notes
+# Gemini Handoff — 2026-09-01
 
-**To: Codex**
+## Work Completed in this Session
 
-## Project Status
-The project is a React Native (Expo) app named **BrgyLink** (`com.barangay.mission17`). The user is currently preparing to build an APK (`eas build -p android --profile preview`) and wants the UI to match the Admin Portal (React/Web).
+1. **Git History Rebase and Preservation**
+   - Successfully recovered the dirty local worktree by safely stashing, resetting to the sanitized `origin/main` (`507f442`), and applying the stash.
+   - Resolved merge conflicts by retaining the newly sanitized versions of files (such as the legacy database/mongo helper scripts).
+   - Committed and pushed all preserved local changes back to the remote `main` repository in a single commit (`f24efff`).
 
-## Accomplishments So Far
-1. **Push Notifications (FCM V1):** Linked the Firebase Service Account JSON and configured `expo-notifications` in `app.json`.
-2. **App Branding:** Fixed the app name to "BrgyLink" and fixed the Android Adaptive Icon (resized and padded it via script to prevent cropping).
-3. **Hermes Crashes:** Scrubbed all instances of `.toLocaleDateString()` and replaced them with `.toDateString()` to prevent Android Release mode crashes.
-4. **Dark Mode Constraints:** Locked `userInterfaceStyle` to `"light"` in `app.json` and removed the manual Dark Mode toggle from `SettingsScreen.tsx`. This was necessary because 95% of the app's components have hardcoded light colors (`#ffffff` and `#0f172a`), so Dark Mode was completely breaking the UI readability.
-5. **UI Fixes:** Fixed the floating Chatbot button icon from `Sparkles` to `Bot` (lucide-react-native) in `HomeScreen.tsx`. Fixed a missing `useNavigation` import in `AnnouncementsScreen.tsx`.
+2. **Backend Security Vulnerabilities Addressed**
+   - Ran `npm audit fix` on `mission17-backend`.
+   - Resolved all 9 high-severity advisories affecting `body-parser`, `brace-expansion`, `express-rate-limit`, `form-data`, `ip-address`, `lodash`, `mongoose`, `multer`, `path-to-regexp`, `qs`, and `ws`.
+   - 5 moderate severity vulnerabilities remain (primarily from `uuid` requiring a breaking `firebase-admin` update), which were deferred per the controlled batch strategy.
+   - Reran backend linting (`npm run lint`), which passed cleanly.
+   - Reran backend tests (`npm test -- --runInBand`), and all tests passed successfully (2 suites, 5 tests).
+   - Committed and pushed the `package-lock.json` dependency updates to `origin/main` (`df6a5b1`).
 
-## Current Issue (Needs Codex's Help)
-The user wants the BrgyLink logo on the `LoginScreen.tsx` (mobile) to have the exact same soft, diffused "white smoke" glowing background aura as their web-based Admin Portal.
+## Remaining Work for Codex
 
-### What has been tried:
-- Previously, `LoginScreen.tsx` had a solid white circle (`backgroundColor: 'rgba(255, 255, 255, 0.95)'` and `borderRadius: 60`). The user rejected this because it looked like a hard sticker, not a soft glow.
-- We switched to the modern React Native `boxShadow: '0px 0px 60px 15px rgba(255, 255, 255, 0.45)'` (RN 0.81.5), but the 15px spread radius on Android caused it to render as a massive solid disk rather than a soft aura.
-- Our latest attempt injected a tiny `glowSource` View behind the logo (`width: 20`, `height: 20`, `boxShadow: '0px 0px 80px 50px rgba(255, 255, 255, 0.45)'`) to try and create a perfect radial diffusion without hard edges.
+The first two critical steps outlined in `CODEX_HANDOFF.md` are now fully resolved! You may proceed with the rest:
+1. **Meaningful Automated Tests**: Add tests for Firebase auth, admin RBAC, IDOR/ownership, private blotter evidence, upload size/type rejections, and AI URL validation.
+2. **Reconcile API Contracts**: Update admin build and Android JS export (do not build APK yet) after verifying backend API contracts.
+3. **End-to-End Staging Verification**: Deploy to a staging backend and perform actual E2E testing (resident flows, admin RBAC, push tickets, AI validation).
+4. **Update Documentation & Physical Android Testing**: Update `QA_FINAL_REPORT.md`, `QA_AUDIT_SESSION.md`, and conduct testing on a physical Android device.
 
-**Codex, please take over the UI polishing for the `LoginScreen.tsx` logo glow. The user wants it to look exactly like a pure CSS radial gradient glow (soft, borderless aura) on React Native Android.**
+Please refer to `IMPLEMENTATION_PLAN.md` for the overarching roadmap.
