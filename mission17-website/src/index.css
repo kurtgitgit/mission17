@@ -344,3 +344,40 @@ a { color: var(--bright-blue); text-decoration: none; }
     line-height: 1.4;
   }
 }
+
+/* Phone layout: preserve breathing room without forcing desktop proportions
+   into 320–480px viewports. */
+@media (max-width: 480px) {
+  nav { padding: 0.75rem 1rem !important; }
+
+  .header-content { min-width: 0; }
+  .header-content img { height: 36px !important; }
+  .header-content h1 { font-size: 1rem !important; line-height: 1.25 !important; }
+
+  .hero-container {
+    padding: 3rem 1rem 3.5rem !important;
+    gap: 2rem !important;
+  }
+  .heading-hero { font-size: 2.35rem !important; line-height: 1.08; }
+  .hero-text-block p { padding: 0 !important; font-size: 1rem !important; }
+  .hero-buttons { gap: 0.75rem !important; }
+  .hero-buttons .btn-primary,
+  .hero-buttons .btn-outline { width: 100%; justify-content: center; }
+
+  section { padding: 3rem 1rem !important; }
+  .section-label { margin-bottom: 1rem; font-size: 0.72rem; }
+  .section-title-wrapper { gap: 1rem !important; margin-bottom: 2rem !important; }
+  .section-title-wrapper h3,
+  section h3 { font-size: 1.8rem !important; line-height: 1.2; }
+
+  .card { padding: 1.25rem !important; }
+  .stats-banner { padding: 2.5rem 1rem; gap: 2rem; }
+  .stat-number { font-size: 2.5rem; }
+  .sdg-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+  .sdg-card { padding: 0.9rem; }
+  .sdg-card img { width: 100%; height: auto; }
+
+  .footer-container { gap: 2rem !important; }
+  .footer-right { text-align: center !important; }
+  .top-banner-text { padding: 10px 1rem !important; }
+}

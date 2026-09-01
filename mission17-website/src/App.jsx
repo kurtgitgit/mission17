@@ -1,29 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Smartphone, ArrowRight, FileText, CheckCircle, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Phone, Menu } from 'lucide-react';
-
-const sdgData = [
-  { id: 1, title: 'No Poverty', desc: 'End poverty in all its forms everywhere.' },
-  { id: 2, title: 'Zero Hunger', desc: 'End hunger, achieve food security and improved nutrition and promote sustainable agriculture.' },
-  { id: 3, title: 'Good Health and Well-being', desc: 'Ensure healthy lives and promote well-being for all at all ages.' },
-  { id: 4, title: 'Quality Education', desc: 'Ensure inclusive and equitable quality education and promote lifelong learning opportunities for all.' },
-  { id: 5, title: 'Gender Equality', desc: 'Achieve gender equality and empower all women and girls.' },
-  { id: 6, title: 'Clean Water and Sanitation', desc: 'Ensure availability and sustainable management of water and sanitation for all.' },
-  { id: 7, title: 'Affordable and Clean Energy', desc: 'Ensure access to affordable, reliable, sustainable and modern energy for all.' },
-  { id: 8, title: 'Decent Work and Economic Growth', desc: 'Promote sustained, inclusive and sustainable economic growth, full and productive employment and decent work for all.' },
-  { id: 9, title: 'Industry, Innovation and Infrastructure', desc: 'Build resilient infrastructure, promote inclusive and sustainable industrialization and foster innovation.' },
-  { id: 10, title: 'Reduced Inequality', desc: 'Reduce inequality within and among countries.' },
-  { id: 11, title: 'Sustainable Cities and Communities', desc: 'Make cities and human settlements inclusive, safe, resilient and sustainable.' },
-  { id: 12, title: 'Responsible Consumption and Production', desc: 'Ensure sustainable consumption and production patterns.' },
-  { id: 13, title: 'Climate Action', desc: 'Take urgent action to combat climate change and its impacts.' },
-  { id: 14, title: 'Life Below Water', desc: 'Conserve and sustainably use the oceans, seas and marine resources for sustainable development.' },
-  { id: 15, title: 'Life on Land', desc: 'Protect, restore and promote sustainable use of terrestrial ecosystems, sustainably manage forests, combat desertification, and halt and reverse land degradation and halt biodiversity loss.' },
-  { id: 16, title: 'Peace and Justice Strong Institutions', desc: 'Promote peaceful and inclusive societies for sustainable development, provide access to justice for all and build effective, accountable and inclusive institutions at all levels.' },
-  { id: 17, title: 'Partnerships to achieve the Goal', desc: 'Strengthen the means of implementation and revitalize the global partnership for sustainable development.' }
-];
+import { useState, useEffect, useRef } from 'react';
+import { Smartphone, ArrowRight, FileText, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Menu } from 'lucide-react';
 
 function FadeInSection(props) {
   const [isVisible, setVisible] = useState(false);
-  const domRef = useRef();
+  const domRef = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
@@ -34,10 +14,9 @@ function FadeInSection(props) {
       });
     }, { threshold: 0.1 });
     
-    if (domRef.current) observer.observe(domRef.current);
-    return () => {
-      if (domRef.current) observer.unobserve(domRef.current);
-    };
+    const target = domRef.current;
+    if (target) observer.observe(target);
+    return () => observer.disconnect();
   }, []);
 
   return (
@@ -295,8 +274,8 @@ function App() {
         <div className="footer-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '3rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-              <img src="/logo.png" alt="Mission 17 Logo" style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
-              <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>MISSION 17</h4>
+              <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
+              <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>BrgyLink Portal</h4>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>
               Empowering Barangay Bagong Pag-asa through AI-driven e-Governance, verified civic initiatives, and Sustainable Development Goals.
