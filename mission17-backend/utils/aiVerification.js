@@ -13,7 +13,16 @@ const __dirname = path.dirname(__filename);
  */
 export function isValidImageUri(uri) {
   if (!uri || typeof uri !== 'string') return false;
-  return uri.startsWith('data:image') || uri.startsWith('http://') || uri.startsWith('https://') || uri.startsWith('/uploads/');
+  if (/^data:image\/(jpeg|png|gif|webp);base64,/i.test(uri)) return true;
+  if (uri.startsWith('/uploads/')) {
+    return !uri.slice('/uploads/'.length).includes('/') && !uri.includes('\\');
+  }
+  try {
+    const parsed = new URL(uri);
+    return parsed.protocol === 'https:' && (parsed.hostname === 'res.cloudinary.com' || parsed.hostname.endsWith('.cloudinary.com'));
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -27,14 +36,17 @@ export async function buildAIFormData(imageUri) {
   let imageBuffer;
 
   if (imageUri.startsWith('/uploads/')) {
-    const relativePath = imageUri.replace(/^\//, ''); // Remove leading slash for join
-    const filePath = path.join(__dirname, '..', relativePath);
+    const filename = path.basename(imageUri);
+    const filePath = path.join(__dirname, '..', 'uploads', filename);
     console.log(`📂 AI Analysis: Reading local file: ${filePath}`);
     imageBuffer = fs.readFileSync(filePath);
   } else if (imageUri.startsWith('data:image')) {
     // 🛡️ Base64 path — no network fetch needed
     const base64Data = imageUri.split(',')[1];
     imageBuffer = Buffer.from(base64Data, 'base64');
+    if (!imageBuffer.length || imageBuffer.length > 5 * 1024 * 1024) {
+      throw new Error('Proof image must be between 1 byte and 5 MB.');
+    }
   } else if (imageUri.includes('cloudinary.com')) {
     // ☁️ Cloudinary URL — download via authenticated Cloudinary API (avoids
     // ERR_CONNECTION_TIMED_OUT issues when plain fetch is blocked on Render).

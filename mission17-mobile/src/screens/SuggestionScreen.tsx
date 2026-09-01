@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { ArrowLeft, Send, CheckCircle, Clock, Check, X, Lightbulb, AlertCircle } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { endpoints, GlobalState } from '../config/api';
+import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 
 const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
@@ -32,7 +32,9 @@ const SuggestionScreen = () => {
     if (!GlobalState.userId) return;
     setLoadingHistory(true);
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`);
+      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`, {
+        headers: await getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setHistory(Array.isArray(data) ? data : []);
@@ -79,10 +81,8 @@ const SuggestionScreen = () => {
     try {
       const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/suggestions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId: GlobalState.userId,
-          username: GlobalState.username || 'Resident',
           title: title.trim(),
           description: description.trim(),
           category,
@@ -368,7 +368,7 @@ const SuggestionScreen = () => {
 
                   <View style={styles.historyFooter}>
                     <Text style={styles.historyDate}>
-                      📅 {new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      📅 {new Date(item.createdAt).toDateString()}
                     </Text>
                     {item.isAnonymous ? (
                       <Text style={styles.anonTag}>🔒 Anonymous</Text>

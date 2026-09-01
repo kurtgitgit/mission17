@@ -3,7 +3,7 @@ import { View, StyleSheet, AppState, Platform } from 'react-native';
 import ToastMessage from 'react-native-toast-message';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { GlobalState, endpoints } from '../config/api';
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -42,6 +42,27 @@ export const useNotification = () => {
 // How often to check for new notifications (in ms)
 const POLL_INTERVAL = 15000; // 15 seconds
 
+const configureAndroidNotificationChannels = async () => {
+  if (Platform.OS !== 'android') return;
+
+  await Promise.all([
+    Notifications.setNotificationChannelAsync('default', {
+      name: 'Barangay updates',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#0038A8',
+      sound: 'default',
+    }),
+    Notifications.setNotificationChannelAsync('emergency', {
+      name: 'Emergency alerts',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 400, 200, 400],
+      lightColor: '#dc2626',
+      sound: 'default',
+    }),
+  ]);
+};
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
@@ -49,6 +70,23 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const seenIds = useRef<Set<string>>(new Set());
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const appState = useRef(AppState.currentState);
+
+  const savePushToken = useCallback(async (_userId: string, expoPushToken: string) => {
+    try {
+      const response = await fetch(endpoints.auth.baseUrl + '/save-push-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ expoPushToken }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Backend responded with ' + response.status);
+      }
+    } catch (error) {
+      console.error('Failed to save the Expo push token:', error);
+      throw error;
+    }
+  }, []);
 
   // ─── Toast trigger ────────────────────────────────────────────────────────
   const showNotification = useCallback((arg1: any, arg2?: any, arg3?: string) => {
@@ -93,14 +131,11 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ─── Background polling ───────────────────────────────────────────────────
   const pollNotifications = useCallback(async () => {
     const userId = GlobalState.userId;
-    const auth = (GlobalState as any).auth;
-    const token = auth?.token;
-
-    if (!userId || !token) return;
+    if (!userId) return;
 
     try {
       const res = await fetch(endpoints.auth.getNotifications(userId), {
-        headers: { 'auth-token': token },
+        headers: await getAuthHeaders(),
       });
       if (!res.ok) return;
 
@@ -169,11 +204,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const registerPushToken = useCallback(async (userId: string) => {
     if (Platform.OS === 'web') return;
     if (!Device.isDevice) {
-      console.log('Must use physical device for Push Notifications');
+      console.warn('Push notification registration requires a physical device.');
       return;
     }
 
     try {
+      await configureAndroidNotificationChannels();
+
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
@@ -181,24 +218,34 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         finalStatus = status;
       }
       if (finalStatus !== 'granted') {
-        console.log('Failed to get push token for push notification!');
+        showNotification(
+          'Push notifications are off. You can enable them later in your phone settings.',
+          'info'
+        );
         return;
       }
-      
-      const projectId = "69ab462e-4c5c-4165-90f6-22e3a602c04d"; // Match projectId from app.json
-      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-      console.log("Expo Push Token:", token);
 
-      // Save token to backend
-      await fetch(`${endpoints.auth.baseUrl}/save-push-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, expoPushToken: token }),
-      });
-    } catch (e) {
-      console.log("Error registering push token:", e);
+      const projectId = '69ab462e-4c5c-4165-90f6-22e3a602c04d';
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+
+      await savePushToken(userId, token);
+    } catch (error) {
+      console.error('Failed to register push notifications:', error);
     }
-  }, []);
+  }, [savePushToken, showNotification]);
+
+  useEffect(() => {
+    const subscription = Notifications.addPushTokenListener((token) => {
+      const userId = GlobalState.userId;
+      if (!userId || token.type !== 'expo') return;
+
+      void savePushToken(userId, token.data).catch((error) => {
+        console.error('Failed to update a rotated Expo push token:', error);
+      });
+    });
+
+    return () => subscription.remove();
+  }, [savePushToken]);
 
   return (
     <NotificationContext.Provider value={{ showNotification, registerPushToken }}>

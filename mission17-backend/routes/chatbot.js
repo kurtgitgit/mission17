@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { ChatOllama } from "@langchain/ollama";
 import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
 
@@ -64,6 +65,19 @@ const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
 // Extract base URL for LangChain (e.g., http://localhost:11434)
 const OLLAMA_BASE_URL = OLLAMA_URL.replace('/api/chat', '');
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3';
+const MAX_MESSAGE_LENGTH = 1_200;
+const MAX_HISTORY_ITEMS = 8;
+const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
+
+// The chatbot can invoke a costly model. Keep a dedicated, conservative limit
+// even though the application also has a broad global API limiter.
+const chatbotLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { reply: 'Too many chatbot requests. Please wait a moment and try again.' },
+});
 
 // ─── Keyword Fallback ──────────────────────────────────────────────────────────
 const getMockReply = (message) => {
@@ -77,18 +91,28 @@ const getMockReply = (message) => {
 };
 
 // ─── Route ─────────────────────────────────────────────────────────────────────
-router.post('/', async (req, res) => {
+router.post('/', chatbotLimiter, async (req, res) => {
   const { message, history = [] } = req.body;
 
-  if (!message?.trim()) {
+  if (typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ reply: 'Please provide a message.' });
   }
+  if (message.length > MAX_MESSAGE_LENGTH) {
+    return res.status(400).json({ reply: `Please keep messages under ${MAX_MESSAGE_LENGTH} characters.` });
+  }
+
+  const safeHistory = Array.isArray(history)
+    ? history
+      .slice(-MAX_HISTORY_ITEMS)
+      .filter((item) => item && typeof item.text === 'string')
+      .map((item) => ({ isBot: Boolean(item.isBot), text: item.text.slice(0, MAX_HISTORY_MESSAGE_LENGTH) }))
+    : [];
 
   try {
     // Build LangChain messages from history
     const lcMessages = [
       new SystemMessage(SYSTEM_PROMPT),
-      ...history.map(msg => 
+      ...safeHistory.map(msg =>
         msg.isBot ? new AIMessage(msg.text) : new HumanMessage(msg.text)
       ),
       new HumanMessage(message)

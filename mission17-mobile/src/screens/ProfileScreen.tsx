@@ -9,7 +9,7 @@ import {
   Building, Lock, FileText, ChevronDown, Check
 } from 'lucide-react-native'; 
 import { useIsFocused, CommonActions } from '@react-navigation/native';
-import { GlobalState, endpoints } from '../config/api';
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { clearAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
@@ -37,10 +37,11 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const fetchProfileData = useCallback(async () => {
     try {
-      const userRes = await fetch(endpoints.auth.getUser(userId));
+      const authHeaders = await getAuthHeaders();
+      const userRes = await fetch(endpoints.auth.getUser(userId), { headers: authHeaders });
       const userJson = await userRes.json();
       
-      const histRes = await fetch(endpoints.auth.getUserSubmissions(userId));
+      const histRes = await fetch(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
       const histJson = await histRes.json();
 
       setUserData(userJson);
@@ -312,7 +313,7 @@ const ProfileScreen = ({ navigation }: any) => {
       <View style={styles.historyInfo}>
         <Text style={styles.missionTitle}>{item.missionTitle}</Text>
         <View style={styles.historyMeta}>
-          <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}</Text>
+          <Text style={styles.date}>{item.createdAt ? new Date(item.createdAt).toDateString() : 'No Date'}</Text>
         </View>
         {item.status === 'Rejected' && <Text style={styles.reasonText}>Reason: {item.rejectionReason}</Text>}
       </View>
@@ -612,4 +613,3 @@ const getStyles = (theme: any) => StyleSheet.create({
 });
 
 export default ProfileScreen;
-

@@ -4,6 +4,7 @@ import {
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
   RefreshControl, Image, Dimensions
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { Megaphone, Pin, Calendar, Building, Globe, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { endpoints } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
@@ -167,7 +168,7 @@ const PostCard = React.memo(({ item }: { item: any }) => {
 
       <View style={styles.cardFooter}>
         <Text style={styles.footerDate}>
-          📅 {new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })}
+          📅 {new Date(item.createdAt).toDateString()}
         </Text>
       </View>
     </View>

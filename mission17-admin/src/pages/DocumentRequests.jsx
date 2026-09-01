@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { Search, RefreshCw, FileText, XCircle, AlertTriangle, CheckCircle2, Calendar, Smartphone, ShieldCheck, Eye, UserCheck } from 'lucide-react';
 import { endpoints } from '../config/api';
@@ -306,7 +306,7 @@ const DocumentRequests = () => {
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const url = filterStatus !== 'All'
@@ -316,9 +316,9 @@ const DocumentRequests = () => {
       if (res.ok) setRequests(await res.json());
     } catch { showNotification('Failed to load requests.', 'error'); }
     finally   { setLoading(false); }
-  };
+  }, [baseUrl, filterStatus, showNotification, token]);
 
-  useEffect(() => { fetchData(); }, [filterStatus]);
+  useEffect(() => { void fetchData(); }, [fetchData]);
 
   const updateStatus = async (id, newStatus, rejectionReason = '', pickupDate = null) => {
     setProcessing(id);

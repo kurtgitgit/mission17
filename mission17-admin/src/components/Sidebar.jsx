@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -88,14 +88,12 @@ const Sidebar = () => {
     [activeGroupId]: true
   });
 
-  useEffect(() => {
-    if (activeGroupId) {
-      setOpenGroups(prev => ({ ...prev, [activeGroupId]: true }));
-    }
-  }, [location.pathname]);
-
   const toggleGroup = (id) => {
     setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const openGroup = (id) => {
+    setOpenGroups(prev => ({ ...prev, [id]: true }));
   };
 
   const executeLogout = () => {
@@ -155,6 +153,7 @@ const Sidebar = () => {
                       <li key={item.to} className="nav-sub-item">
                         <NavLink
                           to={item.to}
+                          onClick={() => openGroup(group.id)}
                           className={({ isActive }) => isActive ? "nav-sub-link active" : "nav-sub-link"}
                         >
                           <ItemIcon size={16} />

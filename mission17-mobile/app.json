@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Mission 17",
+    "name": "BrgyLink",
     "slug": "mission17-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -28,18 +28,24 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/app-icon.jpg",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.barangay.mission17",
-      "versionCode": 2,
+      "versionCode": 3,
       "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/app-icon.jpg"
     },
     "plugins": [
+      [
+        "expo-notifications",
+        {
+          "defaultChannel": "default"
+        }
+      ],
       "expo-updates",
       "expo-secure-store",
       "expo-web-browser",

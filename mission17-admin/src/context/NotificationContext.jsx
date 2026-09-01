@@ -3,6 +3,8 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const NotificationContext = createContext();
 
+// This hook is intentionally exported beside its provider for a shared context API.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotification = () => {
     const context = useContext(NotificationContext);
     if (!context) {

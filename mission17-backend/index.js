@@ -25,10 +25,11 @@ import chatbotRoutes        from './routes/chatbot.js';           // AI chatbot
 import blotterRoutes        from './routes/blotter-reports.js';   // Blotter reports
 import suggestionRoutes     from './routes/suggestions.js';       // Suggestions
 import { upload } from './utils/upload.js';
-import { logAudit } from './utils/authMiddleware.js';
+import { verifyAdmin } from './utils/authMiddleware.js';
+import { processPendingPushReceipts } from './utils/pushNotifier.js';
 
 // ✅ NEW: Check for required environment variables on startup
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'AI_SERVICE_TOKEN', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 for (const v of requiredEnvVars) {
     if (!process.env[v]) {
         console.error(`\n❌ FATAL ERROR: Environment variable ${v} is missing in .env file.`);
@@ -78,8 +79,8 @@ app.use(xss());
 // --- STANDARD MIDDLEWARE ---
 
 // 🛡️ CAPSTONE MITIGATION: 5MB Payload Cap to prevent RAM exhaustion (DoS)
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 app.use(cors({
   origin: '*', // Allow all during local demo
@@ -102,16 +103,13 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Restored static route for local uploads (e.g. Blotter Reports)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // --- ROUTES ---
 app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is responsive' });
 });
 
 // 📁 General File Upload Endpoint
-app.post('/api/auth/upload', upload.single('image'), (req, res) => {
+app.post('/api/auth/upload', verifyAdmin, upload.single('image'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
   }
@@ -153,6 +151,12 @@ const connectDB = async () => {
     }
     await mongoose.connect(process.env.MONGO_URI);
     console.log('✅ MongoDB Connected Securely');
+    // Expo tickets are only acceptance acknowledgements. Check their later
+    // receipts on a small interval and remove invalid device tokens.
+    void processPendingPushReceipts().catch((error) => console.error('Initial push receipt check failed:', error.message));
+    setInterval(() => {
+      void processPendingPushReceipts().catch((error) => console.error('Push receipt check failed:', error.message));
+    }, 60 * 1000).unref();
   } catch (error) {
     console.error('❌ Database Connection Failed:', error);
     process.exit(1);

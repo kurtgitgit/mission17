@@ -14,9 +14,8 @@
  */
 
 import express from 'express';
-import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
-import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
+import { verifyAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
 
 const router = express.Router();
@@ -64,23 +63,146 @@ router.get('/users', verifyAdmin, async (req, res) => {
 
 // 2. ADMIN ADD USER
 router.post('/add-user', verifyAdmin, async (req, res) => {
-  const { username, email, password, role } = req.body;
+  const { username, email, password, role = 'resident', points = 0 } = req.body;
   try {
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const newUser = new User({ username, email, password: hashedPassword, role: role || 'resident' });
-    await newUser.save();
+    const normalizedUsername = typeof username === 'string' ? username.trim() : '';
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
+    const normalizedPoints = Number(points);
+
+    if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < 6) {
+      return res.status(400).json({ message: 'Username, email, and a password of at least six characters are required.' });
+    }
+    if (!['resident', 'lgu', 'admin'].includes(normalizedRole)) {
+      return res.status(400).json({ message: 'Invalid role.' });
+    }
+    if (!Number.isInteger(normalizedPoints) || normalizedPoints < 0) {
+      return res.status(400).json({ message: 'Points must be a non-negative whole number.' });
+    }
+    if (await User.exists({ $or: [{ username: normalizedUsername }, { email: normalizedEmail }] })) {
+      return res.status(409).json({ message: 'A user with that username or email already exists.' });
+    }
+
+    // Firebase Authentication is the password authority. Never store Firebase
+    // account passwords in MongoDB.
+    const firebaseUser = await getAuth().createUser({
+      email: normalizedEmail,
+      password,
+      displayName: normalizedUsername,
+    });
+
+    const nameParts = normalizedUsername.split(/\s+/);
+    const firstName = nameParts.shift();
+    const lastName = nameParts.join(' ') || 'Account';
+
+    try {
+      const newUser = new User({
+        firebaseUid: firebaseUser.uid,
+        username: normalizedUsername,
+        email: normalizedEmail,
+        role: normalizedRole,
+        points: normalizedPoints,
+        firstName,
+        lastName,
+        accountStatus: 'approved',
+      });
+      await newUser.save();
+    } catch (error) {
+      await getAuth().deleteUser(firebaseUser.uid).catch(() => {});
+      throw error;
+    }
+
     logAudit(req.user.id, req.user.username, 'ADMIN_USER_CREATE', `Admin created user: ${username}`, req);
     res.status(201).json({ message: 'User created' });
   } catch (error) {
+    if (error.code === 'auth/email-already-exists') {
+      return res.status(409).json({ message: 'A Firebase user with that email already exists.' });
+    }
     res.status(500).json({ message: 'Error creating user' });
   }
 });
 
 // 3. ADMIN UPDATE USER
 router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
+  let firebaseEmailChanged = false;
+  let previousFirebaseEmail = null;
   try {
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const userToUpdate = await User.findById(req.params.id);
+    if (!userToUpdate) return res.status(404).json({ message: 'User not found.' });
+
+    const updateData = {};
+    if (typeof req.body.username === 'string' && req.body.username.trim()) {
+      updateData.username = req.body.username.trim();
+    }
+    if (typeof req.body.email === 'string' && req.body.email.trim()) {
+      updateData.email = req.body.email.trim().toLowerCase();
+    }
+    if (req.body.role !== undefined) {
+      const role = typeof req.body.role === 'string' ? req.body.role.toLowerCase() : '';
+      if (!['resident', 'lgu', 'admin'].includes(role)) {
+        return res.status(400).json({ message: 'Invalid role.' });
+      }
+      updateData.role = role;
+    }
+    if (req.body.points !== undefined) {
+      const points = Number(req.body.points);
+      if (!Number.isInteger(points) || points < 0) {
+        return res.status(400).json({ message: 'Points must be a non-negative whole number.' });
+      }
+      updateData.points = points;
+    }
+    if (req.body.accountStatus !== undefined) {
+      if (!['pending', 'approved', 'rejected'].includes(req.body.accountStatus)) {
+        return res.status(400).json({ message: 'Invalid account status.' });
+      }
+      updateData.accountStatus = req.body.accountStatus;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ message: 'No permitted fields were provided.' });
+    }
+
+    if (updateData.username && updateData.username !== userToUpdate.username) {
+      const conflictingUsername = await User.exists({
+        _id: { $ne: userToUpdate._id },
+        username: updateData.username,
+      });
+      if (conflictingUsername) {
+        return res.status(409).json({ message: 'A user with that username already exists.' });
+      }
+    }
+
+    if (updateData.email && updateData.email !== userToUpdate.email) {
+      const conflictingEmail = await User.exists({
+        _id: { $ne: userToUpdate._id },
+        email: updateData.email,
+      });
+      if (conflictingEmail) {
+        return res.status(409).json({ message: 'A user with that email already exists.' });
+      }
+    }
+
+    // Keep Firebase and MongoDB emails aligned. Password updates belong to
+    // Firebase's authenticated password-reset/change-password flows.
+    if (updateData.email && updateData.email !== userToUpdate.email && userToUpdate.firebaseUid) {
+      await getAuth().updateUser(userToUpdate.firebaseUid, { email: updateData.email });
+      firebaseEmailChanged = true;
+      previousFirebaseEmail = userToUpdate.email;
+    }
+
+    let updatedUser;
+    try {
+      updatedUser = await User.findByIdAndUpdate(
+        req.params.id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+    } catch (error) {
+      if (firebaseEmailChanged && previousFirebaseEmail) {
+        await getAuth().updateUser(userToUpdate.firebaseUid, { email: previousFirebaseEmail }).catch(() => {});
+      }
+      throw error;
+    }
     logAudit(req.user.id, req.user.username, 'ADMIN_USER_UPDATE', `Admin updated user ID: ${req.params.id}`, req);
     res.json(updatedUser);
   } catch (error) {
@@ -100,7 +222,8 @@ router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
       try {
         await getAuth().deleteUser(userToDelete.firebaseUid);
       } catch (fbError) {
-        console.error('Firebase delete error (continuing anyway):', fbError.message);
+        console.error('Firebase delete error:', fbError.message);
+        return res.status(502).json({ message: 'Could not delete the Firebase account. No data was removed.' });
       }
     }
 
@@ -113,8 +236,12 @@ router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
 });
 
 // 5. GET USER PROFILE
-router.get('/user/:id', async (req, res) => {
+router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
   try {
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only view your own profile.' });
+    }
+
     const user = await User.findById(req.params.id).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
@@ -149,8 +276,16 @@ router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
 });
 
 // 6. UPDATE OWN PROFILE
-router.put('/update-profile/:id', async (req, res) => {
+router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
   try {
+    if (req.user._id.toString() !== req.params.id) {
+      return res.status(403).json({ message: 'Forbidden: you can only update your own profile.' });
+    }
+
+    if (req.body.email !== undefined && req.body.email !== req.user.email) {
+      return res.status(400).json({ message: 'Email changes must be completed through the Firebase account flow.' });
+    }
+
     const { 
       username, bio, walletAddress,
       firstName, middleName, lastName, email, mobileNumber,
@@ -182,8 +317,8 @@ router.put('/update-profile/:id', async (req, res) => {
     if (occupation !== undefined) updateData.occupation = occupation;
     if (educationalAttainment !== undefined) updateData.educationalAttainment = educationalAttainment;
 
-    const updatedUser = await User.findByIdAndUpdate(req.params.id, updateData, { new: true });
-    logAudit(req.params.id, updatedUser.username, 'PROFILE_UPDATE', 'User updated profile information', req);
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true });
+    logAudit(req.user._id, updatedUser.username, 'PROFILE_UPDATE', 'User updated profile information', req);
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Update failed' });

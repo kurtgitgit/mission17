@@ -12,6 +12,7 @@
 
 import express from 'express';
 import Event from '../models/Event.js';
+import { verifyAdmin } from '../utils/authMiddleware.js';
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.get('/events', async (req, res) => {
 });
 
 // 2. CREATE EVENT
-router.post('/events', async (req, res) => {
+router.post('/events', verifyAdmin, async (req, res) => {
   try {
     const newEvent = new Event(req.body);
     await newEvent.save();
@@ -61,7 +62,7 @@ router.post('/events', async (req, res) => {
 });
 
 // 3. UPDATE EVENT
-router.put('/events/:id', async (req, res) => {
+router.put('/events/:id', verifyAdmin, async (req, res) => {
   try {
     const updatedEvent = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedEvent);
@@ -71,7 +72,7 @@ router.put('/events/:id', async (req, res) => {
 });
 
 // 4. DELETE EVENT
-router.delete('/events/:id', async (req, res) => {
+router.delete('/events/:id', verifyAdmin, async (req, res) => {
   try {
     await Event.findByIdAndDelete(req.params.id);
     res.json({ message: 'Event deleted successfully' });

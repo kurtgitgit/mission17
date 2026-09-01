@@ -25,7 +25,7 @@ import AnalysisReport from '../models/AnalysisReport.js';
 import Notification from '../models/Notification.js';
 import DocumentRequest from '../models/DocumentRequest.js';
 import BlotterReport from '../models/BlotterReport.js';
-import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
+import { verifyAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
 import { spotCheckMiddleware } from '../utils/spotCheck.js';
 import { isValidImageUri, callAIServer, saveAnalysisReport } from '../utils/aiVerification.js';
 import { cloudinary } from '../utils/cloudinary.js';
@@ -50,11 +50,14 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 // 1. SUBMIT MISSION
 // 🛡️ SECURE CODE: HITL Middleware applied here.
 // Randomly flags high-confidence AI results for manual review to catch adversarial attacks.
-router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
-  const { userId, missionId, missionTitle, image, type } = req.body;
+router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, async (req, res) => {
+  const { missionId, image, type } = req.body;
   try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const user = req.user;
+
+    if (!mongoose.Types.ObjectId.isValid(missionId)) {
+      return res.status(400).json({ message: 'Invalid mission ID format.' });
+    }
 
     // Prevent duplicate submissions
     const existingSubmission = await Submission.findOne({
@@ -67,25 +70,34 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'You have already submitted this mission. Check your history for its status.' });
     }
 
+    if (!isValidImageUri(image)) {
+      return res.status(400).json({ message: 'A valid JPEG, PNG, GIF, or WebP proof image is required.' });
+    }
+
     let finalImageUri = null;
     
     // Save base64 images to Cloudinary to prevent DB bloat and support ephemeral disk
     if (image && image.startsWith('data:image')) {
       const uploadResult = await cloudinary.uploader.upload(image, { folder: 'mission17-uploads' });
       finalImageUri = uploadResult.secure_url;
-    } else if (isValidImageUri(image)) {
+    } else {
         finalImageUri = image;
     }
 
     // Fetch points from Mission or Event
     let points = 0;
+    let missionTitle = '';
     if (type === 'Event') {
       const Event = mongoose.model('Event');
       const event = await Event.findById(missionId);
-      if (event) points = event.points || 0;
+      if (!event) return res.status(404).json({ message: 'Event not found.' });
+      points = event.points || 0;
+      missionTitle = event.title;
     } else {
       const mission = await Mission.findById(missionId);
-      if (mission) points = mission.points || 0;
+      if (!mission) return res.status(404).json({ message: 'Mission not found.' });
+      points = mission.points || 0;
+      missionTitle = mission.title;
     }
 
     const newSubmission = new Submission({
@@ -100,7 +112,7 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
     });
 
     await newSubmission.save();
-    logAudit(userId, user.username, 'MISSION_SUBMISSION', `Submitted mission: ${missionTitle}`, req);
+    logAudit(user._id, user.username, 'MISSION_SUBMISSION', `Submitted mission: ${missionTitle}`, req);
 
     res.json({
       message: 'Mission submitted for review!',
@@ -114,12 +126,16 @@ router.post('/submit-mission', spotCheckMiddleware, async (req, res) => {
 
 // 2. GET USER SUBMISSION HISTORY
 // imageUri excluded — saves bandwidth on list views
-router.get('/user-submissions/:userId', async (req, res) => {
+router.get('/user-submissions/:userId', verifyAuthenticatedUser, async (req, res) => {
   try {
     const { userId } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return res.status(400).json({ message: 'Invalid User ID format' });
+    }
+
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: 'Forbidden: you can only view your own submission history.' });
     }
 
     // ⚡ .select('-imageUri') — omit heavy base64 from list response
@@ -131,7 +147,7 @@ router.get('/user-submissions/:userId', async (req, res) => {
     res.json(submissions);
   } catch (error) {
     console.error('Error fetching user submissions:', error);
-    res.status(500).json({ message: 'Error fetching history', error: error.message });
+    res.status(500).json({ message: 'Error fetching history' });
   }
 });
 
@@ -430,6 +446,34 @@ router.post('/analyze-proof', verifyAdmin, async (req, res) => {
 let dashboardCache = null;
 let lastCacheUpdate = 0;
 const CACHE_DURATION = 60 * 1000; // 1 minute cache
+
+// ANALYTICS DATA — admin-only, privacy-minimized input for the analytics and
+// report-generation views. The client needs submission status and dates, not
+// proof images or resident identifiers.
+router.get('/analytics-stats', verifyAdmin, async (_req, res) => {
+  try {
+    const [submissions, reports] = await Promise.all([
+      Submission.find()
+        .select('status createdAt missionId missionTitle type points')
+        .sort({ createdAt: -1 })
+        .lean(),
+      AnalysisReport.find({ sdg: { $type: 'string', $ne: '' } })
+        .select('sdg')
+        .lean(),
+    ]);
+
+    const sdgCounts = reports.reduce((counts, report) => {
+      const sdg = report.sdg.trim();
+      if (sdg) counts[sdg] = (counts[sdg] || 0) + 1;
+      return counts;
+    }, {});
+
+    return res.json({ submissions, sdgCounts });
+  } catch (error) {
+    console.error('Analytics statistics error:', error.message);
+    return res.status(500).json({ message: 'Unable to load analytics statistics.' });
+  }
+});
 
 // DASHBOARD SUMMARY — single endpoint for the admin dashboard
 // Runs all queries in parallel, returns only the fields the UI actually needs.

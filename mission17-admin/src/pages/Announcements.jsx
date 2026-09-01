@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { Plus, Pin, Trash2, Edit3, X, Link as LinkIcon, Upload, Loader, AlertTriangle, Flame, BellRing, Tag, Leaf } from 'lucide-react';
 import { endpoints } from '../config/api';
@@ -40,7 +40,7 @@ const Announcements = () => {
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [annRes, catRes] = await Promise.all([
         fetch(`${baseUrl}/api/announcements`),
@@ -62,9 +62,9 @@ const Announcements = () => {
       }
     } catch { showNotification('Failed to load announcements.', 'error'); }
     finally   { setLoading(false); }
-  };
+  }, [baseUrl, showNotification]);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { void fetchData(); }, [fetchData]);
 
   const resetForm = () => {
     setForm({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, relatedSdg: null, image: '' });

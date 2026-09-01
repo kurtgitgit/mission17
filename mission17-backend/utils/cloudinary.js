@@ -22,5 +22,21 @@ const storage = new CloudinaryStorage({
   },
 });
 
-export const uploadCloudinary = multer({ storage: storage });
+const allowedImageMimeTypes = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+]);
+
+export const uploadCloudinary = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, callback) => {
+    if (!allowedImageMimeTypes.has(file.mimetype)) {
+      return callback(new Error('Only JPEG, PNG, GIF, and WebP images are allowed.'));
+    }
+    return callback(null, true);
+  },
+});
 export { cloudinary };

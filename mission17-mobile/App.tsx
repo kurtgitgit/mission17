@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ActivityIndicator, Platform } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Home, Target, BookOpen, Megaphone, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
+import * as Notifications from 'expo-notifications';
 // ─── SCREENS ───────────────────────────────────────────
 import LoginScreen       from './src/screens/LoginScreen';
 import SignupScreen      from './src/screens/SignupScreen';
@@ -33,13 +34,14 @@ import ServicesScreen      from './src/screens/ServicesScreen';
 import OfficialsScreen     from './src/screens/OfficialsScreen';
 
 // ─── UTILS ─────────────────────────────────────────────
-import { getAuthData } from './src/utils/storage';
+import { clearAuthData, getAuthData } from './src/utils/storage';
 import { GlobalState } from './src/config/api';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
+const navigationRef = createNavigationContainerRef<any>();
 
 // ─── TAB BAR ────────────────────────────────────────────
 function MainTabs() {
@@ -147,18 +149,54 @@ export default function App() {
   const StackNavigator = Stack.Navigator as any;
   const [isLoading, setIsLoading]   = useState(true);
   const [initialRoute, setInitialRoute] = useState('Login');
+  const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
     const checkLogin = async () => {
-      const authData = await getAuthData();
-      if (authData?.user?._id) {
-        GlobalState.userId = authData.user._id;
-        setInitialRoute('Home');
+      try {
+        const authData = await getAuthData();
+        if (authData?.user?.accountStatus === 'pending' || authData?.user?.accountStatus === 'rejected') {
+          await clearAuthData();
+        } else if (authData?.token && authData.user?._id) {
+          GlobalState.userId = authData.user._id;
+          GlobalState.username = authData.user.username || null;
+          GlobalState.token = authData.token;
+          GlobalState.auth = { token: authData.token };
+          setInitialRoute('Home');
+        }
+      } catch (error) {
+        console.error('Failed to restore the saved login session:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
-    checkLogin();
+    void checkLogin();
   }, []);
+
+  useEffect(() => {
+    if (!navigationReady) return;
+
+    const navigateFromNotification = (response: Notifications.NotificationResponse) => {
+      const data = response.notification.request.content.data || {};
+      const targetScreen = typeof data.screen === 'string' ? data.screen : null;
+
+      if (!targetScreen || !navigationRef.isReady()) return;
+
+      const { screen: _screen, ...params } = data;
+      if (targetScreen === 'Announcements') {
+        navigationRef.navigate('Home', { screen: 'AnnouncementsTab' });
+        return;
+      }
+
+      navigationRef.navigate(targetScreen === 'Suggestions' ? 'Suggestion' : targetScreen, params);
+    };
+
+    const lastResponse = Notifications.getLastNotificationResponse();
+    if (lastResponse) navigateFromNotification(lastResponse);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(navigateFromNotification);
+    return () => subscription.remove();
+  }, [navigationReady]);
 
   if (isLoading) {
     return (
@@ -174,7 +212,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <NotificationProvider>
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
             <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
               {/* Auth */}
               <Stack.Screen name="Login"         component={LoginScreen} />

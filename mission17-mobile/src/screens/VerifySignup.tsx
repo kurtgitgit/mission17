@@ -15,7 +15,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ShieldCheck, Mail, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
-import { endpoints } from '../config/api';
+import { endpoints, getAuthHeaders } from '../config/api';
 
 const missionLogo = require('../../assets/logo.png');
 
@@ -24,7 +24,7 @@ const VerifySignup = () => {
   const route = useRoute<any>();
   const { showNotification } = useNotification();
   
-  const { userId, email } = route.params || {};
+  const { email } = route.params || {};
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -39,10 +39,10 @@ const VerifySignup = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(endpoints.auth.verifySignup, {
+      const response = await fetch(endpoints.auth.verifyOTP, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, otp }),
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ otp }),
       });
 
       const data = await response.json();
@@ -107,9 +107,9 @@ const VerifySignup = () => {
 
         <TouchableOpacity 
           style={styles.resendBtn}
-          onPress={() => showNotification('A new code has been sent.', 'info')}
+          onPress={() => navigation.navigate('Login')}
         >
-          <Text style={styles.resendText}>Didn't receive a code? <Text style={styles.resendLink}>Resend</Text></Text>
+          <Text style={styles.resendText}>Need a new code? <Text style={styles.resendLink}>Return to sign in</Text></Text>
         </TouchableOpacity>
       </View>
       

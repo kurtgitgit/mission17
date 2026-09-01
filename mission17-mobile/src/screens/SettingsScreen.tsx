@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { ChevronLeft, Bell, Lock, ChevronRight, X, Shield, Eye, EyeOff, Moon } from 'lucide-react-native';
 import { getAuthData } from '../utils/storage'; 
-import { GlobalState, endpoints } from '../config/api';     
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { auth } from '../config/firebase';
@@ -44,17 +44,16 @@ const SettingsScreen = ({ navigation }: any) => {
   };
 
   const toggleMFA = async (value: boolean) => {
-    const data = await getAuthData();
-    if (!data || !data.token) return;
+    if (!GlobalState.userId) return;
 
     try {
         const response = await fetch(`${endpoints.auth.baseUrl}/toggle-mfa`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.token}`
+                ...(await getAuthHeaders())
             },
-            body: JSON.stringify({ userId: GlobalState.userId, enable: value })
+            body: JSON.stringify({ enable: value })
         });
 
         const result = await response.json();
@@ -186,13 +185,6 @@ const SettingsScreen = ({ navigation }: any) => {
             isSwitch 
             value={notificationsEnabled} 
             onValueChange={setNotificationsEnabled} 
-          />
-          <SettingItem 
-            icon={Moon} 
-            label="Dark Mode" 
-            isSwitch 
-            value={isDarkMode} 
-            onValueChange={toggleTheme} 
             isLast
           />
         </View>

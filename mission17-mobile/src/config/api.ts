@@ -1,5 +1,6 @@
 // src/config/api.ts
 import { Platform } from 'react-native';
+import { auth } from './firebase';
 
 // 🏠 LOCALHOST / LAN IP
 // IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
@@ -12,8 +13,6 @@ const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
 // Temporarily force Mobile to use the live cloud backend for Expo testing
 const API_URL = `${RENDER_BACKEND_URL}/api`;
 // const API_URL = `http://${LAN_IP}:5001/api`;
-
-const AI_URL = "https://kurtgitgit-mission17-ai.hf.space/predict";
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
@@ -47,6 +46,19 @@ export const GlobalState = {
   tempToken: null as string | null,
 };
 
+/** Returns a current Firebase ID token for authenticated backend requests. */
+export const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error('You must be signed in to perform this action.');
+  }
+
+  const token = await user.getIdToken();
+  GlobalState.token = token;
+  GlobalState.auth = { token };
+  return { Authorization: `Bearer ${token}` };
+};
+
 export const endpoints = {
   auth: {
     // ✅ NEW: Added 'baseUrl' to fix the "Property does not exist" error
@@ -62,14 +74,12 @@ export const endpoints = {
     forgotPassword: `${API_URL}/auth/forgot-password`,
     resetPassword: `${API_URL}/auth/reset-password`,
     verifyOTP: `${API_URL}/auth/verify-otp`,
-    verifySignup: `${API_URL}/auth/verify-signup`,
     getNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
     markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
   },
   // Updated to match your backend route (/auth/all-missions)
   missions: `${API_URL}/auth/all-missions`,
   events: `${API_URL}/auth/events`,
-  predict: AI_URL,
   // 🏛️ Barangay Portal Endpoints
   announcements: `${BACKEND_BASE_URL}/api/announcements`,
   officials: `${BACKEND_BASE_URL}/api/officials`,

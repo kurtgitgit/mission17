@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import {
   CheckCircle, XCircle, Clock, FileImage, User,
@@ -10,8 +10,6 @@ import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Verify.css';
 import { endpoints } from '../../config/api';
-
-const CONTRACT_URL = "https://sepolia.etherscan.io/address/0x79f116E8e42788C07B384615872A1aD1c24b2e40";
 
 // ==========================================
 // VERDICT CONFIG - drives all styling
@@ -77,15 +75,11 @@ const Verify = () => {
 
   const getToken = () => localStorage.getItem('token');
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, [page]);
-
-  const fetchSubmissions = async () => {
+  const fetchSubmissions = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`${endpoints.submissions.pending}?page=${page}&limit=10`, {
-        headers: { 'auth-token': getToken() }
+        headers: { 'auth-token': localStorage.getItem('token') }
       });
       if (response.ok) {
         const data = await response.json();
@@ -106,7 +100,11 @@ const Verify = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page]);
+
+  useEffect(() => {
+    void fetchSubmissions();
+  }, [fetchSubmissions]);
 
   const handleAnalyze = async (submission) => {
     setAnalyzingId(submission._id);
@@ -222,8 +220,6 @@ const Verify = () => {
   const closeModal = () => {
     setModalConfig(prev => ({ ...prev, isOpen: false }));
   };
-
-  const openBlockchain = () => window.open(CONTRACT_URL, '_blank');
 
   return (
     <Layout title="Verify Proofs">

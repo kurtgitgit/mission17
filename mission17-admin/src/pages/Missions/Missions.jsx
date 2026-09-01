@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import { Plus, Trash2, Edit, Search, X, Image as ImageIcon, Sparkles } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -91,15 +91,7 @@ const Missions = () => {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  // Debounce search
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchMissions();
-    }, 300);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentPage]);
-
-  const fetchMissions = async () => {
+  const fetchMissions = useCallback(async () => {
     setLoading(true);
     try {
       let url = `${endpoints.missions.getAll}?page=${currentPage}&limit=${limit}`;
@@ -120,7 +112,15 @@ const Missions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, limit, searchTerm, showNotification]);
+
+  // Debounce search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      void fetchMissions();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchMissions]);
 
   // ✨ AI LOGIC: Analyzes text as you type
   const analyzeDescription = (text) => {

@@ -8,11 +8,11 @@ import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Megaphone,
   UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
-  Landmark, ShieldAlert, Flame, PhoneCall, Sparkles, ArrowRight
+  Landmark, ShieldAlert, Flame, PhoneCall, ArrowRight
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { endpoints, GlobalState } from '../config/api';
+import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 
@@ -92,9 +92,10 @@ const HomeScreen: React.FC = () => {
   const fetchAll = useCallback(async () => {
     try {
       if (userId) {
+        const authHeaders = await getAuthHeaders();
         const [userRes, subRes] = await Promise.all([
-          fetch(endpoints.auth.getUser(userId)),
-          fetch(endpoints.auth.getUserSubmissions(userId)),
+          fetch(endpoints.auth.getUser(userId), { headers: authHeaders }),
+          fetch(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
         ]);
         if (userRes.ok)  {
           const u = await userRes.json();
@@ -111,9 +112,8 @@ const HomeScreen: React.FC = () => {
           });
         }
         // unread notifications
-        const auth = await getAuthData();
-        if (auth?.token) {
-          const nr = await fetch(endpoints.auth.getNotifications(userId), { headers: { 'auth-token': auth.token } });
+        if (authHeaders) {
+          const nr = await fetch(endpoints.auth.getNotifications(userId), { headers: authHeaders });
           if (nr.ok) { const notifs = await nr.json(); setHasUnread(Array.isArray(notifs) ? notifs.some((n: any) => !n.read) : false); }
         }
       }
@@ -400,7 +400,7 @@ const HomeScreen: React.FC = () => {
         accessibilityLabel="Open Barangay AI Assistant"
         activeOpacity={0.85}
       >
-        <Sparkles size={24} color="#0038A8" />
+        <Bot size={24} color="#0038A8" />
       </TouchableOpacity>
     </RootComponent>
   );

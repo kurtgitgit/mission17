@@ -31,7 +31,6 @@ const Settings = () => {
   // --- Preferences State ---
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
 
 
@@ -183,18 +182,6 @@ const Settings = () => {
     } finally {
       setIsChangingPassword(false);
     }
-  };
-
-  // ==========================================
-  // Get action badge color
-  // ==========================================
-  const getActionColor = (action) => {
-    if (!action) return '#64748b';
-    if (action.includes('LOGIN_SUCCESS') || action.includes('APPROVED') || action.includes('VERIFIED')) return '#16a34a';
-    if (action.includes('FAILED') || action.includes('DENIED') || action.includes('REJECTED')) return '#dc2626';
-    if (action.includes('DELETE')) return '#ef4444';
-    if (action.includes('MFA')) return '#9333ea';
-    return '#3b82f6';
   };
 
   return (

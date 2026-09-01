@@ -12,7 +12,9 @@ const ALLOWED_STATUSES = ['New', 'Under Review', 'Resolved', 'Dismissed'];
 
 // POST / — Resident: Submit private feedback / concern to Barangay Head
 export const submitSuggestion = asyncHandler(async (req, res) => {
-  const { userId, username, title, category, description, isAnonymous } = req.body;
+  const { title, category, description, isAnonymous } = req.body;
+  const userId = req.user._id;
+  const username = req.user.username;
 
   if (!title?.trim() || !description?.trim()) {
     return res.status(400).json({ message: 'Title and description are required.' });
@@ -95,7 +97,11 @@ export const getSentimentStats = asyncHandler(async (req, res) => {
 
 // GET /my/:userId — Resident: Get own feedback history
 export const getMySuggestions = asyncHandler(async (req, res) => {
-  const suggestions = await Suggestion.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+  if (req.user._id.toString() !== req.params.userId) {
+    return res.status(403).json({ message: 'Forbidden: you can only view your own feedback.' });
+  }
+
+  const suggestions = await Suggestion.find({ userId: req.user._id }).sort({ createdAt: -1 });
   res.json(suggestions);
 });
 
@@ -153,4 +159,3 @@ export const deleteSuggestion = asyncHandler(async (req, res) => {
   if (!suggestion) return res.status(404).json({ message: 'Feedback not found.' });
   res.json({ message: 'Feedback record deleted.' });
 });
-

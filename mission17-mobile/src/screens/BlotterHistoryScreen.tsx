@@ -8,7 +8,7 @@ import {
   Activity, Copy, MapPin, Calendar, MessageSquare, PlusCircle, FileText, Filter
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { endpoints, GlobalState } from '../config/api';
+import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
 
 const STATUS_FILTERS = ['All', 'Pending', 'In Progress', 'Resolved'];
@@ -30,7 +30,9 @@ const BlotterHistoryScreen = () => {
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`);
+      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`, {
+        headers: await getAuthHeaders()
+      });
       if (res.ok) {
         const data = await res.json();
         setReports(Array.isArray(data) ? data : []);
@@ -106,7 +108,7 @@ const BlotterHistoryScreen = () => {
           <View style={styles.dateRow}>
             <Calendar size={12} color="#64748b" />
             <Text style={styles.dateText}>
-              {new Date(item.createdAt).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' })}
+              {new Date(item.createdAt).toDateString()}
             </Text>
           </View>
         </View>
@@ -497,4 +499,3 @@ const styles = StyleSheet.create({
 });
 
 export default BlotterHistoryScreen;
-

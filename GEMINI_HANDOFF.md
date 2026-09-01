@@ -1,30 +1,23 @@
-# Gemini Handoff Document
+# Gemini Handoff Notes
 
-## Task Completed
-Standardized the BrgyLink branding across the Web Admin portal, Mobile app, and Public Website by utilizing the true transparent `logo.png` and removing legacy boxy backgrounds in favor of modern drop-shadows.
+**To: Codex**
 
-## Files Changed
-- **Git Config:** `mission17/.gitignore`
-- **Root Assets:** `mission17/assets/*` (Cleaned up raw design assets and concepts)
-- **Admin Portal:**
-  - `mission17-admin/src/pages/Login.jsx`, `mission17-admin/src/components/Sidebar.jsx`, `mission17-admin/src/pages/ReportGeneration.jsx`
-  - `mission17-admin/src/styles/Auth.css`, `mission17-admin/src/styles/Sidebar.css`
-- **Mobile App:** 
-  - `mission17-mobile/app.json`
-  - `mission17-mobile/assets/` (Added `app-icon.jpg`)
-  - `mission17-mobile/src/screens/LoginScreen.tsx`, `SignupScreen.tsx`, `VerifySignup.tsx`, `ForgotPasswordScreen.tsx`
-- **Public Website:** `mission17-website/src/App.jsx`
+## Project Status
+The project is a React Native (Expo) app named **BrgyLink** (`com.barangay.mission17`). The user is currently preparing to build an APK (`eas build -p android --profile preview`) and wants the UI to match the Admin Portal (React/Web).
 
-## Key Decisions
-- **Transparency Solution:** Reverted to the designer's original `logo.png` to guarantee mathematically perfect transparency instead of relying on AI background-removal artifacts (which left a faint white boxy residue).
-- **Styling Approach:** Implemented CSS `drop-shadow` on the web and `shadow` props in React Native to provide a glowing effect. This ensures the dark blue text of the logo is legible against dark blue gradient headers without needing a hardcoded white `div` box.
-- **App Icon Standardization:** Updated the official app icon in `app.json` to the white-background version (`app-icon.jpg`) to comply with standard mobile home screen best practices.
-- **Workspace Hygiene:** Cleaned up the workspace by deleting unused conceptual icons and temporary AI `.venv_image` environments. Added `.venv_image/` to `.gitignore` to resolve a phantom 10k file Git tracking issue in VS Code.
-- **Commit:** Successfully staged and committed all changes (`chore: update branding assets and UI refinements across web, admin, and mobile`).
+## Accomplishments So Far
+1. **Push Notifications (FCM V1):** Linked the Firebase Service Account JSON and configured `expo-notifications` in `app.json`.
+2. **App Branding:** Fixed the app name to "BrgyLink" and fixed the Android Adaptive Icon (resized and padded it via script to prevent cropping).
+3. **Hermes Crashes:** Scrubbed all instances of `.toLocaleDateString()` and replaced them with `.toDateString()` to prevent Android Release mode crashes.
+4. **Dark Mode Constraints:** Locked `userInterfaceStyle` to `"light"` in `app.json` and removed the manual Dark Mode toggle from `SettingsScreen.tsx`. This was necessary because 95% of the app's components have hardcoded light colors (`#ffffff` and `#0f172a`), so Dark Mode was completely breaking the UI readability.
+5. **UI Fixes:** Fixed the floating Chatbot button icon from `Sparkles` to `Bot` (lucide-react-native) in `HomeScreen.tsx`. Fixed a missing `useNavigation` import in `AnnouncementsScreen.tsx`.
 
-## Tests Conducted
-- Conducted deep diagnostic via Git terminal commands to resolve the user's report of "10k changes" in source control, proving the repository was clean and the issue was an IDE file-watcher caching bug.
-- Verified all Mobile UI adjustments align with the `mission17/.agents/AGENTS.md` guidelines for UI/UX standards (responsive, modern).
+## Current Issue (Needs Codex's Help)
+The user wants the BrgyLink logo on the `LoginScreen.tsx` (mobile) to have the exact same soft, diffused "white smoke" glowing background aura as their web-based Admin Portal.
 
-## Unresolved Issues
-- None. The workspace is fully committed, clean, and ready for new feature development.
+### What has been tried:
+- Previously, `LoginScreen.tsx` had a solid white circle (`backgroundColor: 'rgba(255, 255, 255, 0.95)'` and `borderRadius: 60`). The user rejected this because it looked like a hard sticker, not a soft glow.
+- We switched to the modern React Native `boxShadow: '0px 0px 60px 15px rgba(255, 255, 255, 0.45)'` (RN 0.81.5), but the 15px spread radius on Android caused it to render as a massive solid disk rather than a soft aura.
+- Our latest attempt injected a tiny `glowSource` View behind the logo (`width: 20`, `height: 20`, `boxShadow: '0px 0px 80px 50px rgba(255, 255, 255, 0.45)'`) to try and create a perfect radial diffusion without hard edges.
+
+**Codex, please take over the UI polishing for the `LoginScreen.tsx` logo glow. The user wants it to look exactly like a pure CSS radial gradient glow (soft, borderless aura) on React Native Android.**

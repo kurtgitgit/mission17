@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, AlertCircle, HelpCircle, CheckCircle } from 'lucide-react';
 import '../styles/Modal.css';
 

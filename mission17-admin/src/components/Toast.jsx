@@ -35,7 +35,7 @@ const Toast = ({ title, message, type, onClose }) => {
         try {
             const stringified = JSON.stringify(message);
             return stringified === '{}' ? 'An unexpected error occurred.' : stringified;
-        } catch (e) {
+        } catch {
             return 'An error occurred (unserializable details).';
         }
     };

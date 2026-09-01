@@ -9,7 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { LinearGradient } from 'expo-linear-gradient';
-import { endpoints, formatImageUri } from '../config/api';
+import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 import { sharedStyles } from '../config/theme';
@@ -32,7 +32,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     const fetchUser = async () => {
       try {
         if (!userId) return;
-        const response = await fetch(endpoints.auth.getUser(userId));
+        const response = await fetch(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
         const data = await response.json();
         if (data && data.username) {
           setUsername(data.username);
@@ -127,11 +127,9 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId,
           missionId: mission._id,
-          missionTitle: mission.title,
           image: imagePayload
         }),
       });

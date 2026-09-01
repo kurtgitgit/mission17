@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';
 import { endpoints } from '../config/api';
-import logoImg from '../assets/logo.png';
 
 const ReportGeneration = () => {
   const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, analytics
@@ -14,7 +13,7 @@ const ReportGeneration = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const filterByDate = (arr) => {
+  const filterByDate = useCallback((arr) => {
     if (!startDate && !endDate) return arr;
     if (!Array.isArray(arr)) return arr;
     return arr.filter(item => {
@@ -28,9 +27,9 @@ const ReportGeneration = () => {
       }
       return true;
     });
-  };
+  }, [startDate, endDate]);
 
-  const fetchReportData = async () => {
+  const fetchReportData = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -83,11 +82,11 @@ const ReportGeneration = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterByDate, reportType]);
 
   useEffect(() => {
-    fetchReportData();
-  }, [reportType, startDate, endDate]);
+    void fetchReportData();
+  }, [fetchReportData]);
 
   const handlePrint = () => {
     window.print();

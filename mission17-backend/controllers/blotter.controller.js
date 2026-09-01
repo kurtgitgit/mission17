@@ -25,10 +25,12 @@ const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 
 // POST / — Resident: Submit a new blotter report
 export const submitReport = asyncHandler(async (req, res) => {
-  const { userId, username, fullName, contactNumber, incidentType, description, location, dateOfIncident, evidenceUrl } = req.body;
+  const { fullName, contactNumber, incidentType, description, location, dateOfIncident, evidenceUrl } = req.body;
+  const userId = req.user._id;
+  const username = req.user.username;
 
-  if (!userId || !incidentType || !description || !location || !dateOfIncident) {
-    return res.status(400).json({ message: 'Missing required fields: userId, incidentType, description, location, dateOfIncident.' });
+  if (!incidentType || !description || !location || !dateOfIncident) {
+    return res.status(400).json({ message: 'Missing required fields: incidentType, description, location, dateOfIncident.' });
   }
 
   let finalEvidenceUrl = evidenceUrl;
@@ -70,8 +72,40 @@ export const submitReport = asyncHandler(async (req, res) => {
 
 // GET /my/:userId — Resident: Get own reports
 export const getMyReports = asyncHandler(async (req, res) => {
-  const reports = await BlotterReport.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+  if (req.user._id.toString() !== req.params.userId) {
+    return res.status(403).json({ message: 'Forbidden: you can only view your own reports.' });
+  }
+
+  const reports = await BlotterReport.find({ userId: req.user._id }).sort({ createdAt: -1 });
   res.json(reports);
+});
+
+// GET /:id/evidence — Report owner or administrator: view private evidence.
+// Local evidence files are never exposed from a public static directory.
+export const getEvidence = asyncHandler(async (req, res) => {
+  const report = await BlotterReport.findById(req.params.id).select('userId evidenceUrl');
+  if (!report || !report.evidenceUrl) {
+    return res.status(404).json({ message: 'Evidence not found.' });
+  }
+
+  const isOwner = report.userId?.toString() === req.user._id.toString();
+  if (!isOwner && req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Forbidden: you cannot view this evidence.' });
+  }
+
+  if (!report.evidenceUrl.startsWith('/uploads/')) {
+    return res.status(404).json({ message: 'Private local evidence not found.' });
+  }
+
+  const filename = path.basename(report.evidenceUrl);
+  const filePath = path.join(UPLOADS_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'Evidence file not found.' });
+  }
+
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Content-Type-Options', 'nosniff');
+  return res.sendFile(filePath);
 });
 
 // GET / — Admin: Get all reports (with optional status filter and pagination)

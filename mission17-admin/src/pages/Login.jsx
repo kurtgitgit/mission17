@@ -17,7 +17,6 @@ const Login = () => {
   // OTP State
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [tempUserId, setTempUserId] = useState('');
   const [tempToken, setTempToken] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -68,7 +67,6 @@ const Login = () => {
       }
 
       if (data.mfaRequired) {
-        setTempUserId(data.tempUserId);
         setTempToken(idToken);
         setShowOtp(true);
         showNotification("OTP sent to your email", "info");
@@ -105,14 +103,20 @@ const Login = () => {
     try {
       const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: tempUserId, otp: otpCode }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tempToken}`
+        },
+        body: JSON.stringify({ otp: otpCode }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.message || "Invalid OTP");
+      }
+      if (data.user?.role !== 'admin') {
+        throw new Error('Admin authorization failed.');
       }
 
       localStorage.setItem('token', tempToken);

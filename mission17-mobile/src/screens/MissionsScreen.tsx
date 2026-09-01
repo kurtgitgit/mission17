@@ -4,7 +4,7 @@ import {
   Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal, ScrollView,
   RefreshControl, StatusBar
 } from 'react-native';
-import { GlobalState, endpoints, formatImageUri } from '../config/api';
+import { GlobalState, endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import { MapPin, Clock, X, Calendar, Target, CheckCircle, Award, Sparkles, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
@@ -44,7 +44,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       }
 
       if (userId) {
-        const subRes = await fetch(endpoints.auth.getUserSubmissions(userId));
+        const subRes = await fetch(endpoints.auth.getUserSubmissions(userId), { headers: await getAuthHeaders() });
         if (subRes.ok) {
           const subData = await subRes.json();
           const completedIds = new Set(
@@ -471,4 +471,3 @@ const styles = StyleSheet.create({
 });
 
 export default MissionsScreen;
-

@@ -174,7 +174,7 @@ const Analytics = () => {
     };
 
     fetchAll();
-  }, []);
+  }, [baseUrl, token]);
 
   if (loading) return (
     <Layout title="Analytics">

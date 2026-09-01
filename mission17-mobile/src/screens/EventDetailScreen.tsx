@@ -6,7 +6,7 @@ import {
 import { Camera, ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { endpoints, formatImageUri } from '../config/api';
+import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 
 // --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
@@ -18,7 +18,6 @@ const EventDetailScreen = ({ route, navigation }: any) => {
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   // State to store the real user's name
   const [username, setUsername] = useState<string>("Agent");
@@ -30,7 +29,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
     const fetchUser = async () => {
       try {
         if (!userId) return;
-        const response = await fetch(endpoints.auth.getUser(userId));
+        const response = await fetch(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
         const data = await response.json();
         if (data && data.username) {
           setUsername(data.username);
@@ -86,84 +85,15 @@ const EventDetailScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
-      setIsAnalyzing(true);
       const imagePayload = await getBase64(imageUri);
 
-      const formData = new FormData();
-      if (Platform.OS === 'web') {
-        const base64Data = (imagePayload as string).split(',')[1];
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'image/jpeg' });
-        formData.append('file', blob, 'photo.jpg');
-      } else {
-        formData.append('file', {
-          uri: imageUri,
-          type: 'image/jpeg',
-          name: 'photo.jpg',
-        } as any);
-      }
-
-      const aiResponse = await fetch(endpoints.predict, {
-        method: 'POST',
-        body: formData
-      });
-
-      let aiResult;
-      try {
-        aiResult = await aiResponse.json();
-        console.log("AI Server Response parsed:", aiResult);
-      } catch (e) {
-        console.error("Failed to parse AI response:", e);
-        setIsAnalyzing(false);
-        // 🎯 MODULE 11: Fallback if CORS blocks the 400 Bad Request error payload
-        if (!aiResponse.ok && aiResponse.status === 400) {
-          showNotification('Anti-Cheat / AI Error: Duplicate image detected or invalid submission request!', 'error');
-          setLoading(false);
-          return;
-        }
-        showNotification('Failed to connect to AI server.', 'error');
-        setLoading(false);
-        return;
-      }
-
-      setIsAnalyzing(false);
-
-      // 🎯 MODULE 11: Display specific Anti-Cheat notification
-      // Look for the specific error property returned by the backend on duplicate.
-      if (aiResult?.status === 'REJECTED' || (aiResult?.error && aiResult.error.includes("Duplicate"))) {
-        const errorMsg = aiResult.error || "Duplicate image detected. You cannot farm points!";
-        showNotification(`🚨 Anti-Cheat Alert: ${errorMsg}`, "error");
-        setLoading(false);
-        return;
-      }
-
-      if (!aiResponse.ok && aiResult?.error) {
-        showNotification(`AI Error: ${aiResult.error}`, "error");
-        setLoading(false);
-        return;
-      }
-
-      // If AI rejects it, stop the submission process!
-      if (aiResult?.verdict !== 'VERIFIED') {
-        const msg = aiResult?.message || 'The AI could not confidently identify a valid proof. Please retake the photo.';
-        showNotification(`AI Verification Failed: ${msg}`, 'error');
-        setLoading(false);
-        return;
-      }
-
-      // Re-using the submitMission endpoint!
+      // AI assessment is performed through the authenticated backend workflow,
+      // never directly from a mobile client.
       const response = await fetch(endpoints.auth.submitMission, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId,
           missionId: event._id,
-          missionTitle: event.title,
           image: imagePayload,
           type: 'Event'
         }),
@@ -183,12 +113,11 @@ const EventDetailScreen = ({ route, navigation }: any) => {
       showNotification("Connection Error. Check console logs.", "error");
     } finally {
       setLoading(false);
-      setIsAnalyzing(false);
     }
   };
 
   const dateObj = new Date(event.date);
-  const prettyDate = dateObj.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const prettyDate = dateObj.toDateString();
 
   return (
     <View style={styles.container}>
@@ -260,21 +189,16 @@ const EventDetailScreen = ({ route, navigation }: any) => {
 
         <TouchableOpacity
           style={[styles.submitBtn, { backgroundColor: imageUri ? (event.color || '#3b82f6') : '#cbd5e1' }]}
-          disabled={!imageUri || submitted || loading || isAnalyzing}
+          disabled={!imageUri || submitted || loading}
           onPress={handleSubmit}
         >
-          {isAnalyzing ? (
+          {loading ? (
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Analyzing AI...</Text>
-            </View>
-          ) : loading ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Saving to Blockchain...</Text>
+              <Text style={styles.submitBtnText}>Submitting for review...</Text>
             </View>
           ) : (
-            <Text style={styles.submitBtnText}>{submitted ? "Verified & Submitted!" : "Verify Participation"}</Text>
+            <Text style={styles.submitBtnText}>{submitted ? "Submitted!" : "Submit Participation Proof"}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

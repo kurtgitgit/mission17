@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { Plus, Trash2, Edit3, X, UserCheck, Archive, RotateCcw, ShieldAlert, Calendar, CheckCircle2 } from 'lucide-react';
 import { endpoints } from '../config/api';
@@ -112,7 +112,7 @@ const Officials = () => {
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const url = `${baseUrl}/api/officials?status=${tab === 'archived' ? 'archived' : 'active'}`;
@@ -120,9 +120,9 @@ const Officials = () => {
       if (res.ok) setOfficials(await res.json());
     } catch { showNotification('Failed to load officials.', 'error'); }
     finally   { setLoading(false); }
-  };
+  }, [baseUrl, showNotification, tab, token]);
 
-  useEffect(() => { fetchData(); }, [tab]);
+  useEffect(() => { void fetchData(); }, [fetchData]);
 
   const resetForm = () => {
     setForm({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', committee: '', order: 99 });

@@ -13,6 +13,7 @@ node_modules/
 # OS metadata and secrets
 .DS_Store
 .env
+mission17-mobile/firebase-service-account.json
 
 # Agent Customizations
 .agents/

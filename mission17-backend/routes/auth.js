@@ -24,7 +24,7 @@ import rateLimit from 'express-rate-limit';
 import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
-import { logAudit, verifyAdmin } from '../utils/authMiddleware.js';
+import { logAudit, verifyAdmin, verifyAuthenticatedUser, verifyFirebaseToken } from '../utils/authMiddleware.js';
 import multer from 'multer';
 import path from 'path';
 
@@ -63,8 +63,6 @@ const sendOTP = async (user, type = 'mfa') => {
   const subtitle = isSignup
     ? `We're excited to have you, ${user.username}! To finish setting up your account and start your journey, please verify your email:`
     : 'To complete your sign in, please use the following verification code:';
-
-  console.log(`🔍 DEBUG OTP for ${user.email}: ${otp}`);
 
   await User.findByIdAndUpdate(user._id, {
     otpCode: otp,
@@ -181,14 +179,9 @@ const cpUpload = upload.fields([
   { name: 'profileImage', maxCount: 1 }
 ]);
 
-router.post('/sync-user', cpUpload, async (req, res) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ message: 'No token provided' });
-
+router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
   try {
-    const { default: admin } = await import('../config/firebase-admin.js');
-    const { getAuth } = await import('firebase-admin/auth');
-    const decodedToken = await getAuth().verifyIdToken(token);
+    const decodedToken = req.firebaseUser;
     const firebaseUid = decodedToken.uid;
     const email = decodedToken.email;
 
@@ -284,7 +277,7 @@ router.post('/sync-user', cpUpload, async (req, res) => {
 
     // Otherwise, create a new user in MongoDB (Signup Flow)
     let {
-      role, firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
       voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
       numberOfFamilyMembers, educationalAttainment, bloodType, disability, username
@@ -303,7 +296,8 @@ router.post('/sync-user', cpUpload, async (req, res) => {
       firebaseUid,
       username: cleanUsername,
       email: email,
-      role: role ? role.toLowerCase() : 'resident',
+      // New accounts are always residents. Elevated roles require a protected admin process.
+      role: 'resident',
       points: 0,
       isVerified: decodedToken.email_verified || false,
       accountStatus: 'pending',
@@ -330,31 +324,39 @@ router.post('/sync-user', cpUpload, async (req, res) => {
 // ==========================================
 // 🛡️ VERIFY OTP ROUTE (Nodemailer)
 // ==========================================
-router.post('/verify-otp', async (req, res) => {
-  const { userId, otp } = req.body;
+router.post('/verify-otp', verifyFirebaseToken, async (req, res) => {
+  const { otp } = req.body;
   try {
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+    if (!user) {
+      return res.status(401).json({ message: 'Your account is not registered in this service.' });
+    }
+    if (user.accountStatus === 'rejected') {
+      return res.status(403).json({ message: 'Your account registration was rejected.' });
+    }
+
+    if (typeof otp !== 'string' || !/^\d{6}$/.test(otp)) {
+      return res.status(400).json({ message: 'A valid six-digit OTP is required.' });
+    }
 
     if (user.otpCode !== otp || user.otpExpires < Date.now()) {
-      logAudit(userId, user.username, "LOGIN_FAILED", "Invalid or expired OTP", req);
+      logAudit(user._id, user.username, "LOGIN_FAILED", "Invalid or expired OTP", req);
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // Clear OTP after success and auto-verify if they were pending
-    await User.updateOne(
-      { _id: user._id },
+    // OTP verifies email possession. It must never replace human account approval.
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
       { $set: { 
           otpCode: null, 
           otpExpires: null,
-          accountStatus: 'approved',
           isVerified: true
-        } 
-      }
+        } },
+      { new: true }
     );
 
-    logAudit(userId, user.username, "LOGIN_SUCCESS", "OTP Verified Successfully", req);
-    res.json({ message: "Login successful", user });
+    logAudit(user._id, user.username, "OTP_VERIFIED", "Email OTP verified", req);
+    res.json({ message: "OTP verified. Account approval is still required.", user: updatedUser });
   } catch (error) {
     console.error("Verify OTP Error:", error);
     res.status(500).json({ message: "Error verifying OTP" });
@@ -362,11 +364,15 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // 4. TOGGLE MFA
-router.post('/toggle-mfa', async (req, res) => {
-  const { userId, enable } = req.body;
+router.post('/toggle-mfa', verifyAuthenticatedUser, async (req, res) => {
+  const { enable } = req.body;
   try {
-    const user = await User.findByIdAndUpdate(userId, { mfaEnabled: enable }, { new: true });
-    logAudit(userId, user?.username || "Unknown", "MFA_TOGGLE", `MFA set to ${enable}`, req);
+    if (typeof enable !== 'boolean') {
+      return res.status(400).json({ message: 'enable must be a boolean.' });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, { mfaEnabled: enable }, { new: true });
+    logAudit(user._id, user.username, "MFA_TOGGLE", `MFA set to ${enable}`, req);
     res.json({ message: `MFA is now ${enable ? 'Enabled' : 'Disabled'}` });
   } catch (error) {
     res.status(500).json({ message: "Error updating MFA" });
@@ -397,14 +403,14 @@ router.get('/audit-logs', verifyAdmin, async (req, res) => {
 // ==========================================
 // 🔔 SAVE EXPO PUSH TOKEN
 // ==========================================
-router.post('/save-push-token', async (req, res) => {
-  const { userId, expoPushToken } = req.body;
-  if (!userId || !expoPushToken) {
-    return res.status(400).json({ message: "User ID and Push Token are required." });
+router.post('/save-push-token', verifyAuthenticatedUser, async (req, res) => {
+  const { expoPushToken } = req.body;
+  if (typeof expoPushToken !== 'string' || !/^(?:ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(expoPushToken)) {
+    return res.status(400).json({ message: "A valid Expo push token is required." });
   }
 
   try {
-    await User.findByIdAndUpdate(userId, { expoPushToken });
+    await User.findByIdAndUpdate(req.user._id, { expoPushToken });
     res.json({ message: "Push token saved successfully." });
   } catch (error) {
     console.error("Error saving push token:", error);
@@ -413,4 +419,3 @@ router.post('/save-push-token', async (req, res) => {
 });
 
 export default router;
-

@@ -8,7 +8,7 @@ import {
   FileText, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, 
   PackageCheck, ArrowLeft, User, MapPin, Phone, Info, Copy, Sparkles, Building, Bookmark
 } from 'lucide-react-native';
-import { GlobalState, endpoints } from '../config/api';
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
 
@@ -54,7 +54,7 @@ const ServicesScreen: React.FC = () => {
   const fetchMyRequests = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(endpoints.documentRequests.my(userId));
+      const res = await fetch(endpoints.documentRequests.my(userId), { headers: await getAuthHeaders() });
       if (res.ok) {
         const data = await res.json();
         setMyRequests(Array.isArray(data) ? data : []);
@@ -110,10 +110,8 @@ const ServicesScreen: React.FC = () => {
     try {
       const res = await fetch(endpoints.documentRequests.submit, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
-          userId,
-          username: GlobalState.username || 'Resident',
           fullName: fullName.trim(),
           address: address.trim(),
           contactNumber: contact.trim(),
@@ -141,7 +139,7 @@ const ServicesScreen: React.FC = () => {
   const renderStatusCard = (item: any) => {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG['Pending'];
     const StatusIcon = cfg.icon;
-    const date = new Date(item.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+    const date = new Date(item.createdAt).toDateString();
     const isCopied = copiedId === item.referenceNumber;
 
     return (
@@ -170,7 +168,7 @@ const ServicesScreen: React.FC = () => {
           <Text style={styles.statusMetaText}>📅 Submitted: {date}</Text>
           {item.pickupDate && (
             <Text style={[styles.statusMetaText, { color: '#16a34a', fontWeight: '700' }]}>
-              🗓️ Pickup Date: {new Date(item.pickupDate).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
+              🗓️ Pickup Date: {new Date(item.pickupDate).toDateString()}
             </Text>
           )}
           {item.rejectionReason && (

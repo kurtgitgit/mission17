@@ -3,7 +3,6 @@ import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, Use
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
-import { endpoints } from '../config/api';
 import '../styles/DashboardHome.css';
 
 const LUPON_STAGES = [
@@ -23,7 +22,7 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
     window.print();
   };
 
-  const hearingDateObj = report.hearingDate ? new Date(report.hearingDate) : new Date(Date.now() + 3 * 86400000);
+  const hearingDateObj = new Date(report.hearingDate || report.createdAt);
   const hearingDay = hearingDateObj.getDate();
   const hearingMonth = hearingDateObj.toLocaleString('fil-PH', { month: 'long' });
   const hearingYear = hearingDateObj.getFullYear();
@@ -150,10 +149,34 @@ const BlotterManagement = () => {
   const [luponOfficerInCharge, setLuponOfficerInCharge] = useState('Punong Barangay / Lupon Tagapamayapa');
   const [updating, setUpdating] = useState(false);
   const [showKpModal, setShowKpModal] = useState(false);
+  const [evidenceObjectUrl, setEvidenceObjectUrl] = useState(null);
 
   useEffect(() => {
     fetchReports();
   }, []);
+
+  useEffect(() => {
+    let objectUrl;
+    const loadEvidence = async () => {
+      if (!selectedReport?.evidenceUrl) {
+        setEvidenceObjectUrl(null);
+        return;
+      }
+      try {
+        const response = await blotterApi.getEvidence(selectedReport._id);
+        objectUrl = URL.createObjectURL(response.data);
+        setEvidenceObjectUrl(objectUrl);
+      } catch (error) {
+        console.error('Could not load protected evidence:', error);
+        setEvidenceObjectUrl(null);
+        showNotification('Could not load protected evidence.', 'error');
+      }
+    };
+    void loadEvidence();
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedReport?._id, selectedReport?.evidenceUrl, showNotification]);
 
   const fetchReports = async () => {
     try {
@@ -224,22 +247,6 @@ const BlotterManagement = () => {
     r.incidentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
     getComplainantName(r).toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  const getImageUrl = (url) => {
-    if (!url) return null;
-    if (url.startsWith('http') || url.startsWith('data:')) return url;
-    
-    // Legacy support: if the URL doesn't have /uploads/ in it, add it
-    let path = url;
-    if (!path.startsWith('/uploads/') && !path.startsWith('uploads/')) {
-      path = `/uploads/${path.startsWith('/') ? path.substring(1) : path}`;
-    } else if (!path.startsWith('/')) {
-      path = `/${path}`;
-    }
-
-    const baseUrl = endpoints.auth.backendBaseUrl.replace(/\/$/, '');
-    return `${baseUrl}${path}`;
-  };
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -469,7 +476,7 @@ const BlotterManagement = () => {
                     {selectedReport.evidenceUrl ? (
                       <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block', padding: '10px' }}>
                         <img 
-                          src={getImageUrl(selectedReport.evidenceUrl)} 
+                          src={evidenceObjectUrl || undefined}
                           alt="Incident Evidence" 
                           style={{ maxWidth: '100%', maxHeight: '320px', display: 'block', objectFit: 'contain', borderRadius: 8 }}
                         />
@@ -592,4 +599,3 @@ const BlotterManagement = () => {
 };
 
 export default BlotterManagement;
-

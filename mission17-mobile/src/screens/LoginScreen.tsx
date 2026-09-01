@@ -18,12 +18,13 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Mail, Lock, Key, Eye, EyeOff, RotateCcw } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 import { auth } from '../config/firebase';
-import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 
 // Safe configuration for Expo Go
 let isGoogleAvailable = false;
@@ -125,7 +126,14 @@ export default function LoginScreen() {
         return;
       }
 
-      if (response.ok) {
+      if (response.ok && data.mfaRequired) {
+        GlobalState.tempToken = firebaseToken;
+        setMfaRequired(true);
+        showNotification('Please enter the OTP sent to your email.', 'info');
+      } else if (response.ok && data.user?.accountStatus === 'pending') {
+        await signOut(auth);
+        showNotification('Your account is awaiting administrator approval.', 'info');
+      } else if (response.ok) {
         data.token = firebaseToken; 
         await processLoginSuccess(data);
       } else {
@@ -197,6 +205,9 @@ export default function LoginScreen() {
           GlobalState.tempToken = firebaseToken; // Store temporarily
           setMfaRequired(true);
           showNotification('Please enter the OTP sent to your email.', 'info');
+        } else if (data.user?.accountStatus === 'pending') {
+          await signOut(auth);
+          showNotification('Your account is awaiting administrator approval.', 'info');
         } else {
           // Make sure token is passed so processLoginSuccess can save it
           data.token = firebaseToken; 
@@ -229,13 +240,21 @@ export default function LoginScreen() {
     try {
       const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: tempUserId, otp }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${GlobalState.tempToken}`
+        },
+        body: JSON.stringify({ otp }),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.user?.accountStatus === 'pending') {
+        GlobalState.tempToken = null;
+        await signOut(auth);
+        setMfaRequired(false);
+        showNotification('Email verified. Your account is awaiting administrator approval.', 'info');
+      } else if (response.ok) {
         data.token = GlobalState.tempToken;
         await processLoginSuccess(data);
       } else {
@@ -253,6 +272,7 @@ export default function LoginScreen() {
     const userData = { ...data.user, _id: userId };
 
     GlobalState.userId = userId;
+    GlobalState.username = data.user.username || null;
     GlobalState.token = data.token;
     GlobalState.auth = { token: data.token };
     await saveAuthData(data.token, userData);
@@ -284,12 +304,34 @@ export default function LoginScreen() {
         >
           {/* HEADER WITH LOGO (Royal Blue Linear Gradient) */}
           <LinearGradient colors={['#0038A8', '#001a5e']} style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Svg
+                pointerEvents="none"
+                width={180}
+                height={140}
+                viewBox="0 0 180 140"
+                style={styles.logoGlow}
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Defs>
+                  <RadialGradient id="loginLogoGlow" cx="50%" cy="50%" rx="50%" ry="50%">
+                    <Stop offset="0%" stopColor="#ffffff" stopOpacity={0.58} />
+                    <Stop offset="24%" stopColor="#ffffff" stopOpacity={0.4} />
+                    <Stop offset="52%" stopColor="#ffffff" stopOpacity={0.18} />
+                    <Stop offset="78%" stopColor="#ffffff" stopOpacity={0.05} />
+                    <Stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                  </RadialGradient>
+                </Defs>
+                <Ellipse cx="90" cy="70" rx="90" ry="70" fill="url(#loginLogoGlow)" />
+              </Svg>
               <Image 
                 source={require('../../assets/logo.png')} 
                 style={styles.logo} 
                 resizeMode="contain"
                 accessibilityLabel="Barangay Bagong Pag-asa Official Seal"
               />
+            </View>
             <Text style={styles.title}>{mfaRequired ? 'Security Verification' : 'Barangay Citizen Portal'}</Text>
             <Text style={styles.subtitle}>
               {mfaRequired ? 'Enter the verification code to continue' : 'Sign in to access your barangay e-services'}
@@ -466,14 +508,18 @@ const getStyles = (theme: any) => StyleSheet.create({
     paddingBottom: 56,
     alignItems: 'center',
   },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    height: 120,
+  },
+  logoGlow: {
+    position: 'absolute',
+  },
   logo: {
-    width: 90,
-    height: 90,
-    marginBottom: 14,
-    shadowColor: '#ffffff',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
+    width: 85,
+    height: 85,
   },
   title: { 
     fontSize: 24, 
@@ -688,10 +734,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: '#bfdbfe',
   },
-  captchaText: { 
-    fontSize: 15, 
-    fontWeight: '700', 
-    color: '#1e3a8a', 
+  captchaText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: theme.text,
     marginTop: 2,
   },
   captchaInput: { 

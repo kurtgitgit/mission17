@@ -44,10 +44,12 @@ const buildNotification = (docRequest, status, rejectionReason, pickupDate) => {
 
 // POST / — Resident: Submit a document request
 export const submitRequest = asyncHandler(async (req, res) => {
-  const { userId, username, fullName, address, contactNumber, documentType, purpose } = req.body;
+  const { fullName, address, contactNumber, documentType, purpose } = req.body;
+  const userId = req.user._id;
+  const username = req.user.username;
 
-  if (!userId || !fullName || !documentType || !purpose) {
-    return res.status(400).json({ message: 'Missing required fields: userId, fullName, documentType, purpose.' });
+  if (!fullName || !documentType || !purpose) {
+    return res.status(400).json({ message: 'Missing required fields: fullName, documentType, purpose.' });
   }
 
   const docRequest = await DocumentRequest.create({
@@ -84,7 +86,11 @@ export const submitRequest = asyncHandler(async (req, res) => {
 
 // GET /my/:userId — Resident: Get own requests
 export const getMyRequests = asyncHandler(async (req, res) => {
-  const requests = await DocumentRequest.find({ userId: req.params.userId }).sort({ createdAt: -1 });
+  if (req.user._id.toString() !== req.params.userId) {
+    return res.status(403).json({ message: 'Forbidden: you can only view your own requests.' });
+  }
+
+  const requests = await DocumentRequest.find({ userId: req.user._id }).sort({ createdAt: -1 });
   res.json(requests);
 });
 
@@ -124,7 +130,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
   let pushSent = false;
   if (resident?.expoPushToken) {
     try {
-      await sendPushNotification(
+      const pushResult = await sendPushNotification(
         resident.expoPushToken,
         notif.title,
         notif.message,
@@ -136,8 +142,8 @@ export const updateStatus = asyncHandler(async (req, res) => {
           status: status
         }
       );
-      pushSent = true;
-      console.log(`📲 [Push Sent] Notified resident ${resident.username} (${resident.expoPushToken}) for doc ${docRequest.referenceNumber} -> ${status}`);
+      pushSent = pushResult.accepted;
+      console.log(`📲 Push notification ${pushSent ? 'accepted by Expo' : 'not accepted'} for document request ${docRequest.referenceNumber}.`);
     } catch (pushErr) {
       console.error('⚠️ Failed to dispatch push notification to resident:', pushErr);
     }
@@ -147,9 +153,8 @@ export const updateStatus = asyncHandler(async (req, res) => {
     `Updated doc request ${req.params.id} (${docRequest.referenceNumber}) → ${status}`, req);
 
   res.json({
-    message: `Request updated to "${status}". ${pushSent ? 'Resident notified via Phone Push Notification.' : 'Resident in-app notification sent.'}`,
+    message: `Request updated to "${status}". ${pushSent ? 'A phone notification was accepted for delivery processing.' : 'Resident in-app notification sent.'}`,
     documentRequest: docRequest,
     pushNotificationSent: pushSent
   });
 });
-

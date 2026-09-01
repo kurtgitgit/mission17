@@ -4,8 +4,7 @@ import {
   RefreshControl, StatusBar
 } from 'react-native';
 import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck } from 'lucide-react-native';
-import { GlobalState, endpoints } from '../config/api';
-import { getAuthData } from '../utils/storage';
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 
 export default function NotificationsScreen({ navigation, route }: any) {
@@ -23,10 +22,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
       return;
     }
     try {
-      const auth = await getAuthData();
-      const token = auth?.token;
       const res = await fetch(endpoints.auth.getNotifications(userId), {
-        headers: { 'auth-token': token || '' }
+        headers: await getAuthHeaders(),
       });
       if (res.ok) {
         const data = await res.json();
@@ -48,11 +45,9 @@ export default function NotificationsScreen({ navigation, route }: any) {
     // Optimistic UI update
     setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
     try {
-      const auth = await getAuthData();
-      const token = auth?.token;
       await fetch(endpoints.auth.markNotificationRead(notifId), {
         method: 'PUT',
-        headers: { 'auth-token': token || '' }
+        headers: await getAuthHeaders(),
       });
     } catch (error) {
       console.error('Failed to mark read:', error);
@@ -63,14 +58,13 @@ export default function NotificationsScreen({ navigation, route }: any) {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     // Silently mark each on server
     try {
-      const auth = await getAuthData();
-      const token = auth?.token;
       const unread = notifications.filter(n => !n.read);
+      const authHeaders = await getAuthHeaders();
       await Promise.all(
         unread.map(n => 
           fetch(endpoints.auth.markNotificationRead(n._id), {
             method: 'PUT',
-            headers: { 'auth-token': token || '' }
+            headers: authHeaders,
           })
         )
       );
@@ -105,7 +99,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
     }
 
     const dateObj = new Date(item.createdAt);
-    const timeStr = dateObj.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) + ' • ' + 
+    const timeStr = dateObj.toDateString() + ' • ' +
                     dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact, Info } from 'lucide-react';
 import Modal from '../../components/Modal';
@@ -51,15 +51,7 @@ const Users = () => {
     setCurrentPage(1);
   }, [searchTerm, filterTab]);
 
-  // Debounce search
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchUsers();
-    }, 300);
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, currentPage, filterTab]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
       let url = `${endpoints.users.getAll}?page=${currentPage}&limit=${limit}`;
@@ -69,7 +61,7 @@ const Users = () => {
 
       const response = await fetch(url, {
         headers: {
-          'auth-token': getToken() // 🛡️ ADDED TOKEN
+          'auth-token': localStorage.getItem('token') // 🛡️ ADDED TOKEN
         }
       });
 
@@ -87,7 +79,15 @@ const Users = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, filterTab, limit, searchTerm, showNotification]);
+
+  // Debounce search
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      void fetchUsers();
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [fetchUsers]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

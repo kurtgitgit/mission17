@@ -4,7 +4,7 @@ import {
   SafeAreaView, Platform, ActivityIndicator, ScrollView, TextInput, Alert 
 } from 'react-native';
 import { X, User, MapPin, Phone, Mail, Calendar, Info, GraduationCap, Briefcase, Check } from 'lucide-react-native';
-import { GlobalState, endpoints } from '../config/api';
+import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, typography } from '../config/theme';
 
 const EditProfileScreen = ({ navigation }: any) => {
@@ -18,7 +18,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   useEffect(() => {
     const fetchCurrentData = async () => {
       try {
-        const res = await fetch(endpoints.auth.getUser(userId));
+        const res = await fetch(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
         const data = await res.json();
         setUserData(data);
       } catch (error) {
@@ -35,7 +35,7 @@ const EditProfileScreen = ({ navigation }: any) => {
     try {
       const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify(userData)
       });
       if (res.ok) {

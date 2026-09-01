@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { Plus, Trash2, Edit, Search, X, Calendar, MapPin, Clock, Image as ImageIcon } from 'lucide-react';
 import Modal from '../components/Modal';
@@ -43,14 +43,7 @@ const Events = () => {
     }, [searchTerm]);
 
     // Debounce search
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            fetchEvents();
-        }, 300);
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm, currentPage]);
-
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         setLoading(true);
         try {
             let url = `${endpoints.events.getAll}?page=${currentPage}&limit=${limit}`;
@@ -70,7 +63,14 @@ const Events = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage, limit, searchTerm, showNotification]);
+
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            void fetchEvents();
+        }, 300);
+        return () => clearTimeout(delayDebounceFn);
+    }, [fetchEvents]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;

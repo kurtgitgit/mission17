@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Lightbulb, MessageSquare, Search, CheckCircle, Clock, ChevronRight, User, Trash2, AlertTriangle, XCircle, Smile, Meh, Frown, Sparkles, Filter, RefreshCw, Send } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
@@ -19,7 +19,7 @@ const Suggestions = () => {
   const [loading, setLoading]         = useState(true);
   const [searchTerm, setSearchTerm]   = useState('');
   const [sentimentFilter, setSentimentFilter] = useState('All'); // 'All' | 'Positive' | 'Neutral' | 'Negative'
-  const [statusFilter, setStatusFilter]       = useState('All');
+  const statusFilter = 'All';
   
   const [selectedItem, setSelectedItem] = useState(null);
   const [newStatus, setNewStatus]       = useState('');
@@ -27,11 +27,7 @@ const Suggestions = () => {
   const [updating, setUpdating]         = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [listRes, statsRes] = await Promise.all([
@@ -46,7 +42,11 @@ const Suggestions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotification]);
+
+  useEffect(() => {
+    void fetchData();
+  }, [fetchData]);
 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
@@ -490,4 +490,3 @@ const Suggestions = () => {
 };
 
 export default Suggestions;
-

@@ -22,7 +22,6 @@ export const useSignup = () => {
     password: '', confirmPassword: ''
   });
 
-  const [role, setRole] = useState('Resident'); 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [noMiddleName, setNoMiddleName] = useState(false);
@@ -43,9 +42,7 @@ export const useSignup = () => {
     }
     if (selectedDate) {
       setDateObj(selectedDate);
-      const formattedDate = selectedDate.toLocaleDateString('en-US', {
-        month: '2-digit', day: '2-digit', year: 'numeric'
-      });
+      const formattedDate = selectedDate.toDateString();
       handleInputChange('birthDate', formattedDate);
 
       // Auto calculate age
@@ -188,8 +185,6 @@ export const useSignup = () => {
           }
         }
       });
-      formPayload.append('role', role.toLowerCase());
-
       const formatUri = (uri: string) => {
         return Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
       };

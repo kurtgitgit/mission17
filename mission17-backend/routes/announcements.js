@@ -2,11 +2,11 @@
 // Prefix: /api/announcements
 
 import express from 'express';
-import { Expo } from 'expo-server-sdk';
 import Announcement from '../models/Announcement.js';
 import User from '../models/User.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { sendPushNotifications } from '../utils/pushNotifier.js';
 
 const router = express.Router();
 
@@ -55,10 +55,7 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
 
   // 🚀 SEND REAL-TIME PUSH NOTIFICATIONS TO ALL REGISTERED RESIDENTS
   try {
-    const expo = new Expo();
-    const usersWithTokens = await User.find({ expoPushToken: { $exists: true, $ne: '' } });
-    
-    let messages = [];
+    const usersWithTokens = await User.find({ expoPushToken: { $exists: true, $ne: '' } }).select('expoPushToken');
     const notifTitle = isUrgent 
       ? `🚨 EMERGENCY ALERT: ${title}` 
       : (relatedSdg ? `🌱 Green Initiative (SDG ${relatedSdg}): ${title}` : `📢 Barangay Announcement: ${title}`);
@@ -66,40 +63,27 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
       ? `URGENT ADVISORY: ${body.slice(0, 120)}${body.length > 120 ? '…' : ''}`
       : body.slice(0, 100);
 
-    for (let user of usersWithTokens) {
-      if (!Expo.isExpoPushToken(user.expoPushToken)) {
-        continue;
-      }
-      messages.push({
-        to: user.expoPushToken,
-        sound: 'default',
+    const result = await sendPushNotifications(usersWithTokens.map((user) => ({
+        pushToken: user.expoPushToken,
         priority: isUrgent ? 'high' : 'normal',
         channelId: isUrgent ? 'emergency' : 'default',
         title: notifTitle,
         body: notifBody,
-        data: { 
+        data: {
           screen: 'Announcements',
           announcementId: announcement._id.toString(),
           category: cleanedCat,
           isUrgent: announcement.isUrgent,
           relatedSdg: announcement.relatedSdg
         },
-      });
-    }
-
-    if (messages.length > 0) {
-      const chunks = expo.chunkPushNotifications(messages);
-      for (let chunk of chunks) {
-        await expo.sendPushNotificationsAsync(chunk);
-      }
-      console.log(`📲 Broadcast alert sent to ${messages.length} residents (${isUrgent ? 'EMERGENCY' : 'STANDARD'})`);
-    }
+      })));
+    console.log(`📲 ${result.acceptedCount} announcement notifications accepted by Expo for processing.`);
   } catch (error) {
     console.error("Push Notification Error:", error);
   }
 
   logAudit(req.user._id || req.user.id, req.user.username, 'ANNOUNCEMENT_POST', `Posted: ${title} (${cleanedCat}${isUrgent ? ', URGENT' : ''}${relatedSdg ? `, SDG ${relatedSdg}` : ''})`, req);
-  res.status(201).json({ message: isUrgent ? '🚨 Urgent Emergency Alert posted and broadcasted to residents!' : 'Announcement posted successfully.', announcement });
+  res.status(201).json({ message: isUrgent ? '🚨 Urgent emergency alert posted and queued for notification processing.' : 'Announcement posted successfully.', announcement });
 }));
 
 // PUT /:id — Admin: update announcement
@@ -141,4 +125,3 @@ router.patch('/:id/pin', verifyAdmin, asyncHandler(async (req, res) => {
 }));
 
 export default router;
-
