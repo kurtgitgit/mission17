@@ -1,5 +1,4 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const lightTheme = {
@@ -53,20 +52,16 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
-  const systemColorScheme = useColorScheme();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Load saved preference
     const loadTheme = async () => {
       try {
-        const saved = await AsyncStorage.getItem('app_theme');
-        if (saved !== null) {
-          setIsDarkMode(saved === 'dark');
-        } else {
-          setIsDarkMode(systemColorScheme === 'dark');
-        }
+        // BrgyLink is light-only. Clear any preference written by the retired
+        // dark-mode feature so system settings cannot change the app palette.
+        await AsyncStorage.removeItem('app_theme');
+        setIsDarkMode(false);
       } catch (e) {
         console.error('Failed to load theme preference', e);
       } finally {
@@ -74,18 +69,18 @@ export const ThemeProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     loadTheme();
-  }, [systemColorScheme]);
+  }, []);
 
-  const toggleTheme = async (value: boolean) => {
-    setIsDarkMode(value);
+  const toggleTheme = async (_value: boolean) => {
+    setIsDarkMode(false);
     try {
-      await AsyncStorage.setItem('app_theme', value ? 'dark' : 'light');
+      await AsyncStorage.removeItem('app_theme');
     } catch (e) {
       console.error('Failed to save theme preference', e);
     }
   };
 
-  const theme = isDarkMode ? darkTheme : lightTheme;
+  const theme = lightTheme;
 
   if (!isLoaded) return null;
 

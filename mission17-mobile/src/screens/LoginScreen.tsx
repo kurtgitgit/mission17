@@ -737,7 +737,9 @@ const getStyles = (theme: any) => StyleSheet.create({
   captchaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.text,
+    // This panel always has a light background, including when the app theme is
+    // dark. Do not inherit the light dark-mode text color here.
+    color: '#0f172a',
     marginTop: 2,
   },
   captchaInput: { 

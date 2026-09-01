@@ -222,7 +222,9 @@ const getStyles = (theme: any) => StyleSheet.create({
   tabText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
   tabTextActive: { color: theme.primary },
 
-  listContent: { padding: 16, paddingBottom: 60 },
+  // The app-level bottom tabs overlay screen content on Android. Reserve enough
+  // space for the last SDG/program card to scroll completely above the bar.
+  listContent: { padding: 16, paddingBottom: 148 },
 
   // SDG HUB
   sdgIntro: { backgroundColor: theme.surface, borderRadius: 16, padding: 18, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: theme.primary, borderWidth: 1, borderColor: theme.border },
