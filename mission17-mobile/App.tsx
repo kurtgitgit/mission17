@@ -38,6 +38,7 @@ import { clearAuthData, getAuthData } from './src/utils/storage';
 import { GlobalState } from './src/config/api';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { ChatProvider } from './src/context/ChatContext';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
@@ -212,7 +213,8 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <NotificationProvider>
-          <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
+          <ChatProvider>
+            <NavigationContainer ref={navigationRef} onReady={() => setNavigationReady(true)}>
             <StackNavigator id="RootStack" initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
               {/* Auth */}
               <Stack.Screen name="Login"         component={LoginScreen} />
@@ -241,7 +243,8 @@ export default function App() {
               <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
               <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
             </StackNavigator>
-          </NavigationContainer>
+            </NavigationContainer>
+          </ChatProvider>
         </NotificationProvider>
         <ToastMessage config={toastConfig} />
       </ThemeProvider>

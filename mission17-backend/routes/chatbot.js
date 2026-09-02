@@ -72,6 +72,18 @@ const MAX_MESSAGE_LENGTH = 1_200;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
 
+const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|barangay hall|purok)\b/i;
+const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong)([!,.\s]+)?$/i;
+
+const isInScope = (message) => IN_SCOPE_PATTERN.test(message) || GREETING_PATTERN.test(message);
+
+const outOfScopeReply = (message) => {
+  if (/\b(kumusta|kamusta|mabuhay|ano|paano|saan|bakit)\b/i.test(message)) {
+    return 'Makakatulong lamang ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, dokumento, blotter, anunsyo, at SDG missions.';
+  }
+  return 'I can help only with Barangay Bagong Pag-asa services, the BrgyLink app, document requests, blotter reports, announcements, and SDG missions.';
+};
+
 // The chatbot can invoke a costly model. Keep a dedicated, conservative limit
 // even though the application also has a broad global API limiter.
 const chatbotLimiter = rateLimit({
@@ -102,6 +114,9 @@ router.post('/', chatbotLimiter, async (req, res) => {
   }
   if (message.length > MAX_MESSAGE_LENGTH) {
     return res.status(400).json({ reply: `Please keep messages under ${MAX_MESSAGE_LENGTH} characters.` });
+  }
+  if (!isInScope(message)) {
+    return res.json({ reply: outOfScopeReply(message) });
   }
 
   const safeHistory = Array.isArray(history)

@@ -7,20 +7,11 @@ import { ArrowLeft, Send, Bot, User } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { endpoints } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
-
-type Message = { id: string; text: string; isBot: boolean };
-
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '0',
-    text: "Mabuhay! I am your Barangay Bagong Pag-asa digital assistant. I can help you with Blotter Reports, document requests, barangay services, and civic tasks. How can I assist you today?",
-    isBot: true
-  }
-];
+import { ChatMessage, useChat } from '../context/ChatContext';
 
 const ChatBotScreen = () => {
   const navigation = useNavigation<any>();
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const { messages, setMessages } = useChat();
   const [input, setInput]       = useState('');
   const [loading, setLoading]   = useState(false);
   const listRef = useRef<FlatList>(null);
@@ -29,7 +20,7 @@ const ChatBotScreen = () => {
     const text = input.trim();
     if (!text) return;
 
-    const userMsg: Message = { id: Date.now().toString(), text, isBot: false };
+    const userMsg: ChatMessage = { id: Date.now().toString(), text, isBot: false };
 
     // Capture history BEFORE adding the new user message (exclude initial greeting)
     const history = messages.slice(1).map(m => ({ text: m.text, isBot: m.isBot }));
@@ -50,7 +41,7 @@ const ChatBotScreen = () => {
       clearTimeout(timeoutId);
       if (!res.ok) throw new Error(`Chatbot request failed (${res.status})`);
       const data = await res.json();
-      const botMsg: Message = { id: (Date.now() + 1).toString(), text: data.reply ?? "Sorry, I couldn't understand that.", isBot: true };
+      const botMsg: ChatMessage = { id: (Date.now() + 1).toString(), text: data.reply ?? "Sorry, I couldn't understand that.", isBot: true };
       setMessages(prev => [...prev, botMsg]);
     } catch {
       setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), text: "Sorry, I'm having trouble connecting right now. Please try again.", isBot: true }]);
@@ -59,7 +50,7 @@ const ChatBotScreen = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: Message }) => (
+  const renderItem = ({ item }: { item: ChatMessage }) => (
     <View style={[styles.row, item.isBot ? styles.rowBot : styles.rowUser]}>
       {item.isBot && (
         <View style={styles.avatar}>
