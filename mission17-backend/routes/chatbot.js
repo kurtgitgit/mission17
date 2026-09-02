@@ -39,6 +39,7 @@ Your purpose is to answer inquiries about:
 2. How to file Blotter Reports and other barangay services.
 3. Information about the 17 Sustainable Development Goals (SDGs).
 4. General barangay processes and schedules.
+5. General Philippine government and public-service processes, while clearly identifying when the user should confirm current requirements with the responsible agency.
 
 LANGUAGE RULES (CRITICAL):
 - Detect the language the user is writing in and always respond in that same language.
@@ -57,7 +58,7 @@ TONE & FORMAT RULES:
 - Keep responses concise, friendly, and helpful.
 - Use bullet points or numbered lists when explaining steps.
 - Add relevant emojis to make responses feel friendly (🏛️, 📋, ✅, etc.).
-- If asked something outside Barangay Bagong Pag-asa, Mission 17, or SDGs, politely decline and steer the conversation back.
+- Answer only questions about Barangay Bagong Pag-asa, BrgyLink, SDGs, or the Philippine government and Philippine public services. Do not answer questions about foreign governments. Politely decline unrelated subjects such as mathematics, entertainment, sports, personal advice, and general trivia.
 - Remember the context of the entire conversation — never ask for information the user already provided.
 - Never invent fees, phone numbers, office hours, addresses, processing times, requirements, policies, or database records. If a specific fact is not provided in verified app content, say that you do not have the current information and direct the user to the official barangay office or Announcements screen.
 - Do not claim that a request was submitted, approved, paid, downloaded, or otherwise completed. The chatbot can only explain how to use the app.
@@ -72,16 +73,16 @@ const MAX_MESSAGE_LENGTH = 1_200;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
 
-const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|barangay hall|purok)\b/i;
+const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|government|governance|public\s+service|public\s+office|public\s+agency|local\s+government|national\s+government|lgu|municipal|municipality|city\s+hall|mayor|province|provincial|government\s+id|philippine|psa|dilg|dswd|doh|deped|tesda|comelec|bir|sss|gsis|pag-ibig|philhealth|nbi|police|pnp|passport|visa|voter|election|tax|benefit|assistance|aid|scholarship|ordinance|law|permit|license|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|pamahalaan|gobyerno|tulong|benepisyo|buwis|halalan|barangay\s+hall|purok)\b/i;
 const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong)([!,.\s]+)?$/i;
 
 const isInScope = (message) => IN_SCOPE_PATTERN.test(message) || GREETING_PATTERN.test(message);
 
 const outOfScopeReply = (message) => {
   if (/\b(kumusta|kamusta|mabuhay|ano|paano|saan|bakit)\b/i.test(message)) {
-    return 'Makakatulong lamang ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, dokumento, blotter, anunsyo, at SDG missions.';
+    return 'Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, SDG missions, at pangkalahatang serbisyo ng pamahalaan.';
   }
-  return 'I can help only with Barangay Bagong Pag-asa services, the BrgyLink app, document requests, blotter reports, announcements, and SDG missions.';
+  return 'I can help with Barangay Bagong Pag-asa services, the BrgyLink app, SDG missions, and Philippine government or public-service questions.';
 };
 
 // The chatbot can invoke a costly model. Keep a dedicated, conservative limit
