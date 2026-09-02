@@ -39,11 +39,16 @@ const ChatBotScreen = () => {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
       const res  = await fetch(`${endpoints.auth.backendBaseUrl}/api/chatbot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: text, history }),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
+      if (!res.ok) throw new Error(`Chatbot request failed (${res.status})`);
       const data = await res.json();
       const botMsg: Message = { id: (Date.now() + 1).toString(), text: data.reply ?? "Sorry, I couldn't understand that.", isBot: true };
       setMessages(prev => [...prev, botMsg]);

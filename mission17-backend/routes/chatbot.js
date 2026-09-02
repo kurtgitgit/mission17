@@ -58,7 +58,10 @@ TONE & FORMAT RULES:
 - Use bullet points or numbered lists when explaining steps.
 - Add relevant emojis to make responses feel friendly (🏛️, 📋, ✅, etc.).
 - If asked something outside Barangay Bagong Pag-asa, Mission 17, or SDGs, politely decline and steer the conversation back.
-- Remember the context of the entire conversation — never ask for information the user already provided.`;
+- Remember the context of the entire conversation — never ask for information the user already provided.
+- Never invent fees, phone numbers, office hours, addresses, processing times, requirements, policies, or database records. If a specific fact is not provided in verified app content, say that you do not have the current information and direct the user to the official barangay office or Announcements screen.
+- Do not claim that a request was submitted, approved, paid, downloaded, or otherwise completed. The chatbot can only explain how to use the app.
+- Do not provide legal, medical, or emergency advice beyond directing the user to the appropriate official service.`;
 
 // ─── Model URL ─────────────────────────────────────────────────────────────────
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
@@ -138,8 +141,12 @@ router.post('/', chatbotLimiter, async (req, res) => {
 
     const response = await chatOllama.invoke(lcMessages);
 
-    const reply = response?.content 
-      ?? "I'm sorry, I couldn't understand that. Could you rephrase your question? 🤔";
+    const content = response?.content;
+    const reply = typeof content === 'string'
+      ? content
+      : Array.isArray(content)
+        ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('').trim()
+        : "I'm sorry, I couldn't understand that. Could you rephrase your question? 🤔";
 
     return res.json({ reply });
 
