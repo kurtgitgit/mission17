@@ -10,6 +10,8 @@ const MissionSchema = new mongoose.Schema({
   // 👇 THIS IS THE MISSING FIELD!
   // Without this line, Mongoose deletes the image URL before saving.
   image: { type: String }, 
+  // Soft-hide retired or incorrect sample missions without deleting their history.
+  isActive: { type: Boolean, default: true },
   
   createdAt: { type: Date, default: Date.now }
 });

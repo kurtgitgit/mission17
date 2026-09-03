@@ -26,7 +26,7 @@ router.get('/all-missions', asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const search = req.query.search || '';
 
-  const query = {};
+  const query = { isActive: { $ne: false } };
   if (search) {
     query.$or = [
       { title: { $regex: search, $options: 'i' } }
