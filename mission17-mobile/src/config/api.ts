@@ -8,10 +8,11 @@ import { auth } from './firebase';
 const LAN_IP = "192.168.1.101";
 
 // 🛠️ APK DEPLOYMENT CONFIG:
-const RENDER_BACKEND_URL = "https://mission17-backend.onrender.com";
+// Production API: AWS Lightsail (Singapore), served over HTTPS.
+const PRODUCTION_BACKEND_URL = "https://brgylink-api.duckdns.org";
 
 // Temporarily force Mobile to use the live cloud backend for Expo testing
-const API_URL = `${RENDER_BACKEND_URL}/api`;
+const API_URL = `${PRODUCTION_BACKEND_URL}/api`;
 // const API_URL = `http://${LAN_IP}:5001/api`;
 
 const BACKEND_BASE_URL = API_URL.replace('/api', '');
