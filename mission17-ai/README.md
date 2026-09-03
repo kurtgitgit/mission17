@@ -8,46 +8,61 @@ app_port: 7860
 pinned: false
 ---
 
-# 🤖 Mission 17 AI: Computer Vision & Anti-Cheat Microservice
+# Mission17-AI
 
-<div align="center">
+Mission17-AI is a Flask microservice for civic-task photo classification and duplicate-photo screening. It is deployed as a Hugging Face Docker Space and can be called only by the Mission17 backend using a service token.
 
-**Framework:** Python 3.10 • Flask • TensorFlow • **Hosting:** Hugging Face Spaces (Docker)
+## What it does
 
-</div>
+- Uses a TensorFlow CNN (`mission_model.h5`) to classify supported civic-task proof images.
+- Maps model results to SDG mission verdicts.
+- Rejects exact duplicate photos and screens bounded candidate sets for near duplicates using pHash and dHash.
+- Accepts PNG, JPG, JPEG, and WebP images up to 5 MB.
+- Validates image content with Pillow before classification.
 
----
+## Security and storage
 
-## 📌 Overview
-The `mission17-ai` microservice handles automated image classification and anti-cheat validation for community civic initiatives in Barangay Bagong Pag-asa. It verifies whether submitted photo evidence legitimately portrays targeted community actions (such as Tree Planting under SDG 13/15 or Waste Segregation under SDG 12) and executes perceptual hashing (pHash) to detect duplicate or recycled photos.
+- `/predict` requires `Authorization: Bearer <AI_SERVICE_TOKEN>`.
+- `ANTICHEAT_MONGO_URI` must use a separate least-privilege MongoDB user restricted to the anti-cheat database.
+- The anti-cheat collection stores only perceptual hashes and minimal non-personal metadata. It does not store submitted images, email addresses, names, Firebase UIDs, or tokens.
+- If durable anti-cheat storage is unavailable, the service returns `UNCERTAIN`; it must not approve a photo without duplicate screening.
+- Near-duplicate checks use indexed candidate buckets to keep queries bounded. This is an approximate screen and may require human review for ambiguous cases.
 
----
+## Required environment variables
 
-## ✨ Capabilities & Architecture
-* **🧠 Custom CNN Classifier**: Evaluates image feature representations to classify civic task proofs with **92.4% Accuracy** and **91.7% F1-Score**.
-* **🛡️ Perceptual Hashing (pHash)**: Generates 64-bit visual hash fingerprints to identify duplicates even after re-compression, resizing, or cropping.
-* **🔒 Adversarial Hardening**: Enforces MIME validation, 5MB file caps, and execution sanitization against corrupted or malicious uploads.
+| Variable | Purpose |
+| --- | --- |
+| `AI_SERVICE_TOKEN` | Shared secret required for backend access to `/predict`. |
+| `ANTICHEAT_MONGO_URI` | MongoDB URI for the restricted anti-cheat database user. |
+| `ANTICHEAT_DB_NAME` | Optional database name; defaults to `mission17_anticheat`. |
+| `ANTICHEAT_COLLECTION` | Optional collection name; defaults to `photo_hashes`. |
 
----
+Never commit real values for these variables.
 
-## ⚡ Quickstart & Local Setup
+## Local setup
 
-### 1. Create Virtual Environment
 ```bash
 python -m venv venv
-# Windows:
-.\venv\Scripts\activate
-# Linux/macOS:
-source venv/bin/activate
-```
-
-### 2. Install Dependencies
-```bash
+venv\Scripts\activate
 pip install -r requirements.txt
+pip install -r requirements-dev.txt
+python test_anticheat.py
+python test_app.py
+python app.py
 ```
 
-### 3. Launch AI Flask Server
-```bash
-python app.py
-# Server listens on http://localhost:7860
-```
+The service listens on `http://localhost:7860`.
+
+## Endpoints
+
+| Endpoint | Access | Behavior |
+| --- | --- | --- |
+| `GET /health` | Public | Reports service and anti-cheat storage readiness without exposing configuration. |
+| `POST /predict` | Backend service token | Returns a verified, rejected, or uncertain photo-analysis result. |
+
+## Model evidence and limitations
+
+- The saved model has 10 output classes, matching the 10 labels in `labels.txt`.
+- Public accuracy, precision, recall, and F1 claims are **unverified** until `scripts/training/evaluate_model.py` is run against the documented held-out dataset and its outputs are retained as evidence.
+- The model can make false positive and false negative classifications. Low-confidence, unavailable, and ambiguous anti-cheat results require human review.
+- Perceptual hashes help identify reused/recompressed images but are not proof of fraud by themselves.

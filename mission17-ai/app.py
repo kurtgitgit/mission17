@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from PIL import Image
 
-from utils.anticheat import AntiCheatEngine
+from utils.anticheat import AntiCheatEngine, AntiCheatIndeterminate, AntiCheatUnavailable
 from utils.predictor import Predictor
 from utils.verdict import get_verdict
 
@@ -23,7 +23,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
 AI_SERVICE_TOKEN = os.getenv('AI_SERVICE_TOKEN', '')
 
-logger.info("🧠 Loading the MISSION 17 AI Brain (Ollama Vision)...")
+logger.info("Loading the Mission17 TensorFlow CNN verification service.")
 anticheat = AntiCheatEngine()
 predictor = Predictor()
 
@@ -51,10 +51,12 @@ def request_too_large(_error):
 
 @app.route('/health', methods=['GET'])
 def health():
+    storage_status = anticheat.health_status()
     return jsonify({
-        "status": "ok",
-        "service": "mission17-ai"
-    }), 200
+        "status": "ok" if storage_status == 'ready' else "degraded",
+        "service": "mission17-ai",
+        "antiCheatStorage": storage_status,
+    }), 200 if storage_status == 'ready' else 503
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -94,10 +96,10 @@ def predict():
         # Only the authenticated backend can request a re-analysis bypass.
         skip_anticheat = request.headers.get('X-Mission17-Admin-Reanalysis') == '1'
         if not skip_anticheat and anticheat.is_duplicate(file_bytes):
-            logger.warning("🚨 ANTI-CHEAT: Duplicate image detected!")
+            logger.warning("ANTI-CHEAT: Duplicate image detected.")
             return jsonify({
                 "status": "REJECTED",
-                "error": "Duplicate image detected. You cannot farm points!",
+                "error": "Duplicate image detected.",
                 "prediction": "Anti-Cheat: Duplicate"
             }), 400
             
@@ -114,12 +116,30 @@ def predict():
         verdict_response['reason'] = reason
         verdict_response['model'] = predictor.get_model_name()
 
-        # Only register hash if the image was VERIFIED (save memory/prevent false positives on bad images)
-        if verdict_response['is_verified']:
-            anticheat.register(file_bytes)
-            logger.info(f"✅ Unique verified image logged to anticheat.")
+        # Register only verified original submissions. A concurrent duplicate-key
+        # result is treated as a rejection rather than silently accepting both.
+        if verdict_response['is_verified'] and not skip_anticheat:
+            if not anticheat.register(file_bytes):
+                return jsonify({
+                    "status": "REJECTED",
+                    "error": "Duplicate image detected during verification.",
+                    "prediction": "Anti-Cheat: Duplicate"
+                }), 400
+            logger.info("Unique verified image registered in durable anti-cheat storage.")
 
         return jsonify(verdict_response)
+
+    except (AntiCheatUnavailable, AntiCheatIndeterminate) as error:
+        logger.warning("Anti-cheat verification unavailable: %s", error)
+        return jsonify({
+            "status": "UNCERTAIN",
+            "verdict": "UNCERTAIN",
+            "is_verified": False,
+            "prediction": "Anti-Cheat Unavailable",
+            "message": "Photo verification requires manual review. Please try again later.",
+            "sdg": "N/A",
+            "source_check": "Unavailable",
+        }), 503
 
     except Exception as e:
         logger.exception('Processing Error')

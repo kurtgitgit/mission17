@@ -155,6 +155,16 @@ export async function callAIServer(imageUri, skipAntiCheat = false) {
           sdg: 'N/A'
         };
       }
+      if (errJson.status === 'UNCERTAIN') {
+        return {
+          verdict: 'UNCERTAIN',
+          is_verified: false,
+          prediction: errJson.prediction || 'AI Verification Unavailable',
+          message: errJson.message || 'Photo verification requires manual review.',
+          sdg: 'N/A',
+          source_check: errJson.source_check || 'Unavailable',
+        };
+      }
     } catch (e) {
       // Not JSON or doesn't have REJECTED status, proceed to throw error
     }

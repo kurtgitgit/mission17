@@ -1,48 +1,60 @@
 import io
-import time
-from PIL import Image
-from utils.anticheat import AntiCheatEngine
+import unittest
 
-def create_dummy_image_bytes(color=(255, 0, 0)):
-    img = Image.new('RGB', (100, 100), color=color)
-    img_byte_arr = io.BytesIO()
-    img.save(img_byte_arr, format='JPEG')
-    return img_byte_arr.getvalue()
+import mongomock
+from PIL import Image, ImageDraw
 
-def test_engine():
-    print("Initialize AntiCheatEngine...")
-    engine = AntiCheatEngine()
-    engine.clear()
-    
-    print("Testing registration...")
-    img1 = create_dummy_image_bytes((255, 0, 0)) # Red image
-    
-    is_dup_before = engine.is_duplicate(img1)
-    print(f"Is Duplicate before registration? {is_dup_before} (Expected: False)")
-    
-    hash_str = engine.register(img1)
-    print(f"Registered hash: {hash_str}")
-    
-    print(f"Total Hashes in DB: {engine.count()}")
-    
-    print("Testing duplicate detection...")
-    is_dup_after = engine.is_duplicate(img1)
-    print(f"Is exact Duplicate detected? {is_dup_after} (Expected: True)")
-    
-    img2 = create_dummy_image_bytes((0, 255, 0)) # Green image
-    is_diff_dup = engine.is_duplicate(img2)
-    print(f"Is totally different image detected as duplicate? {is_diff_dup} (Expected: False)")
-    
-    print("Testing bulk insert performance (scalable SQLite test)...")
-    start_time = time.time()
-    for i in range(100):
-        # We don't actually generate 100 images as it's slow, just simulate fast inserts
-        with engine._get_connection() as conn:
-            conn.execute('INSERT OR IGNORE INTO hashes (hash_str) VALUES (?)', (f"fake_hash_{i}",))
-    
-    print(f"Inserted 100 dummy hashes in {time.time() - start_time:.4f} seconds")
-    print(f"Final count: {engine.count()}")
-    print("SQLite AntiCheatEngine Test Passed Successfully! 🚀")
+from utils.anticheat import AntiCheatEngine, AntiCheatUnavailable
 
-if __name__ == "__main__":
-    test_engine()
+
+def image_bytes(kind):
+    image = Image.new('RGB', (128, 128), 'white')
+    draw = ImageDraw.Draw(image)
+    if kind == 'diagonal':
+        draw.polygon([(0, 0), (128, 0), (0, 128)], fill='black')
+        draw.rectangle((85, 85, 115, 115), fill='red')
+    elif kind == 'stripes':
+        for x in range(0, 128, 16):
+            draw.rectangle((x, 0, x + 7, 127), fill='navy')
+    else:
+        raise ValueError('Unknown test image kind.')
+
+    output = io.BytesIO()
+    image.save(output, format='PNG')
+    return output.getvalue()
+
+
+class AntiCheatEngineTests(unittest.TestCase):
+    def setUp(self):
+        self.engine = AntiCheatEngine(
+            mongo_uri='mongodb://mock-host/mission17_anticheat',
+            client=mongomock.MongoClient(),
+        )
+        self.primary_image = image_bytes('diagonal')
+        self.different_image = image_bytes('stripes')
+
+    def test_exact_duplicate_is_detected_and_cannot_register_twice(self):
+        self.assertFalse(self.engine.is_duplicate(self.primary_image))
+        self.assertTrue(self.engine.register(self.primary_image))
+        self.assertTrue(self.engine.is_duplicate(self.primary_image))
+        self.assertFalse(self.engine.register(self.primary_image))
+
+    def test_clearly_different_pattern_is_not_a_duplicate(self):
+        self.assertTrue(self.engine.register(self.primary_image))
+        p_hash, d_hash = self.engine.get_hashes(self.different_image)
+        stored_p_hash, stored_d_hash = self.engine.get_hashes(self.primary_image)
+        self.assertGreaterEqual(self.engine._hamming_distance(p_hash, stored_p_hash), 8)
+        self.assertGreaterEqual(self.engine._hamming_distance(d_hash, stored_d_hash), 8)
+        self.assertFalse(self.engine.is_duplicate(self.different_image))
+
+    def test_invalid_image_does_not_generate_hashes(self):
+        self.assertEqual(self.engine.get_hashes(b'not an image'), (None, None))
+
+    def test_missing_durable_storage_fails_safely(self):
+        engine = AntiCheatEngine(mongo_uri='')
+        with self.assertRaises(AntiCheatUnavailable):
+            engine.is_duplicate(self.primary_image)
+
+
+if __name__ == '__main__':
+    unittest.main()
