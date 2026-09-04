@@ -20,7 +20,7 @@ import Announcement from '../models/Announcement.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDirectory = path.join(__dirname, '..', 'uploads');
-const staleContentPattern = /\b(barangay\s+pantal|pantal\s+(elementary|covered|multi-purpose)|dagupan|dcwd)\b/i;
+const staleContentPattern = /\b(barangay\s+pantal|pantal\s+(elementary|covered|multi-purpose|river)|dagupan|dcwd)\b/i;
 
 for (const name of ['MONGO_URI', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET']) {
   if (!process.env[name]) throw new Error(`Missing required environment variable: ${name}`);
