@@ -82,10 +82,34 @@ app.use(xss());
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
+const configuredCorsOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const developmentCorsOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:8081',
+];
+
+const allowedCorsOrigins = new Set([
+  ...configuredCorsOrigins,
+  ...(process.env.NODE_ENV === 'production' ? [] : developmentCorsOrigins),
+]);
+
+const isMission17VercelDeployment = (origin) =>
+  /^https:\/\/mission17(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+
 app.use(cors({
-  origin: '*', // Allow all during local demo
+  origin(origin, callback) {
+    // Native mobile clients do not send an Origin header. Browser clients must
+    // be an explicitly configured origin or one of this project's Vercel apps.
+    const isAllowed = !origin || allowedCorsOrigins.has(origin) || isMission17VercelDeployment(origin);
+    callback(null, isAllowed);
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'auth-token', 'Authorization']
+  allowedHeaders: ['Content-Type', 'auth-token', 'Authorization'],
 }));
 
 // 📝 Simple Request Logger with Timing
@@ -93,7 +117,7 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url} - ${duration}ms`);
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url} ${res.statusCode} - ${duration}ms`);
   });
   next();
 });
