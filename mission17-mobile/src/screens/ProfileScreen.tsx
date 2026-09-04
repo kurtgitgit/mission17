@@ -10,7 +10,7 @@ import {
 } from 'lucide-react-native'; 
 import { useIsFocused, CommonActions } from '@react-navigation/native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
-import { clearAuthData } from '../utils/storage';
+import { clearAuthData, getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
@@ -35,6 +35,15 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
+  useEffect(() => {
+    const hydrateSavedProfile = async () => {
+      const savedAuth = await getAuthData();
+      if (savedAuth?.user) setUserData(savedAuth.user);
+    };
+
+    hydrateSavedProfile();
+  }, []);
+
   const fetchProfileData = useCallback(async () => {
     try {
       const authHeaders = await getAuthHeaders();
@@ -44,7 +53,7 @@ const ProfileScreen = ({ navigation }: any) => {
       const histRes = await fetch(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
       const histJson = await histRes.json();
 
-      setUserData(userJson);
+      if (userRes.ok) setUserData(userJson);
       setHistory(Array.isArray(histJson) ? histJson : []);
     } catch (error) {
       console.error(error);

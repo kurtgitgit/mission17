@@ -89,6 +89,23 @@ const HomeScreen: React.FC = () => {
   const [events, setEvents]               = useState<any[]>([]);
   const [hasUnread, setHasUnread]         = useState(false);
 
+  useEffect(() => {
+    const hydrateSavedUser = async () => {
+      const savedAuth = await getAuthData();
+      const savedUser = savedAuth?.user;
+      if (!savedUser) return;
+
+      setUsername(savedUser.username || savedUser.firstName || 'Resident');
+      setFullName(
+        savedUser.firstName && savedUser.lastName
+          ? `${savedUser.firstName} ${savedUser.lastName}`
+          : (savedUser.username || savedUser.firstName || 'Resident'),
+      );
+    };
+
+    hydrateSavedUser();
+  }, []);
+
   const fetchAll = useCallback(async () => {
     try {
       if (userId) {
@@ -99,8 +116,8 @@ const HomeScreen: React.FC = () => {
         ]);
         if (userRes.ok)  {
           const u = await userRes.json();
-          setUsername(u.username || 'Resident');
-          setFullName(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.username || 'Resident'));
+          setUsername(u.username || u.firstName || 'Resident');
+          setFullName(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.username || u.firstName || 'Resident'));
         }
         if (subRes.ok)   {
           const s = await subRes.json();
