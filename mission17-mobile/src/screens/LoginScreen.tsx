@@ -253,7 +253,7 @@ export default function LoginScreen() {
         GlobalState.tempToken = null;
         await signOut(auth);
         setMfaRequired(false);
-        showNotification('Email verified. Your account is awaiting administrator approval.', 'info');
+        navigation.replace('PendingApproval');
       } else if (response.ok) {
         data.token = GlobalState.tempToken;
         await processLoginSuccess(data);

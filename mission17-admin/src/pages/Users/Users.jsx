@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
-import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact, Info } from 'lucide-react';
+import { Plus, Trash2, Edit, X, CheckCircle, Search, Clock, Contact, Info, UserCheck, UserX } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Users.css';
@@ -151,8 +151,48 @@ const Users = () => {
       title: 'Delete User',
       message: 'Are you sure you want to delete this user? This action cannot be undone and will remove all their data.',
       type: 'danger',
+      confirmText: 'Delete User',
       onConfirm: () => executeDelete(id)
     });
+  };
+
+  const handleAccountStatus = (user, accountStatus) => {
+    const isApproval = accountStatus === 'approved';
+    setModalConfig({
+      isOpen: true,
+      title: isApproval ? 'Approve Resident Account' : 'Reject Resident Account',
+      message: isApproval
+        ? `Approve ${user.username}'s verified account? They will be able to sign in to BrgyLink.`
+        : `Reject ${user.username}'s account? They will not be able to sign in.`,
+      type: isApproval ? 'success' : 'danger',
+      confirmText: isApproval ? 'Approve Account' : 'Reject Account',
+      onConfirm: () => executeAccountStatus(user._id, accountStatus),
+    });
+  };
+
+  const executeAccountStatus = async (id, accountStatus) => {
+    try {
+      const response = await fetch(endpoints.users.accountStatus(id), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'auth-token': getToken(),
+        },
+        body: JSON.stringify({ accountStatus }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        showNotification(data.message || 'Could not update the account status.', 'error');
+        return;
+      }
+      showNotification(data.message, 'success');
+      await fetchUsers();
+    } catch (error) {
+      console.error('Account-status update error:', error);
+      showNotification('Network error while updating the account status.', 'error');
+    } finally {
+      closeModal();
+    }
   };
 
   const executeDelete = async (id) => {
@@ -308,11 +348,11 @@ const Users = () => {
           <button 
             onClick={() => setFilterTab('verified')} 
             style={{ ...styles.tabBtn, borderBottom: filterTab === 'verified' ? '2px solid #16a34a' : 'none', color: filterTab === 'verified' ? '#16a34a' : '#64748b' }}
-          >Verified</button>
+          >Active</button>
           <button 
             onClick={() => setFilterTab('unverified')} 
             style={{ ...styles.tabBtn, borderBottom: filterTab === 'unverified' ? '2px solid #f59e0b' : 'none', color: filterTab === 'unverified' ? '#f59e0b' : '#64748b' }}
-          >Unverified</button>
+          >Pending Approval</button>
         </div>
 
         {/* TABLE */}
@@ -388,6 +428,16 @@ const Users = () => {
                           <button onClick={() => handleViewID(user)} style={styles.actionBtn('#0284c7')} title="View ID">
                             <Contact size={18} />
                           </button>
+                          {user.accountStatus === 'pending' && user.isVerified && (
+                            <>
+                              <button onClick={() => handleAccountStatus(user, 'approved')} style={styles.actionBtn('#16a34a')} title="Approve account">
+                                <UserCheck size={18} />
+                              </button>
+                              <button onClick={() => handleAccountStatus(user, 'rejected')} style={styles.actionBtn('#ef4444')} title="Reject account">
+                                <UserX size={18} />
+                              </button>
+                            </>
+                          )}
                           <button onClick={() => openEditModal(user)} style={styles.actionBtn('#64748b')} title="Edit">
                             <Edit size={18} />
                           </button>
@@ -435,7 +485,7 @@ const Users = () => {
           title={modalConfig.title}
           message={modalConfig.message}
           type={modalConfig.type}
-          confirmText="Delete User"
+          confirmText={modalConfig.confirmText || 'Confirm'}
         />
 
         {idModal.isOpen && (

@@ -34,6 +34,7 @@ export const endpoints = {
     getAll:  `${API_URL}/auth/users`,
     add:     `${API_URL}/auth/add-user`,
     update:  (id) => `${API_URL}/auth/admin-update-user/${id}`,
+    accountStatus: (id) => `${API_URL}/auth/users/${id}/account-status`,
     delete:  (id) => `${API_URL}/auth/delete-user/${id}`,
   },
   events: {

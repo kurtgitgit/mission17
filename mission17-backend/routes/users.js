@@ -6,7 +6,8 @@
  * Routes:
  *  GET    /users                    — Admin: list all users (no passwords)
  *  POST   /add-user                 — Admin: create a user
- *  PUT    /admin-update-user/:id    — Admin: update any user
+ *  PUT    /admin-update-user/:id    — Admin: update user profile fields
+ *  PATCH  /users/:id/account-status — Admin: approve or reject a verified account
  *  DELETE /delete-user/:id          — Admin: delete a user
  *  GET    /user/:id                 — Resident: get own profile
  *  PUT    /update-profile/:id       — Resident: update own profile
@@ -151,13 +152,6 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
       }
       updateData.points = points;
     }
-    if (req.body.accountStatus !== undefined) {
-      if (!['pending', 'approved', 'rejected'].includes(req.body.accountStatus)) {
-        return res.status(400).json({ message: 'Invalid account status.' });
-      }
-      updateData.accountStatus = req.body.accountStatus;
-    }
-
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: 'No permitted fields were provided.' });
     }
@@ -207,6 +201,38 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Update failed' });
+  }
+});
+
+// 3b. ADMIN APPROVE OR REJECT ACCOUNT
+// Account approval is deliberately separate from general profile editing so it
+// remains auditable and an unverified email can never be approved.
+router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
+  try {
+    const { accountStatus } = req.body;
+    if (!['approved', 'rejected'].includes(accountStatus)) {
+      return res.status(400).json({ message: 'Account status must be approved or rejected.' });
+    }
+
+    if (req.user._id.toString() === req.params.id) {
+      return res.status(400).json({ message: 'Administrators cannot change their own account status.' });
+    }
+
+    const userToReview = await User.findById(req.params.id);
+    if (!userToReview) return res.status(404).json({ message: 'User not found.' });
+    if (!userToReview.isVerified) {
+      return res.status(409).json({ message: 'Verify the resident email before approving this account.' });
+    }
+
+    userToReview.accountStatus = accountStatus;
+    await userToReview.save();
+
+    const action = accountStatus === 'approved' ? 'USER_ACCOUNT_APPROVED' : 'USER_ACCOUNT_REJECTED';
+    await logAudit(req.user._id, req.user.username, action, `Admin ${accountStatus} user ID: ${userToReview._id}`, req);
+    res.json({ message: `Account ${accountStatus}.`, user: userToReview });
+  } catch (error) {
+    console.error('Account-status update failed:', error);
+    res.status(500).json({ message: 'Could not update account status.' });
   }
 });
 
