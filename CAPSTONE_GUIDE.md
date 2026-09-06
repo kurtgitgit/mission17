@@ -35,7 +35,7 @@ To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-
 
 #### Specific Objectives:
 1. **Digitize Core Barangay Services**: Implement a mobile and web platform for instant document requests, resident profiling, and community announcements.
-2. **Implement Blockchain Immutability**: Deploy an Ethereum Sepolia smart contract utilizing gasless sponsor transactions to cryptographically anchor blotter resolution records.
+2. **Integrate Blockchain Resolution Events**: Use an Ethereum Sepolia smart contract and sponsor transactions to record a resolution-related event. The current implementation does not cryptographically anchor the blotter record hash; that stronger claim requires a separate implementation and verification.
 3. **Build an AI Verification & Anti-Cheat Pipeline**: Develop a Convolutional Neural Network (CNN) combined with perceptual hashing to automatically validate photo evidence of community initiatives and prevent duplicate claims.
 4. **Develop a Multilingual Civic Chatbot**: Integrate a Groq-accelerated LLaMA 3 chatbot supporting English, Tagalog, Pangasinan, and Ilocano for automated resident guidance.
 5. **Evaluate System Usability & Performance**: Measure the platform's accuracy, gas efficiency, API response times, and user satisfaction using the System Usability Scale (SUS) and ISO/IEC 25010 standards.
@@ -71,7 +71,7 @@ To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-
 * **Input-Process-Output (IPO) Model**:
   - *Input*: Resident requests, photo proofs, incident reports, admin actions.
   - *Process*: JWT auth, AI CNN classification, perceptual hash validation, Sepolia smart contract execution, Groq LLM inference.
-  - *Output*: Issued certificates, verified community initiative records, immutable blotter receipts, multilingual responses.
+  - *Output*: Issued certificates, verified community initiative records, blockchain transaction references for selected resolution events, multilingual responses.
 * **Technology Acceptance Model (TAM)**: Evaluates Perceived Usefulness (PU) and Perceived Ease of Use (PEOU) among citizens and officials.
 
 ---

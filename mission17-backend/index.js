@@ -29,13 +29,17 @@ import { verifyAdmin } from './utils/authMiddleware.js';
 import { processPendingPushReceipts } from './utils/pushNotifier.js';
 
 // ✅ NEW: Check for required environment variables on startup
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'AI_SERVICE_TOKEN', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 for (const v of requiredEnvVars) {
     if (!process.env[v]) {
         console.error(`\n❌ FATAL ERROR: Environment variable ${v} is missing in .env file.`);
         console.error("   Please create a .env file in the 'mission17-backend' directory and add all required variables.");
         process.exit(1); // Stop the server from starting
     }
+}
+
+if (!process.env.AI_SERVICE_TOKEN) {
+    console.warn('WARNING: AI_SERVICE_TOKEN is missing. Authentication and other API routes can start, but AI proof verification will require configuration.');
 }
 
 const app = express();

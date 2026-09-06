@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, browserLocalPersistence } from "firebase/auth";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -12,6 +12,10 @@ const firebaseConfig = {
   measurementId: "G-JMBRRTD4RW"
 };
 
-// Initialize Firebase
+// Use localStorage persistence explicitly. Firebase's default browser setup
+// prefers IndexedDB, which can reject auth cleanup when the database is
+// closing or the browser has hidden/suspended the page.
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
+});

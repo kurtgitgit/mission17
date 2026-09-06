@@ -191,9 +191,22 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     if (!user && email) {
       user = await User.findOne({ email: new RegExp('^' + email + '$', 'i') });
       if (user) {
+        // Never attach an unverified Firebase identity to an existing account.
+        // This prevents possession of an unverified matching email from taking
+        // over a legacy MongoDB account.
+        if (decodedToken.email_verified !== true) {
+          return res.status(403).json({ message: 'Please verify your email before linking this account.' });
+        }
         // Link the existing legacy account to the new Firebase UID using updateOne to bypass strict validation
         await User.updateOne({ _id: user._id }, { $set: { firebaseUid } });
         user.firebaseUid = firebaseUid; // Update local object for subsequent logic
+        await logAudit(
+          user._id,
+          user.username,
+          'FIREBASE_ACCOUNT_LINKED',
+          'Legacy account linked after verified Firebase identity.',
+          req
+        );
       }
     }
     // If user already exists in MongoDB, just return it (Login Flow)

@@ -2,12 +2,13 @@
 
 import io
 import os
+import re
 from datetime import datetime, timezone
 
 import imagehash
-from PIL import Image
+from PIL import Image, ImageStat, UnidentifiedImageError
 from pymongo import ASCENDING, MongoClient
-from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError, ServerSelectionTimeoutError
+from pymongo.errors import BulkWriteError, DuplicateKeyError, PyMongoError
 
 
 class AntiCheatUnavailable(RuntimeError):
@@ -15,15 +16,19 @@ class AntiCheatUnavailable(RuntimeError):
 
 
 class AntiCheatIndeterminate(RuntimeError):
-    """Raised when a bounded near-duplicate search cannot decide safely."""
+    """Raised when duplicate screening cannot make a safe decision."""
 
 
 class AntiCheatEngine:
     """Stores pHash and dHash values without retaining submitted images."""
 
     ALGORITHM_VERSION = 'imagehash-v1'
+    LEGACY_ALGORITHM_VERSION = 'legacy-untyped-v1'
+    LEGACY_HASH_TYPE = 'legacy_unknown'
     DEFAULT_COLLECTION = 'photo_hashes'
     MAX_CANDIDATES = 500
+    MAX_SIMILARITY_THRESHOLD = 8
+    HASH_PATTERN = re.compile(r'^[0-9a-f]{16}$')
 
     def __init__(self, mongo_uri=None, db_name=None, collection_name=None, client=None):
         self.mongo_uri = mongo_uri or os.getenv('ANTICHEAT_MONGO_URI', '')
@@ -58,55 +63,110 @@ class AntiCheatEngine:
                 name='near_duplicate_candidates',
             )
             return self.collection
-        except (PyMongoError, ServerSelectionTimeoutError) as error:
+        except PyMongoError as error:
             self.collection = None
             raise AntiCheatUnavailable('Durable anti-cheat storage is unavailable.') from error
+
+    @classmethod
+    def normalize_hash(cls, hash_value):
+        normalized = str(hash_value).strip().lower()
+        return normalized if cls.HASH_PATTERN.fullmatch(normalized) else None
 
     @staticmethod
     def _hamming_distance(hash1, hash2):
         try:
             return imagehash.hex_to_hash(hash1) - imagehash.hex_to_hash(hash2)
-        except Exception:
+        except (TypeError, ValueError):
             return 999
 
-    @staticmethod
-    def _buckets(hash_value):
-        """Return candidate buckets for a bounded approximate search.
+    @classmethod
+    def _buckets(cls, hash_value):
+        """Create eight positional one-byte buckets for a 64-bit hash.
 
-        Buckets reduce the candidate set; they do not guarantee detection of
-        every possible near duplicate. Exact matching remains exact.
+        With the supported exclusive Hamming threshold of eight, any matching
+        near duplicate must leave at least one of the eight byte-sized buckets
+        unchanged. This makes candidate lookup bounded without losing matches
+        that satisfy the configured threshold.
         """
-        return sorted({hash_value[:4], hash_value[-4:]})
+        normalized = cls.normalize_hash(hash_value)
+        if not normalized:
+            raise AntiCheatIndeterminate('A valid 64-bit perceptual hash is required.')
+        return [f'{position}:{normalized[position:position + 2]}' for position in range(0, 16, 2)]
+
+    @staticmethod
+    def _open_image(file_bytes):
+        try:
+            with Image.open(io.BytesIO(file_bytes)) as candidate:
+                candidate.verify()
+            with Image.open(io.BytesIO(file_bytes)) as candidate:
+                image = candidate.convert('RGB')
+                image.load()
+        except (UnidentifiedImageError, OSError, ValueError, TypeError) as error:
+            raise AntiCheatIndeterminate('Image content is invalid or unsupported.') from error
+
+        grayscale = image.convert('L')
+        if ImageStat.Stat(grayscale).stddev[0] < 1.0:
+            raise AntiCheatIndeterminate('Image has insufficient visual detail for duplicate screening.')
+        return image
 
     def get_hashes(self, file_bytes):
-        try:
-            image = Image.open(io.BytesIO(file_bytes)).convert('RGB')
-            return str(imagehash.phash(image)), str(imagehash.dhash(image))
-        except Exception:
-            return None, None
+        image = self._open_image(file_bytes)
+        return str(imagehash.phash(image)), str(imagehash.dhash(image))
+
+    def _candidate_distance(self, candidate, p_hash, d_hash):
+        if candidate.get('hashType') == 'phash':
+            return self._hamming_distance(candidate.get('hashValue'), p_hash)
+        if candidate.get('hashType') == 'dhash':
+            return self._hamming_distance(candidate.get('hashValue'), d_hash)
+        if candidate.get('hashType') == self.LEGACY_HASH_TYPE:
+            return min(
+                self._hamming_distance(candidate.get('hashValue'), p_hash),
+                self._hamming_distance(candidate.get('hashValue'), d_hash),
+            )
+        return 999
 
     def is_duplicate(self, file_bytes, similarity_threshold=8):
-        p_hash, d_hash = self.get_hashes(file_bytes)
-        if not p_hash or not d_hash:
-            return False
+        if not 1 <= similarity_threshold <= self.MAX_SIMILARITY_THRESHOLD:
+            raise AntiCheatIndeterminate('Similarity threshold is outside the supported safe range.')
 
+        p_hash, d_hash = self.get_hashes(file_bytes)
         collection = self._get_collection()
         exact_query = {
-            'algorithmVersion': self.ALGORITHM_VERSION,
             '$or': [
-                {'hashType': 'phash', 'hashValue': p_hash},
-                {'hashType': 'dhash', 'hashValue': d_hash},
+                {
+                    'algorithmVersion': self.ALGORITHM_VERSION,
+                    'hashType': 'phash',
+                    'hashValue': p_hash,
+                },
+                {
+                    'algorithmVersion': self.ALGORITHM_VERSION,
+                    'hashType': 'dhash',
+                    'hashValue': d_hash,
+                },
+                {
+                    'algorithmVersion': self.LEGACY_ALGORITHM_VERSION,
+                    'hashType': self.LEGACY_HASH_TYPE,
+                    'hashValue': {'$in': [p_hash, d_hash]},
+                },
             ],
         }
         try:
             if collection.find_one(exact_query, {'_id': 1}):
                 return True
 
-            candidate_buckets = self._buckets(p_hash) + self._buckets(d_hash)
+            candidate_buckets = sorted(set(self._buckets(p_hash) + self._buckets(d_hash)))
             candidates = list(collection.find(
                 {
-                    'algorithmVersion': self.ALGORITHM_VERSION,
-                    'hashType': {'$in': ['phash', 'dhash']},
+                    '$or': [
+                        {
+                            'algorithmVersion': self.ALGORITHM_VERSION,
+                            'hashType': {'$in': ['phash', 'dhash']},
+                        },
+                        {
+                            'algorithmVersion': self.LEGACY_ALGORITHM_VERSION,
+                            'hashType': self.LEGACY_HASH_TYPE,
+                        },
+                    ],
                     'buckets': {'$in': candidate_buckets},
                 },
                 {'hashType': 1, 'hashValue': 1},
@@ -117,18 +177,14 @@ class AntiCheatEngine:
         if len(candidates) > self.MAX_CANDIDATES:
             raise AntiCheatIndeterminate('Too many near-duplicate candidates require manual review.')
 
-        for candidate in candidates:
-            incoming_hash = p_hash if candidate['hashType'] == 'phash' else d_hash
-            if self._hamming_distance(candidate['hashValue'], incoming_hash) < similarity_threshold:
-                return True
-        return False
+        return any(
+            self._candidate_distance(candidate, p_hash, d_hash) < similarity_threshold
+            for candidate in candidates
+        )
 
     def register(self, file_bytes, submission_ref=None):
-        """Register verified hashes. Returns False if a concurrent duplicate won."""
+        """Register verified hashes. Return False when a duplicate wins a race."""
         p_hash, d_hash = self.get_hashes(file_bytes)
-        if not p_hash or not d_hash:
-            raise AntiCheatIndeterminate('Image hashes could not be generated.')
-
         now = datetime.now(timezone.utc)
         base = {'algorithmVersion': self.ALGORITHM_VERSION, 'createdAt': now}
         if submission_ref:
@@ -139,7 +195,7 @@ class AntiCheatEngine:
         ]
 
         try:
-            self._get_collection().insert_many(documents, ordered=True)
+            self._get_collection().insert_many(documents, ordered=False)
             return True
         except (DuplicateKeyError, BulkWriteError):
             return False

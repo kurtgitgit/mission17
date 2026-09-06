@@ -103,7 +103,7 @@
 ## 🎯 Battle-Tested Answers to Tough Panel Questions
 
 ### Q1: "Why use Blockchain? Couldn't you just use a relational database with audit tables?"
-> **Answer:** *"A database—even with audit tables—is controlled by the database administrator and can be secretly modified, truncated, or dropped. In contentious community disputes (such as property boundaries or barangay blotters), trust is paramount. By minting the resolution hash to the Ethereum Sepolia blockchain, we achieve decentralized mathematical immutability. No party—not even the server administrator—can rewrite history."*
+> **Answer:** *"The current system records a resolution-related transaction reference on Ethereum Sepolia for selected workflow events. It does not currently mint the blotter record hash itself, so we should describe this as a blockchain-backed event reference rather than claim complete immutable anchoring of the database record. Full hash anchoring would require an additional contract call and verification step."*
 
 ### Q2: "What prevents a user from finding a tree picture on Google Images and uploading it?"
 > **Answer:** *"Our verification pipeline employs two defensive layers: First, our perceptual hashing system identifies exact or modified duplicates from our database. Second, the mobile application enforces live camera capture and extracts EXIF metadata and GPS coordinates to verify that the photo was captured at the designated local venue within the active timeframe."*
