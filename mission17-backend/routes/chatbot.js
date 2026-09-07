@@ -98,6 +98,56 @@ const languageCapabilityReply = (language) => {
   return 'Yes, I can assist in English, Tagalog, Pangasinan, and Ilocano with Barangay Bagong Pag-asa and BrgyLink questions.';
 };
 
+const contactOfficeReply = (language) => {
+  if (language === 'pangasinan') return 'Wala ak na beripikado ya kasalukuyan ya detalye. Pakisilip so Announcements odino pakaammo ed opisyal ya barangay office.';
+  if (language === 'ilocano') return 'Awan kaniak ti napasingkedan a kasalukuyan a detalye. Kitaem ti Announcements wenno agdamag iti opisial a barangay office.';
+  if (language === 'tagalog') return 'Wala akong beripikadong kasalukuyang detalye. Pakitingin ang Announcements o magtanong sa opisyal na barangay office.';
+  return 'I do not have verified current details. Please check Announcements or contact the official barangay office.';
+};
+
+// These are deliberately limited to app-navigation facts documented in USER_MANUAL.md.
+// They do not state changing requirements, fees, office hours, or release times.
+export const getControlledFaq = (message) => {
+  const text = message.toLowerCase();
+  const language = detectLanguage(message);
+
+  if (LANGUAGE_TOPIC_PATTERN.test(message)) return languageCapabilityReply(language);
+
+  const isClearance = /barangay\s+clearance|clearance/.test(text);
+  const isBlotter = /blotter|incident\s+report|reklamo/.test(text);
+  const isDocument = /document|dokumento|dokument|sertipiko|certificate/.test(text);
+
+  if (isClearance) {
+    if (language === 'pangasinan') return "Para mangikeddeng na Barangay Clearance, buksan so 'Document Requests' ed BrgyLink, piliyen so 'Barangay Clearance', punan so form, tan subaybayan so status na request. Para ed kasapulan, bayad, oras, odino panangala, pakisilip so Announcements odino pakaammo ed opisyal ya barangay office.";
+    if (language === 'ilocano') return "Tapno agkiddaw iti Barangay Clearance, lukatam ti 'Document Requests' iti BrgyLink, piliem ti 'Barangay Clearance', punuem ti form, ket surotem ti estado ti request. Para kadagiti kasapulan, bayad, oras, wenno panangala, kitaem ti Announcements wenno agdamag iti opisial a barangay office.";
+    if (language === 'tagalog') return "Para humiling ng Barangay Clearance, buksan ang 'Document Requests' sa BrgyLink, piliin ang 'Barangay Clearance', kumpletuhin ang form, at subaybayan ang status ng request. Para sa kasalukuyang requirements, bayad, oras, o pagkuha, tingnan ang Announcements o magtanong sa opisyal na barangay office.";
+    return "To request a Barangay Clearance, open 'Document Requests' in BrgyLink, select 'Barangay Clearance', complete the form, and monitor the request status. For current requirements, fees, hours, or collection instructions, check Announcements or contact the official barangay office.";
+  }
+
+  if (isBlotter) {
+    if (language === 'pangasinan') return "Para mangipasa na blotter odino reklamo, buksan so 'Blotter Reports' ed BrgyLink tan piliyen so 'File New Report'. Ipasok so tama ya detalye na insidente tan subaybayan so report ed 'My Blotter Reports'. Para ed emergency, tawagan so angkakaukolan ya emergency service.";
+    if (language === 'ilocano') return "Tapno mangipasa iti blotter wenno reklamo, lukatam ti 'Blotter Reports' iti BrgyLink ket piliem ti 'File New Report'. Isuratmo dagiti umiso a detalye ti insidente ket surotem ti report iti 'My Blotter Reports'. Para iti emergency, tawagam ti maitutop nga emergency service.";
+    if (language === 'tagalog') return "Para maghain ng blotter o reklamo, buksan ang 'Blotter Reports' sa BrgyLink at piliin ang 'File New Report'. Ilagay ang tamang detalye ng insidente at subaybayan ang report sa 'My Blotter Reports'. Para sa emergency, tawagan ang naaangkop na emergency service.";
+    return "To file a blotter report or complaint, open 'Blotter Reports' in BrgyLink and select 'File New Report'. Enter accurate incident details and track the report in 'My Blotter Reports'. For an emergency, contact the appropriate emergency service.";
+  }
+
+  if (isDocument) {
+    if (language === 'pangasinan') return "Para mangikeddeng na dokumento, buksan so 'Document Requests' ed BrgyLink, piliyen so klase na dokumento, tan punan so form. Para ed kasapulan, bayad, oras, odino panangala, pakisilip so Announcements odino pakaammo ed opisyal ya barangay office.";
+    if (language === 'ilocano') return "Tapno agkiddaw iti dokumento, lukatam ti 'Document Requests' iti BrgyLink, piliem ti klase ti dokumento, ket punuem ti form. Para kadagiti kasapulan, bayad, oras, wenno panangala, kitaem ti Announcements wenno agdamag iti opisial a barangay office.";
+    if (language === 'tagalog') return "Para humiling ng dokumento, buksan ang 'Document Requests' sa BrgyLink, piliin ang uri ng dokumento, at kumpletuhin ang form. Para sa kasalukuyang requirements, bayad, oras, o pagkuha, tingnan ang Announcements o magtanong sa opisyal na barangay office.";
+    return "To request a document, open 'Document Requests' in BrgyLink, select the document type, and complete the form. For current requirements, fees, hours, or collection instructions, check Announcements or contact the official barangay office.";
+  }
+
+  return null;
+};
+
+const UNVERIFIED_DETAIL_PATTERN = /(?:[₱]\s*\d|\bphp\s*\d|\b\d+\s*(?:days?|araw|oras|hours?)\b|\bpdf\b|\bqr\s*code\b|\bconfirmation\s*(?:number|code)\b)/i;
+
+export const guardModelReply = (message, reply) => {
+  if (UNVERIFIED_DETAIL_PATTERN.test(reply)) return contactOfficeReply(detectLanguage(message));
+  return reply;
+};
+
 export const isInScope = (message) => (
   IN_SCOPE_PATTERN.test(message) || GREETING_PATTERN.test(message) || LANGUAGE_TOPIC_PATTERN.test(message)
 );
@@ -123,6 +173,9 @@ const chatbotLimiter = rateLimit({
 
 // ─── Keyword Fallback ──────────────────────────────────────────────────────────
 export const getMockReply = (message) => {
+  const controlledReply = getControlledFaq(message);
+  if (controlledReply) return controlledReply;
+
   const msg = message.toLowerCase();
   const language = detectLanguage(message);
   if (LANGUAGE_TOPIC_PATTERN.test(message)) return languageCapabilityReply(language);
@@ -159,6 +212,10 @@ router.post('/', chatbotLimiter, async (req, res) => {
   }
   if (message.length > MAX_MESSAGE_LENGTH) {
     return res.status(400).json({ reply: `Please keep messages under ${MAX_MESSAGE_LENGTH} characters.` });
+  }
+  const controlledReply = getControlledFaq(message);
+  if (controlledReply) {
+    return res.json({ reply: controlledReply, source: 'verified-app-navigation' });
   }
   if (!isInScope(message)) {
     return res.json({ reply: outOfScopeReply(message) });
@@ -208,7 +265,7 @@ router.post('/', chatbotLimiter, async (req, res) => {
         ? content.map(part => typeof part === 'string' ? part : part?.text || '').join('').trim()
         : "I'm sorry, I couldn't understand that. Could you rephrase your question? 🤔";
 
-    return res.json({ reply });
+    return res.json({ reply: guardModelReply(message, reply) });
 
   } catch (error) {
     console.error('ChatBot/LangChain Error:', error.message);

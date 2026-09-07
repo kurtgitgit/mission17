@@ -1,24 +1,32 @@
 import { describe, expect, it } from '@jest/globals';
-import { detectLanguage, getMockReply, isInScope, outOfScopeReply } from './chatbot.js';
+import { detectLanguage, getControlledFaq, getMockReply, guardModelReply, isInScope, outOfScopeReply } from './chatbot.js';
 
 describe('chatbot multilingual routing and fallback', () => {
-  it('recognizes a Pangasinan language-capability question and keeps the reply in Pangasinan', () => {
+  it('returns a controlled Pangasinan reply for language-capability questions', () => {
     const message = 'Makakatalos ka ba ng Pangasinan na salita?';
     expect(detectLanguage(message)).toBe('pangasinan');
     expect(isInScope(message)).toBe(true);
+    expect(getControlledFaq(message)).toContain('makatalos');
     expect(outOfScopeReply(message)).toContain('makatalos');
   });
 
-  it('recognizes Ilocano service questions and produces an Ilocano fallback', () => {
+  it('returns a controlled Ilocano clearance answer instead of calling the model', () => {
     const message = 'Mabalin ba nga agkiddaw iti barangay clearance?';
     expect(detectLanguage(message)).toBe('ilocano');
     expect(isInScope(message)).toBe(true);
-    expect(getMockReply(message)).toContain('Makatulongak');
+    expect(getControlledFaq(message)).toContain("'Document Requests'");
+    expect(getControlledFaq(message)).toContain('opisial a barangay office');
   });
 
-  it('keeps Tagalog service fallbacks in Tagalog', () => {
+  it('returns a controlled Tagalog blotter answer', () => {
     const message = 'Paano ako magrereklamo sa barangay?';
     expect(detectLanguage(message)).toBe('tagalog');
-    expect(getMockReply(message)).toContain('pumunta');
+    expect(getControlledFaq(message)).toContain("'Blotter Reports'");
+    expect(getMockReply(message)).toContain("'File New Report'");
+  });
+
+  it('replaces unverified model timelines and download claims with a safe referral', () => {
+    const reply = 'Processing takes 1–3 days and you can download a PDF with a QR code.';
+    expect(guardModelReply('Paano ako hihingi ng barangay clearance?', reply)).toContain('opisyal na barangay office');
   });
 });

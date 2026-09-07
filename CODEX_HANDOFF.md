@@ -283,3 +283,9 @@ node node_modules/typescript/bin/tsc --noEmit
 - A Tagalog `/api/chatbot` request returned a detailed response. A Pangasinan language-capability request returned the prior generic English fallback because the server still had the older source that filtered it before model invocation.
 - The focused multilingual source changes are being committed separately from the unrelated signup, account-review push, audit, and generated-file changes. Local verification: `npm.cmd test -- --runInBand routes/chatbot.test.js` passed (3 tests) and `npm.cmd run lint` passed.
 - After the focused commit is deployed to Lightsail, retest a Tagalog, Pangasinan, and Ilocano barangay-domain question through `/api/chatbot`. Do not claim multilingual cloud behavior is verified until those responses are captured.
+
+### Controlled chatbot FAQ safety layer (2026-09-07, local and uncommitted)
+- Added `getControlledFaq` in `mission17-backend/routes/chatbot.js`. It intercepts language-capability, Barangay Clearance, document-request, and blotter/complaint questions using only documented app-navigation instructions from `USER_MANUAL.md`.
+- The controlled replies are available in Tagalog, Pangasinan, Ilocano, and English. They intentionally direct changing requirements, fees, office hours, and collection details to Announcements or the official barangay office.
+- Added `guardModelReply` so a cloud response containing unverified fee, numbered time, PDF, QR-code, or confirmation-code claims is replaced with a language-matched official-office referral.
+- Tests passed locally: `npm.cmd test -- --runInBand routes/chatbot.test.js` (4 tests) and `npm.cmd run lint`. Not committed, pushed, deployed, or device-tested yet; obtain explicit approval before doing so.
