@@ -247,3 +247,39 @@ node node_modules/typescript/bin/tsc --noEmit
 - Attempted `npm audit --omit=dev --json`, but the npm advisory endpoint was unreachable from this environment; current vulnerability counts remain unverified.
 - The documented AI source dataset (`../dataset/mission_dataset`) is absent from this checkout, so the clean split and publication-valid re-evaluation remain blocked. No metrics were fabricated.
 - Physical-device signup/OTP/approval, chatbot live response, and Hugging Face restart persistence remain manual or external-environment checks; they were not claimed as completed.
+
+### Mobile signup usability update (2026-09-07)
+- Replaced the post-signup success notification in `mission17-mobile/src/hooks/useSignup.ts` with navigation to a dedicated `SignupSuccess` screen.
+- Added `mission17-mobile/src/screens/SignupSuccessScreen.tsx`: plain-language account-created and email-verification instructions, a spam-folder reminder, larger readable text, and an `Exit to Sign In` button that returns to Login without allowing the user to navigate back into the completed form.
+- Registered `SignupSuccess` in `mission17-mobile/App.tsx`.
+- Verified with `node node_modules/typescript/bin/tsc --noEmit` from `mission17-mobile` (passed).
+- No APK, OTA update, deployment, or push was performed. Publish an OTA only after explicit user approval and device testing.
+
+### Pending-approval usability update (2026-09-07)
+- Replaced the temporary “Your account is awaiting administrator approval” notifications in both email/password and Google login pending-account paths with `navigation.replace('PendingApproval')`.
+- Updated `VerifySignup.tsx` so successful verification signs the user out and opens the same pending-approval screen instead of displaying a success notification and returning to Login.
+- Renamed the pending screen action to `Exit to Sign In`; it returns the resident to Login and prevents access while approval is pending.
+- Verified with `node node_modules/typescript/bin/tsc --noEmit` from `mission17-mobile` (passed).
+
+### Account-review push notification flow (2026-09-07)
+- Added a clear `Allow Notifications` action to `mission17-mobile/src/screens/PendingApprovalScreen.tsx`. It explains why the permission is requested before the OS prompt appears and displays an on-screen enabled/denied/unavailable/error state.
+- Added `registerPendingPushToken` to `mission17-mobile/src/context/NotificationContext.tsx`; it requests permission only after the resident taps the action, then saves the Expo token using a short-lived Firebase token held only in navigation memory.
+- Added authenticated `POST /api/auth/save-pending-push-token` in `mission17-backend/routes/auth.js`. It derives the resident identity from the verified Firebase token, accepts only verified pending accounts, validates Expo token format, and creates an audit event.
+- Updated `PATCH /api/auth/users/:id/account-status` in `mission17-backend/routes/users.js` to create an in-app account-review notification and queue an Expo push when a token exists. Push/notification failures do not undo the administrator decision.
+- Mobile login, OTP, and standalone verification flows pass the current Firebase token to the pending screen before signing out; no persistent token storage was added.
+- Checks passed: backend ESLint, backend Jest (7 suites / 31 tests), and mobile TypeScript. Real-device permission prompt and Expo receipt delivery remain required before claiming live push delivery works.
+- No APK, OTA, deployment, or push was performed.
+
+### Chatbot multilingual reliability update (2026-09-07)
+- Evidence before the change: the deployed chatbot returned generic English fallback replies to Pangasinan messages, and historical PM2 logs showed `ChatBot/LangChain Error: fetch failed`. It was not defensible to claim reliable multilingual live behavior.
+- Updated `mission17-backend/routes/chatbot.js` to detect Tagalog, Pangasinan, and Ilocano; accept language-capability questions; and return localized scope/fallback replies instead of default English when the model is unavailable.
+- Reduced the prompt payload by bounding the loaded language-example text (Pangasinan 6 KB, Ilocano 4 KB) rather than sending the full 100 KB+ corpora on every request.
+- Added `mission17-backend/routes/chatbot.test.js` with 3 passing multilingual routing/fallback tests. Backend ESLint also passed.
+- Updated `mission17-mobile/src/screens/ChatBotScreen.tsx` status text from `Online` to `Ready to help`; the app must not imply the external model is live when a fallback may be used.
+- Still required before claiming full multilingual AI capability: deploy backend changes, verify the configured `OLLAMA_URL`/model endpoint is reachable from Lightsail, and capture real Tagalog, Pangasinan, and Ilocano domain-question responses. No deployment, OTA, APK, or push was performed.
+
+### Ollama Cloud chatbot deployment handoff (2026-09-07)
+- Lightsail configuration was manually checked without exposing credentials: `OLLAMA_URL=https://ollama.com/api/chat`, `OLLAMA_MODEL=gpt-oss:20b-cloud`, and an `OLLAMA_API_KEY` is present. PM2 was restarted with `--update-env` and saved.
+- A Tagalog `/api/chatbot` request returned a detailed response. A Pangasinan language-capability request returned the prior generic English fallback because the server still had the older source that filtered it before model invocation.
+- The focused multilingual source changes are being committed separately from the unrelated signup, account-review push, audit, and generated-file changes. Local verification: `npm.cmd test -- --runInBand routes/chatbot.test.js` passed (3 tests) and `npm.cmd run lint` passed.
+- After the focused commit is deployed to Lightsail, retest a Tagalog, Pangasinan, and Ilocano barangay-domain question through `/api/chatbot`. Do not claim multilingual cloud behavior is verified until those responses are captured.

@@ -32,6 +32,11 @@ try {
 }
 
 // ─── System Prompt ─────────────────────────────────────────────────────────────
+// Limit static language samples so a request stays focused on the resident's
+// actual question. The full files are useful reference material, not prompt text.
+pangasinanDictionary = pangasinanDictionary.slice(0, 6000);
+ilocanoDictionary = ilocanoDictionary.slice(0, 4000);
+
 const SYSTEM_PROMPT = `You are the official digital assistant for Barangay Bagong Pag-asa, San Jacinto, and the Mission 17 App.
 
 Your purpose is to answer inquiries about:
@@ -45,8 +50,9 @@ LANGUAGE RULES (CRITICAL):
 - Detect the language the user is writing in and always respond in that same language.
 - Seamlessly support English, Filipino/Tagalog, Pangasinan, and Ilocano.
 - If the user writes in Tagalog, reply in Tagalog. If in English, reply in English.
-- If the user writes in Pangasinan, do your best to respond in Pangasinan. Use simple, correct Pangasinan phrases.
-- If the user writes in Ilocano, do your best to respond in Ilocano. Use simple, correct Ilocano phrases.
+- If the user writes in Pangasinan, respond in simple Pangasinan. Do not switch to English unless the user asks.
+- If the user writes in Ilocano, respond in simple Ilocano. Do not switch to English unless the user asks.
+- When the user's language is unclear, ask one short clarification question in Filipino/Tagalog.
 
 PANGASINAN LANGUAGE CONVERSATIONAL EXAMPLES (Use these heavily to understand vocabulary and grammar):
 ${pangasinanDictionary}
@@ -73,15 +79,35 @@ const MAX_MESSAGE_LENGTH = 1_200;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
 
-const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|government|governance|public\s+service|public\s+office|public\s+agency|local\s+government|national\s+government|lgu|municipal|municipality|city\s+hall|mayor|province|provincial|government\s+id|philippine|psa|dilg|dswd|doh|deped|tesda|comelec|bir|sss|gsis|pag-ibig|philhealth|nbi|police|pnp|passport|visa|voter|election|tax|benefit|assistance|aid|scholarship|ordinance|law|permit|license|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|pamahalaan|gobyerno|tulong|benepisyo|buwis|halalan|barangay\s+hall|purok)\b/i;
-const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong)([!,.\s]+)?$/i;
+const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|government|governance|public\s+service|public\s+office|public\s+agency|local\s+government|national\s+government|lgu|municipal|municipality|city\s+hall|mayor|province|provincial|government\s+id|philippine|psa|dilg|dswd|doh|deped|tesda|comelec|bir|sss|gsis|pag-ibig|philhealth|nbi|police|pnp|passport|visa|voter|election|tax|benefit|assistance|aid|scholarship|ordinance|law|permit|license|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|pamahalaan|gobyerno|tulong|benepisyo|buwis|halalan|barangay\s+hall|purok|kasapulan|dokument|pakaammo|mabalin|agkiddaw)\b/i;
+const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)([!,.\s]+)?$/i;
+const LANGUAGE_TOPIC_PATTERN = /\b(pangasinan|ilocano|ilokano|tagalog|filipino|wika|salita|pagsasao|translation|translate|isalin)\b/i;
 
-const isInScope = (message) => IN_SCOPE_PATTERN.test(message) || GREETING_PATTERN.test(message);
+export const detectLanguage = (message) => {
+  const text = message.toLowerCase();
+  if (/\b(pangasinan|antoy|saray|diad|makatalos|nangan|onla|tua)\b/i.test(text)) return 'pangasinan';
+  if (/\b(ilocano|ilokano|ania|dagiti|iti|wen|mabalin|agkiddaw|kasano|agyaman)\b/i.test(text)) return 'ilocano';
+  if (/\b(tagalog|filipino|kumusta|kamusta|paano|saan|bakit|salamat|ako|ang|mga)\b/i.test(text)) return 'tagalog';
+  return 'english';
+};
 
-const outOfScopeReply = (message) => {
-  if (/\b(kumusta|kamusta|mabuhay|ano|paano|saan|bakit)\b/i.test(message)) {
-    return 'Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, SDG missions, at pangkalahatang serbisyo ng pamahalaan.';
-  }
+const languageCapabilityReply = (language) => {
+  if (language === 'pangasinan') return 'On, makatalos ak na Pangasinan. Makatulong ak ed saray serbisyo na Barangay Bagong Pag-asa, BrgyLink app, dokumento, blotter, tan mission.';
+  if (language === 'ilocano') return 'Wen, makaawatak iti Ilocano. Makatulongak kadagiti serbisyo ti Barangay Bagong Pag-asa, BrgyLink app, dokumento, blotter, ken mission.';
+  if (language === 'tagalog') return 'Oo, nakakaunawa ako ng Tagalog. Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, dokumento, blotter, at mga mission.';
+  return 'Yes, I can assist in English, Tagalog, Pangasinan, and Ilocano with Barangay Bagong Pag-asa and BrgyLink questions.';
+};
+
+export const isInScope = (message) => (
+  IN_SCOPE_PATTERN.test(message) || GREETING_PATTERN.test(message) || LANGUAGE_TOPIC_PATTERN.test(message)
+);
+
+export const outOfScopeReply = (message) => {
+  const language = detectLanguage(message);
+  if (LANGUAGE_TOPIC_PATTERN.test(message)) return languageCapabilityReply(language);
+  if (language === 'pangasinan') return 'Makatulong ak ed saray serbisyo na Barangay Bagong Pag-asa, BrgyLink app, SDG missions, tan serbisyong pampubliko ed Pilipinas.';
+  if (language === 'ilocano') return 'Makatulongak kadagiti serbisyo ti Barangay Bagong Pag-asa, BrgyLink app, SDG missions, ken serbisio publiko iti Pilipinas.';
+  if (language === 'tagalog') return 'Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, SDG missions, at pangkalahatang serbisyo ng pamahalaan.';
   return 'I can help with Barangay Bagong Pag-asa services, the BrgyLink app, SDG missions, and Philippine government or public-service questions.';
 };
 
@@ -96,8 +122,26 @@ const chatbotLimiter = rateLimit({
 });
 
 // ─── Keyword Fallback ──────────────────────────────────────────────────────────
-const getMockReply = (message) => {
+export const getMockReply = (message) => {
   const msg = message.toLowerCase();
+  const language = detectLanguage(message);
+  if (LANGUAGE_TOPIC_PATTERN.test(message)) return languageCapabilityReply(language);
+
+  if (language === 'pangasinan') {
+    if (msg.includes('blotter') || msg.includes('reklamo')) return "Para mangipasa na blotter odino reklamo, onla ed 'Services' tan piliyen so 'eFeedback / Blotter'.";
+    if (msg.includes('document') || msg.includes('dokument') || msg.includes('sertipiko')) return "Para mangikeddeng na dokumento, onla ed 'Services' tan piliyen so 'Document Requests'.";
+    return 'Makatulong ak ed saray serbisyo na Barangay Bagong Pag-asa, BrgyLink app, SDG missions, tan serbisyong pampubliko ed Pilipinas.';
+  }
+  if (language === 'ilocano') {
+    if (msg.includes('blotter') || msg.includes('reklamo')) return "Tapno mangipasa iti blotter wenno reklamo, mapanka iti 'Services' ken piliem ti 'eFeedback / Blotter'.";
+    if (msg.includes('document') || msg.includes('dokument') || msg.includes('sertipiko')) return "Tapno agkiddaw iti dokumento, mapanka iti 'Services' ken piliem ti 'Document Requests'.";
+    return 'Makatulongak kadagiti serbisyo ti Barangay Bagong Pag-asa, BrgyLink app, SDG missions, ken serbisio publiko iti Pilipinas.';
+  }
+  if (language === 'tagalog') {
+    if (msg.includes('blotter') || msg.includes('reklamo')) return "Para maghain ng blotter o reklamo, pumunta sa 'Services' at piliin ang 'eFeedback / Blotter'.";
+    if (msg.includes('document') || msg.includes('dokumento') || msg.includes('sertipiko')) return "Para humiling ng dokumento, pumunta sa 'Services' at piliin ang 'Document Requests'.";
+    return 'Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, SDG missions, at pangkalahatang serbisyo ng pamahalaan.';
+  }
   if (msg.includes('blotter')) return "To file a Blotter Report, go to the 'Services' section and select 'eFeedback / Blotter'. Provide as much incident detail as possible! 📋";
   if (msg.includes('sdg') || msg.includes('mission')) return "Mission 17 encourages residents to complete Civic Tasks aligned with the 17 SDGs. Earn points on the 'Missions' page! 🌍";
   if (msg.includes('document') || msg.includes('request')) return "To request a barangay document, go to 'Services' and select 'Document Requests'. Fill out the form and wait for approval. 📄";

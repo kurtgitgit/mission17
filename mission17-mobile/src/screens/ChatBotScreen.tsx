@@ -79,7 +79,7 @@ const ChatBotScreen = () => {
         </TouchableOpacity>
         <View style={styles.headerInfo}>
           <Text style={sharedStyles.headerTitle}>Barangay Assistant</Text>
-          <Text style={styles.headerSub}>● Online</Text>
+          <Text style={styles.headerSub}>● Ready to help</Text>
         </View>
       </View>
 
