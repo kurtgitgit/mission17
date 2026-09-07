@@ -27,6 +27,7 @@ interface Notification {
 interface NotificationContextType {
   showNotification: (arg1: any, arg2?: any, arg3?: string) => void;
   registerPushToken: (userId: string) => Promise<void>;
+  registerPendingPushToken: (firebaseToken: string) => Promise<'enabled' | 'denied' | 'unavailable'>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -234,6 +235,29 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, [savePushToken, showNotification]);
 
+  const registerPendingPushToken = useCallback(async (firebaseToken: string) => {
+    if (Platform.OS === 'web' || !Device.isDevice) return 'unavailable';
+
+    await configureAndroidNotificationChannels();
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== 'granted') return 'denied';
+
+    const projectId = '69ab462e-4c5c-4165-90f6-22e3a602c04d';
+    const expoPushToken = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    const response = await fetch(endpoints.auth.savePendingPushToken, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${firebaseToken}` },
+      body: JSON.stringify({ expoPushToken }),
+    });
+    if (!response.ok) throw new Error(`Backend responded with ${response.status}`);
+    return 'enabled';
+  }, []);
+
   useEffect(() => {
     const subscription = Notifications.addPushTokenListener((token) => {
       const userId = GlobalState.userId;
@@ -248,7 +272,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [savePushToken]);
 
   return (
-    <NotificationContext.Provider value={{ showNotification, registerPushToken }}>
+    <NotificationContext.Provider value={{ showNotification, registerPushToken, registerPendingPushToken }}>
       {children}
       {/* react-native-toast-message component is rendered at the root level in App.tsx */}
     </NotificationContext.Provider>

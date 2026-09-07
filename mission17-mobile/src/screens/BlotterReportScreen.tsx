@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const INCIDENT_TYPES = ['Disturbance', 'Theft', 'Vandalism', 'Accident', 'Other'];
 
@@ -168,7 +169,7 @@ const BlotterReportScreen = () => {
     setSubmitError('');
     setLoading(true);
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, {
+      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -198,8 +199,8 @@ const BlotterReportScreen = () => {
       } else {
         setSubmitError(data.message || 'Failed to submit the report. Please try again.');
       }
-    } catch {
-      setSubmitError('Network error. Please check your connection and try again.');
+    } catch (error) {
+      setSubmitError(getFriendlyNetworkMessage(error, 'Could not submit the report. Please try again.'));
     } finally {
       setLoading(false);
     }

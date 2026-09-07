@@ -16,8 +16,10 @@
 
 import express from 'express';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { verifyAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
+import { sendPushNotification } from '../utils/pushNotifier.js';
 
 const router = express.Router();
 
@@ -228,6 +230,34 @@ router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
     await userToReview.save();
 
     const action = accountStatus === 'approved' ? 'USER_ACCOUNT_APPROVED' : 'USER_ACCOUNT_REJECTED';
+    const notification = accountStatus === 'approved'
+      ? {
+          title: 'Account Approved',
+          message: 'Your BrgyLink account has been approved. You may now sign in.',
+          type: 'success',
+        }
+      : {
+          title: 'Account Registration Update',
+          message: 'Your BrgyLink account registration was not approved. Please contact your barangay office for assistance.',
+          type: 'error',
+        };
+
+    // Store an in-app record and send the optional push independently. A push
+    // provider outage must never undo the administrator's review decision.
+    await Notification.create({ userId: userToReview._id, ...notification }).catch((error) => {
+      console.error('Account-status notification record failed:', error.message);
+    });
+    if (userToReview.expoPushToken) {
+      await sendPushNotification(
+        userToReview.expoPushToken,
+        notification.title,
+        notification.message,
+        { screen: 'Login', accountStatus }
+      ).catch((error) => {
+        console.error('Account-status push notification failed:', error.message);
+      });
+    }
+
     await logAudit(req.user._id, req.user.username, action, `Admin ${accountStatus} user ID: ${userToReview._id}`, req);
     res.json({ message: `Account ${accountStatus}.`, user: userToReview });
   } catch (error) {

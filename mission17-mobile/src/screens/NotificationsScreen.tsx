@@ -6,11 +6,14 @@ import {
 import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 export default function NotificationsScreen({ navigation, route }: any) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   const userId = route.params?.userId || GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
@@ -22,15 +25,16 @@ export default function NotificationsScreen({ navigation, route }: any) {
       return;
     }
     try {
-      const res = await fetch(endpoints.auth.getNotifications(userId), {
+      setLoadError(null);
+      const res = await fetchWithTimeout(endpoints.auth.getNotifications(userId), {
         headers: await getAuthHeaders(),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifications(Array.isArray(data) ? data : []);
-      }
+      if (!res.ok) throw new Error(`Notifications request failed (${res.status})`);
+      const data = await res.json();
+      setNotifications(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
+      setLoadError(getFriendlyNetworkMessage(error, 'Your alerts are unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -42,34 +46,33 @@ export default function NotificationsScreen({ navigation, route }: any) {
   }, [fetchNotifications]);
 
   const handleMarkAsRead = async (notifId: string) => {
-    // Optimistic UI update
+    const previousNotifications = notifications;
     setNotifications(prev => prev.map(n => n._id === notifId ? { ...n, read: true } : n));
     try {
-      await fetch(endpoints.auth.markNotificationRead(notifId), {
+      const response = await fetchWithTimeout(endpoints.auth.markNotificationRead(notifId), {
         method: 'PUT',
         headers: await getAuthHeaders(),
       });
+      if (!response.ok) throw new Error(`Notification update failed (${response.status})`);
     } catch (error) {
       console.error('Failed to mark read:', error);
+      setNotifications(previousNotifications);
     }
   };
 
   const handleMarkAllRead = async () => {
+    const previousNotifications = notifications;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    // Silently mark each on server
     try {
       const unread = notifications.filter(n => !n.read);
       const authHeaders = await getAuthHeaders();
-      await Promise.all(
-        unread.map(n => 
-          fetch(endpoints.auth.markNotificationRead(n._id), {
-            method: 'PUT',
-            headers: authHeaders,
-          })
-        )
+      const responses = await Promise.all(
+        unread.map(n => fetchWithTimeout(endpoints.auth.markNotificationRead(n._id), { method: 'PUT', headers: authHeaders }))
       );
+      if (responses.some(response => !response.ok)) throw new Error('One or more notification updates failed.');
     } catch (e) {
       console.error('Failed to mark all read:', e);
+      setNotifications(previousNotifications);
     }
   };
 
@@ -167,6 +170,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
           <ActivityIndicator size="large" color="#0038A8" />
           <Text style={styles.loadingText}>Fetching your notifications...</Text>
         </View>
+      ) : loadError ? (
+        <ScreenErrorState title="Alerts are unavailable" message={loadError} onRetry={fetchNotifications} />
       ) : (
         <FlatList
           data={notifications}

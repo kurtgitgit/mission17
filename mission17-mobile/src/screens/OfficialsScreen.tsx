@@ -8,23 +8,27 @@ import { User, Phone, Mail, Shield, ArrowLeft, Building2, ExternalLink } from 'l
 import { endpoints } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const OfficialsScreen: React.FC = () => {
   const [officials, setOfficials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const navigation = useNavigation<any>();
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const fetchOfficials = useCallback(async () => {
     try {
-      const res = await fetch(endpoints.officials);
-      if (res.ok) {
-        const data = await res.json();
-        setOfficials(Array.isArray(data) ? data : []);
-      }
+      setLoadError(null);
+      const res = await fetchWithTimeout(endpoints.officials);
+      if (!res.ok) throw new Error(`Officials request failed (${res.status})`);
+      const data = await res.json();
+      setOfficials(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch officials:', err);
+      setLoadError(getFriendlyNetworkMessage(err, 'The officials directory is unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -147,6 +151,8 @@ const OfficialsScreen: React.FC = () => {
             <ActivityIndicator size="large" color="#0038A8" />
             <Text style={styles.loadingText}>Retrieving council directory...</Text>
           </View>
+        ) : loadError ? (
+          <ScreenErrorState title="Directory is unavailable" message={loadError} onRetry={fetchOfficials} />
         ) : officials.length === 0 ? (
           <View style={styles.emptyState}>
             <Shield size={48} color="#cbd5e1" />

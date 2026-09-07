@@ -284,8 +284,24 @@ node node_modules/typescript/bin/tsc --noEmit
 - The focused multilingual source changes are being committed separately from the unrelated signup, account-review push, audit, and generated-file changes. Local verification: `npm.cmd test -- --runInBand routes/chatbot.test.js` passed (3 tests) and `npm.cmd run lint` passed.
 - After the focused commit is deployed to Lightsail, retest a Tagalog, Pangasinan, and Ilocano barangay-domain question through `/api/chatbot`. Do not claim multilingual cloud behavior is verified until those responses are captured.
 
-### Controlled chatbot FAQ safety layer (2026-09-07, local and uncommitted)
+### Controlled chatbot FAQ safety layer (2026-09-07)
 - Added `getControlledFaq` in `mission17-backend/routes/chatbot.js`. It intercepts language-capability, Barangay Clearance, document-request, and blotter/complaint questions using only documented app-navigation instructions from `USER_MANUAL.md`.
 - The controlled replies are available in Tagalog, Pangasinan, Ilocano, and English. They intentionally direct changing requirements, fees, office hours, and collection details to Announcements or the official barangay office.
 - Added `guardModelReply` so a cloud response containing unverified fee, numbered time, PDF, QR-code, or confirmation-code claims is replaced with a language-matched official-office referral.
-- Tests passed locally: `npm.cmd test -- --runInBand routes/chatbot.test.js` (4 tests) and `npm.cmd run lint`. Not committed, pushed, deployed, or device-tested yet; obtain explicit approval before doing so.
+- Tests passed locally: `npm.cmd test -- --runInBand routes/chatbot.test.js` (4 tests) and `npm.cmd run lint`. Committed and pushed as `112b7a4`; Lightsail verification returned controlled Tagalog, Pangasinan, and Ilocano responses with `source: verified-app-navigation`. No OTA was published.
+
+### AI image-verification deployment diagnosis (2026-09-07)
+- Hugging Face Space startup logs were inspected. TensorFlow starts successfully, but `load_model('/app/mission_model.h5')` fails with `OSError: file signature not found`; therefore the deployed artifact is not a valid HDF5 model file.
+- The local `mission17-ai/mission_model.h5` is valid HDF5 (header begins `89 48 44 46 0D 0A 1A 0A`), is an ordinary Git-tracked 20,967,176-byte blob rather than a Git LFS pointer, and has SHA-256 `FB0E4373BC7F9A3D1A9E9D7CACBC1686942D39E2C1DEBDF2C1B67E1767EF28BC`.
+- Root cause is a Hugging Face Space model-artifact mismatch/corrupt upload, not missing CUDA, AI-service credentials, or the decision workflow. Replace the Space's `mission_model.h5` with the verified local file, wait for the rebuild, and confirm the logs say the TensorFlow CNN loaded and warmed successfully with 10 classes; then check `/health` reports `modelStatus: ready`.
+- Recovery was verified after replacement: Hugging Face logs reported `TensorFlow CNN loaded and warmed successfully with 10 classes`, and public `/health` returned `{ "antiCheatStorage": "ready", "modelStatus": "ready", "service": "mission17-ai", "status": "ok" }`. The harmless CUDA initialization warning occurred because the Space is running on CPU.
+- Remaining evidence gap: submit one unique authorized proof image through the real BrgyLink mission workflow and confirm the AI verdict reaches the admin review queue without automatically approving the submission. Do not use production resident data for this check without authorization.
+
+### Mobile error-handling standardization (2026-09-07 — local, not yet published)
+- Added `src/utils/network.ts` with a 30-second request timeout and plain-language connection/timeout messages. It does not automatically retry or resend resident submissions.
+- Added reusable `src/components/ScreenErrorState.tsx`, with a large, accessible `Try Again` action. Announcements, officials, missions, profile, notifications, blotter history, services, suggestion history, leaderboard, audit logs, and profile editing now use a visible retry state instead of silently showing an empty result after a failed fetch.
+- Home retains its essential service cards during failures and displays a compact retry panel for stale/unavailable dashboard data. The duplicate home fetch on first render was removed.
+- Login and OTP verification now have the same request timeout/friendly connectivity behavior. Mission, event, blotter, document, and suggestion submissions do not auto-resubmit after a timeout; the resident decides whether to retry.
+- Notification read updates now revert the optimistic local state when the backend fails, preventing the app from falsely showing a server-saved read status.
+- Verification passed locally from `mission17-mobile`: `node node_modules/typescript/bin/tsc --noEmit`; `git diff --check` also passed. No device/network simulation, APK, OTA update, backend deployment, or Git push has been performed for this update.
+- Before publishing, manually verify offline and 30-second timeout behavior on an Android device for: Home, Missions, Announcements, a submission form, OTP verification, and notifications. Keep unrelated existing working-tree changes out of any focused commit.

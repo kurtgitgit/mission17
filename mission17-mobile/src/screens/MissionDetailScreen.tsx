@@ -13,6 +13,7 @@ import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 import { sharedStyles } from '../config/theme';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -125,7 +126,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     try {
       const imagePayload = await getBase64(imageUri);
 
-      const response = await fetch(endpoints.auth.submitMission, {
+      const response = await fetchWithTimeout(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -155,7 +156,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
       console.error("Submit Error:", error);
       showNotification({
         title: "Network Error",
-        message: "Could not connect to server. Please check your internet connection.",
+        message: getFriendlyNetworkMessage(error, 'Could not submit your proof. Please try again.'),
         type: "error"
       });
     } finally {

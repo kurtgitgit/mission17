@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 // --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
 
@@ -89,7 +90,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
 
       // AI assessment is performed through the authenticated backend workflow,
       // never directly from a mobile client.
-      const response = await fetch(endpoints.auth.submitMission, {
+      const response = await fetchWithTimeout(endpoints.auth.submitMission, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -110,7 +111,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
       }
     } catch (error) {
       console.error("Submit Error:", error);
-      showNotification("Connection Error. Check console logs.", "error");
+      showNotification(getFriendlyNetworkMessage(error, 'Could not submit your proof. Please try again.'), "error");
     } finally {
       setLoading(false);
     }

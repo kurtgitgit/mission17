@@ -25,6 +25,7 @@ import { endpoints, GlobalState } from '../config/api';
 import { saveAuthData } from '../utils/storage';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 // Safe configuration for Expo Go
 let isGoogleAvailable = false;
@@ -109,7 +110,7 @@ export default function LoginScreen() {
       const firebaseToken = await userCredential.user.getIdToken();
 
       // 2. Sync with Backend
-      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function LoginScreen() {
         showNotification('Please enter the OTP sent to your email.', 'info');
       } else if (response.ok && data.user?.accountStatus === 'pending') {
         await signOut(auth);
-        showNotification('Your account is awaiting administrator approval.', 'info');
+        navigation.replace('PendingApproval', { firebaseToken });
       } else if (response.ok) {
         data.token = firebaseToken; 
         await processLoginSuccess(data);
@@ -141,7 +142,7 @@ export default function LoginScreen() {
       }
     } catch (error: any) {
       console.error(error);
-      showNotification("Could not connect to server or authenticate.", "error");
+      showNotification(getFriendlyNetworkMessage(error, 'Could not connect to the server or complete Google sign-in.'), "error");
     } finally {
       setLoading(false);
     }
@@ -182,7 +183,7 @@ export default function LoginScreen() {
       const firebaseToken = await userCredential.user.getIdToken();
 
       // 2. Sync with Backend
-      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -207,7 +208,7 @@ export default function LoginScreen() {
           showNotification('Please enter the OTP sent to your email.', 'info');
         } else if (data.user?.accountStatus === 'pending') {
           await signOut(auth);
-          showNotification('Your account is awaiting administrator approval.', 'info');
+          navigation.replace('PendingApproval', { firebaseToken });
         } else {
           // Make sure token is passed so processLoginSuccess can save it
           data.token = firebaseToken; 
@@ -221,7 +222,7 @@ export default function LoginScreen() {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
         showNotification('Invalid email or password.', 'error');
       } else {
-        showNotification('Could not connect to server.', 'error');
+        showNotification(getFriendlyNetworkMessage(error, 'Could not connect to the server. Please try again.'), 'error');
         console.error(error);
       }
       refreshCaptcha();
@@ -238,7 +239,7 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${endpoints.auth.baseUrl}/verify-otp`, {
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -250,10 +251,11 @@ export default function LoginScreen() {
       const data = await response.json();
 
       if (response.ok && data.user?.accountStatus === 'pending') {
+        const firebaseToken = GlobalState.tempToken;
         GlobalState.tempToken = null;
         await signOut(auth);
         setMfaRequired(false);
-        navigation.replace('PendingApproval');
+        navigation.replace('PendingApproval', { firebaseToken });
       } else if (response.ok) {
         data.token = GlobalState.tempToken;
         await processLoginSuccess(data);
@@ -261,7 +263,7 @@ export default function LoginScreen() {
         showNotification("Invalid Code. Please try again.", "error");
       }
     } catch (error) {
-      showNotification("Could not verify code.", "error");
+      showNotification(getFriendlyNetworkMessage(error, 'Could not verify the code. Please try again.'), "error");
     } finally {
       setLoading(false);
     }

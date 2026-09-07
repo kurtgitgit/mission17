@@ -3,10 +3,13 @@ import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, 
 import { ChevronLeft, ShieldCheck, Clock, User, Globe } from 'lucide-react-native';
 import { endpoints, GlobalState } from '../config/api';
 import { getAuthData } from '../utils/storage';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 export default function AuditLogScreen({ navigation }: any) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchLogs();
@@ -14,14 +17,17 @@ export default function AuditLogScreen({ navigation }: any) {
 
   const fetchLogs = async () => {
     try {
+      setLoadError(null);
       const data = await getAuthData();
-      const response = await fetch(`${endpoints.auth.baseUrl}/audit-logs`, {
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/audit-logs`, {
         headers: { 'Authorization': `Bearer ${data?.token}` },
       });
+      if (!response.ok) throw new Error(`Audit log request failed (${response.status})`);
       const result = await response.json();
-      if (response.ok) setLogs(result);
+      setLogs(Array.isArray(result) ? result : []);
     } catch (error) {
       console.error(error);
+      setLoadError(getFriendlyNetworkMessage(error, 'Audit logs are unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -66,6 +72,8 @@ export default function AuditLogScreen({ navigation }: any) {
 
       {loading ? (
         <ActivityIndicator size="large" color="#3b82f6" style={{ marginTop: 50 }} />
+      ) : loadError ? (
+        <ScreenErrorState title="Audit logs are unavailable" message={loadError} onRetry={fetchLogs} />
       ) : (
         <FlatList
           data={logs}

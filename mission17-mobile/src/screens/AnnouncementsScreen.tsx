@@ -9,6 +9,8 @@ import { Megaphone, Pin, Calendar, Building, Globe, AlertTriangle, ShieldAlert }
 import { endpoints } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -180,19 +182,21 @@ const AnnouncementsScreen: React.FC = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState('all');
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const fetchAnnouncements = useCallback(async () => {
     try {
-      const res = await fetch(endpoints.announcements);
-      if (res.ok) {
-        const data = await res.json();
-        setAnnouncements(Array.isArray(data) ? data : []);
-      }
+      setLoadError(null);
+      const res = await fetchWithTimeout(endpoints.announcements);
+      if (!res.ok) throw new Error(`Announcements request failed (${res.status})`);
+      const data = await res.json();
+      setAnnouncements(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch announcements:', err);
+      setLoadError(getFriendlyNetworkMessage(err, 'Official bulletins are unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -257,6 +261,8 @@ const AnnouncementsScreen: React.FC = () => {
           <ActivityIndicator size="large" color="#0038A8" />
           <Text style={styles.loadingText}>Fetching official bulletins...</Text>
         </View>
+      ) : loadError ? (
+        <ScreenErrorState title="Bulletins are unavailable" message={loadError} onRetry={fetchAnnouncements} />
       ) : (
         <FlatList
           data={filtered}

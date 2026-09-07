@@ -15,6 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const SERVICES = [
   { 
@@ -88,6 +90,7 @@ const HomeScreen: React.FC = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [events, setEvents]               = useState<any[]>([]);
   const [hasUnread, setHasUnread]         = useState(false);
+  const [loadError, setLoadError]         = useState<string | null>(null);
 
   useEffect(() => {
     const hydrateSavedUser = async () => {
@@ -108,12 +111,14 @@ const HomeScreen: React.FC = () => {
 
   const fetchAll = useCallback(async () => {
     try {
+      setLoadError(null);
       if (userId) {
         const authHeaders = await getAuthHeaders();
         const [userRes, subRes] = await Promise.all([
-          fetch(endpoints.auth.getUser(userId), { headers: authHeaders }),
-          fetch(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
+          fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders }),
+          fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
         ]);
+        if (!userRes.ok || !subRes.ok) throw new Error('Could not load your account activity.');
         if (userRes.ok)  {
           const u = await userRes.json();
           setUsername(u.username || u.firstName || 'Resident');
@@ -130,15 +135,17 @@ const HomeScreen: React.FC = () => {
         }
         // unread notifications
         if (authHeaders) {
-          const nr = await fetch(endpoints.auth.getNotifications(userId), { headers: authHeaders });
+          const nr = await fetchWithTimeout(endpoints.auth.getNotifications(userId), { headers: authHeaders });
+          if (!nr.ok) throw new Error('Could not load your notifications.');
           if (nr.ok) { const notifs = await nr.json(); setHasUnread(Array.isArray(notifs) ? notifs.some((n: any) => !n.read) : false); }
         }
       }
       // public endpoints
       const [annRes, evtRes] = await Promise.all([
-        fetch(endpoints.announcements),
-        fetch(endpoints.events),
+        fetchWithTimeout(endpoints.announcements),
+        fetchWithTimeout(endpoints.events),
       ]);
+      if (!annRes.ok || !evtRes.ok) throw new Error('Could not load community updates.');
       if (annRes.ok) { 
         const d = await annRes.json(); 
         const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
@@ -151,14 +158,15 @@ const HomeScreen: React.FC = () => {
       }
     } catch (e) {
       console.error('Home fetch error:', e);
+      setLoadError(getFriendlyNetworkMessage(e, 'Some dashboard information could not be updated. Your services are still available below.'));
     } finally {
       setRefreshing(false);
     }
   }, [userId]);
 
-  useEffect(() => { fetchAll(); }, [isFocused]);
-  // Also fetch once on mount in case isFocused doesn't fire first time
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    if (isFocused) fetchAll();
+  }, [isFocused, fetchAll]);
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchAll(); }, [fetchAll]);
 
@@ -212,6 +220,15 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         </LinearGradient>
+
+        {loadError ? (
+          <ScreenErrorState
+            compact
+            title="Some information is unavailable"
+            message={loadError}
+            onRetry={fetchAll}
+          />
+        ) : null}
 
         {/* ══════════ CITIZEN ID & STATS CARD ══════════ */}
         <View style={styles.statsStrip}>

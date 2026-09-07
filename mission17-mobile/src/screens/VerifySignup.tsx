@@ -16,6 +16,9 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { ShieldCheck, Mail, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints, getAuthHeaders } from '../config/api';
+import { auth } from '../config/firebase';
+import { signOut } from 'firebase/auth';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const missionLogo = require('../../assets/logo.png');
 
@@ -39,7 +42,7 @@ const VerifySignup = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(endpoints.auth.verifyOTP, {
+      const response = await fetchWithTimeout(endpoints.auth.verifyOTP, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({ otp }),
@@ -48,13 +51,15 @@ const VerifySignup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        showNotification('Verification successful! You can now log in.', 'success');
-        navigation.navigate('Login');
+        const authorization = await getAuthHeaders();
+        const firebaseToken = authorization.Authorization.replace(/^Bearer\s+/i, '');
+        await signOut(auth);
+        navigation.replace('PendingApproval', { firebaseToken });
       } else {
         showNotification(data.message || 'Verification failed', 'error');
       }
     } catch (error) {
-      showNotification('Connection error. Please try again.', 'error');
+      showNotification(getFriendlyNetworkMessage(error, 'Could not verify your email right now. Please try again.'), 'error');
     } finally {
       setLoading(false);
     }

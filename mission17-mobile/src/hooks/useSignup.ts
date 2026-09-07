@@ -238,8 +238,7 @@ export const useSignup = () => {
       }
 
       if (response.ok) {
-        showNotification('Account created! Please log in to verify your email address.', 'success');
-        navigation.navigate('Login');
+        navigation.replace('SignupSuccess');
       } else {
         const msg = data.message || 'Something went wrong';
         showNotification(msg, 'error');

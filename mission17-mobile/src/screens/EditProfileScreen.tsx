@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, 
   SafeAreaView, Platform, ActivityIndicator, ScrollView, TextInput, Alert 
@@ -6,34 +6,42 @@ import {
 import { X, User, MapPin, Phone, Mail, Calendar, Info, GraduationCap, Briefcase, Check } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, typography } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const EditProfileScreen = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
-  useEffect(() => {
-    const fetchCurrentData = async () => {
+  const fetchCurrentData = useCallback(async () => {
       try {
-        const res = await fetch(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
+        setInitialLoading(true);
+        setLoadError(null);
+        const res = await fetchWithTimeout(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
+        if (!res.ok) throw new Error(`Profile request failed (${res.status})`);
         const data = await res.json();
         setUserData(data);
       } catch (error) {
         console.error("Error loading profile:", error);
+        setLoadError(getFriendlyNetworkMessage(error, 'Your profile details are unavailable right now. Please try again.'));
       } finally {
         setInitialLoading(false);
       }
-    };
+    }, [userId]);
+
+  useEffect(() => {
     fetchCurrentData();
-  }, []);
+  }, [fetchCurrentData]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
+      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify(userData)
@@ -45,13 +53,14 @@ const EditProfileScreen = ({ navigation }: any) => {
         Alert.alert("Error", "Failed to update profile.");
       }
     } catch (e) {
-      Alert.alert("Error", "Network error while saving.");
+      Alert.alert("Error", getFriendlyNetworkMessage(e, 'Could not save your profile. Please try again.'));
     } finally {
       setSaving(false);
     }
   };
 
   if (initialLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>;
+  if (loadError || !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError || 'Please try again.'} onRetry={fetchCurrentData} />;
 
   const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '' }: any) => (
     <View style={styles.infoRow}>

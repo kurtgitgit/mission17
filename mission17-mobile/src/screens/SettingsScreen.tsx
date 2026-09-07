@@ -10,6 +10,7 @@ import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { auth } from '../config/firebase';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const SettingsScreen = ({ navigation }: any) => {
   const { showNotification } = useNotification();
@@ -47,7 +48,7 @@ const SettingsScreen = ({ navigation }: any) => {
     if (!GlobalState.userId) return;
 
     try {
-        const response = await fetch(`${endpoints.auth.baseUrl}/toggle-mfa`, {
+        const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/toggle-mfa`, {
             method: 'POST',
             headers: { 
                 'Content-Type': 'application/json',
@@ -67,7 +68,7 @@ const SettingsScreen = ({ navigation }: any) => {
         }
     } catch (error) {
         setMfaEnabled(!value);
-        showNotification("Network error updating security settings", "error");
+        showNotification(getFriendlyNetworkMessage(error, 'Could not update security settings. Please try again.'), "error");
     }
   };
 

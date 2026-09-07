@@ -8,6 +8,8 @@ import { ArrowLeft, Send, CheckCircle, Clock, Check, X, Lightbulb, AlertCircle }
 import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
 
@@ -17,6 +19,7 @@ const SuggestionScreen = () => {
   const [history, setHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -32,15 +35,16 @@ const SuggestionScreen = () => {
     if (!GlobalState.userId) return;
     setLoadingHistory(true);
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`, {
+      setHistoryError(null);
+      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`, {
         headers: await getAuthHeaders()
       });
-      if (res.ok) {
-        const data = await res.json();
-        setHistory(Array.isArray(data) ? data : []);
-      }
+      if (!res.ok) throw new Error(`Feedback history request failed (${res.status})`);
+      const data = await res.json();
+      setHistory(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('Failed to fetch feedback history:', e);
+      setHistoryError(getFriendlyNetworkMessage(e, 'Your feedback history is unavailable right now. Please try again.'));
     } finally {
       setLoadingHistory(false);
       setRefreshing(false);
@@ -79,7 +83,7 @@ const SuggestionScreen = () => {
     setSubmitError('');
     setLoading(true);
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/suggestions`, {
+      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -100,8 +104,8 @@ const SuggestionScreen = () => {
         const data = await res.json();
         setSubmitError(data.message || 'Failed to submit your suggestion. Please try again.');
       }
-    } catch {
-      setSubmitError('Network error. Please check your connection and try again.');
+    } catch (error) {
+      setSubmitError(getFriendlyNetworkMessage(error, 'Could not submit your feedback. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -329,6 +333,8 @@ const SuggestionScreen = () => {
               <ActivityIndicator size="large" color="#0038A8" />
               <Text style={styles.loadingText}>Retrieving your feedback records...</Text>
             </View>
+          ) : historyError ? (
+            <ScreenErrorState title="Feedback history is unavailable" message={historyError} onRetry={fetchHistory} />
           ) : history.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconCircle}>

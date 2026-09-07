@@ -10,6 +10,8 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const STATUS_FILTERS = ['All', 'Pending', 'In Progress', 'Resolved'];
 
@@ -25,20 +27,22 @@ const BlotterHistoryScreen = () => {
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`, {
+      setLoadError(null);
+      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`, {
         headers: await getAuthHeaders()
       });
-      if (res.ok) {
-        const data = await res.json();
-        setReports(Array.isArray(data) ? data : []);
-      }
+      if (!res.ok) throw new Error(`Blotter history request failed (${res.status})`);
+      const data = await res.json();
+      setReports(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('BlotterHistory fetch error:', e);
+      setLoadError(getFriendlyNetworkMessage(e, 'Your blotter records are unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -221,6 +225,8 @@ const BlotterHistoryScreen = () => {
           <ActivityIndicator size="large" color="#0038A8" />
           <Text style={styles.loadingText}>Retrieving your blotter records...</Text>
         </View>
+      ) : loadError ? (
+        <ScreenErrorState title="Blotter records are unavailable" message={loadError} onRetry={fetchHistory} />
       ) : filteredReports.length === 0 ? (
         <View style={styles.center}>
           <View style={styles.emptyIconCircle}>

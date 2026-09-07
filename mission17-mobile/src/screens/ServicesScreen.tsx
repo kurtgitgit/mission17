@@ -11,6 +11,8 @@ import {
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
   { id: 'Barangay Clearance', label: 'Barangay Clearance', fee: '₱50.00', time: '1–2 Days', desc: 'For employment, business, or general legal verification' },
@@ -46,6 +48,7 @@ const ServicesScreen: React.FC = () => {
   const [myRequests, setMyRequests] = useState<any[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   const userId = GlobalState.userId;
   const navigation = useNavigation<any>();
@@ -54,13 +57,14 @@ const ServicesScreen: React.FC = () => {
   const fetchMyRequests = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(endpoints.documentRequests.my(userId), { headers: await getAuthHeaders() });
-      if (res.ok) {
-        const data = await res.json();
-        setMyRequests(Array.isArray(data) ? data : []);
-      }
+      setStatusError(null);
+      const res = await fetchWithTimeout(endpoints.documentRequests.my(userId), { headers: await getAuthHeaders() });
+      if (!res.ok) throw new Error(`Document history request failed (${res.status})`);
+      const data = await res.json();
+      setMyRequests(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
+      setStatusError(getFriendlyNetworkMessage(err, 'Your document-request status is unavailable right now. Please try again.'));
     } finally {
       setLoadingStatus(false);
       setRefreshing(false);
@@ -108,7 +112,7 @@ const ServicesScreen: React.FC = () => {
     setSubmitting(true);
     setSubmitError('');
     try {
-      const res = await fetch(endpoints.documentRequests.submit, {
+      const res = await fetchWithTimeout(endpoints.documentRequests.submit, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -128,7 +132,7 @@ const ServicesScreen: React.FC = () => {
         setSubmitError(data.message || 'Failed to submit request. Please try again.');
       }
     } catch (err) {
-      setSubmitError('Network error. Please check your connection and try again.');
+      setSubmitError(getFriendlyNetworkMessage(err, 'Could not submit your request. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -416,6 +420,8 @@ const ServicesScreen: React.FC = () => {
               <ActivityIndicator size="large" color="#0038A8" />
               <Text style={styles.loadingText}>Fetching your document requests...</Text>
             </View>
+          ) : statusError ? (
+            <ScreenErrorState title="Document status is unavailable" message={statusError} onRetry={fetchMyRequests} />
           ) : myRequests.length === 0 ? (
             <View style={styles.emptyState}>
               <View style={styles.emptyIconCircle}>

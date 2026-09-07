@@ -14,6 +14,8 @@ import { clearAuthData, getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 // YOUR SYSTEM RELAYER ADDRESS
 const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
@@ -27,6 +29,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [infoModal, setInfoModal] = useState<string | null>(null);
   
@@ -46,17 +49,20 @@ const ProfileScreen = ({ navigation }: any) => {
 
   const fetchProfileData = useCallback(async () => {
     try {
+      setLoadError(null);
       const authHeaders = await getAuthHeaders();
-      const userRes = await fetch(endpoints.auth.getUser(userId), { headers: authHeaders });
+      const userRes = await fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders });
       const userJson = await userRes.json();
       
-      const histRes = await fetch(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
+      const histRes = await fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
       const histJson = await histRes.json();
 
-      if (userRes.ok) setUserData(userJson);
+      if (!userRes.ok || !histRes.ok) throw new Error('Profile request failed');
+      setUserData(userJson);
       setHistory(Array.isArray(histJson) ? histJson : []);
     } catch (error) {
       console.error(error);
+      setLoadError(getFriendlyNetworkMessage(error, 'Your profile is unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -113,6 +119,10 @@ const ProfileScreen = ({ navigation }: any) => {
         <Text style={styles.loadingText}>Loading citizen profile...</Text>
       </View>
     );
+  }
+
+  if (loadError && !userData) {
+    return <ScreenErrorState title="Profile is unavailable" message={loadError} onRetry={fetchProfileData} />;
   }
 
   const MenuItem = ({ icon, title, subtitle, onPress, isDestructive = false, isLast = false }: any) => (

@@ -12,10 +12,13 @@ import {
 import { User, Crown, Target, Medal } from 'lucide-react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { GlobalState, endpoints } from '../config/api';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const RankScreen = () => {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const isFocused = useIsFocused();
   const userId = GlobalState.userId;
 
@@ -23,11 +26,14 @@ const RankScreen = () => {
 
   const fetchLeaderboard = async () => {
     try {
-      const res = await fetch(`${endpoints.auth.baseUrl}/leaderboard`);
+      setLoadError(null);
+      const res = await fetchWithTimeout(`${endpoints.auth.baseUrl}/leaderboard`);
+      if (!res.ok) throw new Error(`Leaderboard request failed (${res.status})`);
       const data = await res.json();
-      setLeaders(data);
+      setLeaders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Leaderboard error:", error);
+      setLoadError(getFriendlyNetworkMessage(error, 'The leaderboard is unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -110,6 +116,8 @@ const RankScreen = () => {
       <ActivityIndicator size="large" color="#3b82f6" />
     </View>
   );
+
+  if (loadError) return <ScreenErrorState title="Leaderboard is unavailable" message={loadError} onRetry={fetchLeaderboard} />;
 
   return (
     <RootComponent style={styles.container}>

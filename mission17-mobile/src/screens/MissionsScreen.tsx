@@ -10,6 +10,8 @@ import { MapPin, Clock, X, Calendar, Target, CheckCircle, Award, Sparkles, Arrow
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { sharedStyles } from '../config/theme';
+import ScreenErrorState from '../components/ScreenErrorState';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const MissionsScreen = ({ navigation, route }: any) => {
   const { showNotification } = useNotification();
@@ -20,6 +22,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'missions' | 'events'>('missions');
   const [selectedSDG, setSelectedSDG] = useState<string | null>(null);
 
@@ -28,10 +31,13 @@ const MissionsScreen = ({ navigation, route }: any) => {
 
   const fetchData = useCallback(async () => {
     try {
+      setLoadError(null);
       const [missionRes, eventRes] = await Promise.all([
-        fetch(endpoints.missions),
-        fetch(endpoints.events),
+        fetchWithTimeout(endpoints.missions),
+        fetchWithTimeout(endpoints.events),
       ]);
+
+      if (!missionRes.ok || !eventRes.ok) throw new Error('Civic opportunities request failed');
 
       if (missionRes.ok) {
         const missionData = await missionRes.json();
@@ -44,7 +50,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       }
 
       if (userId) {
-        const subRes = await fetch(endpoints.auth.getUserSubmissions(userId), { headers: await getAuthHeaders() });
+        const subRes = await fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: await getAuthHeaders() });
         if (subRes.ok) {
           const subData = await subRes.json();
           const completedIds = new Set(
@@ -57,6 +63,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
       }
     } catch (error) {
       console.error("Failed to load missions data:", error);
+      setLoadError(getFriendlyNetworkMessage(error, 'Civic tasks and events are unavailable right now. Please try again.'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -277,6 +284,8 @@ const MissionsScreen = ({ navigation, route }: any) => {
           <ActivityIndicator size="large" color="#0038A8" />
           <Text style={styles.loadingText}>Loading civic opportunities...</Text>
         </View>
+      ) : loadError ? (
+        <ScreenErrorState title="Civic opportunities are unavailable" message={loadError} onRetry={fetchData} />
       ) : (
         <FlatList
           data={filteredMissions}

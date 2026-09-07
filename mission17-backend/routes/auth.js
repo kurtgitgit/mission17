@@ -431,4 +431,30 @@ router.post('/save-push-token', verifyAuthenticatedUser, async (req, res) => {
   }
 });
 
+// Pending accounts cannot access normal authenticated routes, but a resident
+// who has completed email verification may opt in to account-review pushes.
+// The Firebase UID is derived from the verified token; no user ID is accepted
+// from the client, preventing a device token from being attached to another user.
+router.post('/save-pending-push-token', verifyFirebaseToken, async (req, res) => {
+  const { expoPushToken } = req.body;
+  if (typeof expoPushToken !== 'string' || !/^(?:ExponentPushToken|ExpoPushToken)\[[^\]]+\]$/.test(expoPushToken)) {
+    return res.status(400).json({ message: 'A valid Expo push token is required.' });
+  }
+
+  try {
+    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+    if (!user || user.accountStatus !== 'pending' || !user.isVerified) {
+      return res.status(403).json({ message: 'Only verified pending accounts can register for review updates.' });
+    }
+
+    user.expoPushToken = expoPushToken;
+    await user.save();
+    await logAudit(user._id, user.username, 'PENDING_PUSH_TOKEN_SAVED', 'Resident opted in to account-review notifications.', req);
+    return res.json({ message: 'Account-review notifications enabled.' });
+  } catch (error) {
+    console.error('Error saving pending Expo push token:', error);
+    return res.status(500).json({ message: 'Could not save notification preference.' });
+  }
+});
+
 export default router;
