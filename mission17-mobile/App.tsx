@@ -29,6 +29,7 @@ import ChatBotScreen        from './src/screens/ChatBotScreen';
 import BlotterReportScreen  from './src/screens/BlotterReportScreen';
 import BlotterHistoryScreen from './src/screens/BlotterHistoryScreen';
 import SuggestionScreen     from './src/screens/SuggestionScreen';
+import LegalInformationScreen from './src/screens/LegalInformationScreen';
 
 // ─── NEW BARANGAY SCREENS ──────────────────────────────
 import AnnouncementsScreen from './src/screens/AnnouncementsScreen';
@@ -225,6 +226,7 @@ export default function App() {
               <Stack.Screen name="SignupSuccess" component={SignupSuccessScreen} />
               <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
               <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+              <Stack.Screen name="LegalInformation" component={LegalInformationScreen} />
 
               {/* Main */}
               <Stack.Screen name="Home"          component={MainTabs} />

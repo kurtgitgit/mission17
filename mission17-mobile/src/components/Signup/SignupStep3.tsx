@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Upload, Eye, EyeOff } from 'lucide-react-native';
+import { Upload, Eye, EyeOff, Check } from 'lucide-react-native';
 import FormInput from '../FormInput';
 
 interface SignupStep3Props {
@@ -14,6 +14,11 @@ interface SignupStep3Props {
   pickImage: (type: 'idFront' | 'idBack' | 'profile') => void;
   handleSignup: () => void;
   loading: boolean;
+  privacyAccepted: boolean;
+  setPrivacyAccepted: (value: boolean) => void;
+  termsAccepted: boolean;
+  setTermsAccepted: (value: boolean) => void;
+  navigation: any;
 }
 
 const SignupStep3 = ({
@@ -26,7 +31,12 @@ const SignupStep3 = ({
   profileImage,
   pickImage,
   handleSignup,
-  loading
+  loading,
+  privacyAccepted,
+  setPrivacyAccepted,
+  termsAccepted,
+  setTermsAccepted,
+  navigation
 }: SignupStep3Props) => {
   return (
     <View style={styles.form}>
@@ -73,11 +83,29 @@ const SignupStep3 = ({
         required
       />
 
+      <Text style={styles.sectionTitle}>Your agreement</Text>
+      <Text style={styles.consentHint}>Please read and accept both items before creating your account.</Text>
+      <View style={styles.consentRow}>
+        <TouchableOpacity style={styles.checkboxHitArea} accessibilityRole="checkbox" accessibilityLabel="Accept Privacy Notice" accessibilityState={{ checked: privacyAccepted }} onPress={() => setPrivacyAccepted(!privacyAccepted)}>
+          <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]}>{privacyAccepted && <Check size={15} color="#fff" />}</View>
+        </TouchableOpacity>
+        <Text style={styles.consentText}>I have read and accept the </Text>
+        <TouchableOpacity style={styles.linkHitArea} accessibilityRole="link" onPress={() => navigation.navigate('LegalInformation', { section: 'privacy' })}><Text style={styles.consentLink}>Privacy Notice</Text></TouchableOpacity>
+      </View>
+      <View style={styles.consentRow}>
+        <TouchableOpacity style={styles.checkboxHitArea} accessibilityRole="checkbox" accessibilityLabel="Accept Terms of Use" accessibilityState={{ checked: termsAccepted }} onPress={() => setTermsAccepted(!termsAccepted)}>
+          <View style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}>{termsAccepted && <Check size={15} color="#fff" />}</View>
+        </TouchableOpacity>
+        <Text style={styles.consentText}>I have read and accept the </Text>
+        <TouchableOpacity style={styles.linkHitArea} accessibilityRole="link" onPress={() => navigation.navigate('LegalInformation', { section: 'terms' })}><Text style={styles.consentLink}>Terms of Use</Text></TouchableOpacity>
+      </View>
+      <Text style={styles.prototypeNote}>Capstone prototype — subject to Barangay Bagong Pag-asa review and approval before official public deployment.</Text>
+
       <View style={styles.navButtonsContainer}>
         <TouchableOpacity 
-          style={[styles.primaryButtonBlue, loading && styles.disabledButton]} 
+          style={[styles.primaryButtonBlue, (loading || !privacyAccepted || !termsAccepted) && styles.disabledButton]}
           onPress={handleSignup}
-          disabled={loading}
+          disabled={loading || !privacyAccepted || !termsAccepted}
         >
           {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonTextBlue}>Complete Registration</Text>}
         </TouchableOpacity>
@@ -97,6 +125,15 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: { fontSize: 14, color: '#475569', fontWeight: '500' },
   fileLabel: { fontSize: 12, color: '#10b981', fontWeight: '600' },
+  consentHint: { fontSize: 13, color: '#64748b', lineHeight: 19, marginTop: -6 },
+  consentRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, paddingVertical: 4 },
+  checkboxHitArea: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -11, marginRight: -6 },
+  checkbox: { width: 22, height: 22, borderWidth: 2, borderColor: '#64748b', borderRadius: 5, alignItems: 'center', justifyContent: 'center', marginRight: 5 },
+  checkboxChecked: { borderColor: '#0038A8', backgroundColor: '#0038A8' },
+  consentText: { fontSize: 13, color: '#334155' },
+  consentLink: { fontSize: 13, color: '#0038A8', fontWeight: '800', textDecorationLine: 'underline' },
+  linkHitArea: { minHeight: 44, justifyContent: 'center', marginVertical: -10 },
+  prototypeNote: { fontSize: 11, color: '#64748b', lineHeight: 16, marginTop: 2 },
   navButtonsContainer: { marginTop: 16 },
   primaryButtonBlue: { backgroundColor: '#0038A8', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   primaryButtonTextBlue: { color: 'white', fontSize: 16, fontWeight: 'bold' },

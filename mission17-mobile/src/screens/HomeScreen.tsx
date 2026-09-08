@@ -12,7 +12,7 @@ import {
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
+import { endpoints, GlobalState, getAuthHeadersIfAvailable } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import ScreenErrorState from '../components/ScreenErrorState';
@@ -112,34 +112,6 @@ const HomeScreen: React.FC = () => {
   const fetchAll = useCallback(async () => {
     try {
       setLoadError(null);
-      if (userId) {
-        const authHeaders = await getAuthHeaders();
-        const [userRes, subRes] = await Promise.all([
-          fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders }),
-          fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
-        ]);
-        if (!userRes.ok || !subRes.ok) throw new Error('Could not load your account activity.');
-        if (userRes.ok)  {
-          const u = await userRes.json();
-          setUsername(u.username || u.firstName || 'Resident');
-          setFullName(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : (u.username || u.firstName || 'Resident'));
-        }
-        if (subRes.ok)   {
-          const s = await subRes.json();
-          const sArray = Array.isArray(s) ? s : [];
-          setStats({
-            total:    sArray.length,
-            approved: sArray.filter((x: any) => x.status === 'Approved').length,
-            pending:  sArray.filter((x: any) => x.status === 'Pending').length,
-          });
-        }
-        // unread notifications
-        if (authHeaders) {
-          const nr = await fetchWithTimeout(endpoints.auth.getNotifications(userId), { headers: authHeaders });
-          if (!nr.ok) throw new Error('Could not load your notifications.');
-          if (nr.ok) { const notifs = await nr.json(); setHasUnread(Array.isArray(notifs) ? notifs.some((n: any) => !n.read) : false); }
-        }
-      }
       // public endpoints
       const [annRes, evtRes] = await Promise.all([
         fetchWithTimeout(endpoints.announcements),
@@ -155,6 +127,39 @@ const HomeScreen: React.FC = () => {
         const d = await evtRes.json(); 
         const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
         setEvents(dArr.slice(0, 4)); 
+      }
+
+      if (userId) {
+        try {
+          const authHeaders = await getAuthHeadersIfAvailable();
+          if (!authHeaders) return;
+
+          const [userRes, subRes, notificationRes] = await Promise.all([
+            fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders }),
+            fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
+            fetchWithTimeout(endpoints.auth.getNotifications(userId), { headers: authHeaders }),
+          ]);
+          if (!userRes.ok || !subRes.ok || !notificationRes.ok) {
+            throw new Error('Could not load personal dashboard information.');
+          }
+
+          const [user, submissions, notifications] = await Promise.all([
+            userRes.json(), subRes.json(), notificationRes.json(),
+          ]);
+          setUsername(user.username || user.firstName || 'Resident');
+          setFullName(user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.username || user.firstName || 'Resident'));
+
+          const submissionArray = Array.isArray(submissions) ? submissions : [];
+          setStats({
+            total: submissionArray.length,
+            approved: submissionArray.filter((x: any) => x.status === 'Approved').length,
+            pending: submissionArray.filter((x: any) => x.status === 'Pending').length,
+          });
+          setHasUnread(Array.isArray(notifications) ? notifications.some((n: any) => !n.read) : false);
+        } catch (error) {
+          // Public services must remain usable while a personal session restores.
+          console.warn('Could not load personal dashboard information:', error);
+        }
       }
     } catch (e) {
       console.error('Home fetch error:', e);

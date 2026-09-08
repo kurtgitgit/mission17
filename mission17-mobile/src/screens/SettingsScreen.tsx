@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, 
   Platform, SafeAreaView, Alert, Modal, TextInput, ActivityIndicator 
 } from 'react-native';
-import { ChevronLeft, Bell, Lock, ChevronRight, X, Shield, Eye, EyeOff, Moon } from 'lucide-react-native';
+import { ChevronLeft, Bell, Lock, ChevronRight, X, Shield, Eye, EyeOff, Moon, FileText } from 'lucide-react-native';
 import { getAuthData } from '../utils/storage'; 
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
@@ -22,6 +22,7 @@ const SettingsScreen = ({ navigation }: any) => {
   
   // Account Security
   const [mfaEnabled, setMfaEnabled] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Password Change Modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -41,6 +42,7 @@ const SettingsScreen = ({ navigation }: any) => {
     const data = await getAuthData();
     if (data && data.user) {
         setMfaEnabled(data.user.mfaEnabled || false);
+        setIsAdmin(data.user.role === 'admin');
     }
   };
 
@@ -118,7 +120,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
   // --- RENDER HELPERS ---
 
-  const SettingItem = ({ icon: Icon, label, onPress, isSwitch, value, onValueChange, isLast = false }: any) => (
+  const SettingItem = ({ icon: Icon, label, onPress, isSwitch, value, onValueChange, isLast = false, switchDisabled = false }: any) => (
     <TouchableOpacity 
       style={[styles.row, !isLast && styles.rowBorder]} 
       onPress={onPress} 
@@ -136,6 +138,7 @@ const SettingsScreen = ({ navigation }: any) => {
         <Switch 
           value={value} 
           onValueChange={onValueChange}
+          disabled={switchDisabled}
           trackColor={{ false: theme.border, true: theme.primaryLight }}
           thumbColor={value ? theme.primary : theme.surfaceSecondary}
         />
@@ -169,10 +172,11 @@ const SettingsScreen = ({ navigation }: any) => {
           />
           <SettingItem 
             icon={Shield} 
-            label="Two-Factor Auth (Email)" 
+            label={isAdmin ? 'Two-Factor Auth (Required for Admin)' : 'Two-Factor Auth (Email)'}
             isSwitch 
-            value={mfaEnabled} 
+            value={isAdmin || mfaEnabled}
             onValueChange={toggleMFA} 
+            switchDisabled={isAdmin}
             isLast
           />
         </View>
@@ -186,6 +190,16 @@ const SettingsScreen = ({ navigation }: any) => {
             isSwitch 
             value={notificationsEnabled} 
             onValueChange={setNotificationsEnabled} 
+            isLast
+          />
+        </View>
+
+        <Text style={styles.sectionTitle}>Legal & Accessibility</Text>
+        <View style={styles.menuContainer}>
+          <SettingItem
+            icon={FileText}
+            label="Privacy, Terms & Permissions"
+            onPress={() => navigation.navigate('LegalInformation')}
             isLast
           />
         </View>

@@ -4,7 +4,7 @@ import {
   Platform, ViewStyle, SafeAreaView, Alert, ActivityIndicator, TextStyle, Modal, ScrollView,
   RefreshControl, StatusBar
 } from 'react-native';
-import { GlobalState, endpoints, formatImageUri, getAuthHeaders } from '../config/api';
+import { GlobalState, endpoints, formatImageUri, getAuthHeadersIfAvailable } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
 import { MapPin, Clock, X, Calendar, Target, CheckCircle, Award, Sparkles, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
@@ -50,8 +50,12 @@ const MissionsScreen = ({ navigation, route }: any) => {
       }
 
       if (userId) {
-        const subRes = await fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: await getAuthHeaders() });
-        if (subRes.ok) {
+        try {
+          const authHeaders = await getAuthHeadersIfAvailable();
+          if (!authHeaders) return;
+
+          const subRes = await fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
+          if (!subRes.ok) throw new Error(`Submission history request failed (${subRes.status})`);
           const subData = await subRes.json();
           const completedIds = new Set(
             (Array.isArray(subData) ? subData : [])
@@ -59,6 +63,9 @@ const MissionsScreen = ({ navigation, route }: any) => {
               .map((s: any) => s.missionId)
           );
           setCompletedMissions(completedIds as Set<string>);
+        } catch (error) {
+          // Public opportunities remain visible if a personal session is still restoring.
+          console.warn('Could not load completed mission markers:', error);
         }
       }
     } catch (error) {

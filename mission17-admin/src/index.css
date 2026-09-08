@@ -23,3 +23,7 @@ html, body {
   text-align: left; /* Fixes text centering */
   overflow: hidden;
 }
+
+html:has(.legal-page-shell), html:has(.auth-container), body:has(.legal-page-shell), body:has(.auth-container), #root:has(.legal-page-shell), #root:has(.auth-container) {
+  overflow: auto;
+}

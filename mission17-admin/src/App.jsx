@@ -13,6 +13,9 @@ import Analytics from './pages/Analytics/Analytics';
 import Settings from './pages/Settings/Settings';
 import Verify from './pages/Verify/Verify';
 import AuditLogs from './pages/AuditLogs/AuditLogs';
+import LegalPage from './pages/LegalPage';
+import EssentialStorageNotice from './components/EssentialStorageNotice';
+import AccessibilityControls from './components/AccessibilityControls';
 
 // 🏛️ New Barangay Portal Admin Pages
 import Announcements from './pages/Announcements';
@@ -74,11 +77,18 @@ function App() {
 
     <NotificationProvider>
       <Router>
+        <AccessibilityControls />
+        <EssentialStorageNotice />
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/public-verify" element={<PublicVerify />} />
+          <Route path="/privacy" element={<LegalPage type="privacy" />} />
+          <Route path="/terms" element={<LegalPage type="terms" />} />
+          <Route path="/accessibility" element={<LegalPage type="accessibility" />} />
+          <Route path="/ai-disclosure" element={<LegalPage type="ai" />} />
+          <Route path="/browser-storage" element={<LegalPage type="storage" />} />
           
           {/* Protected Admin Routes */}
           <Route path="/dashboard" element={protectedRoute(<DashboardHome />)} />

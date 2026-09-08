@@ -89,6 +89,13 @@ const UserSchema = new mongoose.Schema({
   isVerified: { 
     type: Boolean, 
     default: false 
+  },
+  // Recorded only for residents created after the capstone policy consent flow.
+  // It remains optional so historical accounts are not changed or blocked.
+  legalConsent: {
+    privacyVersion: { type: String },
+    termsVersion: { type: String },
+    acceptedAt: { type: Date }
   }
 
 }, { timestamps: true });

@@ -7,6 +7,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
+export const LEGAL_POLICY_VERSION = '2026-09-08-capstone-v1';
+
 export const useSignup = () => {
   const { showNotification } = useNotification();
   const navigation = useNavigation<any>();
@@ -31,6 +33,8 @@ export const useSignup = () => {
   const [validIdFront, setValidIdFront] = useState<any>(null);
   const [validIdBack, setValidIdBack] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<any>(null);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -146,6 +150,11 @@ export const useSignup = () => {
   const handleSignup = async () => {
     Keyboard.dismiss();
 
+    if (!privacyAccepted || !termsAccepted) {
+      showNotification('Please accept both the Privacy Notice and Terms of Use to continue.', 'error');
+      return;
+    }
+
     if (!formData.password) {
       showNotification('Password is required.', 'error');
       return;
@@ -185,6 +194,9 @@ export const useSignup = () => {
           }
         }
       });
+      formPayload.append('privacyAccepted', 'true');
+      formPayload.append('termsAccepted', 'true');
+      formPayload.append('policyVersion', LEGAL_POLICY_VERSION);
       const formatUri = (uri: string) => {
         return Platform.OS === 'android' && !uri.startsWith('file://') ? `file://${uri}` : uri;
       };
@@ -271,6 +283,10 @@ export const useSignup = () => {
     validIdFront,
     validIdBack,
     profileImage,
+    privacyAccepted,
+    setPrivacyAccepted,
+    termsAccepted,
+    setTermsAccepted,
     handleInputChange,
     handleDateChange,
     pickImage,

@@ -32,6 +32,10 @@ import path from 'path';
 // 📂 MULTER CONFIGURATION FOR FILE UPLOADS
 // ==========================================
 import { upload } from '../utils/upload.js';
+import {
+  createLegalConsentRecord,
+  hasCurrentLegalConsent
+} from '../utils/legalConsent.js';
 
 // 🛡️ ANTI-FRAUD: Known disposable email domains
 const DISPOSABLE_DOMAINS = [
@@ -222,7 +226,10 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
 
       // 🛡️ MFA (OTP) Check with Gmail API
       // We also trigger this for 'pending' users so they can verify their email!
-      if (user.accountStatus === 'pending' || user.role === 'admin' || user.mfaEnabled) {
+      // Pending residents need an OTP only until their email is verified.
+      // Admin accounts always require it; active residents follow their MFA setting.
+      const requiresEmailVerification = user.accountStatus === 'pending' && user.isVerified !== true;
+      if (requiresEmailVerification || user.role === 'admin' || user.mfaEnabled) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         
         await User.updateOne(
@@ -296,6 +303,14 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       numberOfFamilyMembers, educationalAttainment, bloodType, disability, username
     } = req.body;
 
+    // This applies only to a newly created resident record. Existing and legacy
+    // accounts retain their historical access and are not backfilled here.
+    if (!hasCurrentLegalConsent(req.body)) {
+      return res.status(400).json({
+        message: 'Please accept the current Privacy Notice and Terms of Use before creating an account.'
+      });
+    }
+
     // Grab file URLs if they exist
     const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
     const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
@@ -314,6 +329,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       points: 0,
       isVerified: decodedToken.email_verified || false,
       accountStatus: 'pending',
+      legalConsent: createLegalConsentRecord(),
 
       firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,

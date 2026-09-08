@@ -7,6 +7,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import '../styles/Auth.css';
 import logoImg from '../assets/logo.png';
+import LegalFooter from '../components/LegalFooter';
 
 const Login = () => {
   const { showNotification } = useNotification();
@@ -242,6 +243,7 @@ const Login = () => {
             </form>
           )}
         </div>
+        <LegalFooter />
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 // src/config/api.ts
 import { Platform } from 'react-native';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 
 // 🏠 LOCALHOST / LAN IP
@@ -58,6 +59,21 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
   GlobalState.token = token;
   GlobalState.auth = { token };
   return { Authorization: `Bearer ${token}` };
+};
+
+/** Wait for Firebase to restore a persisted session before checking it. */
+export const getAuthHeadersIfAvailable = async (): Promise<Record<string, string> | null> => {
+  if (!auth.currentUser) {
+    await new Promise<void>((resolve) => {
+      let unsubscribe: (() => void) | undefined;
+      unsubscribe = onAuthStateChanged(auth, () => {
+        unsubscribe?.();
+        resolve();
+      });
+    });
+  }
+
+  return auth.currentUser ? getAuthHeaders() : null;
 };
 
 export const endpoints = {
