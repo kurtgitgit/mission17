@@ -70,7 +70,7 @@ const LearningScreen: React.FC = () => {
               }}
             >
               <Leaf size={14} color="white" />
-              <Text style={styles.joinBtnText}>📸 Log SDG {item.id} Action & Earn Points →</Text>
+              <Text style={styles.joinBtnText}>📸 Log an SDG {item.id} Action →</Text>
             </TouchableOpacity>
 
           </View>

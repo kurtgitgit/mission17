@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { endpoints } from '../../config/api';
+import AccessibilityControls from '../../components/AccessibilityControls';
+import LegalFooter from '../../components/LegalFooter';
 import '../../styles/Settings.css';
 
 const Settings = () => {
@@ -426,6 +428,17 @@ const Settings = () => {
 
 
         </div>
+
+        <section className="settings-legal" aria-labelledby="settings-legal-title">
+          <div className="settings-legal__header">
+            <div>
+              <h2 id="settings-legal-title">Accessibility &amp; Legal Information</h2>
+              <p>Adjust the admin portal display and review BrgyLink policies.</p>
+            </div>
+            <AccessibilityControls />
+          </div>
+          <LegalFooter />
+        </section>
       </div>
 
       <style>{`

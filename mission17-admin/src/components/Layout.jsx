@@ -2,7 +2,6 @@
 import React from 'react';
 import Sidebar from './Sidebar'; // Import the menu
 import '../styles/Layout.css';   // Import the positioning rules
-import LegalFooter from './LegalFooter';
 
 const Layout = ({ children }) => {
   return (
@@ -13,7 +12,6 @@ const Layout = ({ children }) => {
       {/* 2. The Page Content (Dashboard, etc.) */}
       <main className="main-content">
         {children}
-        <LegalFooter />
       </main>
     </div>
   );

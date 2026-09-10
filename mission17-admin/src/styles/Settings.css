@@ -178,3 +178,48 @@ input[type="password"] {
 .audit-time { font-size: 11px; color: #94a3b8; margin-left: auto; }
 .audit-desc { font-size: 12px; color: #475569; margin: 0; }
 .view-all-btn { width: 100%; margin-top: 15px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; background: white; font-size: 13px; }
+
+.settings-legal {
+  margin-top: 24px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.settings-legal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.settings-legal__header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.settings-legal__header p {
+  margin: 5px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.settings-legal .accessibility-controls {
+  position: static;
+  flex-shrink: 0;
+  box-shadow: none;
+}
+
+.settings-legal > .legal-footer {
+  margin-top: 18px;
+  border-radius: 10px;
+}
+
+@media (max-width: 760px) {
+  .settings-legal__header {
+    flex-direction: column;
+  }
+}

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/Auth.css';
-import LegalFooter from '../components/LegalFooter';
 
 const Signup = () => {
   const { showNotification } = useNotification();
@@ -82,7 +81,6 @@ const Signup = () => {
         <div className="auth-footer">
           Already have an account? <Link to="/" className="auth-link">Login</Link>
         </div>
-        <LegalFooter />
       </div>
     </div>
   );

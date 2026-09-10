@@ -79,7 +79,7 @@ const MAX_MESSAGE_LENGTH = 1_200;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_HISTORY_MESSAGE_LENGTH = 1_200;
 
-const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|points?|leaderboard|government|governance|public\s+service|public\s+office|public\s+agency|local\s+government|national\s+government|lgu|municipal|municipality|city\s+hall|mayor|province|provincial|government\s+id|philippine|psa|dilg|dswd|doh|deped|tesda|comelec|bir|sss|gsis|pag-ibig|philhealth|nbi|police|pnp|passport|visa|voter|election|tax|benefit|assistance|aid|scholarship|ordinance|law|permit|license|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|pamahalaan|gobyerno|tulong|benepisyo|buwis|halalan|barangay\s+hall|purok|kasapulan|dokument|pakaammo|mabalin|agkiddaw)\b/i;
+const IN_SCOPE_PATTERN = /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|suggestion|announcement|official|kagawad|captain|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|sustainable|mission|event|government|governance|public\s+service|public\s+office|public\s+agency|local\s+government|national\s+government|lgu|municipal|municipality|city\s+hall|mayor|province|provincial|government\s+id|philippine|psa|dilg|dswd|doh|deped|tesda|comelec|bir|sss|gsis|pag-ibig|philhealth|nbi|police|pnp|passport|visa|voter|election|tax|benefit|assistance|aid|scholarship|ordinance|law|permit|license|pagkuha|kahilingan|dokumento|sertipiko|reklamo|ulat|pabatid|opisyal|serbisyo|mamamayan|pamahalaan|gobyerno|tulong|benepisyo|buwis|halalan|barangay\s+hall|purok|kasapulan|dokument|pakaammo|mabalin|agkiddaw)\b/i;
 const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)([!,.\s]+)?$/i;
 const LANGUAGE_TOPIC_PATTERN = /\b(pangasinan|ilocano|ilokano|tagalog|filipino|wika|salita|pagsasao|translation|translate|isalin)\b/i;
 
@@ -196,7 +196,7 @@ export const getMockReply = (message) => {
     return 'Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa, BrgyLink app, SDG missions, at pangkalahatang serbisyo ng pamahalaan.';
   }
   if (msg.includes('blotter')) return "To file a Blotter Report, go to the 'Services' section and select 'eFeedback / Blotter'. Provide as much incident detail as possible! 📋";
-  if (msg.includes('sdg') || msg.includes('mission')) return "Mission 17 encourages residents to complete Civic Tasks aligned with the 17 SDGs. Earn points on the 'Missions' page! 🌍";
+  if (msg.includes('sdg') || msg.includes('mission')) return "Mission 17 encourages residents to participate in Civic Tasks aligned with the 17 SDGs. Open 'Civic Tasks' in BrgyLink to view current activities. 🌍";
   if (msg.includes('document') || msg.includes('request')) return "To request a barangay document, go to 'Services' and select 'Document Requests'. Fill out the form and wait for approval. 📄";
   if (msg.includes('hello') || msg.includes('hi') || msg.includes('hey') || msg.includes('maong')) return "Mabuhay! 🏛️ Welcome to the official eGov Portal of Barangay Bagong Pag-asa. What can I help you with today?";
   if (msg.includes('thank') || msg.includes('salamat')) return "You're very welcome! Salamat! Let me know if you need anything else. 😊";

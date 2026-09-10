@@ -23,7 +23,6 @@ async function createUser() {
         lastName: 'Administrator',
         role: 'admin',
         accountStatus: 'approved',
-        points: 0,
         isVerified: true
       });
       await user.save();

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Search, ShieldCheck, FileSearch, XCircle } from 'lucide-react';
 import { endpoints } from '../config/api';
 import '../styles/DashboardHome.css'; // Reuse some basic styles
-import LegalFooter from '../components/LegalFooter';
 
 const PublicVerify = () => {
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -137,7 +136,6 @@ const PublicVerify = () => {
           </div>
         </div>
       )}
-      <LegalFooter />
     </div>
   );
 };

@@ -11,7 +11,6 @@
  *  DELETE /delete-user/:id          — Admin: delete a user
  *  GET    /user/:id                 — Resident: get own profile
  *  PUT    /update-profile/:id       — Resident: update own profile
- *  GET    /leaderboard              — Public: top 10 residents by points
  */
 
 import express from 'express';
@@ -45,7 +44,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
     if (status === 'pending') query.accountStatus = { $ne: 'approved' };
 
     const users = await User.find(query)
-      .select('-password')
+      .select('-password -points')
       .sort({ _id: -1 }) // Sort newest first
       .skip(skip)
       .limit(limit);
@@ -66,21 +65,17 @@ router.get('/users', verifyAdmin, async (req, res) => {
 
 // 2. ADMIN ADD USER
 router.post('/add-user', verifyAdmin, async (req, res) => {
-  const { username, email, password, role = 'resident', points = 0 } = req.body;
+  const { username, email, password, role = 'resident' } = req.body;
   try {
     const normalizedUsername = typeof username === 'string' ? username.trim() : '';
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
-    const normalizedPoints = Number(points);
 
     if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({ message: 'Username, email, and a password of at least six characters are required.' });
     }
     if (!['resident', 'lgu', 'admin'].includes(normalizedRole)) {
       return res.status(400).json({ message: 'Invalid role.' });
-    }
-    if (!Number.isInteger(normalizedPoints) || normalizedPoints < 0) {
-      return res.status(400).json({ message: 'Points must be a non-negative whole number.' });
     }
     if (await User.exists({ $or: [{ username: normalizedUsername }, { email: normalizedEmail }] })) {
       return res.status(409).json({ message: 'A user with that username or email already exists.' });
@@ -104,7 +99,6 @@ router.post('/add-user', verifyAdmin, async (req, res) => {
         username: normalizedUsername,
         email: normalizedEmail,
         role: normalizedRole,
-        points: normalizedPoints,
         firstName,
         lastName,
         accountStatus: 'approved',
@@ -147,13 +141,6 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
       }
       updateData.role = role;
     }
-    if (req.body.points !== undefined) {
-      const points = Number(req.body.points);
-      if (!Number.isInteger(points) || points < 0) {
-        return res.status(400).json({ message: 'Points must be a non-negative whole number.' });
-      }
-      updateData.points = points;
-    }
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ message: 'No permitted fields were provided.' });
     }
@@ -192,7 +179,7 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
         req.params.id,
         { $set: updateData },
         { new: true, runValidators: true }
-      );
+      ).select('-points');
     } catch (error) {
       if (firebaseEmailChanged && previousFirebaseEmail) {
         await getAuth().updateUser(userToUpdate.firebaseUid, { email: previousFirebaseEmail }).catch(() => {});
@@ -298,7 +285,7 @@ router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: you can only view your own profile.' });
     }
 
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select('-password -points');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (error) {
@@ -373,24 +360,11 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
     if (occupation !== undefined) updateData.occupation = occupation;
     if (educationalAttainment !== undefined) updateData.educationalAttainment = educationalAttainment;
 
-    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true });
+    const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true }).select('-points');
     logAudit(req.user._id, updatedUser.username, 'PROFILE_UPDATE', 'User updated profile information', req);
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Update failed' });
-  }
-});
-
-// 7. LEADERBOARD (Public)
-router.get('/leaderboard', async (req, res) => {
-  try {
-    const topUsers = await User.find({ role: { $ne: 'admin' } })
-      .select('username points')
-      .sort({ points: -1 })
-      .limit(10);
-    res.json(topUsers);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching leaderboard' });
   }
 });
 

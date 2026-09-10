@@ -135,7 +135,6 @@ const ReportGeneration = () => {
         <tr>
           <th>Title</th>
           <th>SDG</th>
-          <th>Points</th>
           <th>Status</th>
         </tr>
       );
@@ -183,7 +182,6 @@ const ReportGeneration = () => {
           <tr key={index}>
             <td>{item.title}</td>
             <td>{item.sdgCategory}</td>
-            <td>{item.points}</td>
             <td>{item.status || 'Active'}</td>
           </tr>
         );

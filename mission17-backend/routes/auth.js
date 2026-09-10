@@ -130,7 +130,7 @@ const sendWelcomeEmail = async (user) => {
         <div style="background-color: #ffffff; border-radius: 10px; padding: 40px; text-align: center; border: 1px solid #f3f4f6; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.01);">
           <h2 style="color: #374151; font-size: 20px; font-weight: 600; margin-top: 0; margin-bottom: 20px;">Welcome to Mission 17!</h2>
           <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">Hi <strong>${user.username}</strong>, your account has been successfully created!</p>
-          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">We are thrilled to have you on board. Get ready to start exploring, completing missions, and earning points!</p>
+          <p style="color: #4b5563; font-size: 16px; margin-bottom: 30px; line-height: 1.5;">We are thrilled to have you on board. Get ready to explore barangay services and participate in community activities!</p>
         </div>
         
         <div style="text-align: center; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
@@ -326,7 +326,6 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       email: email,
       // New accounts are always residents. Elevated roles require a protected admin process.
       role: 'resident',
-      points: 0,
       isVerified: decodedToken.email_verified || false,
       accountStatus: 'pending',
       legalConsent: createLegalConsentRecord(),

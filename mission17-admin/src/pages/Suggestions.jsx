@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/DashboardHome.css';
+import '../styles/AdminWorkspace.css';
 
 const QUICK_REPLIES = [
   "Thank you for your feedback! The Barangay Captain and Council have noted this.",
@@ -170,7 +171,7 @@ const Suggestions = () => {
         </div>
       )}
 
-      <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', paddingBottom: 0 }}>
+      <main className="main-content admin-workspace-page">
         
         {/* HEADER & SENTIMENT KPI OVERVIEW */}
         <header className="top-header" style={{ flexShrink: 0, marginBottom: '14px' }}>
@@ -187,7 +188,7 @@ const Suggestions = () => {
         </header>
 
         {/* ── SENTIMENT GAUGE SUMMARY CARDS ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 14, flexShrink: 0 }}>
+        <div className="feedback-summary-grid">
           {/* TOTAL */}
           <div style={{ background: '#ffffff', borderRadius: 12, padding: '14px 18px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -249,10 +250,10 @@ const Suggestions = () => {
         </div>
 
         {/* MASTER-DETAIL LAYOUT */}
-        <div style={{ display: 'flex', gap: '16px', flex: 1, overflow: 'hidden', paddingBottom: '16px' }}>
+        <div className="admin-workspace-split">
           
           {/* LEFT: FEEDBACK LIST (MASTER) */}
-          <div style={{ flex: '0 0 400px', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div className="admin-workspace-panel">
             
             {/* SEARCH & FILTERS */}
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
@@ -292,7 +293,7 @@ const Suggestions = () => {
             </div>
             
             {/* FEEDBACK ITEMS */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+            <div className="admin-workspace-scroll" style={{ padding: '10px' }}>
               {loading ? (
                 <div className="loading-state" style={{ marginTop: '40px' }}>Loading private feedback...</div>
               ) : filtered.length === 0 ? (
@@ -338,7 +339,7 @@ const Suggestions = () => {
           </div>
 
           {/* RIGHT: FEEDBACK DETAILS & OFFICIAL RESPONSE (DETAIL) */}
-          <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="admin-workspace-panel">
             {!selectedItem ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', padding: 30, textAlign: 'center' }}>
                 <MessageSquare size={52} style={{ marginBottom: '14px', opacity: 0.4 }} />
@@ -369,7 +370,7 @@ const Suggestions = () => {
                 </div>
 
                 {/* ITEM BODY (SCROLLABLE) */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                <div className="admin-workspace-scroll" style={{ padding: '24px' }}>
                   
                   {/* RESIDENT METADATA */}
                   <div style={{ display: 'flex', gap: '30px', marginBottom: '20px', backgroundColor: '#f8fafc', padding: '14px 18px', borderRadius: 10, border: '1px solid #e2e8f0' }}>

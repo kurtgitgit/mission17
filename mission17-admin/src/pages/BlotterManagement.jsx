@@ -3,6 +3,7 @@ import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, Use
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
+import '../styles/AdminWorkspace.css';
 import '../styles/DashboardHome.css';
 
 const LUPON_STAGES = [
@@ -150,6 +151,8 @@ const BlotterManagement = () => {
   const [updating, setUpdating] = useState(false);
   const [showKpModal, setShowKpModal] = useState(false);
   const [evidenceObjectUrl, setEvidenceObjectUrl] = useState(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(false);
+  const [evidenceError, setEvidenceError] = useState('');
 
   useEffect(() => {
     fetchReports();
@@ -157,26 +160,38 @@ const BlotterManagement = () => {
 
   useEffect(() => {
     let objectUrl;
+    let active = true;
+    const controller = new AbortController();
     const loadEvidence = async () => {
       if (!selectedReport?.evidenceUrl) {
         setEvidenceObjectUrl(null);
+        setEvidenceError('');
         return;
       }
+      setEvidenceLoading(true);
+      setEvidenceError('');
+      setEvidenceObjectUrl(null);
       try {
-        const response = await blotterApi.getEvidence(selectedReport._id);
+        const response = await blotterApi.getEvidence(selectedReport._id, controller.signal);
+        if (!active) return;
         objectUrl = URL.createObjectURL(response.data);
         setEvidenceObjectUrl(objectUrl);
       } catch (error) {
+        if (!active || error.code === 'ERR_CANCELED') return;
         console.error('Could not load protected evidence:', error);
         setEvidenceObjectUrl(null);
-        showNotification('Could not load protected evidence.', 'error');
+        setEvidenceError(error.response?.data?.message || 'The protected evidence is unavailable. It may not have been migrated to this server.');
+      } finally {
+        if (active) setEvidenceLoading(false);
       }
     };
     void loadEvidence();
     return () => {
+      active = false;
+      controller.abort();
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [selectedReport?._id, selectedReport?.evidenceUrl, showNotification]);
+  }, [selectedReport?._id, selectedReport?.evidenceUrl]);
 
   const fetchReports = async () => {
     try {
@@ -270,7 +285,7 @@ const BlotterManagement = () => {
       )}
 
       <Sidebar />
-      <main className="main-content" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', paddingBottom: 0 }}>
+      <main className="main-content admin-workspace-page">
         
         {/* HEADER */}
         <header className="top-header" style={{ flexShrink: 0, marginBottom: '16px' }}>
@@ -294,10 +309,10 @@ const BlotterManagement = () => {
         </header>
 
         {/* MASTER-DETAIL LAYOUT */}
-        <div style={{ display: 'flex', gap: '20px', flex: 1, overflow: 'hidden', paddingBottom: '20px' }}>
+        <div className="admin-workspace-split">
           
           {/* LEFT: CASE LIST (MASTER) */}
-          <div className="no-print" style={{ flex: '0 0 380px', display: 'flex', flexDirection: 'column', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+          <div className="no-print admin-workspace-panel">
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
               <div className="search-box" style={{ margin: 0, width: '100%' }}>
                 <Search size={18} color="#64748b" />
@@ -311,7 +326,7 @@ const BlotterManagement = () => {
               </div>
             </div>
             
-            <div style={{ flex: 1, overflowY: 'auto', padding: '10px' }}>
+            <div className="admin-workspace-scroll" style={{ padding: '10px' }}>
               {loading ? (
                 <div className="loading-state" style={{ marginTop: '50px' }}>Loading cases...</div>
               ) : filteredReports.length === 0 ? (
@@ -362,7 +377,7 @@ const BlotterManagement = () => {
           </div>
 
           {/* RIGHT: CASE DETAILS (DETAIL) */}
-          <div style={{ flex: 1, background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="admin-workspace-panel">
             {!selectedReport ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
                 <FileText size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -407,7 +422,7 @@ const BlotterManagement = () => {
                 </div>
 
                 {/* CASE BODY (SCROLLABLE) */}
-                <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+                <div className="admin-workspace-scroll" style={{ padding: '24px' }}>
                   
                   {/* COMAPLAINANT VS RESPONDENT CARD */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -473,7 +488,15 @@ const BlotterManagement = () => {
                   {/* EVIDENCE */}
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Photo Proof / Attachment</h3>
-                    {selectedReport.evidenceUrl ? (
+                    {selectedReport.evidenceUrl && evidenceLoading ? (
+                      <div role="status" style={{ padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '8px', color: '#1d4ed8', fontSize: '13px' }}>
+                        Loading protected evidence...
+                      </div>
+                    ) : selectedReport.evidenceUrl && evidenceError ? (
+                      <div role="alert" style={{ padding: '12px 16px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#991b1b', fontSize: '13px' }}>
+                        {evidenceError}
+                      </div>
+                    ) : selectedReport.evidenceUrl && evidenceObjectUrl ? (
                       <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', background: '#f8fafc', display: 'inline-block', padding: '10px' }}>
                         <img 
                           src={evidenceObjectUrl || undefined}

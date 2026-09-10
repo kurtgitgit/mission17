@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { GlobalState, endpoints, formatImageUri, getAuthHeadersIfAvailable } from '../config/api';
 import { LinearGradient } from 'expo-linear-gradient'; 
-import { MapPin, Clock, X, Calendar, Target, CheckCircle, Award, Sparkles, ArrowLeft } from 'lucide-react-native';
+import { MapPin, Clock, X, Calendar, Target, CheckCircle, Sparkles, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { sharedStyles } from '../config/theme';
@@ -102,7 +102,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
 
   const handlePressMission = (item: any) => {
     if (!userId) {
-      showNotification({ message: "Please log in to participate and earn points.", type: "info" });
+      showNotification({ message: "Please log in to participate in civic tasks.", type: "info" });
     }
     navigation.navigate('MissionDetail', { mission: item, userId: userId });
   };
@@ -136,12 +136,6 @@ const MissionsScreen = ({ navigation, route }: any) => {
              <View style={styles.badgeSdg}>
                <Text style={styles.badgeText}>SDG {item.sdgNumber || '17'}</Text>
              </View>
-             {item.points ? (
-               <View style={styles.badgePoints}>
-                 <Award size={13} color="#b45309" />
-                 <Text style={styles.badgePointsText}>+{item.points} Points</Text>
-               </View>
-             ) : null}
           </View>
           
           <View>
@@ -443,18 +437,6 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 8,
   },
-  badgePoints: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#fde68a',
-  },
-  badgePointsText: { color: '#b45309', fontWeight: '800', fontSize: 12 },
   badgeText: { color: '#ffffff', fontWeight: '800', fontSize: 12 },
 
   cardTitle: { color: '#ffffff', fontSize: 20, fontWeight: '900', marginBottom: 4, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },

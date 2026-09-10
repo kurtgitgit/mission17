@@ -15,7 +15,7 @@ Release wording: **Subject to Barangay Bagong Pag-asa review and approval before
 | Valid-ID and profile uploads | account-review evidence | upload service and User record |
 | Document requests | process resident requests and show status | document-request records |
 | Blotter reports and evidence | receive, review, and track reports | blotter records |
-| Mission proof and civic activity | manual mission verification and points workflow | submissions and mission records |
+| Mission proof and civic activity | manual mission verification and participation history | submissions and mission records |
 | Feedback/suggestions | receive resident feedback | suggestion records |
 | Expo notification token | account-review and service updates | User record / Expo delivery |
 | Audit/security records | investigate authorized changes and protect the system | audit-log records |

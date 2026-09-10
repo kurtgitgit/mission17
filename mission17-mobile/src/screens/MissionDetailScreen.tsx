@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Image, ScrollView,
   Platform, SafeAreaView, ActivityIndicator, StatusBar, Dimensions
 } from 'react-native';
-import { Camera, ArrowLeft, CheckCircle, ShieldCheck, AlertCircle, RefreshCw, UploadCloud, Award } from 'lucide-react-native';
+import { Camera, ArrowLeft, CheckCircle, ShieldCheck, AlertCircle, RefreshCw, UploadCloud } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
@@ -201,12 +201,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
             <View style={styles.sdgTag}>
               <Text style={styles.sdgTagText}>SDG {mission.sdgNumber || '17'}</Text>
             </View>
-            {mission.points ? (
-              <View style={styles.pointsTag}>
-                <Award size={12} color="#B45309" />
-                <Text style={styles.pointsTagText}>+{mission.points} Points</Text>
-              </View>
-            ) : null}
           </View>
           <Text style={styles.heroTitle}>{mission.title}</Text>
         </View>
@@ -239,7 +233,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
 
             <View style={styles.guideRow}>
               <ShieldCheck size={15} color="#0038A8" style={{ marginTop: 2 }} />
-              <Text style={styles.guideText}>Approved submissions are officially credited to your citizen record.</Text>
+              <Text style={styles.guideText}>Approved submissions are recorded in your participation history.</Text>
             </View>
           </View>
         </View>
@@ -332,18 +326,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   sdgTagText: { color: '#FFFFFF', fontWeight: '800', fontSize: 11, letterSpacing: 0.5 },
-  pointsTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  pointsTagText: { color: '#B45309', fontWeight: '800', fontSize: 11 },
   heroTitle: {
     color: '#FFFFFF',
     fontSize: 22,

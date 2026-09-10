@@ -11,7 +11,8 @@ const SubmissionSchema = new mongoose.Schema({
   imageUri: String, 
   
   status: { type: String, default: 'Pending' }, // Pending, Approved, Rejected
-  points: { type: Number, default: 0 }, // Added points field
+  // Legacy field retained so historical submissions require no migration.
+  points: { type: Number, select: false },
   rejectionReason: { type: String },
   blockchainTxHash: { type: String },
   createdAt: { type: Date, default: Date.now, index: true } // ⚡ Added index for sorting

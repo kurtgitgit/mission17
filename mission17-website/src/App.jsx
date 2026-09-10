@@ -198,7 +198,7 @@ function App() {
             
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
               {[
-                { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Bagong Pag-asa Plaza for our monthly cleanup drive. Earn SDG points via the Mission 17 App.' },
+                { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Bagong Pag-asa Plaza for our monthly community cleanup drive.' },
                 { title: 'New Barangay ID System Rollout', date: 'Oct 10, 2026', desc: 'Request your new PVC Barangay ID directly through the mobile app Document Request feature.' },
                 { title: 'Barangay Assembly Meeting', date: 'Oct 05, 2026', desc: 'All residents are invited to the bi-annual barangay assembly at the covered court.' }
               ].map((news, idx) => (

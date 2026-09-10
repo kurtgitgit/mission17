@@ -57,8 +57,16 @@ app.use(express.json());
 app.use('/api/blotter-reports', blotterRouter);
 
 describe('Blotter Reports API (IDOR & RBAC)', () => {
+  const originalFetch = global.fetch;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.CLOUDINARY_CLOUD_NAME = 'mission17-test';
+    global.fetch = jest.fn();
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
   });
 
   describe('GET /api/blotter-reports/my/:userId', () => {
@@ -140,6 +148,47 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
         .set('x-mock-user-role', 'admin'); // requester is admin
       
       expect(res.status).not.toBe(403);
+    });
+
+    it('should proxy an approved Cloudinary image for an administrator', async () => {
+      BlotterReport.findById.mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          userId: 'user999',
+          evidenceUrl: 'https://res.cloudinary.com/mission17-test/image/upload/v1/blotter/evidence.webp'
+        })
+      });
+      global.fetch.mockResolvedValue({
+        ok: true,
+        headers: {
+          get: jest.fn((name) => name === 'content-type' ? 'image/webp' : '4')
+        },
+        arrayBuffer: jest.fn().mockResolvedValue(Uint8Array.from([1, 2, 3, 4]).buffer)
+      });
+
+      const res = await request(app)
+        .get('/api/blotter-reports/reportABC/evidence')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin');
+
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('image/webp');
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should reject external evidence hosts without fetching them', async () => {
+      BlotterReport.findById.mockReturnValue({
+        select: jest.fn().mockResolvedValue({
+          userId: 'user123',
+          evidenceUrl: 'https://example.com/private.jpg'
+        })
+      });
+
+      const res = await request(app)
+        .get('/api/blotter-reports/reportABC/evidence')
+        .set('x-mock-user-id', 'user123');
+
+      expect(res.status).toBe(404);
+      expect(global.fetch).not.toHaveBeenCalled();
     });
   });
 });

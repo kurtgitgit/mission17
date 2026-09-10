@@ -50,6 +50,6 @@ graph TD
 - **Role:** Hosted independently on Hugging Face Spaces. It runs a custom Convolutional Neural Network (CNN) to verify user-uploaded images for SDG missions and includes an anti-cheat system to detect duplicate images.
 
 ### 5. Third-Party Integrations
-- **Database:** MongoDB (User data, reports, points).
+- **Database:** MongoDB (user data, service requests, reports, and civic participation records).
 - **Blockchain:** Ethereum Sepolia Testnet (Ethers.js is used to immutably record resolved blotter reports using a Gasless Sponsor Wallet).
 - **LLM:** Groq API running LLaMA 3 for lightning-fast chatbot responses in the mobile app.

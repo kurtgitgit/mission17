@@ -149,7 +149,7 @@ const PostCard = React.memo(({ item }: { item: any }) => {
                 Join Green Action (SDG {item.relatedSdg})
               </Text>
               <Text style={{ fontSize: 11, color: '#15803D', marginTop: 1 }}>
-                Participate in this program & earn civic points!
+                Participate in this community program.
               </Text>
             </View>
           </View>

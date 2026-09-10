@@ -27,8 +27,7 @@ const Users = () => {
     username: '',
     email: '',
     password: '',
-    role: 'Resident', // Default
-    points: 0
+    role: 'Resident' // Default
   });
 
   // MODAL STATE
@@ -95,7 +94,7 @@ const Users = () => {
 
   const openAddModal = () => {
     setIsEditing(false);
-    setFormData({ username: '', email: '', password: '', role: 'Resident', points: 0 });
+    setFormData({ username: '', email: '', password: '', role: 'Resident' });
     setShowModal(true);
   };
 
@@ -106,8 +105,7 @@ const Users = () => {
       username: user.username,
       email: user.email,
       password: '', // Keep empty unless changing
-      role: user.role || 'Resident',
-      points: user.points || 0
+      role: user.role || 'Resident'
     });
     setShowModal(true);
   };
@@ -310,8 +308,8 @@ const Users = () => {
                   </div>
                 )}
 
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                <div>
+                  <div style={styles.fieldGroup}>
                     <label style={styles.label}>Role</label>
                     <select name="role" value={formData.role} onChange={handleChange} style={{ ...styles.input, width: '100%' }}>
                       <option value="resident">Resident</option>
@@ -320,15 +318,6 @@ const Users = () => {
                     </select>
                   </div>
 
-                  <div style={styles.fieldGroup}>
-                    <label style={styles.label}>Points</label>
-                    {isEditing
-                      ? <div style={{ ...styles.input, width: '80px', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed', userSelect: 'none' }}>
-                        {formData.points}
-                      </div>
-                      : <input type="number" name="points" placeholder="0" value={formData.points} onChange={handleChange} style={{ ...styles.input, width: '80px' }} />
-                    }
-                  </div>
                 </div>
 
                 <button type="submit" style={styles.submitBtn}>
@@ -363,14 +352,13 @@ const Users = () => {
                 <th style={styles.th}>Name / Org</th>
                 <th style={styles.th}>Email</th>
                 <th style={styles.th}>Role</th>
-                <th style={styles.th}>Points</th>
                 <th style={styles.th}>Status</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="6" style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
+                <tr><td colSpan="5" style={{ padding: '20px', textAlign: 'center' }}>Loading...</td></tr>
               ) : users.length > 0 ? (
                 users.map((user) => {
                   const badge = getRoleBadgeStyle(user.role);
@@ -402,7 +390,6 @@ const Users = () => {
                           {user.role || 'Resident'}
                         </span>
                       </td>
-                      <td style={styles.td}>{user.points || 0}</td>
                       <td style={styles.td}>
                         {user.accountStatus === 'approved' ? (
                           <span style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#16a34a', fontWeight: '600', fontSize: '13px' }}>
@@ -450,7 +437,7 @@ const Users = () => {
                   );
                 })
               ) : (
-                <tr><td colSpan="6" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No users found matching "{searchTerm}"</td></tr>
+                <tr><td colSpan="5" style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No users found matching "{searchTerm}"</td></tr>
               )}
             </tbody>
           </table>

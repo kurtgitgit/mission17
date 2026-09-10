@@ -26,7 +26,6 @@ const Missions = () => {
   const [formData, setFormData] = useState({
     title: '',
     sdgNumber: '',
-    points: '',
     description: '',
     color: '#3b82f6',
     image: ''
@@ -206,7 +205,7 @@ const Missions = () => {
 
   const openAddForm = () => {
     setIsEditing(false);
-    setFormData({ title: '', sdgNumber: '', points: '', description: '', color: '#3b82f6', image: '' });
+    setFormData({ title: '', sdgNumber: '', description: '', color: '#3b82f6', image: '' });
     setShowForm(true);
     setAiSuggestions([]);
   };
@@ -217,7 +216,6 @@ const Missions = () => {
     setFormData({
       title: mission.title,
       sdgNumber: mission.sdgNumber,
-      points: mission.points,
       description: mission.description || '',
       color: mission.color || '#3b82f6',
       image: mission.image || ''
@@ -342,12 +340,8 @@ const Missions = () => {
                 </div>
               </div>
               
-              <div style={{display: 'flex', gap: '20px', marginBottom: '15px'}}>
-                <div style={{flex: 1}}>
-                  <label style={styles.label}>Points</label>
-                  <input type="number" name="points" value={formData.points} onChange={handleInputChange} required placeholder="100" style={styles.input} />
-                </div>
-                <div style={{flex: 1}}>
+              <div style={{marginBottom: '15px'}}>
+                <div>
                   <label style={styles.label}>Theme Color</label>
                   <div style={{display: 'flex', alignItems: 'center', gap: '10px', height: '42px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '0 10px'}}>
                     <input type="color" name="color" value={formData.color} onChange={handleInputChange} style={{border: 'none', background: 'none', width: '30px', height: '30px', cursor: 'pointer'}} />
@@ -449,13 +443,12 @@ const Missions = () => {
                 <th style={styles.th}>Image</th>
                 <th style={styles.th}>Title</th>
                 <th style={styles.th}>Goal</th>
-                <th style={styles.th}>Points</th>
                 <th style={styles.th}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="5" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
+                <tr><td colSpan="4" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
               ) : missions.length > 0 ? (
                 missions.map((mission) => (
                   <tr key={mission._id} style={{borderBottom: '1px solid #f1f5f9'}}>
@@ -474,7 +467,6 @@ const Missions = () => {
                         SDG {mission.sdgNumber}
                       </span>
                     </td>
-                    <td style={styles.td}>{mission.points} pts</td>
                     <td style={styles.td}>
                       <div style={{display: 'flex', gap: '8px'}}>
                         <button onClick={() => openEditForm(mission)} style={styles.actionBtn('#3b82f6')} title="Edit"><Edit size={18} /></button>
@@ -484,7 +476,7 @@ const Missions = () => {
                   </tr>
                 ))
               ) : (
-                <tr><td colSpan="5" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No missions found matching "{searchTerm}"</td></tr>
+                <tr><td colSpan="4" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No missions found matching "{searchTerm}"</td></tr>
               )}
             </tbody>
           </table>

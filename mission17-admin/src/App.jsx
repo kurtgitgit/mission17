@@ -15,7 +15,6 @@ import Verify from './pages/Verify/Verify';
 import AuditLogs from './pages/AuditLogs/AuditLogs';
 import LegalPage from './pages/LegalPage';
 import EssentialStorageNotice from './components/EssentialStorageNotice';
-import AccessibilityControls from './components/AccessibilityControls';
 
 // 🏛️ New Barangay Portal Admin Pages
 import Announcements from './pages/Announcements';
@@ -77,7 +76,6 @@ function App() {
 
     <NotificationProvider>
       <Router>
-        <AccessibilityControls />
         <EssentialStorageNotice />
         <Routes>
           {/* Public Routes */}

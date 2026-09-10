@@ -7,7 +7,7 @@
  *  POST /submit-mission           — Resident submits a mission
  *  GET  /pending-submissions      — Admin: get pending + auto-run AI on unanalyzed ones
  *  GET  /submissions?status=      — Admin: get Approved | Rejected submissions (no imageUri)
- *  POST /approve-mission          — Admin: approve a submission + award blockchain points
+ *  POST /approve-mission          — Admin: approve a submission
  *  POST /reject-mission           — Admin: reject a submission
  *  POST /analyze-proof            — Admin: manually (re-)analyze a submission with AI
  *  GET  /user-submissions/:userId — Resident: get own submission history (no imageUri)
@@ -84,19 +84,15 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
         finalImageUri = image;
     }
 
-    // Fetch points from Mission or Event
-    let points = 0;
     let missionTitle = '';
     if (type === 'Event') {
       const Event = mongoose.model('Event');
       const event = await Event.findById(missionId);
       if (!event) return res.status(404).json({ message: 'Event not found.' });
-      points = event.points || 0;
       missionTitle = event.title;
     } else {
       const mission = await Mission.findById(missionId);
       if (!mission) return res.status(404).json({ message: 'Mission not found.' });
-      points = mission.points || 0;
       missionTitle = mission.title;
     }
 
@@ -108,7 +104,6 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
       type: type || 'Mission',
       imageUri: finalImageUri,
       status: req.missionStatus || 'Pending',
-      points: points, // Save points in submission
     });
 
     await newSubmission.save();
@@ -140,7 +135,7 @@ router.get('/user-submissions/:userId', verifyAuthenticatedUser, async (req, res
 
     // ⚡ .select('-imageUri') — omit heavy base64 from list response
     const submissions = await Submission.find({ userId })
-      .select('-imageUri')
+      .select('-imageUri -points')
       .sort({ createdAt: -1 })
       .limit(50);
 
@@ -168,6 +163,7 @@ router.get('/pending-submissions', verifyAdmin, async (req, res) => {
     const submissions = await Submission.find({
       status: { $in: ['Pending', 'Pending Admin Review'] },
     })
+      .select('-points')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -295,7 +291,7 @@ router.get('/submissions', verifyAdmin, async (req, res) => {
 
   try {
     const submissions = await Submission.find({ status })
-      .select('-imageUri') // ⚡ Bandwidth fix
+      .select('-imageUri -points') // ⚡ Bandwidth fix
       .sort({ createdAt: -1 });
 
     res.json(submissions);
@@ -327,7 +323,7 @@ router.post('/approve-mission', verifyAdmin, async (req, res) => {
     const notification = new Notification({
       userId: user._id,
       title: '✅ Civic Task Approved!',
-      message: `Your proof for "${sub.missionTitle || 'Civic Task'}" has been verified and recorded on the blockchain. Thank you for your contribution to Barangay Bagong Pag-asa!`,
+      message: `Your proof for "${sub.missionTitle || 'Civic Task'}" has been verified by an administrator and recorded in your participation history. Thank you for your contribution to Barangay Bagong Pag-asa!`,
       type: 'success'
     });
 
@@ -454,7 +450,7 @@ router.get('/analytics-stats', verifyAdmin, async (_req, res) => {
   try {
     const [submissions, reports] = await Promise.all([
       Submission.find()
-        .select('status createdAt missionId missionTitle type points')
+        .select('status createdAt missionId missionTitle type')
         .sort({ createdAt: -1 })
         .lean(),
       AnalysisReport.find({ sdg: { $type: 'string', $ne: '' } })
@@ -495,7 +491,6 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
       missionCount,
       pendingCount,
       completedCount,
-      topAgents,
       recentPending,
     ] = await Promise.all([
       // Stats — countDocuments is O(1) with indexes, no docs loaded into memory
@@ -503,13 +498,6 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
       Mission.countDocuments(),
       Submission.countDocuments({ status: { $in: PENDING_STATUSES } }),
       Submission.countDocuments({ status: 'Approved' }),
-
-      // Top 5 by points — only username + points fetched
-      User.find()
-      .select('username points')
-      .sort({ points: -1 })
-      .limit(5)
-      .lean(),
 
       // Last 5 pending submissions — only display fields, no imageUri
       Submission.find({ status: { $in: PENDING_STATUSES } })
@@ -554,7 +542,6 @@ router.get('/dashboard-summary', verifyAdmin, async (req, res) => {
         pending: pendingCount,
         completed: completedCount,
       },
-      topAgents,
       recentPending,
       chartData: chartDataArray
     };
@@ -583,12 +570,10 @@ router.get('/sdg-impact-counter', async (req, res) => {
     let treePlantingCount = 0;
     let wasteRecyclingCount = 0;
     let cleanUpCount = 0;
-    let totalPointsAwarded = 0;
     const participantSet = new Set();
     const sdgCounts = {};
 
     approvedSubmissions.forEach(sub => {
-      totalPointsAwarded += (sub.points || 0);
       if (sub.userId) participantSet.add(sub.userId.toString());
 
       const m = sub.missionId ? missionMap[sub.missionId] : null;
@@ -623,7 +608,6 @@ router.get('/sdg-impact-counter', async (req, res) => {
 
     res.json({
       totalVerifiedActions: approvedSubmissions.length,
-      totalPointsAwarded,
       activeParticipants: participantSet.size,
       treePlantingCount,
       wasteRecyclingCount,

@@ -157,7 +157,6 @@ const EventDetailScreen = ({ route, navigation }: any) => {
         <View style={styles.section}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
             <Text style={styles.sectionTitle}>Event Details</Text>
-            {event.points ? <Text style={styles.pointsHighlight}>{event.points} Points</Text> : null}
           </View>
 
           <View style={styles.infoRow}><Calendar size={18} color="#64748b" /><Text style={styles.infoText}>{prettyDate}</Text></View>
@@ -218,7 +217,6 @@ const styles = StyleSheet.create({
   content: { padding: 25, paddingBottom: 50 },
   section: { marginBottom: 30 },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: '#0f172a' },
-  pointsHighlight: { fontSize: 16, fontWeight: '800', color: '#16a34a' },
   description: { fontSize: 15, color: '#475569', lineHeight: 24, marginBottom: 15, marginTop: 10 },
 
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8 },

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Platform,
-  RefreshControl, StatusBar
+  RefreshControl, StatusBar, KeyboardAvoidingView
 } from 'react-native';
 import { ArrowLeft, Send, CheckCircle, Clock, Check, X, Lightbulb, AlertCircle } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -30,6 +30,13 @@ const SuggestionScreen = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const formScrollRef = useRef<ScrollView>(null);
+  const descriptionInputRef = useRef<TextInput>(null);
+
+  const revealDetailedConcern = () => {
+    // Wait for the keyboard animation and resized viewport before scrolling.
+    setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), Platform.OS === 'android' ? 250 : 100);
+  };
 
   const fetchHistory = useCallback(async () => {
     if (!GlobalState.userId) return;
@@ -159,8 +166,19 @@ const SuggestionScreen = () => {
         </View>
       </View>
 
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       {activeTab === 'submit' ? (
-        <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          ref={formScrollRef}
+          contentContainerStyle={[styles.container, styles.formContainer]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        >
           {/* CONFIDENTIALITY NOTICE */}
           <View style={{
             backgroundColor: '#EFF6FF',
@@ -253,10 +271,15 @@ const SuggestionScreen = () => {
               <Text style={styles.label}>Subject / Title <Text style={styles.requiredStar}>*</Text></Text>
               <TextInput
                 style={[styles.inputBox, errors.title ? styles.inputBoxError : null]}
-                placeholder="e.g. Broken streetlamp at corner of Purok 2 / Clean-up drive suggestion"
+                placeholder="e.g. Broken streetlamp on Purok 2"
                 placeholderTextColor="#94a3b8"
                 value={title}
                 onChangeText={(t) => { setTitle(t); setErrors(e => ({ ...e, title: '' })); }}
+                maxLength={100}
+                multiline={false}
+                numberOfLines={1}
+                returnKeyType="next"
+                onSubmitEditing={() => descriptionInputRef.current?.focus()}
                 accessibilityLabel="Suggestion title"
               />
               {errors.title ? <Text style={styles.errorText}>{errors.title}</Text> : null}
@@ -269,6 +292,7 @@ const SuggestionScreen = () => {
                 <Text style={styles.charCount}>{description.length}/500</Text>
               </View>
               <TextInput
+                ref={descriptionInputRef}
                 style={[styles.textArea, errors.description ? styles.inputBoxError : null]}
                 placeholder="Describe your suggestion, complaint, or observation for the Barangay Captain..."
                 placeholderTextColor="#94a3b8"
@@ -277,6 +301,7 @@ const SuggestionScreen = () => {
                 maxLength={500}
                 value={description}
                 onChangeText={(t) => { setDescription(t); setErrors(e => ({ ...e, description: '' })); }}
+                onFocus={revealDetailedConcern}
                 textAlignVertical="top"
                 accessibilityLabel="Detailed Suggestion description"
               />
@@ -322,8 +347,8 @@ const SuggestionScreen = () => {
 
         <ScrollView
           contentContainerStyle={styles.container}
-
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />
           }
@@ -386,12 +411,14 @@ const SuggestionScreen = () => {
           )}
         </ScrollView>
       )}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f1f5f9' },
+  keyboardArea: { flex: 1 },
 
   // SEGMENT STRIP
   segmentStrip: {
@@ -432,6 +459,7 @@ const styles = StyleSheet.create({
   },
 
   container: { padding: 14, paddingBottom: 60 },
+  formContainer: { paddingBottom: 180 },
 
   card: {
     backgroundColor: '#ffffff',

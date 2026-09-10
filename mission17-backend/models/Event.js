@@ -6,7 +6,8 @@ const EventSchema = new mongoose.Schema({
   time: { type: String, required: true },
   location: { type: String, required: true },
   color: { type: String, default: '#3b82f6' },
-  points: { type: Number, default: 0 },
+  // Legacy field retained so old documents remain readable.
+  points: { type: Number, select: false },
   description: { type: String },
   image: { type: String }
 }, { timestamps: true });

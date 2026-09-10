@@ -30,7 +30,6 @@ const Events = () => {
         time: '', 
         location: '',
         color: '#3b82f6',
-        points: '',
         description: '',
         image: ''
     });
@@ -111,7 +110,7 @@ const Events = () => {
 
     const openAddForm = () => {
         setIsEditing(false);
-        setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6', points: '', description: '', image: '' });
+        setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6', description: '', image: '' });
         setShowForm(true);
     };
 
@@ -124,7 +123,6 @@ const Events = () => {
             time: event.time,
             location: event.location,
             color: event.color || '#3b82f6',
-            points: event.points || '',
             description: event.description || '',
             image: event.image || ''
         });
@@ -253,10 +251,6 @@ const Events = () => {
                                     <label style={styles.label}>Time</label>
                                     <input type="time" name="time" value={formData.time} onChange={handleInputChange} required style={styles.input} />
                                 </div>
-                                <div style={{flex: 1}}>
-                                    <label style={styles.label}>Points</label>
-                                    <input type="number" name="points" value={formData.points} onChange={handleInputChange} placeholder="100" style={styles.input} />
-                                </div>
                             </div>
 
                             <div style={{display: 'flex', gap: '20px', marginBottom: '15px'}}>
@@ -327,13 +321,12 @@ const Events = () => {
                                 <th style={styles.th}>Title</th>
                                 <th style={styles.th}>Date & Time</th>
                                 <th style={styles.th}>Location</th>
-                                <th style={styles.th}>Points</th>
                                 <th style={styles.th}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
+                                <tr><td colSpan="5" style={{padding: '30px', textAlign: 'center'}}>Loading...</td></tr>
                             ) : events.length > 0 ? (
                                 events.map((event) => (
                                     <tr key={event._id} style={{borderBottom: '1px solid #f1f5f9'}}>
@@ -361,7 +354,6 @@ const Events = () => {
                                         <td style={styles.td}>
                                             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><MapPin size={14} color="#64748b"/> {event.location}</span>
                                         </td>
-                                        <td style={styles.td}>{event.points ? `${event.points} pts` : '-'}</td>
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', gap: '8px'}}>
                                                 <button onClick={() => openEditForm(event)} style={styles.actionBtn('#3b82f6')} title="Edit"><Edit size={18} /></button>
@@ -371,7 +363,7 @@ const Events = () => {
                                     </tr>
                                 ))
                             ) : (
-                                <tr><td colSpan="6" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No events found matching "{searchTerm}"</td></tr>
+                                <tr><td colSpan="5" style={{padding: '30px', textAlign: 'center', color: '#64748b'}}>No events found matching "{searchTerm}"</td></tr>
                             )}
                         </tbody>
                     </table>

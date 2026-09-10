@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 const MissionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   sdgNumber: { type: Number, required: true },
-  points: { type: Number, required: true },
+  // Retained for backward compatibility with existing records. New missions
+  // no longer expose or use the former rewards system.
+  points: { type: Number, select: false },
   description: { type: String },
   color: { type: String },
   

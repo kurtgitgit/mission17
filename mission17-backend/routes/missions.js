@@ -9,6 +9,11 @@ import { uploadCloudinary } from '../utils/cloudinary.js';
 
 const router = express.Router();
 
+const getMissionData = (body = {}) => {
+  const allowedFields = ['title', 'sdgNumber', 'description', 'color', 'image', 'isActive'];
+  return Object.fromEntries(allowedFields.filter(field => body[field] !== undefined).map(field => [field, body[field]]));
+};
+
 // POST /upload — Admin: Upload a mission/event image to Cloudinary
 // Called by admin when user picks an image file in the Missions or Events form
 router.post('/upload', verifyAdmin, uploadCloudinary.single('image'), asyncHandler(async (req, res) => {
@@ -54,14 +59,16 @@ router.get('/all-missions', asyncHandler(async (req, res) => {
 // POST /add-mission — Admin
 router.post('/add-mission', verifyAdmin, asyncHandler(async (req, res) => {
   if (!req.body.title) return res.status(400).json({ message: 'Mission title is required.' });
-  const mission = await Mission.create(req.body);
+  const missionData = getMissionData(req.body);
+  const mission = await Mission.create(missionData);
   logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_CREATE', `Created mission: ${mission.title}`, req);
   res.status(201).json({ message: 'Mission created!', mission });
 }));
 
 // PUT /update-mission/:id — Admin
 router.put('/update-mission/:id', verifyAdmin, asyncHandler(async (req, res) => {
-  const mission = await Mission.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+  const missionData = getMissionData(req.body);
+  const mission = await Mission.findByIdAndUpdate(req.params.id, missionData, { new: true, runValidators: true });
   if (!mission) return res.status(404).json({ message: 'Mission not found.' });
   logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_UPDATE', `Updated mission: ${mission.title}`, req);
   res.json(mission);

@@ -22,6 +22,23 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
+const MAX_REMOTE_EVIDENCE_BYTES = 8 * 1024 * 1024;
+
+const isApprovedCloudinaryEvidenceUrl = (value) => {
+  try {
+    const url = new URL(value);
+    const configuredCloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim();
+    const [cloudName, resourceType, deliveryType] = url.pathname.split('/').filter(Boolean);
+    return url.protocol === 'https:'
+      && url.hostname === 'res.cloudinary.com'
+      && Boolean(configuredCloudName)
+      && cloudName === configuredCloudName
+      && resourceType === 'image'
+      && deliveryType === 'upload';
+  } catch {
+    return false;
+  }
+};
 
 // POST / — Resident: Submit a new blotter report
 export const submitReport = asyncHandler(async (req, res) => {
@@ -93,19 +110,51 @@ export const getEvidence = asyncHandler(async (req, res) => {
     return res.status(403).json({ message: 'Forbidden: you cannot view this evidence.' });
   }
 
-  if (!report.evidenceUrl.startsWith('/uploads/')) {
-    return res.status(404).json({ message: 'Private local evidence not found.' });
-  }
-
-  const filename = path.basename(report.evidenceUrl);
-  const filePath = path.join(UPLOADS_DIR, filename);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: 'Evidence file not found.' });
-  }
-
   res.set('Cache-Control', 'private, no-store');
   res.set('X-Content-Type-Options', 'nosniff');
-  return res.sendFile(filePath);
+
+  if (report.evidenceUrl.startsWith('/uploads/')) {
+    const filename = path.basename(report.evidenceUrl);
+    const filePath = path.join(UPLOADS_DIR, filename);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'Evidence file not found on this server.' });
+    }
+    return res.sendFile(filePath);
+  }
+
+  // Legacy records may reference this project's Cloudinary account. Proxy the
+  // image through the authenticated endpoint so the admin UI never bypasses
+  // the owner/admin authorization above. The strict allowlist prevents SSRF.
+  if (isApprovedCloudinaryEvidenceUrl(report.evidenceUrl)) {
+    let upstream;
+    try {
+      upstream = await fetch(report.evidenceUrl, {
+        redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      return res.status(502).json({ message: 'Evidence storage could not be reached.' });
+    }
+
+    const contentType = upstream.headers.get('content-type') || '';
+    const declaredSize = Number(upstream.headers.get('content-length') || 0);
+    if (!upstream.ok || !contentType.toLowerCase().startsWith('image/')) {
+      return res.status(404).json({ message: 'Evidence image was not found in protected storage.' });
+    }
+    if (declaredSize > MAX_REMOTE_EVIDENCE_BYTES) {
+      return res.status(413).json({ message: 'Evidence image is too large to display.' });
+    }
+
+    const evidenceBuffer = Buffer.from(await upstream.arrayBuffer());
+    if (evidenceBuffer.length > MAX_REMOTE_EVIDENCE_BYTES) {
+      return res.status(413).json({ message: 'Evidence image is too large to display.' });
+    }
+
+    res.type(contentType);
+    return res.send(evidenceBuffer);
+  }
+
+  return res.status(404).json({ message: 'Evidence storage location is unsupported or no longer available.' });
 });
 
 // GET / — Admin: Get all reports (with optional status filter and pagination)

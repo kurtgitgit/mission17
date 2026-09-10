@@ -48,6 +48,8 @@ jest.unstable_mockModule('./utils/cloudinary.js', () => ({
 // 4. Import the real app components
 const { default: authRoutes } = await import('./routes/auth.js');
 const { default: submissionsRoutes } = await import('./routes/submissions.js');
+const { default: missionRoutes } = await import('./routes/missions.js');
+const { default: userRoutes } = await import('./routes/users.js');
 const { default: User } = await import('./models/User.js');
 const { default: Submission } = await import('./models/Submission.js');
 const { default: Mission } = await import('./models/Mission.js');
@@ -56,6 +58,8 @@ const app = express();
 app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/auth', submissionsRoutes);
+app.use('/api/auth', missionRoutes);
+app.use('/api/auth', userRoutes);
 
 describe('E2E Staging Verification - Resident and Admin Flows', () => {
   let adminToken = 'fake-admin-token';
@@ -99,7 +103,6 @@ describe('E2E Staging Verification - Resident and Admin Flows', () => {
     const mission = await Mission.create({
       title: 'Plant a tree',
       description: 'Help the environment',
-      points: 50,
       sdgNumber: 15
     });
     missionId = mission._id;
@@ -130,6 +133,7 @@ describe('E2E Staging Verification - Resident and Admin Flows', () => {
     expect(res.status).toBe(200);
     expect(res.body.message).toBe('Mission submitted for review!');
     expect(res.body.submission.status).toBe('Pending');
+    expect(res.body.submission.points).toBeUndefined();
   });
 
   it('Resident token should be rejected when accessing admin endpoints', async () => {
@@ -141,6 +145,26 @@ describe('E2E Staging Verification - Resident and Admin Flows', () => {
 
     expect(res.status).toBe(403);
     expect(res.body.message).toBe('Forbidden: administrators only.');
+  });
+
+  it('Mission creation ignores legacy points input and does not expose rewards', async () => {
+    mockVerifyIdToken.mockResolvedValue({ uid: 'adminUid', email: 'admin@mission17.com' });
+
+    const createRes = await request(app)
+      .post('/api/auth/add-mission')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: 'No reward civic task', sdgNumber: 11, points: 999 });
+
+    expect(createRes.status).toBe(201);
+    expect(createRes.body.mission.points).toBeUndefined();
+
+    const storedMission = await Mission.findById(createRes.body.mission._id).select('+points');
+    expect(storedMission.points).toBeUndefined();
+  });
+
+  it('The legacy public leaderboard endpoint is retired', async () => {
+    const res = await request(app).get('/api/auth/leaderboard');
+    expect(res.status).toBe(404);
   });
 
   it('Admin should be able to view analytics and pending submissions', async () => {

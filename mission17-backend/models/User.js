@@ -60,7 +60,8 @@ const UserSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending' // Admin must approve before login
   },
-  points: { type: Number, default: 0 },
+  // Legacy field retained so existing accounts require no destructive migration.
+  points: { type: Number, select: false },
   completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],
 
   // ==================================================

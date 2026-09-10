@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import LegalFooter from '../components/LegalFooter';
 import '../styles/Legal.css';
 
 const prototypeNotice = 'Subject to Barangay Bagong Pag-asa review and approval before official public deployment.';
@@ -80,7 +79,6 @@ const LegalPage = ({ type }) => {
         {page.sections.map(([heading, body]) => <section key={heading} className="legal-section"><h2>{heading}</h2><p>{body}</p></section>)}
         <section className="legal-section"><h2>Responsible office</h2><p>Barangay Bagong Pag-asa Office. Official privacy and accessibility contact pending designation.</p></section>
       </main>
-      <LegalFooter />
     </div>
   );
 };

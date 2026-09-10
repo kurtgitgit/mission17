@@ -155,7 +155,7 @@ const Verify = () => {
     setModalConfig({
       isOpen: true,
       title: 'Approve Submission',
-      message: 'Are you sure you want to approve this mission? This will award points to the user.',
+      message: 'Are you sure you want to approve this civic-task submission?',
       type: 'success',
       showInput: false,
       confirmText: 'Approve',

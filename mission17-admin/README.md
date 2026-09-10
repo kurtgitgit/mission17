@@ -16,7 +16,7 @@ The `mission17-admin` portal provides barangay officials, mediators, and adminis
 ## ✨ Features
 * **📋 Blotter Mediation & Blockchain Event**: Review incident reports, conduct hearings, and record a resolution-related gamification transaction on the Ethereum Sepolia ledger. The current implementation does not anchor the blotter report hash itself.
 * **📄 Document Request Processing**: Review valid IDs, issue electronic barangay clearances, and trigger resident notifications.
-* **🏆 AI Submission Moderation**: Review AI-analyzed SDG task proofs, inspect confidence scores and perceptual hashes, and approve civic points.
+* **AI Submission Moderation**: Review AI-analyzed SDG task proofs, inspect advisory verdicts, and make the final approval decision.
 * **📢 Community Announcements**: Publish pinned bulletins and localized push advisories.
 * **🛡️ Security Audit Logs**: Inspect chronological logs of logins, administrative overrides, and system events.
 

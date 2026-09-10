@@ -16,6 +16,11 @@ import { verifyAdmin } from '../utils/authMiddleware.js';
 
 const router = express.Router();
 
+const getEventData = (body = {}) => {
+  const allowedFields = ['title', 'date', 'time', 'location', 'color', 'description', 'image'];
+  return Object.fromEntries(allowedFields.filter(field => body[field] !== undefined).map(field => [field, body[field]]));
+};
+
 // 1. GET ALL EVENTS (Public) - With Pagination & Search
 router.get('/events', async (req, res) => {
   try {
@@ -53,7 +58,8 @@ router.get('/events', async (req, res) => {
 // 2. CREATE EVENT
 router.post('/events', verifyAdmin, async (req, res) => {
   try {
-    const newEvent = new Event(req.body);
+    const eventData = getEventData(req.body);
+    const newEvent = new Event(eventData);
     await newEvent.save();
     res.status(201).json(newEvent);
   } catch (error) {
@@ -64,7 +70,8 @@ router.post('/events', verifyAdmin, async (req, res) => {
 // 3. UPDATE EVENT
 router.put('/events/:id', verifyAdmin, async (req, res) => {
   try {
-    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const eventData = getEventData(req.body);
+    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, eventData, { new: true });
     res.json(updatedEvent);
   } catch (error) {
     res.status(500).json({ message: 'Error updating event' });
