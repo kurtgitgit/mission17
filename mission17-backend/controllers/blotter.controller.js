@@ -106,7 +106,7 @@ export const getEvidence = asyncHandler(async (req, res) => {
   }
 
   const isOwner = report.userId?.toString() === req.user._id.toString();
-  if (!isOwner && req.user.role !== 'admin') {
+  if (!isOwner && !['admin', 'super_admin'].includes(req.user.role)) {
     return res.status(403).json({ message: 'Forbidden: you cannot view this evidence.' });
   }
 
@@ -186,6 +186,11 @@ export const updateStatus = asyncHandler(async (req, res) => {
   const report = await BlotterReport.findById(req.params.id);
   if (!report) return res.status(404).json({ message: 'Report not found.' });
 
+  const isStatusTransition = Boolean(status && status !== report.status);
+  if (isStatusTransition && req.user.role !== 'super_admin') {
+    return res.status(403).json({ message: 'Only the Barangay Captain can change a blotter case status.' });
+  }
+
   if (status) report.status = status;
   if (adminRemarks !== undefined) report.adminRemarks = adminRemarks;
   if (respondentName !== undefined) report.respondentName = respondentName;
@@ -234,7 +239,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
     await sendPushNotification(resident.expoPushToken, notificationTitle, notificationMessage, { screen: 'BlotterHistory' });
   }
 
-  logAudit(req.user.id, req.user.username, 'BLOTTER_UPDATE',
+  await logAudit(req.user.id, req.user.username, isStatusTransition ? 'BLOTTER_FINAL_DECISION' : 'BLOTTER_UPDATE',
     `Updated blotter ${report.referenceNumber} → ${report.status}${report.hearingStage ? ` (${report.hearingStage})` : ''}`, req);
 
   res.json({ message: `Report updated successfully.`, report });

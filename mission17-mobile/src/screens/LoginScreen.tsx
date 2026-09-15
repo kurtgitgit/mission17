@@ -275,6 +275,7 @@ export default function LoginScreen() {
 
     GlobalState.userId = userId;
     GlobalState.username = data.user.username || null;
+    GlobalState.role = data.user.role || null;
     GlobalState.token = data.token;
     GlobalState.auth = { token: data.token };
     await saveAuthData(data.token, userData);

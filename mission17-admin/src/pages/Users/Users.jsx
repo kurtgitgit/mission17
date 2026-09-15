@@ -304,7 +304,7 @@ const Users = () => {
                 {!isEditing && (
                   <div style={styles.fieldGroup}>
                     <label style={styles.label}>Password</label>
-                    <input type="password" name="password" placeholder="Set initial password" value={formData.password} onChange={handleChange} required style={styles.input} />
+                    <input type="password" name="password" minLength={formData.role?.toLowerCase() === 'admin' ? 12 : 6} placeholder={formData.role?.toLowerCase() === 'admin' ? 'Temporary password (12+ characters)' : 'Set initial password (6+ characters)'} value={formData.password} onChange={handleChange} required style={styles.input} />
                   </div>
                 )}
 

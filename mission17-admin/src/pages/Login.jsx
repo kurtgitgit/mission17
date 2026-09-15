@@ -115,7 +115,7 @@ const Login = () => {
       if (!response.ok) {
         throw new Error(data.message || "Invalid OTP");
       }
-      if (data.user?.role !== 'admin') {
+      if (!['admin', 'super_admin'].includes(data.user?.role)) {
         throw new Error('Admin authorization failed.');
       }
 

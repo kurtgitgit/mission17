@@ -74,6 +74,10 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const isSuperAdmin = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'super_admin'; }
+    catch { return false; }
+  })();
 
   // Determine which group contains the active route to open by default
   const activeGroupId = MENU_GROUPS.find(group => 
@@ -119,9 +123,11 @@ const Sidebar = () => {
       {/* Navigation Menu (Interactive Collapsible Groups) */}
       <div className="nav-accordion-container">
         {MENU_GROUPS.map(group => {
+          const visibleItems = group.items.filter(item => item.to !== '/users' || isSuperAdmin);
+          if (!visibleItems.length) return null;
           const GroupIcon = group.icon;
           const isOpen = openGroups[group.id];
-          const hasActiveChild = group.items.some(item => location.pathname === item.to);
+          const hasActiveChild = visibleItems.some(item => location.pathname === item.to);
 
           return (
             <div key={group.id} className={`nav-group-block ${hasActiveChild ? 'has-active' : ''}`}>
@@ -147,7 +153,7 @@ const Sidebar = () => {
               {/* COLLAPSIBLE SUB-MENU */}
               {isOpen && (
                 <ul className="nav-sub-list">
-                  {group.items.map(item => {
+                  {visibleItems.map(item => {
                     const ItemIcon = item.icon;
                     return (
                       <li key={item.to} className="nav-sub-item">

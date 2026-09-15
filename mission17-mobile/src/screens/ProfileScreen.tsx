@@ -86,8 +86,11 @@ const ProfileScreen = ({ navigation }: any) => {
       setShowLogoutModal(false);
       await clearAuthData();
       GlobalState.userId = null;
+      GlobalState.username = null;
+      GlobalState.role = null;
       GlobalState.token = null;
       GlobalState.auth = null;
+      GlobalState.tempToken = null;
 
       showNotification({
         title: "Success",

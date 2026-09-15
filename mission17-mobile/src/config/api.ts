@@ -43,6 +43,7 @@ export const formatImageUri = (uri: string) => {
 export const GlobalState = {
   userId: null as string | null,
   username: null as string | null,
+  role: null as string | null,
   token: null as string | null,
   auth: null as { token: string } | null,
   tempToken: null as string | null,
@@ -104,6 +105,13 @@ export const endpoints = {
   documentRequests: {
     submit: `${BACKEND_BASE_URL}/api/document-requests`,
     my: (userId: string) => `${BACKEND_BASE_URL}/api/document-requests/my/${userId}`,
+  },
+  captain: {
+    users: `${API_URL}/auth/users`,
+    addUser: `${API_URL}/auth/add-user`,
+    updateAccountStatus: (id: string) => `${API_URL}/auth/users/${id}/account-status`,
+    blotterReports: `${BACKEND_BASE_URL}/api/blotter-reports`,
+    updateBlotterStatus: (id: string) => `${BACKEND_BASE_URL}/api/blotter-reports/${id}/status`,
   },
 };
 

@@ -137,6 +137,10 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
 
 const BlotterManagement = () => {
   const { showNotification } = useNotification();
+  const isSuperAdmin = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null')?.role === 'super_admin'; }
+    catch { return false; }
+  })();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -527,12 +531,19 @@ const BlotterManagement = () => {
                           className="form-input" 
                           value={newStatus}
                           onChange={(e) => setNewStatus(e.target.value)}
+                          disabled={!isSuperAdmin}
+                          title={isSuperAdmin ? 'Change case status' : 'Only the Barangay Captain can change case status'}
                         >
                           <option value="Pending">Pending Review</option>
                           <option value="In Progress">Active / In Progress</option>
                           <option value="Resolved">Resolved / Closed</option>
                           <option value="Dismissed">Dismissed</option>
                         </select>
+                        {!isSuperAdmin && (
+                          <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                            Staff may update hearing details. Final status decisions require the Barangay Captain.
+                          </small>
+                        )}
                       </div>
 
                       <div className="form-group">

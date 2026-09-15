@@ -16,8 +16,9 @@ jest.unstable_mockModule('../utils/authMiddleware.js', () => ({
     return res.status(401).json({ message: 'Authentication failed.' });
   }),
   verifyAdmin: jest.fn((req, res, next) => {
-    if (req.headers['x-mock-user-role'] === 'admin') {
-      req.user = { _id: req.headers['x-mock-user-id'], role: 'admin' };
+    const role = req.headers['x-mock-user-role'];
+    if (['admin', 'super_admin'].includes(role)) {
+      req.user = { _id: req.headers['x-mock-user-id'], role };
       return next();
     }
     return res.status(403).json({ message: 'Forbidden: administrators only.' });
@@ -32,8 +33,8 @@ jest.unstable_mockModule('../models/BlotterReport.js', () => ({
     findById: jest.fn(),
   }
 }));
-jest.unstable_mockModule('../models/User.js', () => ({ default: {} }));
-jest.unstable_mockModule('../models/Notification.js', () => ({ default: {} }));
+jest.unstable_mockModule('../models/User.js', () => ({ default: { findById: jest.fn() } }));
+jest.unstable_mockModule('../models/Notification.js', () => ({ default: { create: jest.fn() } }));
 jest.unstable_mockModule('../utils/blockchain.js', () => ({ awardSdgPoints: jest.fn() }));
 jest.unstable_mockModule('../utils/pushNotifier.js', () => ({ sendPushNotification: jest.fn() }));
 
@@ -50,6 +51,8 @@ jest.unstable_mockModule('fs', () => ({
 // 2. Import router dynamically after mocking
 const blotterRouter = (await import('./blotter-reports.js')).default;
 const BlotterReport = (await import('../models/BlotterReport.js')).default;
+const User = (await import('../models/User.js')).default;
+const Notification = (await import('../models/Notification.js')).default;
 
 // Setup Express app for Supertest
 const app = express();
@@ -189,6 +192,68 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
 
       expect(res.status).toBe(404);
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('PATCH /api/blotter-reports/:id/status', () => {
+    const makeReport = () => ({
+      _id: 'reportABC',
+      userId: 'user123',
+      referenceNumber: 'BLOTTER-2026-12345',
+      status: 'Pending',
+      hearingStage: 'None',
+      hearingDate: null,
+      blockchainTxHash: null,
+      save: jest.fn().mockResolvedValue(undefined),
+    });
+
+    beforeEach(() => {
+      Notification.create.mockResolvedValue({});
+      User.findById.mockResolvedValue(null);
+    });
+
+    it('blocks a regular admin from changing the case status', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({ status: 'In Progress' });
+
+      expect(res.status).toBe(403);
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('allows a regular admin to maintain hearing details without changing status', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({ status: 'Pending', respondentName: 'Respondent', hearingStage: 'Mediation (1st Hearing)' });
+
+      expect(res.status).toBe(200);
+      expect(report.respondentName).toBe('Respondent');
+      expect(report.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('allows the Barangay Captain to approve a pending blotter', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'captain123')
+        .set('x-mock-user-role', 'super_admin')
+        .send({ status: 'In Progress' });
+
+      expect(res.status).toBe(200);
+      expect(report.status).toBe('In Progress');
+      expect(report.save).toHaveBeenCalledTimes(1);
     });
   });
 });

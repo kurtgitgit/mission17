@@ -19,7 +19,9 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['resident', 'lgu', 'admin'],
+    // `super_admin` is reserved for the Punong Barangay (Barangay Captain).
+    // It is deliberately not available through public registration.
+    enum: ['resident', 'lgu', 'admin', 'super_admin'],
     default: 'resident' 
   },
   expoPushToken: {

@@ -14,6 +14,8 @@ router.post('/',              verifyAuthenticatedUser, submitReport);
 router.get('/my/:userId',     verifyAuthenticatedUser, getMyReports);
 router.get('/:id/evidence',   verifyAuthenticatedUser, getEvidence);
 router.get('/',   verifyAdmin, getAllReports);
+// Staff may maintain hearing details; only the Barangay Captain may change the
+// case status. The controller enforces that distinction after loading the case.
 router.patch('/:id/status', verifyAdmin, updateStatus);
 
 export default router;

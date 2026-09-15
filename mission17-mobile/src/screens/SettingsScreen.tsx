@@ -42,7 +42,7 @@ const SettingsScreen = ({ navigation }: any) => {
     const data = await getAuthData();
     if (data && data.user) {
         setMfaEnabled(data.user.mfaEnabled || false);
-        setIsAdmin(data.user.role === 'admin');
+        setIsAdmin(['admin', 'super_admin'].includes(data.user.role));
     }
   };
 

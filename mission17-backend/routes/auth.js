@@ -220,7 +220,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
         return res.status(403).json({ message: "Your account registration was rejected." });
       }
 
-      if (req.body.isAdminLogin && user.role !== 'admin') {
+      if (req.body.isAdminLogin && !['admin', 'super_admin'].includes(user.role)) {
         return res.status(403).json({ message: "Access denied: Admins only." });
       }
 
@@ -229,7 +229,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       // Pending residents need an OTP only until their email is verified.
       // Admin accounts always require it; active residents follow their MFA setting.
       const requiresEmailVerification = user.accountStatus === 'pending' && user.isVerified !== true;
-      if (requiresEmailVerification || user.role === 'admin' || user.mfaEnabled) {
+      if (requiresEmailVerification || ['admin', 'super_admin'].includes(user.role) || user.mfaEnabled) {
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
         
         await User.updateOne(

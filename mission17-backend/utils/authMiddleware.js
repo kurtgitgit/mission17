@@ -10,9 +10,8 @@ import AuditLog from '../models/AuditLog.js';
 export const logAudit = async (userId, username, action, details, req) => {
   try {
     const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    new AuditLog({ userId, username, action, details, ipAddress }).save()
-      .then(() => console.log(`AUDIT: ${action} by ${username}`))
-      .catch((error) => console.error('Audit log error:', error));
+    await new AuditLog({ userId, username, action, details, ipAddress }).save();
+    console.log(`AUDIT: ${action} by ${username}`);
   } catch (error) {
     console.error('Audit log error:', error);
   }
@@ -85,8 +84,27 @@ export const verifyAdmin = async (req, res, next) => {
   try {
     const user = await getAuthenticatedUser(req);
 
-    if (user.role !== 'admin') {
+    if (!['admin', 'super_admin'].includes(user.role)) {
       return res.status(403).json({ message: 'Forbidden: administrators only.' });
+    }
+
+    req.user = user;
+    return next();
+  } catch (error) {
+    const status = error.status || 401;
+    return res.status(status).json({ message: status === 401 ? 'Authentication failed.' : error.message });
+  }
+};
+
+// Reserved for the Barangay Captain. Keep this server-side check on every
+// sensitive final-decision endpoint; hiding a button in the portal is not an
+// authorization control.
+export const verifySuperAdmin = async (req, res, next) => {
+  try {
+    const user = await getAuthenticatedUser(req);
+
+    if (user.role !== 'super_admin') {
+      return res.status(403).json({ message: 'Forbidden: Barangay Captain access is required.' });
     }
 
     req.user = user;

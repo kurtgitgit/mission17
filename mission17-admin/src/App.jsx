@@ -26,13 +26,22 @@ import Suggestions from './pages/Suggestions';
 
 import { NotificationProvider } from './context/NotificationContext';
 
-const getStoredAdmin = () => {
+const getStoredPortalUser = () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || 'null');
-    return user?.role === 'admin' && user?.firebaseUid === auth.currentUser?.uid;
+    return JSON.parse(localStorage.getItem('user') || 'null');
   } catch {
-    return false;
+    return null;
   }
+};
+
+const getStoredAdmin = () => {
+  const user = getStoredPortalUser();
+  return ['admin', 'super_admin'].includes(user?.role) && user?.firebaseUid === auth.currentUser?.uid;
+};
+
+const getStoredSuperAdmin = () => {
+  const user = getStoredPortalUser();
+  return user?.role === 'super_admin' && user?.firebaseUid === auth.currentUser?.uid;
 };
 
 function RequireAdmin({ ready, isAdmin, children }) {
@@ -40,6 +49,11 @@ function RequireAdmin({ ready, isAdmin, children }) {
   // This is a UI guard only; every sensitive API route remains protected by
   // backend Firebase verification and role checks.
   return (isAdmin || getStoredAdmin()) ? children : <Navigate to="/" replace />;
+}
+
+function RequireSuperAdmin({ ready, children }) {
+  if (!ready) return null;
+  return getStoredSuperAdmin() ? children : <Navigate to="/dashboard" replace />;
 }
 
 function App() {
@@ -71,6 +85,9 @@ function App() {
   const protectedRoute = (element) => (
     <RequireAdmin ready={authReady} isAdmin={isAdmin}>{element}</RequireAdmin>
   );
+  const superAdminRoute = (element) => (
+    <RequireSuperAdmin ready={authReady}>{element}</RequireSuperAdmin>
+  );
 
   return (
 
@@ -92,7 +109,7 @@ function App() {
           <Route path="/dashboard" element={protectedRoute(<DashboardHome />)} />
           <Route path="/missions" element={protectedRoute(<Missions />)} />
           <Route path="/events" element={protectedRoute(<Events />)} />
-          <Route path="/users" element={protectedRoute(<Users />)} />
+          <Route path="/users" element={superAdminRoute(<Users />)} />
           <Route path="/analytics" element={protectedRoute(<Analytics />)} />
           <Route path="/settings" element={protectedRoute(<Settings />)} />
           <Route path="/verify" element={protectedRoute(<Verify />)} />

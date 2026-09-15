@@ -30,6 +30,7 @@ import BlotterReportScreen  from './src/screens/BlotterReportScreen';
 import BlotterHistoryScreen from './src/screens/BlotterHistoryScreen';
 import SuggestionScreen     from './src/screens/SuggestionScreen';
 import LegalInformationScreen from './src/screens/LegalInformationScreen';
+import CaptainControlScreen from './src/screens/CaptainControlScreen';
 
 // ─── NEW BARANGAY SCREENS ──────────────────────────────
 import AnnouncementsScreen from './src/screens/AnnouncementsScreen';
@@ -164,6 +165,7 @@ export default function App() {
         } else if (authData?.token && authData.user?._id) {
           GlobalState.userId = authData.user._id;
           GlobalState.username = authData.user.username || null;
+          GlobalState.role = authData.user.role || null;
           GlobalState.token = authData.token;
           GlobalState.auth = { token: authData.token };
           setInitialRoute('Home');
@@ -248,6 +250,7 @@ export default function App() {
               <Stack.Screen name="BlotterReport" component={BlotterReportScreen} />
               <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
               <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
+              <Stack.Screen name="CaptainControl" component={CaptainControlScreen} />
             </StackNavigator>
             </NavigationContainer>
           </ChatProvider>

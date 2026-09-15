@@ -24,7 +24,7 @@ jest.unstable_mockModule('../models/AuditLog.js', () => ({
 }));
 
 // 2. Dynamically import the module under test
-const { verifyFirebaseToken, verifyAuthenticatedUser, verifyAdmin } = await import('./authMiddleware.js');
+const { verifyFirebaseToken, verifyAuthenticatedUser, verifyAdmin, verifySuperAdmin } = await import('./authMiddleware.js');
 const { getAuth } = await import('firebase-admin/auth');
 const User = (await import('../models/User.js')).default;
 
@@ -125,6 +125,43 @@ describe('Auth Middleware', () => {
       await verifyAdmin(req, res, next);
       
       expect(req.user).toBe(mockAdmin);
+      expect(next).toHaveBeenCalled();
+    });
+
+    it('should call next if user is super admin', async () => {
+      req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      const mockCaptain = { accountStatus: 'approved', role: 'super_admin' };
+      User.findOne.mockResolvedValueOnce(mockCaptain);
+
+      await verifyAdmin(req, res, next);
+
+      expect(req.user).toBe(mockCaptain);
+      expect(next).toHaveBeenCalled();
+    });
+  });
+
+  describe('verifySuperAdmin', () => {
+    it('should block an ordinary admin', async () => {
+      req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      User.findOne.mockResolvedValueOnce({ accountStatus: 'approved', role: 'admin' });
+
+      await verifySuperAdmin(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should call next if user is the Barangay Captain', async () => {
+      req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      const mockCaptain = { accountStatus: 'approved', role: 'super_admin' };
+      User.findOne.mockResolvedValueOnce(mockCaptain);
+
+      await verifySuperAdmin(req, res, next);
+
+      expect(req.user).toBe(mockCaptain);
       expect(next).toHaveBeenCalled();
     });
   });

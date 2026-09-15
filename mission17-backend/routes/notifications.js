@@ -10,7 +10,7 @@ router.get('/notifications/:userId', verifyAuthenticatedUser, async (req, res) =
     const { userId } = req.params;
     
     // Ensure the user requesting is the owner, or is an admin.
-    if (req.user._id.toString() !== userId && req.user.role !== 'admin') {
+    if (req.user._id.toString() !== userId && !['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Unauthorized to view these notifications' });
     }
 
@@ -35,7 +35,7 @@ router.put('/notifications/:id/read', verifyAuthenticatedUser, async (req, res) 
     }
 
     // Ensure the user requesting is the owner
-    if (notification.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+    if (notification.userId.toString() !== req.user._id.toString() && !['admin', 'super_admin'].includes(req.user.role)) {
       return res.status(403).json({ message: 'Unauthorized to update this notification' });
     }
 

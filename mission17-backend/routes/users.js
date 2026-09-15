@@ -16,7 +16,7 @@
 import express from 'express';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { verifyAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
+import { verifyAdmin, verifySuperAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 
@@ -26,7 +26,7 @@ const router = express.Router();
 router.get('/users', verifyAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 10, 1), 100);
     const skip = (page - 1) * limit;
     const search = req.query.search || '';
     const status = req.query.status;
@@ -40,8 +40,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
       ];
     }
     
-    if (status === 'approved') query.accountStatus = 'approved';
-    if (status === 'pending') query.accountStatus = { $ne: 'approved' };
+    if (['approved', 'pending', 'rejected'].includes(status)) query.accountStatus = status;
 
     const users = await User.find(query)
       .select('-password -points')
@@ -63,19 +62,22 @@ router.get('/users', verifyAdmin, async (req, res) => {
   }
 });
 
-// 2. ADMIN ADD USER
-router.post('/add-user', verifyAdmin, async (req, res) => {
+// 2. BARANGAY CAPTAIN ADD USER
+router.post('/add-user', verifySuperAdmin, async (req, res) => {
   const { username, email, password, role = 'resident' } = req.body;
   try {
     const normalizedUsername = typeof username === 'string' ? username.trim() : '';
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const normalizedRole = typeof role === 'string' ? role.toLowerCase() : '';
 
-    if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < 6) {
-      return res.status(400).json({ message: 'Username, email, and a password of at least six characters are required.' });
-    }
+    // A Super Admin can create staff admins but cannot create another Captain
+    // account through the portal. This prevents privilege multiplication.
     if (!['resident', 'lgu', 'admin'].includes(normalizedRole)) {
       return res.status(400).json({ message: 'Invalid role.' });
+    }
+    const minimumPasswordLength = normalizedRole === 'admin' ? 12 : 6;
+    if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < minimumPasswordLength) {
+      return res.status(400).json({ message: `Username, email, and a password of at least ${minimumPasswordLength} characters are required.` });
     }
     if (await User.exists({ $or: [{ username: normalizedUsername }, { email: normalizedEmail }] })) {
       return res.status(409).json({ message: 'A user with that username or email already exists.' });
@@ -109,7 +111,7 @@ router.post('/add-user', verifyAdmin, async (req, res) => {
       throw error;
     }
 
-    logAudit(req.user.id, req.user.username, 'ADMIN_USER_CREATE', `Admin created user: ${username}`, req);
+    await logAudit(req.user.id, req.user.username, 'SUPER_ADMIN_USER_CREATE', `Barangay Captain created user: ${normalizedUsername} (${normalizedRole})`, req);
     res.status(201).json({ message: 'User created' });
   } catch (error) {
     if (error.code === 'auth/email-already-exists') {
@@ -119,13 +121,16 @@ router.post('/add-user', verifyAdmin, async (req, res) => {
   }
 });
 
-// 3. ADMIN UPDATE USER
-router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
+// 3. BARANGAY CAPTAIN UPDATE USER
+router.put('/admin-update-user/:id', verifySuperAdmin, async (req, res) => {
   let firebaseEmailChanged = false;
   let previousFirebaseEmail = null;
   try {
     const userToUpdate = await User.findById(req.params.id);
     if (!userToUpdate) return res.status(404).json({ message: 'User not found.' });
+    if (userToUpdate.role === 'super_admin') {
+      return res.status(403).json({ message: 'The Barangay Captain account cannot be edited from the portal.' });
+    }
 
     const updateData = {};
     if (typeof req.body.username === 'string' && req.body.username.trim()) {
@@ -186,7 +191,7 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
       }
       throw error;
     }
-    logAudit(req.user.id, req.user.username, 'ADMIN_USER_UPDATE', `Admin updated user ID: ${req.params.id}`, req);
+    await logAudit(req.user.id, req.user.username, 'SUPER_ADMIN_USER_UPDATE', `Barangay Captain updated user ID: ${req.params.id}`, req);
     res.json(updatedUser);
   } catch (error) {
     res.status(500).json({ message: 'Update failed' });
@@ -196,7 +201,7 @@ router.put('/admin-update-user/:id', verifyAdmin, async (req, res) => {
 // 3b. ADMIN APPROVE OR REJECT ACCOUNT
 // Account approval is deliberately separate from general profile editing so it
 // remains auditable and an unverified email can never be approved.
-router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
+router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => {
   try {
     const { accountStatus } = req.body;
     if (!['approved', 'rejected'].includes(accountStatus)) {
@@ -209,6 +214,9 @@ router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
 
     const userToReview = await User.findById(req.params.id);
     if (!userToReview) return res.status(404).json({ message: 'User not found.' });
+    if (userToReview.role === 'super_admin') {
+      return res.status(403).json({ message: 'The Barangay Captain account status cannot be changed from the portal.' });
+    }
     if (!userToReview.isVerified) {
       return res.status(409).json({ message: 'Verify the resident email before approving this account.' });
     }
@@ -254,11 +262,14 @@ router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
 });
 
 // 4. ADMIN DELETE USER
-router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
+router.delete('/delete-user/:id', verifySuperAdmin, async (req, res) => {
   try {
     const userToDelete = await User.findById(req.params.id);
     if (!userToDelete) {
       return res.status(404).json({ message: 'User not found in database' });
+    }
+    if (userToDelete.role === 'super_admin' || req.user._id.toString() === userToDelete._id.toString()) {
+      return res.status(403).json({ message: 'The Barangay Captain account cannot be deleted from the portal.' });
     }
 
     if (userToDelete.firebaseUid) {
@@ -271,7 +282,7 @@ router.delete('/delete-user/:id', verifyAdmin, async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.params.id);
-    logAudit(req.user.id, req.user.username, 'ADMIN_USER_DELETE', `Admin deleted user ID: ${req.params.id} from Mongo & Firebase`, req);
+    await logAudit(req.user.id, req.user.username, 'SUPER_ADMIN_USER_DELETE', `Barangay Captain deleted user ID: ${req.params.id} from Mongo & Firebase`, req);
     res.json({ message: 'User completely deleted' });
   } catch (error) {
     res.status(500).json({ message: 'Delete failed' });
