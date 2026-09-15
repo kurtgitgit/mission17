@@ -279,6 +279,18 @@ const HomeScreen: React.FC = () => {
               </View>
               <ChevronRight size={20} color="#fff" />
             </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+              <TouchableOpacity style={{ flex: 1, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 14, padding: 13 }} onPress={() => navigation.navigate('CaptainAnnouncements')} accessibilityRole="button" accessibilityLabel="Open Captain News and Alerts">
+                <Megaphone size={21} color="#0038A8" />
+                <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: '900', marginTop: 8 }}>News & Alerts</Text>
+                <Text style={{ color: '#64748b', fontSize: 11, lineHeight: 15, marginTop: 3 }}>Post official updates</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={{ flex: 1, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 14, padding: 13 }} onPress={() => navigation.navigate('CaptainFeedback')} accessibilityRole="button" accessibilityLabel="Open Resident Feedback">
+                <MessageSquare size={21} color="#0038A8" />
+                <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: '900', marginTop: 8 }}>Resident Feedback</Text>
+                <Text style={{ color: '#64748b', fontSize: 11, lineHeight: 15, marginTop: 3 }}>Review private concerns</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 

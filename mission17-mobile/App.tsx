@@ -31,6 +31,8 @@ import BlotterHistoryScreen from './src/screens/BlotterHistoryScreen';
 import SuggestionScreen     from './src/screens/SuggestionScreen';
 import LegalInformationScreen from './src/screens/LegalInformationScreen';
 import CaptainControlScreen from './src/screens/CaptainControlScreen';
+import CaptainAnnouncementsScreen from './src/screens/CaptainAnnouncementsScreen';
+import CaptainFeedbackScreen from './src/screens/CaptainFeedbackScreen';
 
 // ─── NEW BARANGAY SCREENS ──────────────────────────────
 import AnnouncementsScreen from './src/screens/AnnouncementsScreen';
@@ -251,6 +253,8 @@ export default function App() {
               <Stack.Screen name="BlotterHistory" component={BlotterHistoryScreen} />
               <Stack.Screen name="Suggestion"    component={SuggestionScreen} />
               <Stack.Screen name="CaptainControl" component={CaptainControlScreen} />
+              <Stack.Screen name="CaptainAnnouncements" component={CaptainAnnouncementsScreen} />
+              <Stack.Screen name="CaptainFeedback" component={CaptainFeedbackScreen} />
             </StackNavigator>
             </NavigationContainer>
           </ChatProvider>
