@@ -10,6 +10,61 @@
 .page-title         { font-size: 22px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
 .page-subtitle      { color: #64748b; font-size: 14px; margin: 0; }
 
+.analytics-filter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.analytics-filter-button {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 8px 12px;
+}
+
+.analytics-filter-button:hover,
+.analytics-filter-button.active {
+  background: #0038A8;
+  border-color: #0038A8;
+  color: #fff;
+}
+
+.analytics-date-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.analytics-date-range label {
+  align-items: center;
+  color: #64748b;
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 5px;
+}
+
+.analytics-date-range input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #334155;
+  font: inherit;
+  padding: 7px 8px;
+}
+
+@media (max-width: 700px) {
+  .analytics-date-range { width: 100%; }
+  .analytics-date-range label { flex: 1; }
+  .analytics-date-range input { min-width: 0; width: 100%; }
+}
+
 /* ── 3-column summary grid (readable on all screens) ── */
 .stats-grid-6 {
   display: grid;

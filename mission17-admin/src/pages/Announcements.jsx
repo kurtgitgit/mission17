@@ -66,6 +66,22 @@ const Announcements = () => {
 
   useEffect(() => { void fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (!showForm) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') resetForm();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showForm]);
+
   const resetForm = () => {
     setForm({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, relatedSdg: null, image: '' });
     setEditItem(null);
@@ -179,10 +195,12 @@ const Announcements = () => {
 
         {/* ── FORM ── */}
         {showForm && (
-          <div className="pa-form-card">
+          <div className="pa-modal-overlay" role="presentation">
+            <div className="pa-modal-dialog" role="dialog" aria-modal="true" aria-label={editItem ? 'Edit announcement' : 'New announcement'}>
+              <div className="pa-form-card">
             <div className="pa-form-header">
               <h3 className="pa-form-title">{editItem ? '✏️ Edit Announcement' : '✨ New Announcement'}</h3>
-              <button className="pa-btn-icon" onClick={resetForm}><X size={20} /></button>
+              <button type="button" className="pa-btn-icon" onClick={resetForm} aria-label="Close announcement form"><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="pa-form-grid">
@@ -413,6 +431,8 @@ const Announcements = () => {
                 <button type="button" className="pa-btn-secondary" onClick={resetForm}>Cancel</button>
               </div>
             </form>
+          </div>
+            </div>
           </div>
         )}
 

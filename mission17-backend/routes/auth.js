@@ -297,7 +297,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
 
     // Otherwise, create a new user in MongoDB (Signup Flow)
     let {
-      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+      firstName, middleName, lastName, suffix, birthDate, age, placeOfBirth, gender, civilStatus,
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
       voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
       numberOfFamilyMembers, educationalAttainment, bloodType, disability, username
@@ -330,7 +330,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       accountStatus: 'pending',
       legalConsent: createLegalConsentRecord(),
 
-      firstName, middleName, lastName, birthDate, age, placeOfBirth, gender, civilStatus,
+      firstName, middleName, lastName, suffix, birthDate, age, placeOfBirth, gender, civilStatus,
       nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
       voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
       numberOfFamilyMembers, educationalAttainment, bloodType, disability,

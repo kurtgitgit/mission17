@@ -62,7 +62,7 @@ const Suggestions = () => {
       await suggestionsApi.updateStatus(selectedItem._id, { status: newStatus, adminReply });
       setSuggestions(prev => prev.map(s => s._id === selectedItem._id ? { ...s, status: newStatus, adminReply } : s));
       setSelectedItem(prev => ({ ...prev, status: newStatus, adminReply }));
-      showNotification('Official response saved & notification sent to resident!', 'success');
+      showNotification('Official response saved. The resident can view the update in the app.', 'success');
       // Refresh stats
       const s = await suggestionsApi.getStats().catch(() => null);
       if (s?.data) setStats(s.data);
@@ -120,6 +120,12 @@ const Suggestions = () => {
     }
   };
 
+  const getCategoryBadge = (category) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 8px', borderRadius: 999, fontSize: 11, fontWeight: 800, backgroundColor: '#eef4ff', color: '#315b9d', border: '1px solid #d8e6ff' }}>
+      {category || 'General'}
+    </span>
+  );
+
   const getStatusBadge = (status) => {
     switch(status) {
       case 'New': return <span className="status-badge pending" style={{ padding: '3px 8px', fontSize: '11px' }}><Lightbulb size={12}/> New</span>;
@@ -174,10 +180,10 @@ const Suggestions = () => {
       <main className="main-content admin-workspace-page">
         
         {/* HEADER & SENTIMENT KPI OVERVIEW */}
-        <header className="top-header" style={{ flexShrink: 0, marginBottom: '14px' }}>
+        <header className="top-header feedback-desk-header">
           <div>
-            <h1 className="greeting">Citizen Feedback & Sentiment Analytics</h1>
-            <p className="subtitle">Private citizen desk for Barangay Captain — automated sentiment tracking and direct responses</p>
+            <h1>Citizen Feedback Desk</h1>
+            <p>Review resident messages, sentiment, and official responses.</p>
           </div>
           <button 
             onClick={fetchData}
@@ -190,7 +196,7 @@ const Suggestions = () => {
         {/* ── SENTIMENT GAUGE SUMMARY CARDS ── */}
         <div className="feedback-summary-grid">
           {/* TOTAL */}
-          <div style={{ background: '#ffffff', borderRadius: 12, padding: '14px 18px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="feedback-summary-card" style={{ background: '#ffffff', borderRadius: 12, border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Messages</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{stats.total}</div>
@@ -203,7 +209,8 @@ const Suggestions = () => {
           {/* POSITIVE */}
           <div 
             onClick={() => setSentimentFilter(sentimentFilter === 'Positive' ? 'All' : 'Positive')}
-            style={{ background: sentimentFilter === 'Positive' ? '#f0fdf4' : '#ffffff', borderRadius: 12, padding: '14px 18px', border: sentimentFilter === 'Positive' ? '2px solid #22c55e' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            className="feedback-summary-card"
+            style={{ background: sentimentFilter === 'Positive' ? '#f0fdf4' : '#ffffff', borderRadius: 12, border: sentimentFilter === 'Positive' ? '2px solid #22c55e' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
           >
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase' }}>Positive Sentiment</div>
@@ -219,7 +226,8 @@ const Suggestions = () => {
           {/* NEUTRAL */}
           <div 
             onClick={() => setSentimentFilter(sentimentFilter === 'Neutral' ? 'All' : 'Neutral')}
-            style={{ background: sentimentFilter === 'Neutral' ? '#f8fafc' : '#ffffff', borderRadius: 12, padding: '14px 18px', border: sentimentFilter === 'Neutral' ? '2px solid #64748b' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            className="feedback-summary-card"
+            style={{ background: sentimentFilter === 'Neutral' ? '#f8fafc' : '#ffffff', borderRadius: 12, border: sentimentFilter === 'Neutral' ? '2px solid #64748b' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
           >
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Inquiries / Neutral</div>
@@ -235,7 +243,8 @@ const Suggestions = () => {
           {/* NEGATIVE */}
           <div 
             onClick={() => setSentimentFilter(sentimentFilter === 'Negative' ? 'All' : 'Negative')}
-            style={{ background: sentimentFilter === 'Negative' ? '#fef2f2' : '#ffffff', borderRadius: 12, padding: '14px 18px', border: sentimentFilter === 'Negative' ? '2px solid #ef4444' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            className="feedback-summary-card"
+            style={{ background: sentimentFilter === 'Negative' ? '#fef2f2' : '#ffffff', borderRadius: 12, border: sentimentFilter === 'Negative' ? '2px solid #ef4444' : '1px solid #e2e8f0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
           >
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase' }}>Concerns / Negative</div>
@@ -317,14 +326,17 @@ const Suggestions = () => {
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', gap: 6 }}>
-                      {getSentimentBadge(item.sentiment)}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                        {getSentimentBadge(item.sentiment)}
+                        {getCategoryBadge(item.category)}
+                      </div>
                       {getStatusBadge(item.status)}
                     </div>
                     <div style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '13.5px', marginBottom: 4, lineHeight: '18px' }}>
                       {item.title}
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b', marginBottom: 6 }}>
-                      Category: <strong>{item.category || 'General'}</strong> · From: <em>{getResidentName(item)}</em>
+                      From: <em>{getResidentName(item)}</em>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '11px', color: '#94a3b8' }}>
@@ -353,7 +365,7 @@ const Suggestions = () => {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                       {getSentimentBadge(selectedItem.sentiment)}
-                      <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '700' }}>• {selectedItem.category || 'General'}</span>
+                      {getCategoryBadge(selectedItem.category)}
                     </div>
                     <h2 style={{ margin: 0, fontSize: '18px', color: '#0f172a', fontWeight: 800 }}>{selectedItem.title}</h2>
                   </div>
@@ -454,7 +466,7 @@ const Suggestions = () => {
 
                     <div className="form-group" style={{ marginBottom: '16px' }}>
                       <label style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>
-                        Official Message to Resident (Delivered via Push & In-App Notification)
+                        Official message to resident
                       </label>
                       <textarea 
                         className="form-input"
@@ -473,10 +485,10 @@ const Suggestions = () => {
                         disabled={updating}
                         style={{ padding:'10px 22px', fontSize:'14px', width:'auto', display: 'flex', alignItems: 'center', gap: 6 }}
                       >
-                        <Send size={15} /> {updating ? 'Saving...' : 'Send Official Response'}
+                        <Send size={15} /> {updating ? 'Saving...' : 'Save Response & Update Status'}
                       </button>
                       <span style={{ fontSize:12, color: '#0891b2', display:'flex', alignItems:'center', gap:4 }}>
-                        📲 Resident will receive instant lock-screen alert upon saving
+                        In-app update is saved; a push alert is sent when the resident has notifications enabled.
                       </span>
                     </div>
                   </div>

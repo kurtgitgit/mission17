@@ -342,7 +342,7 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
 
     const { 
       username, bio, walletAddress,
-      firstName, middleName, lastName, email, mobileNumber,
+      firstName, middleName, lastName, suffix, email, mobileNumber,
       birthDate, age, gender, civilStatus, placeOfBirth,
       completeAddress, nationality, religion, yearsOfResidency, voterStatus,
       employmentStatus, occupation, educationalAttainment
@@ -355,6 +355,7 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
     if (firstName !== undefined) updateData.firstName = firstName;
     if (middleName !== undefined) updateData.middleName = middleName;
     if (lastName !== undefined) updateData.lastName = lastName;
+    if (suffix !== undefined) updateData.suffix = suffix;
     if (email !== undefined) updateData.email = email;
     if (mobileNumber !== undefined) updateData.mobileNumber = mobileNumber;
     if (birthDate !== undefined) updateData.birthDate = birthDate;

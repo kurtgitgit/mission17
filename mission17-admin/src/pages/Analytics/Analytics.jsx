@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Layout from '../../components/Layout';
 import {
   Clock, CheckCircle, Users, Target, AlertTriangle,
@@ -15,11 +15,70 @@ const COLORS_PIE  = ['#22c55e', '#f59e0b', '#ef4444'];
 const COLORS_DOC  = ['#f59e0b', '#0891b2', '#7c3aed', '#22c55e', '#ef4444'];
 const DOC_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
 
+const startOfDay = (value) => {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
+const endOfDay = (value) => {
+  const date = new Date(value);
+  date.setHours(23, 59, 59, 999);
+  return date;
+};
+
+const toDateInput = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getDateRange = (period, customStart, customEnd) => {
+  const today = new Date();
+  const end = endOfDay(today);
+  let start;
+
+  if (period === 'month') start = new Date(today.getFullYear(), today.getMonth(), 1);
+  else if (period === 'year') start = new Date(today.getFullYear(), 0, 1);
+  else if (period === 'custom') {
+    start = customStart ? startOfDay(customStart) : new Date(today.getFullYear(), today.getMonth(), 1);
+    return { start, end: customEnd ? endOfDay(customEnd) : end };
+  } else {
+    start = new Date(today);
+    start.setDate(today.getDate() - 6);
+  }
+
+  return { start: startOfDay(start), end };
+};
+
+const isInRange = (record, range, dateField = 'createdAt') => {
+  const value = record?.[dateField];
+  if (!value) return false;
+  const date = new Date(value);
+  return !Number.isNaN(date.getTime()) && date >= range.start && date <= range.end;
+};
+
 const Analytics = () => {
   const token = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState('last7');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
+  const dateRange = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
+  const periodLabel = period === 'last7' ? 'Last 7 Days' : period === 'month' ? 'This Month' : period === 'year' ? 'This Year' : 'Custom Range';
+  const todayInput = toDateInput(new Date());
+
+  const selectPeriod = (nextPeriod) => {
+    setPeriod(nextPeriod);
+    if (nextPeriod === 'custom' && (!customStart || !customEnd)) {
+      const today = new Date();
+      setCustomStart(toDateInput(new Date(today.getFullYear(), today.getMonth(), 1)));
+      setCustomEnd(toDateInput(today));
+    }
+  };
 
   // — Civic Task stats —
   const [taskStats, setTaskStats] = useState({ pending: 0, approved: 0, rejected: 0, total: 0, rate: 0 });
@@ -63,13 +122,16 @@ const Analytics = () => {
         if (submRes.ok) {
           const data = await submRes.json();
           // New API returns { submissions, sdgCounts } — support both old array and new object format
-          const subs = Array.isArray(data) ? data : (data.submissions || []);
-          const sdgCounts = (!Array.isArray(data) && data.sdgCounts) ? data.sdgCounts : null;
+          const allSubs = Array.isArray(data) ? data : (data.submissions || []);
+          const subs = allSubs.filter(sub => isInRange(sub, dateRange));
+          const sdgReports = Array.isArray(data?.sdgReports) ? data.sdgReports.filter(report => isInRange(report, dateRange, 'analyzedAt')) : [];
 
           let p = 0, a = 0, r = 0;
           const daysOfWeek  = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
           const weekCounts  = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0, Sun: 0 };
-          const monthCounts = {};
+          const trendCounts = {};
+          const rangeDays = Math.ceil((dateRange.end - dateRange.start) / (24 * 60 * 60 * 1000));
+          const useMonthlyBuckets = period === 'year' || rangeDays > 62;
 
           subs.forEach(sub => {
             if (sub.status?.includes('Pending')) p++;
@@ -79,9 +141,10 @@ const Analytics = () => {
             if (sub.createdAt) {
               const d = new Date(sub.createdAt);
               weekCounts[daysOfWeek[d.getDay()]]++;
-              // Monthly grouping
-              const key = d.toLocaleString('en-PH', { month: 'short', year: '2-digit' });
-              monthCounts[key] = (monthCounts[key] || 0) + 1;
+              const key = useMonthlyBuckets
+                ? d.toLocaleString('en-PH', { month: 'short', ...(period === 'custom' ? { year: '2-digit' } : {}) })
+                : d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+              trendCounts[key] = (trendCounts[key] || 0) + 1;
             }
           });
 
@@ -98,17 +161,34 @@ const Analytics = () => {
             { day: 'Sun', submissions: weekCounts.Sun },
           ]);
 
-          // Last 6 month keys
-          const now  = new Date();
-          const keys = [];
-          for (let i = 5; i >= 0; i--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-            keys.push(d.toLocaleString('en-PH', { month: 'short', year: '2-digit' }));
+          const trendDates = [];
+          const cursor = new Date(dateRange.start);
+          if (useMonthlyBuckets) {
+            cursor.setDate(1);
+            while (cursor <= dateRange.end) {
+              trendDates.push(new Date(cursor));
+              cursor.setMonth(cursor.getMonth() + 1);
+            }
+          } else {
+            while (cursor <= dateRange.end) {
+              trendDates.push(new Date(cursor));
+              cursor.setDate(cursor.getDate() + 1);
+            }
           }
-          setMonthlyData(keys.map(k => ({ month: k, submissions: monthCounts[k] || 0 })));
+          setMonthlyData(trendDates.map(date => {
+            const month = useMonthlyBuckets
+              ? date.toLocaleString('en-PH', { month: 'short', ...(period === 'custom' ? { year: '2-digit' } : {}) })
+              : date.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+            return { month, submissions: trendCounts[month] || 0 };
+          }));
 
           // SDG Contributions — real data from AnalysisReport
-          if (sdgCounts && Object.keys(sdgCounts).length > 0) {
+          if (sdgReports.length > 0) {
+            const sdgCounts = sdgReports.reduce((counts, report) => {
+              const sdg = report.sdg?.trim();
+              if (sdg) counts[sdg] = (counts[sdg] || 0) + 1;
+              return counts;
+            }, {});
             // Sort by count descending, take top 6
             const sorted = Object.entries(sdgCounts)
               .sort((a, b) => b[1] - a[1])
@@ -132,7 +212,7 @@ const Analytics = () => {
 
         // ── DOCUMENT REQUESTS ────────────────────────────────────
         if (docRes.ok) {
-          const docs = await docRes.json();
+          const docs = (await docRes.json()).filter(doc => isInRange(doc, dateRange));
           setDocTotal(docs.length);
           const counts = {};
           DOC_STATUSES.forEach(s => { counts[s] = 0; });
@@ -142,7 +222,7 @@ const Analytics = () => {
 
         // ── ANNOUNCEMENTS ─────────────────────────────────────────
         if (annRes.ok) {
-          const anns = await annRes.json();
+          const anns = (await annRes.json()).filter(announcement => isInRange(announcement, dateRange));
           setAnnCount(anns.length);
           const catCounts = {};
           anns.forEach(a => { catCounts[a.category] = (catCounts[a.category] || 0) + 1; });
@@ -154,7 +234,7 @@ const Analytics = () => {
 
         // ── BLOTTER REPORTS ───────────────────────────────────────
         if (blotterRes.ok) {
-          const blotters = await blotterRes.json();
+          const blotters = (await blotterRes.json()).filter(blotter => isInRange(blotter, dateRange));
           setBlotterTotal(blotters.length);
           const bCounts = { Pending: 0, 'In Progress': 0, Resolved: 0, Dismissed: 0 };
           blotters.forEach(b => { if (bCounts[b.status] !== undefined) bCounts[b.status]++; });
@@ -174,7 +254,7 @@ const Analytics = () => {
     };
 
     fetchAll();
-  }, [baseUrl, token]);
+  }, [baseUrl, token, dateRange, period]);
 
   if (loading) return (
     <Layout title="Analytics">
@@ -191,7 +271,7 @@ const Analytics = () => {
   ];
 
   const summaryCards = [
-    { label: 'Registered Residents', value: residentCount,       icon: <Users size={22} />,        iconClass: 'blue-icon',   trend: 'Total accounts in system' },
+    { label: 'Registered Residents', value: residentCount,       icon: <Users size={22} />,        iconClass: 'blue-icon',   trend: 'All registered accounts' },
     { label: 'Civic Task Submissions', value: taskStats.total,   icon: <Target size={22} />,       iconClass: 'green-icon',  trend: `${taskStats.rate}% approval rate` },
     { label: 'Pending Verifications', value: taskStats.pending,  icon: <Clock size={22} />,        iconClass: 'yellow-icon', trend: 'Awaiting admin review' },
     { label: 'Document Requests',     value: docTotal,           icon: <FileText size={22} />,     iconClass: 'purple-icon', trend: `${docStats.find(d=>d.name==='Pending')?.value||0} pending` },
@@ -221,6 +301,17 @@ const Analytics = () => {
         <div className="analytics-header">
           <h1 className="page-title">📊 Barangay Bagong Pag-asa Analytics</h1>
           <p className="page-subtitle">Comprehensive overview of civic tasks, document requests, residents, and announcements.</p>
+          <div className="analytics-filter" aria-label="Analytics period filter">
+            {[['last7', 'Last 7 Days'], ['month', 'This Month'], ['year', 'This Year'], ['custom', 'Custom Range']].map(([value, label]) => (
+              <button key={value} type="button" className={`analytics-filter-button ${period === value ? 'active' : ''}`} onClick={() => selectPeriod(value)}>
+                {label}
+              </button>
+            ))}
+            {period === 'custom' && <div className="analytics-date-range">
+              <label>From<input type="date" value={customStart} max={customEnd || todayInput} onChange={(event) => setCustomStart(event.target.value)} /></label>
+              <label>To<input type="date" value={customEnd} min={customStart} max={todayInput} onChange={(event) => setCustomEnd(event.target.value)} /></label>
+            </div>}
+          </div>
         </div>
 
         {/* ─── SUMMARY CARDS ─── */}
@@ -242,7 +333,7 @@ const Analytics = () => {
 
           <div className="chart-card">
             <div className="chart-header">
-              <h3>Civic Task Submissions — Last 6 Months</h3>
+              <h3>Civic Task Submissions — {periodLabel}</h3>
               <span className="chart-badge green">Trend</span>
             </div>
             <div className="chart-wrapper">
@@ -267,7 +358,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Civic Task Status Distribution</h3>
-              <span className="chart-badge blue">All Time</span>
+              <span className="chart-badge blue">{periodLabel}</span>
             </div>
             <div className="chart-wrapper" style={{ position: 'relative' }}>
               <div className="donut-center-text">
@@ -298,7 +389,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Blotter Reports — Status Breakdown</h3>
-              <span className="chart-badge red">Incidents</span>
+              <span className="chart-badge red">{periodLabel}</span>
             </div>
             <div className="chart-wrapper" style={{ position: 'relative' }}>
               <div className="donut-center-text">
@@ -321,7 +412,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>SDG Contributions — Top Goals</h3>
-              <span className="chart-badge green">SDGs</span>
+              <span className="chart-badge green">{periodLabel}</span>
             </div>
             <div className="chart-wrapper">
               {sdgBar.length === 0 ? (
@@ -351,7 +442,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Civic Task Submissions — By Day of Week</h3>
-              <span className="chart-badge purple">Activity</span>
+              <span className="chart-badge purple">{periodLabel}</span>
             </div>
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={280}>
@@ -369,7 +460,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Document Requests — Status Breakdown</h3>
-              <span className="chart-badge amber">Requests</span>
+              <span className="chart-badge amber">{periodLabel}</span>
             </div>
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height={280}>
@@ -394,7 +485,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Announcements — By Category</h3>
-              <span className="chart-badge teal">Content</span>
+              <span className="chart-badge teal">{periodLabel}</span>
             </div>
             {catData.length === 0 ? (
               <div className="chart-empty">No announcements posted yet.</div>
@@ -417,7 +508,7 @@ const Analytics = () => {
           <div className="chart-card">
             <div className="chart-header">
               <h3>Barangay Portal KPIs</h3>
-              <span className="chart-badge green">Summary</span>
+              <span className="chart-badge green">{periodLabel}</span>
             </div>
             <div className="kpi-list">
               {[

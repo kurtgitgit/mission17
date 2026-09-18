@@ -379,7 +379,7 @@ const Officials = () => {
                       )}
                     </div>
 
-                    <div className="pa-card-actions" style={{ flexDirection: 'column' }}>
+                    <div className="pa-card-actions pa-official-actions">
                       {!off.isArchived ? (
                         <>
                           <button className="pa-btn-icon blue" title="Edit Official" onClick={() => startEdit(off)}><Edit3 size={15} /></button>

@@ -254,7 +254,7 @@ const DashboardHome = () => {
 
 
         {/* ── DAILY ACTION QUEUE (SPLIT VIEW) ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '24px', marginBottom: '24px' }}>
+        <div className="daily-action-grid">
           
           {/* LEFT: PENDING DOCUMENT REQUESTS QUEUE */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
@@ -299,10 +299,7 @@ const DashboardHome = () => {
           </div>
 
           {/* RIGHT: ACTIVE BLOTTERS & EMERGENCY BULLETINS */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            
-            {/* ACTIVE BLOTTERS */}
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <ShieldAlert size={18} color="#dc2626" />
@@ -336,10 +333,9 @@ const DashboardHome = () => {
                   ))}
                 </div>
               )}
-            </div>
+          </div>
 
-            {/* EMERGENCY BROADCAST & BULLETINS */}
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px 24px', border: '1.5px solid #e2e8f0' }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px 24px', border: '1.5px solid #e2e8f0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Megaphone size={18} color="#0038A8" />
@@ -360,8 +356,6 @@ const DashboardHome = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
           </div>
 
         </div>

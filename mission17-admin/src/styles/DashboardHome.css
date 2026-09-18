@@ -252,6 +252,27 @@
   margin-top: 40px;
 }
 
+/* Keep document requests, blotters, and bulletins visible together on desktop. */
+.daily-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 1200px) {
+  .daily-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .daily-action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .empty-msg {
   padding: 20px;
   text-align: center;

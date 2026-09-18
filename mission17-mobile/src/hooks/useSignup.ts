@@ -33,6 +33,7 @@ export const useSignup = () => {
   const [validIdFront, setValidIdFront] = useState<any>(null);
   const [validIdBack, setValidIdBack] = useState<any>(null);
   const [profileImage, setProfileImage] = useState<any>(null);
+  const [nationalitySelection, setNationalitySelection] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
@@ -128,9 +129,13 @@ export const useSignup = () => {
         showNotification('Enter a valid PH mobile number (e.g. 09XXXXXXXXX).', 'error');
         return;
       }
-      if (!formData.nationality) {
-        showNotification('Nationality is required.', 'error');
+      const normalizedNationality = formData.nationality.trim();
+      if (!normalizedNationality) {
+        showNotification(nationalitySelection === 'Other' ? 'Please specify your nationality.' : 'Nationality is required.', 'error');
         return;
+      }
+      if (normalizedNationality !== formData.nationality) {
+        handleInputChange('nationality', normalizedNationality);
       }
       if (!formData.completeAddress) {
         showNotification('Complete Address is required.', 'error');
@@ -283,6 +288,8 @@ export const useSignup = () => {
     validIdFront,
     validIdBack,
     profileImage,
+    nationalitySelection,
+    setNationalitySelection,
     privacyAccepted,
     setPrivacyAccepted,
     termsAccepted,

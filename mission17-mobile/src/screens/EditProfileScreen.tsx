@@ -7,6 +7,7 @@ import { X, User, MapPin, Phone, Mail, Calendar, Info, GraduationCap, Briefcase,
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, typography } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
+import CustomDropdown from '../components/CustomDropdown';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const EditProfileScreen = ({ navigation }: any) => {
@@ -14,6 +15,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [nationalitySelection, setNationalitySelection] = useState('');
   
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
@@ -26,6 +28,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         if (!res.ok) throw new Error(`Profile request failed (${res.status})`);
         const data = await res.json();
         setUserData(data);
+        setNationalitySelection(!data?.nationality ? '' : data.nationality === 'Filipino' ? 'Filipino' : 'Other');
       } catch (error) {
         console.error("Error loading profile:", error);
         setLoadError(getFriendlyNetworkMessage(error, 'Your profile details are unavailable right now. Please try again.'));
@@ -39,12 +42,18 @@ const EditProfileScreen = ({ navigation }: any) => {
   }, [fetchCurrentData]);
 
   const handleSave = async () => {
+    const normalizedNationality = userData?.nationality?.trim() || '';
+    if (nationalitySelection === 'Other' && !normalizedNationality) {
+      Alert.alert('Nationality required', 'Please specify your nationality.');
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-        body: JSON.stringify(userData)
+        body: JSON.stringify({ ...userData, nationality: normalizedNationality })
       });
       if (res.ok) {
         Alert.alert("Success", "Profile updated successfully!");
@@ -62,7 +71,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   if (initialLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>;
   if (loadError || !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError || 'Please try again.'} onRetry={fetchCurrentData} />;
 
-  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '' }: any) => (
+  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true }: any) => (
     <View style={styles.infoRow}>
       <View style={styles.iconContainer}>
         {icon}
@@ -76,7 +85,22 @@ const EditProfileScreen = ({ navigation }: any) => {
           keyboardType={keyboardType}
           placeholder={placeholder || `Enter ${label}`}
           placeholderTextColor={colors.textMuted}
+          editable={editable}
+          accessibilityState={{ disabled: !editable }}
         />
+        {!editable && <Text style={styles.fieldHint}>Verified email changes require a secure account process.</Text>}
+      </View>
+    </View>
+  );
+
+  const DropdownRow = ({ icon, label, value, options, onSelect }: any) => (
+    <View style={styles.infoRow}>
+      <View style={styles.iconContainer}>
+        {icon}
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <CustomDropdown label={`Select ${label}`} value={value || ''} options={options} onSelect={onSelect} />
       </View>
     </View>
   );
@@ -116,7 +140,9 @@ const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.divider} />
             <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Last Name" value={userData?.lastName} onChangeText={(t: string) => setUserData({...userData, lastName: t})} />
             <View style={styles.divider} />
-            <EditableRow icon={<Mail size={20} color={colors.textSecondary} />} label="Email Address" value={userData?.email} onChangeText={(t: string) => setUserData({...userData, email: t})} keyboardType="email-address" />
+            <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Suffix" value={userData?.suffix || 'None'} options={["None", "Jr.", "Sr.", "II", "III", "IV"]} onSelect={(suffix: string) => setUserData({...userData, suffix: suffix === 'None' ? '' : suffix})} />
+            <View style={styles.divider} />
+            <EditableRow icon={<Mail size={20} color={colors.textSecondary} />} label="Email Address" value={userData?.email} onChangeText={() => undefined} keyboardType="email-address" editable={false} />
             <View style={styles.divider} />
             <EditableRow icon={<Phone size={20} color={colors.textSecondary} />} label="Mobile Number" value={userData?.mobileNumber} onChangeText={(t: string) => setUserData({...userData, mobileNumber: t})} keyboardType="phone-pad" />
           </View>
@@ -129,9 +155,9 @@ const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.divider} />
             <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Age" value={userData?.age?.toString()} onChangeText={(t: string) => setUserData({...userData, age: parseInt(t) || 0})} keyboardType="numeric" />
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Gender" value={userData?.gender} onChangeText={(t: string) => setUserData({...userData, gender: t})} />
+            <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Gender" value={userData?.gender} options={["Male", "Female", "Other", "Prefer not to say"]} onSelect={(gender: string) => setUserData({...userData, gender})} />
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Civil Status" value={userData?.civilStatus} onChangeText={(t: string) => setUserData({...userData, civilStatus: t})} />
+            <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Civil Status" value={userData?.civilStatus} options={["Single", "Married", "Widowed", "Separated"]} onSelect={(civilStatus: string) => setUserData({...userData, civilStatus})} />
             <View style={styles.divider} />
             <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Place of Birth" value={userData?.placeOfBirth} onChangeText={(t: string) => setUserData({...userData, placeOfBirth: t})} />
           </View>
@@ -142,20 +168,23 @@ const EditProfileScreen = ({ navigation }: any) => {
           <View style={styles.card}>
             <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Complete Address" value={userData?.completeAddress} onChangeText={(t: string) => setUserData({...userData, completeAddress: t})} />
             <View style={styles.divider} />
-            <EditableRow icon={<Info size={20} color={colors.textSecondary} />} label="Nationality" value={userData?.nationality} onChangeText={(t: string) => setUserData({...userData, nationality: t})} />
+            <DropdownRow icon={<Info size={20} color={colors.textSecondary} />} label="Nationality" value={nationalitySelection} options={["Filipino", "Other"]} onSelect={(choice: string) => {
+              setNationalitySelection(choice);
+              setUserData({...userData, nationality: choice === 'Filipino' ? 'Filipino' : (nationalitySelection === 'Other' ? userData.nationality : '')});
+            }} />
+            {nationalitySelection === 'Other' && <>
+              <View style={styles.divider} />
+              <EditableRow icon={<Info size={20} color={colors.textSecondary} />} label="Please specify nationality" value={userData?.nationality} onChangeText={(nationality: string) => setUserData({...userData, nationality})} />
+            </>}
             <View style={styles.divider} />
-            <EditableRow icon={<Info size={20} color={colors.textSecondary} />} label="Religion" value={userData?.religion} onChangeText={(t: string) => setUserData({...userData, religion: t})} />
-            <View style={styles.divider} />
-            <EditableRow icon={<Calendar size={20} color={colors.textSecondary} />} label="Years of Residency" value={userData?.yearsOfResidency?.toString()} onChangeText={(t: string) => setUserData({...userData, yearsOfResidency: parseInt(t) || 0})} keyboardType="numeric" />
-            <View style={styles.divider} />
-            <EditableRow icon={<Info size={20} color={colors.textSecondary} />} label="Voter Status" value={userData?.voterStatus} onChangeText={(t: string) => setUserData({...userData, voterStatus: t})} />
+            <DropdownRow icon={<Info size={20} color={colors.textSecondary} />} label="Voter Status" value={userData?.voterStatus} options={["Registered", "Not Registered"]} onSelect={(voterStatus: string) => setUserData({...userData, voterStatus})} />
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Education & Employment</Text>
           <View style={styles.card}>
-            <EditableRow icon={<Briefcase size={20} color={colors.textSecondary} />} label="Employment Status" value={userData?.employmentStatus} onChangeText={(t: string) => setUserData({...userData, employmentStatus: t})} />
+            <DropdownRow icon={<Briefcase size={20} color={colors.textSecondary} />} label="Employment Status" value={userData?.employmentStatus} options={["Employed", "Self-Employed", "Unemployed", "Student", "Retired"]} onSelect={(employmentStatus: string) => setUserData({...userData, employmentStatus})} />
             <View style={styles.divider} />
             <EditableRow icon={<Briefcase size={20} color={colors.textSecondary} />} label="Occupation" value={userData?.occupation} onChangeText={(t: string) => setUserData({...userData, occupation: t})} />
             <View style={styles.divider} />
@@ -247,6 +276,12 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     paddingBottom: 4,
     marginTop: 2
+  },
+  fieldHint: {
+    color: colors.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 4
   },
   divider: {
     height: 1,

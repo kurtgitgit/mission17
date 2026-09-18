@@ -7,6 +7,8 @@ import CustomDropdown from '../CustomDropdown';
 interface SignupStep2Props {
   formData: any;
   handleInputChange: (field: string, value: string) => void;
+  nationalitySelection: string;
+  setNationalitySelection: (value: string) => void;
   showDatePicker: boolean;
   setShowDatePicker: (val: boolean) => void;
   dateObj: Date;
@@ -17,6 +19,8 @@ interface SignupStep2Props {
 const SignupStep2 = ({ 
   formData, 
   handleInputChange, 
+  nationalitySelection,
+  setNationalitySelection,
   showDatePicker, 
   setShowDatePicker, 
   dateObj, 
@@ -100,12 +104,25 @@ const SignupStep2 = ({
         required
       />
 
-      <FormInput
-        placeholder="Nationality"
-        value={formData.nationality}
-        onChangeText={(val) => handleInputChange("nationality", val)}
+      <CustomDropdown
+        label="Nationality"
+        value={nationalitySelection}
+        options={["Filipino", "Other"]}
+        onSelect={(value) => {
+          setNationalitySelection(value);
+          handleInputChange("nationality", value === 'Filipino' ? 'Filipino' : '');
+        }}
         required
       />
+
+      {nationalitySelection === 'Other' && (
+        <FormInput
+          placeholder="Please specify nationality"
+          value={formData.nationality}
+          onChangeText={(val) => handleInputChange("nationality", val)}
+          required
+        />
+      )}
 
       <FormInput
         placeholder="Complete Address"

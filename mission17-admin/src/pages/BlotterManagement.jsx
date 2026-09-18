@@ -144,6 +144,7 @@ const BlotterManagement = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [caseFilter, setCaseFilter] = useState('All');
   
   const [selectedReport, setSelectedReport] = useState(null);
   const [newStatus, setNewStatus] = useState('');
@@ -261,11 +262,17 @@ const BlotterManagement = () => {
     return report.username;
   };
 
-  const filteredReports = reports.filter(r => 
-    r.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    r.incidentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getComplainantName(r).toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredReports = reports.filter(r => {
+    const matchesSearch = r.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.incidentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      getComplainantName(r).toLowerCase().includes(searchTerm.toLowerCase());
+    const hasHearing = Boolean(r.hearingDate) || (r.hearingStage && r.hearingStage !== 'None');
+    const matchesFilter = caseFilter === 'All' ||
+      (caseFilter === 'Hearing Scheduled' ? hasHearing : r.status === caseFilter);
+    return matchesSearch && matchesFilter;
+  });
+
+  const isTerminalCase = (status) => ['Resolved', 'Dismissed'].includes(status);
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -296,7 +303,7 @@ const BlotterManagement = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 12 }}>
             <div>
               <h1 className="greeting" style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#0f172a' }}>
-                ⚖️ Blotter & Katarungang Pambarangay
+                ⚖️ Blotter & Lupon Desk
               </h1>
               <p className="subtitle" style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 13 }}>
                 Official Peacekeeping, Lupon Conciliation & Case Records Portal
@@ -327,6 +334,18 @@ const BlotterManagement = () => {
                   onChange={e => setSearchTerm(e.target.value)}
                   style={{ width: '100%' }}
                 />
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                {['All', 'Pending', 'In Progress', 'Hearing Scheduled', 'Resolved', 'Dismissed'].map(filter => (
+                  <button
+                    key={filter}
+                    type="button"
+                    onClick={() => setCaseFilter(filter)}
+                    style={{ padding: '4px 9px', borderRadius: 14, border: `1px solid ${caseFilter === filter ? '#0038A8' : '#dbe4f0'}`, background: caseFilter === filter ? '#0038A8' : '#ffffff', color: caseFilter === filter ? '#ffffff' : '#475569', cursor: 'pointer', fontWeight: 700, fontSize: 11 }}
+                  >
+                    {filter}
+                  </button>
+                ))}
               </div>
             </div>
             
@@ -403,6 +422,7 @@ const BlotterManagement = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {getStatusBadge(selectedReport.status)}
 
+                    {!isTerminalCase(selectedReport.status) && (
                     <button
                       className="no-print"
                       onClick={() => setShowKpModal(true)}
@@ -412,6 +432,7 @@ const BlotterManagement = () => {
                       <Scale size={14} />
                       KP Form 9 (Summons)
                     </button>
+                    )}
 
                     <button 
                       className="no-print"
@@ -427,6 +448,24 @@ const BlotterManagement = () => {
 
                 {/* CASE BODY (SCROLLABLE) */}
                 <div className="admin-workspace-scroll" style={{ padding: '24px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16, padding: '12px 14px', border: '1px solid #dbe4f0', borderRadius: 10, background: '#f8fafc' }}>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Filed</div>
+                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>{new Date(selectedReport.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Current status</div>
+                      <div style={{ marginTop: 4 }}>{getStatusBadge(selectedReport.status)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Lupon hearing</div>
+                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>{selectedReport.hearingStage && selectedReport.hearingStage !== 'None' ? selectedReport.hearingStage : 'Not scheduled'}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Record access</div>
+                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#991b1b' }}>Confidential case record</div>
+                    </div>
+                  </div>
                   
                   {/* COMAPLAINANT VS RESPONDENT CARD */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -492,6 +531,7 @@ const BlotterManagement = () => {
                   {/* EVIDENCE */}
                   <div style={{ marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Photo Proof / Attachment</h3>
+                    <p style={{ margin: '0 0 8px', fontSize: 12, color: '#92400e' }}>Resident-uploaded evidence — review and validate before relying on it for a case decision.</p>
                     {selectedReport.evidenceUrl && evidenceLoading ? (
                       <div role="status" style={{ padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '8px', color: '#1d4ed8', fontSize: '13px' }}>
                         Loading protected evidence...
@@ -604,7 +644,7 @@ const BlotterManagement = () => {
                     </div>
 
                     <div style={{ display: 'flex', gap: 12 }}>
-                      <button 
+                      <button
                         className="btn primary" 
                         onClick={handleUpdateStatus} 
                         disabled={updating}
@@ -613,6 +653,7 @@ const BlotterManagement = () => {
                         {updating ? 'Saving Changes...' : '💾 Save Case & Schedule Hearing'}
                       </button>
 
+                      {!isTerminalCase(selectedReport.status) && (
                       <button
                         type="button"
                         onClick={() => setShowKpModal(true)}
@@ -620,6 +661,7 @@ const BlotterManagement = () => {
                       >
                         <Scale size={15} color="#0038A8" /> Print KP Form 9 (Summons)
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -401,7 +401,7 @@ const DocumentRequests = () => {
         <div className="pa-header">
           <div className="pa-header-left">
             <h1>📄 Document Requests</h1>
-            <p>Review and process document requests submitted by residents. All status updates dispatch real-time push alerts to resident phones.</p>
+            <p>Review and process document requests submitted by residents. Status changes create in-app updates and send push alerts when enabled.</p>
           </div>
           <button className="pa-btn-secondary" onClick={fetchData}>
             <RefreshCw size={15} /> Refresh
@@ -452,9 +452,9 @@ const DocumentRequests = () => {
               const badgeClass = STATUS_CLASS[req.status] || 'pa-badge pa-status-Pending';
               const canAct = req.status !== 'Completed' && req.status !== 'Rejected';
               return (
-                <div key={req._id} className="pa-card">
+                <div key={req._id} className="pa-card pa-document-card">
                   <div className="pa-card-row">
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="pa-document-main">
                       {/* Meta row */}
                       <div className="pa-card-meta">
                         <span className={badgeClass}>{req.status}</span>
@@ -467,7 +467,7 @@ const DocumentRequests = () => {
                       </div>
 
                       {/* Document Type & Fee */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <div className="pa-document-heading">
                         <p className="pa-card-title" style={{ margin: 0 }}>{req.documentType}</p>
                         <span style={{ fontSize: 11.5, fontWeight: 800, backgroundColor: '#f1f5f9', color: '#0f172a', padding: '2px 8px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
                           💵 Fee: {
@@ -481,15 +481,15 @@ const DocumentRequests = () => {
 
 
                       {/* Resident Info */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 20px', marginBottom: 8 }}>
+                      <div className="pa-document-details">
                         <span style={{ fontSize: 13, color: '#475569' }}>
                           <strong>Resident:</strong> {req.fullName}
                         </span>
                         <span style={{ fontSize: 13, color: '#475569' }}>
                           <strong>Contact:</strong> {req.contactNumber || '—'}
                         </span>
-                        <span style={{ fontSize: 13, color: '#64748b', gridColumn: '1 / -1' }}>
-                          <strong>Address:</strong> {req.address}
+                        <span style={{ fontSize: 13, color: '#64748b' }}>
+                          <strong>Location:</strong> {req.userId?.purok ? `Purok ${req.userId.purok}` : 'Address on file'}
                         </span>
                         <span style={{ fontSize: 13, color: '#64748b' }}>
                           <strong>Purpose:</strong> {req.purpose}
@@ -498,27 +498,15 @@ const DocumentRequests = () => {
 
                       {/* Resident KYC Verification Chip / Inspector */}
                       {req.userId ? (
-                        <div style={{ marginBottom: 10 }}>
+                        <div className="pa-document-kyc">
                           <button
                             type="button"
                             onClick={() => setKycTarget({ resident: req.userId, name: req.fullName })}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              backgroundColor: (req.userId.isVerified || req.userId.accountStatus === 'approved') ? '#f0fdf4' : '#fffbeb',
-                              color: (req.userId.isVerified || req.userId.accountStatus === 'approved') ? '#166534' : '#92400e',
-                              border: `1px solid ${(req.userId.isVerified || req.userId.accountStatus === 'approved') ? '#bbf7d0' : '#fde68a'}`,
-                              padding: '5px 12px',
-                              borderRadius: 8,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
+                            className={`pa-kyc-button ${(req.userId.isVerified || req.userId.accountStatus === 'approved') ? 'verified' : 'pending'}`}
                           >
                             <ShieldCheck size={14} color={(req.userId.isVerified || req.userId.accountStatus === 'approved') ? '#16a34a' : '#d97706'} />
                             <span>
-                              {(req.userId.isVerified || req.userId.accountStatus === 'approved') ? '✅ Verified Resident KYC' : '⏳ Pending Resident Account'} — View Valid ID Photo →
+                              {(req.userId.isVerified || req.userId.accountStatus === 'approved') ? 'Verified KYC' : 'KYC Pending'} — Review ID
                             </span>
                           </button>
                         </div>
@@ -539,7 +527,7 @@ const DocumentRequests = () => {
 
                     {/* ACTIONS */}
                     {canAct && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, alignItems: 'flex-end' }}>
+                      <div className="pa-document-actions">
                         {nextStatus && (
                           <button
                             className="pa-workflow-btn"

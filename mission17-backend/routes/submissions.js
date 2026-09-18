@@ -454,7 +454,7 @@ router.get('/analytics-stats', verifyAdmin, async (_req, res) => {
         .sort({ createdAt: -1 })
         .lean(),
       AnalysisReport.find({ sdg: { $type: 'string', $ne: '' } })
-        .select('sdg')
+        .select('sdg analyzedAt')
         .lean(),
     ]);
 
@@ -464,7 +464,7 @@ router.get('/analytics-stats', verifyAdmin, async (_req, res) => {
       return counts;
     }, {});
 
-    return res.json({ submissions, sdgCounts });
+    return res.json({ submissions, sdgCounts, sdgReports: reports });
   } catch (error) {
     console.error('Analytics statistics error:', error.message);
     return res.status(500).json({ message: 'Unable to load analytics statistics.' });
