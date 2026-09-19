@@ -40,8 +40,9 @@ import ServicesScreen      from './src/screens/ServicesScreen';
 import OfficialsScreen     from './src/screens/OfficialsScreen';
 
 // ─── UTILS ─────────────────────────────────────────────
-import { clearAuthData, getAuthData } from './src/utils/storage';
-import { GlobalState } from './src/config/api';
+import { clearAuthData, getAuthData, saveAuthData } from './src/utils/storage';
+import { endpoints, getAuthHeadersIfAvailable, GlobalState } from './src/config/api';
+import { fetchWithTimeout } from './src/utils/network';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ChatProvider } from './src/context/ChatContext';
@@ -176,9 +177,23 @@ export default function App() {
         if (authData?.user?.accountStatus === 'pending' || authData?.user?.accountStatus === 'rejected') {
           await clearAuthData();
         } else if (authData?.token && authData.user?._id) {
-          GlobalState.userId = authData.user._id;
-          GlobalState.username = authData.user.username || null;
-          GlobalState.role = authData.user.role || null;
+          let restoredUser = authData.user;
+          try {
+            const headers = await getAuthHeadersIfAvailable();
+            if (headers) {
+              const response = await fetchWithTimeout(endpoints.auth.getUser(authData.user._id), { headers }, 7_000);
+              if (response.ok) {
+                restoredUser = { ...authData.user, ...(await response.json()) };
+                await saveAuthData(authData.token, restoredUser);
+              }
+            }
+          } catch {
+            // Restore the cached session when the profile refresh is temporarily unavailable.
+          }
+
+          GlobalState.userId = restoredUser._id;
+          GlobalState.username = restoredUser.username || null;
+          GlobalState.role = restoredUser.role || null;
           GlobalState.token = authData.token;
           GlobalState.auth = { token: authData.token };
           setInitialRoute('Home');

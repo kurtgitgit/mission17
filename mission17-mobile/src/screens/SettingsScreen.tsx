@@ -4,7 +4,7 @@ import {
   Platform, SafeAreaView, Alert, Modal, TextInput, ActivityIndicator 
 } from 'react-native';
 import { ChevronLeft, Bell, Lock, ChevronRight, X, Shield, Eye, EyeOff, Moon, FileText } from 'lucide-react-native';
-import { getAuthData } from '../utils/storage'; 
+import { getAuthData, saveAuthData } from '../utils/storage';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
@@ -23,6 +23,8 @@ const SettingsScreen = ({ navigation }: any) => {
   // Account Security
   const [mfaEnabled, setMfaEnabled] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSecurityLoading, setIsSecurityLoading] = useState(true);
+  const [isMfaUpdating, setIsMfaUpdating] = useState(false);
   
   // Password Change Modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -39,16 +41,40 @@ const SettingsScreen = ({ navigation }: any) => {
   }, []);
 
   const loadProfile = async () => {
-    const data = await getAuthData();
-    if (data && data.user) {
-        setMfaEnabled(data.user.mfaEnabled || false);
-        setIsAdmin(['admin', 'super_admin'].includes(data.user.role));
+    try {
+      const data = await getAuthData();
+      if (!data?.user) return;
+
+      let currentUser = data.user;
+      if (GlobalState.userId) {
+        try {
+          const response = await fetchWithTimeout(endpoints.auth.getUser(GlobalState.userId), {
+            headers: await getAuthHeaders(),
+          }, 10_000);
+          if (response.ok) {
+            const serverUser = await response.json();
+            currentUser = { ...data.user, ...serverUser };
+            GlobalState.role = serverUser.role || null;
+            await saveAuthData(data.token, currentUser);
+          }
+        } catch {
+          // Keep the cached values when the profile refresh is temporarily unavailable.
+        }
+      }
+
+      setMfaEnabled(Boolean(currentUser.mfaEnabled));
+      setIsAdmin(['admin', 'super_admin'].includes(currentUser.role));
+    } finally {
+      setIsSecurityLoading(false);
     }
   };
 
   const toggleMFA = async (value: boolean) => {
-    if (!GlobalState.userId) return;
+    if (!GlobalState.userId || isAdmin || isMfaUpdating) return;
 
+    const previousValue = mfaEnabled;
+    setMfaEnabled(value);
+    setIsMfaUpdating(true);
     try {
         const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/toggle-mfa`, {
             method: 'POST',
@@ -62,15 +88,22 @@ const SettingsScreen = ({ navigation }: any) => {
         const result = await response.json();
         
         if (response.ok) {
-            setMfaEnabled(value);
+            const enabled = typeof result.mfaEnabled === 'boolean' ? result.mfaEnabled : value;
+            setMfaEnabled(enabled);
+            const authData = await getAuthData();
+            if (authData?.user) {
+              await saveAuthData(authData.token, { ...authData.user, mfaEnabled: enabled, role: result.role || authData.user.role });
+            }
             showNotification(`Two-Factor Authentication is now ${value ? 'ON' : 'OFF'}`, "success");
         } else {
-            setMfaEnabled(!value);
+            setMfaEnabled(previousValue);
             Alert.alert("Error", result.message || "Failed to update MFA settings");
         }
     } catch (error) {
-        setMfaEnabled(!value);
+        setMfaEnabled(previousValue);
         showNotification(getFriendlyNetworkMessage(error, 'Could not update security settings. Please try again.'), "error");
+    } finally {
+        setIsMfaUpdating(false);
     }
   };
 
@@ -120,7 +153,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
   // --- RENDER HELPERS ---
 
-  const SettingItem = ({ icon: Icon, label, onPress, isSwitch, value, onValueChange, isLast = false, switchDisabled = false }: any) => (
+  const SettingItem = ({ icon: Icon, label, description, onPress, isSwitch, value, onValueChange, isLast = false, switchDisabled = false }: any) => (
     <TouchableOpacity 
       style={[styles.row, !isLast && styles.rowBorder]} 
       onPress={onPress} 
@@ -131,7 +164,10 @@ const SettingsScreen = ({ navigation }: any) => {
         <View style={styles.iconBox}>
           <Icon size={22} color={theme.primary} />
         </View>
-        <Text style={styles.rowLabel}>{label}</Text>
+        <View style={styles.rowText}>
+          <Text style={styles.rowLabel}>{label}</Text>
+          {description ? <Text style={styles.rowDescription}>{description}</Text> : null}
+        </View>
       </View>
       
       {isSwitch ? (
@@ -139,6 +175,9 @@ const SettingsScreen = ({ navigation }: any) => {
           value={value} 
           onValueChange={onValueChange}
           disabled={switchDisabled}
+          accessibilityRole="switch"
+          accessibilityLabel={label}
+          accessibilityState={{ checked: Boolean(value), disabled: Boolean(switchDisabled) }}
           trackColor={{ false: theme.border, true: theme.primaryLight }}
           thumbColor={value ? theme.primary : theme.surfaceSecondary}
         />
@@ -172,11 +211,12 @@ const SettingsScreen = ({ navigation }: any) => {
           />
           <SettingItem 
             icon={Shield} 
-            label={isAdmin ? 'Two-Factor Auth (Required for Admin)' : 'Two-Factor Auth (Email)'}
+            label="Two-Factor Authentication"
+            description={isAdmin ? 'Required for administrator accounts' : 'Optional email verification'}
             isSwitch 
             value={isAdmin || mfaEnabled}
             onValueChange={toggleMFA} 
-            switchDisabled={isAdmin}
+            switchDisabled={isAdmin || isSecurityLoading || isMfaUpdating}
             isLast
           />
         </View>
@@ -270,9 +310,11 @@ const getStyles = (theme: any) => StyleSheet.create({
   menuContainer: { marginBottom: 10 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   rowBorder: { borderBottomWidth: 1, borderBottomColor: theme.border },
-  rowLeft: { flexDirection: 'row', alignItems: 'center' },
+  rowLeft: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   iconBox: { width: 32, alignItems: 'center', marginRight: 12 },
+  rowText: { flex: 1, paddingRight: 12 },
   rowLabel: { fontSize: 16, fontWeight: '600', color: theme.primary },
+  rowDescription: { marginTop: 3, fontSize: 12, lineHeight: 16, color: theme.textSecondary },
 
   versionText: { textAlign: 'center', color: theme.textTertiary, fontSize: 13, marginTop: 40 },
 

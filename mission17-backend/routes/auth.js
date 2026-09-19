@@ -399,9 +399,17 @@ router.post('/toggle-mfa', verifyAuthenticatedUser, async (req, res) => {
       return res.status(400).json({ message: 'enable must be a boolean.' });
     }
 
+    if (['admin', 'super_admin'].includes(req.user.role) && enable === false) {
+      return res.status(403).json({ message: 'Two-factor authentication is required for administrator accounts.' });
+    }
+
     const user = await User.findByIdAndUpdate(req.user._id, { mfaEnabled: enable }, { new: true });
     logAudit(user._id, user.username, "MFA_TOGGLE", `MFA set to ${enable}`, req);
-    res.json({ message: `MFA is now ${enable ? 'Enabled' : 'Disabled'}` });
+    res.json({
+      message: `MFA is now ${enable ? 'Enabled' : 'Disabled'}`,
+      mfaEnabled: user.mfaEnabled,
+      role: user.role,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error updating MFA" });
   }
