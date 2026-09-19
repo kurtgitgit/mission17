@@ -382,13 +382,14 @@ const Officials = () => {
                     <div className="pa-card-actions pa-official-actions">
                       {!off.isArchived ? (
                         <>
-                          <button className="pa-btn-icon blue" title="Edit Official" onClick={() => startEdit(off)}><Edit3 size={15} /></button>
+                          <button className="pa-btn-icon blue" title="Edit Official" aria-label={`Edit ${off.name}`} onClick={() => startEdit(off)}><Edit3 size={15} /></button>
                           <button
-                            style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fde68a', backgroundColor: '#fef3c7', color: '#b45309', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700 }}
+                            className="pa-btn-icon amber"
                             title="Archive Official (Preserve History)"
+                            aria-label={`Archive ${off.name}`}
                             onClick={() => setArchiveTarget(off)}
                           >
-                            <Archive size={14} /> Archive
+                            <Archive size={15} />
                           </button>
                         </>
                       ) : (

@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Target, BookOpen, Megaphone, User } from 'lucide-react-native';
+import { Home, Target, BookOpen, Megaphone, ShieldCheck, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -101,14 +101,25 @@ function MainTabs() {
           tabBarIcon: ({ color }: any) => <Megaphone size={22} color={color} />,
         }}
       />
-      <Tab.Screen
-        name="LearnTab"
-        component={LearningScreen}
-        options={{
-          tabBarLabel: 'Learn',
-          tabBarIcon: ({ color }: any) => <BookOpen size={22} color={color} />,
-        }}
-      />
+      {GlobalState.role === 'super_admin' ? (
+        <Tab.Screen
+          name="CaptainControlTab"
+          component={CaptainControlScreen}
+          options={{
+            tabBarLabel: 'Control',
+            tabBarIcon: ({ color }: any) => <ShieldCheck size={22} color={color} />,
+          }}
+        />
+      ) : (
+        <Tab.Screen
+          name="LearnTab"
+          component={LearningScreen}
+          options={{
+            tabBarLabel: 'Learn',
+            tabBarIcon: ({ color }: any) => <BookOpen size={22} color={color} />,
+          }}
+        />
+      )}
       <Tab.Screen
         name="ProfileTab"
         component={ProfileScreen}

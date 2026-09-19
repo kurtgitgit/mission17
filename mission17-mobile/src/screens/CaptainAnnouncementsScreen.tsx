@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ArrowLeft, Megaphone, Send, Siren } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { endpoints, getAuthHeaders, GlobalState } from '../config/api';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const CaptainAnnouncementsScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [posting, setPosting] = useState(false);
+
+  useEffect(() => {
+    setIsUrgent(Boolean(route.params?.emergency));
+  }, [route.params?.emergency]);
 
   const post = async () => {
     if (!title.trim() || !body.trim()) {

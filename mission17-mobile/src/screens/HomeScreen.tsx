@@ -8,7 +8,7 @@ import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Megaphone,
   UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
-  Landmark, ShieldAlert, Flame, PhoneCall, ArrowRight, ShieldCheck
+  Landmark, ShieldAlert, Flame, PhoneCall, ArrowRight
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -264,22 +264,7 @@ const HomeScreen: React.FC = () => {
 
         {GlobalState.role === 'super_admin' && (
           <View style={styles.section}>
-            <TouchableOpacity
-              style={{ backgroundColor: '#0f2f6d', borderRadius: 18, padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }}
-              onPress={() => navigation.navigate('CaptainControl')}
-              accessibilityRole="button"
-              accessibilityLabel="Open Barangay Captain Control Center"
-            >
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldCheck size={24} color="#fff" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '900' }}>Captain Control Center</Text>
-                <Text style={{ color: '#dbeafe', fontSize: 12, marginTop: 3 }}>Review staff accounts and make final blotter decisions.</Text>
-              </View>
-              <ChevronRight size={20} color="#fff" />
-            </TouchableOpacity>
-            <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity style={{ flex: 1, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 14, padding: 13 }} onPress={() => navigation.navigate('CaptainAnnouncements')} accessibilityRole="button" accessibilityLabel="Open Captain News and Alerts">
                 <Megaphone size={21} color="#0038A8" />
                 <Text style={{ color: '#0f172a', fontSize: 13, fontWeight: '900', marginTop: 8 }}>News & Alerts</Text>
