@@ -18,7 +18,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import sgMail from '@sendgrid/mail';
+import { google } from 'googleapis';
 import rateLimit from 'express-rate-limit';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
@@ -48,6 +48,63 @@ const isDisposableEmail = (email) => {
 };
 
 const router = express.Router();
+
+const GMAIL_OAUTH_REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+
+const encodeGmailMessage = ({ from, to, subject, text, html }) => {
+  const cleanHeader = (value) => String(value || '').replace(/[\r\n]+/g, ' ').trim();
+  const boundary = `mission17-${Date.now()}`;
+  const encodedSubject = `=?UTF-8?B?${Buffer.from(cleanHeader(subject), 'utf8').toString('base64')}?=`;
+  const message = [
+    `From: "Mission 17" <${cleanHeader(from)}>`,
+    `To: ${cleanHeader(to)}`,
+    `Subject: ${encodedSubject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    text,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 8bit',
+    '',
+    html,
+    '',
+    `--${boundary}--`
+  ].join('\r\n');
+
+  return Buffer.from(message, 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+};
+
+const sendGmailEmail = async ({ to, subject, text, html }) => {
+  const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, EMAIL_USER } = process.env;
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN || !EMAIL_USER) {
+    throw new Error('Gmail API is not fully configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN, and EMAIL_USER.');
+  }
+
+  const oAuth2Client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    GMAIL_OAUTH_REDIRECT_URI
+  );
+  oAuth2Client.setCredentials({ refresh_token: GOOGLE_REFRESH_TOKEN });
+
+  const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
+  await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: {
+      raw: encodeGmailMessage({ from: EMAIL_USER, to, subject, text, html })
+    }
+  });
+};
 // ==========================================
 // 🔧 EMAIL HELPER (OTP)
 // ==========================================
@@ -62,8 +119,6 @@ const sendOTP = async (user, type = 'mfa') => {
     : 'To complete your sign in, please use the following verification code:';
 
   try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
     const htmlTemplate = `
       <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -88,12 +143,11 @@ const sendOTP = async (user, type = 'mfa') => {
       </div>
     `;
 
-    await sgMail.send({
-      from: process.env.EMAIL_USER,
+    await sendGmailEmail({
       to: user.email,
-      subject: subject,
-      text: `${title}: ${otp}. it expires in 10 minutes.`,
-      html: htmlTemplate,
+      subject,
+      text: `${title}: ${otp}. It expires in 10 minutes.`,
+      html: htmlTemplate
     });
     // Replace the current code only after the new one was accepted by the
     // email provider. A failed resend must not invalidate a still-valid code.
@@ -101,11 +155,10 @@ const sendOTP = async (user, type = 'mfa') => {
       otpCode: otp,
       otpExpires: Date.now() + 10 * 60 * 1000
     });
-    console.log('✅ Email sent successfully!');
+    console.log(`OTP email sent successfully to ${user.email} via Gmail API.`);
     return true;
   } catch (error) {
-    console.error('❌ Email Send Failed:', error);
-    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
+    console.error('OTP email send failed:', error?.message || error);
     return false;
   }
 };
@@ -115,8 +168,6 @@ const sendOTP = async (user, type = 'mfa') => {
 // ==========================================
 const sendWelcomeEmail = async (user) => {
   try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
     const htmlTemplate = `
       <div style="font-family: 'Inter', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f9fafb; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);">
         <div style="text-align: center; margin-bottom: 30px;">
@@ -135,17 +186,15 @@ const sendWelcomeEmail = async (user) => {
       </div>
     `;
 
-    await sgMail.send({
-      from: process.env.EMAIL_USER,
+    await sendGmailEmail({
       to: user.email,
-      subject: 'Welcome to Mission 17! 🎉',
+      subject: 'Welcome to Mission 17!',
       text: 'Hi ' + user.username + ', welcome to Mission 17! Your account was successfully created.',
-      html: htmlTemplate,
+      html: htmlTemplate
     });
-    console.log('✅ Welcome email sent successfully to ' + user.email);
+    console.log('Welcome email sent successfully to ' + user.email + ' via Gmail API.');
   } catch (error) {
-    console.error('❌ Welcome Email Send Failed:', error);
-    if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
+    console.error('Welcome email send failed:', error?.message || error);
   }
 };
 
