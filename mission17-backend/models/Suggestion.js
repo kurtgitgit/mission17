@@ -12,15 +12,22 @@ const suggestionSchema = new mongoose.Schema({
   },
   title: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    minlength: 5,
+    maxlength: 100
   },
   category: {
     type: String,
+    enum: ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'],
     default: 'General'
   },
   description: {
     type: String,
-    required: true
+    required: true,
+    trim: true,
+    minlength: 10,
+    maxlength: 500
   },
   sentiment: {
     type: String,
@@ -47,9 +54,9 @@ const suggestionSchema = new mongoose.Schema({
 
   adminReply: {
     type: String,
+    maxlength: 2000,
     default: ''
   }
 }, { timestamps: true });
 
 export default mongoose.model('Suggestion', suggestionSchema);
-

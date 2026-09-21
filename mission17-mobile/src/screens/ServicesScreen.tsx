@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Platform, SafeAreaView, StatusBar, Alert, ActivityIndicator, Modal,
@@ -49,6 +49,7 @@ const ServicesScreen: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const userId = GlobalState.userId;
   const navigation = useNavigation<any>();
@@ -103,12 +104,14 @@ const ServicesScreen: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
     if (!userId) return Alert.alert('Error', 'You must be logged in to request documents.');
 
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -134,6 +137,7 @@ const ServicesScreen: React.FC = () => {
     } catch (err) {
       setSubmitError(getFriendlyNetworkMessage(err, 'Could not submit your request. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

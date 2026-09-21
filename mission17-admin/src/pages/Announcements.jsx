@@ -36,6 +36,7 @@ const Announcements = () => {
   const [imageMode, setImageMode] = useState('url'); // 'url' | 'upload'
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
+  const submittingRef = useRef(false);
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
@@ -119,12 +120,14 @@ const Announcements = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!form.title.trim() || !form.body.trim()) return showNotification('Title and body are required.', 'error');
     
     const finalCategory = isCustomCat && customCatInput.trim() 
       ? customCatInput.trim().toLowerCase()
       : form.category;
 
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const url    = editItem ? `${baseUrl}/api/announcements/${editItem._id}` : `${baseUrl}/api/announcements`;
@@ -142,13 +145,25 @@ const Announcements = () => {
       } else {
         showNotification(data.message || 'Failed to save announcement.', 'error');
       }
-    } finally { setSubmitting(false); }
+    } catch {
+      showNotification('Network error while saving the announcement.', 'error');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this announcement?')) return;
-    const res = await fetch(`${baseUrl}/api/announcements/${id}`, { method: 'DELETE', headers: { 'auth-token': token } });
-    if (res.ok) { showNotification('Announcement deleted.', 'success'); fetchData(); }
+    try {
+      const res = await fetch(`${baseUrl}/api/announcements/${id}`, { method: 'DELETE', headers: { 'auth-token': token } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Announcement could not be deleted.');
+      showNotification('Announcement deleted.', 'success');
+      fetchData();
+    } catch (error) {
+      showNotification(error.message || 'Network error while deleting the announcement.', 'error');
+    }
   };
 
   const handlePin = async (id) => {
@@ -207,7 +222,7 @@ const Announcements = () => {
                 <div className="pa-form-group full">
                   <label className="pa-label">Title *</label>
                   <input className="pa-input" placeholder="e.g. Notice: Severe Weather & Flood Advisory / Libreng Bakuna" value={form.title}
-                    onChange={e => setForm({ ...form, title: e.target.value })} required />
+                    onChange={e => setForm({ ...form, title: e.target.value })} minLength={3} maxLength={150} required />
                 </div>
 
                 <div className="pa-form-group">
@@ -239,6 +254,7 @@ const Announcements = () => {
                         placeholder="Type new category (e.g. Disaster & Weather, Scholarships)..."
                         value={customCatInput}
                         onChange={e => setCustomCatInput(e.target.value)}
+                        maxLength={50}
                       />
                       <button
                         type="button"
@@ -338,7 +354,7 @@ const Announcements = () => {
                 <div className="pa-form-group full">
                   <label className="pa-label">Body *</label>
                   <textarea className="pa-input pa-textarea" placeholder="Detailed announcement advisory or instructions for residents..."
-                    value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} required />
+                    value={form.body} onChange={e => setForm({ ...form, body: e.target.value })} minLength={10} maxLength={5000} required />
                 </div>
 
 

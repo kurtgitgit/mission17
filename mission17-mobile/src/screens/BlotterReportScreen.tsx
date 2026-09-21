@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Platform,
-  Alert
+  Alert, Modal
 } from 'react-native';
 import { 
   ArrowLeft, Camera, ShieldCheck, CheckCircle, 
@@ -17,6 +17,7 @@ import { colors, spacing, radius, shadow, sharedStyles, typography } from '../co
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const INCIDENT_TYPES = ['Disturbance', 'Theft', 'Vandalism', 'Accident', 'Other'];
+const INCIDENT_LOCATIONS = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Barangay Hall', 'Covered Court', 'Other / specify'];
 
 const DRAFT_STORAGE_KEY = 'brgy_blotter_draft_v1';
 
@@ -29,6 +30,8 @@ const BlotterReportScreen = () => {
   const [customIncidentType, setCustomIncidentType] = useState('');
   const [description, setDescription]     = useState('');
   const [location, setLocation]           = useState('');
+  const [customLocation, setCustomLocation] = useState('');
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [evidenceUri, setEvidenceUri]     = useState('');
   const [evidenceBase64, setEvidenceBase64] = useState('');
 
@@ -41,6 +44,7 @@ const BlotterReportScreen = () => {
   const [successRef, setSuccessRef]       = useState<string | null>(null);
   const [submitError, setSubmitError]     = useState('');
   const [copiedToast, setCopiedToast]     = useState(false);
+  const submittingRef = useRef(false);
 
   // Load draft on mount (Inclusivity: recovery for interrupted users)
   useEffect(() => {
@@ -73,6 +77,7 @@ const BlotterReportScreen = () => {
         if (parsed.customIncidentType) setCustomIncidentType(parsed.customIncidentType);
         if (parsed.description) setDescription(parsed.description);
         if (parsed.location) setLocation(parsed.location);
+        if (parsed.customLocation) setCustomLocation(parsed.customLocation);
         setHasDraft(false);
       }
     } catch (e) {
@@ -89,6 +94,7 @@ const BlotterReportScreen = () => {
         customIncidentType,
         description,
         location,
+        customLocation,
         savedAt: new Date().toISOString(),
       };
       await AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
@@ -145,7 +151,7 @@ const BlotterReportScreen = () => {
       }
     }
 
-    const cleanLocation = location.trim();
+    const cleanLocation = (location === 'Other / specify' ? customLocation : location).trim();
     if (!cleanLocation || cleanLocation.length < 5 || !/[a-zA-Z]/.test(cleanLocation) || /^(.)\1+$/.test(cleanLocation))
       newErrors.location = 'Please specify the exact street, purok, or landmark in Bagong Pag-asa.';
 
@@ -158,6 +164,7 @@ const BlotterReportScreen = () => {
 
   // ─── Submit ────────────────────────────────────────────────────────────────
   const submitReport = async () => {
+    if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -166,6 +173,7 @@ const BlotterReportScreen = () => {
       ? `[Specified Concern: ${customIncidentType.trim()}]\n\n${description.trim()}`
       : description.trim();
 
+    submittingRef.current = true;
     setSubmitError('');
     setLoading(true);
     try {
@@ -177,7 +185,7 @@ const BlotterReportScreen = () => {
           contactNumber:   contactNumber.trim(),
           incidentType:    incidentType,
           description:     finalDescription,
-          location:        location.trim(),
+          location:        (location === 'Other / specify' ? customLocation : location).trim(),
           dateOfIncident:  new Date().toISOString(),
           evidenceUrl:     evidenceBase64 || null,
         }),
@@ -192,6 +200,7 @@ const BlotterReportScreen = () => {
         setCustomIncidentType('');
         setDescription('');
         setLocation('');
+        setCustomLocation('');
         setEvidenceUri('');
         setEvidenceBase64('');
         setErrors({});
@@ -202,6 +211,7 @@ const BlotterReportScreen = () => {
     } catch (error) {
       setSubmitError(getFriendlyNetworkMessage(error, 'Could not submit the report. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -524,17 +534,30 @@ const BlotterReportScreen = () => {
             <Text style={styles.fieldLabel}>
               Location of Incident <Text style={styles.requiredStar}>*</Text>
             </Text>
-            <View style={[styles.inputBox, errors.location ? styles.inputBoxError : null]}>
+            <TouchableOpacity
+              style={[styles.inputBox, errors.location ? styles.inputBoxError : null]}
+              onPress={() => setShowLocationPicker(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Choose incident location"
+            >
               <MapPin size={18} color="#64748b" style={styles.inputIcon} />
-              <TextInput
-                style={styles.textInputField}
-                placeholder="e.g. Purok 3, Near Bagong Pag-asa Chapel"
-                placeholderTextColor={colors.textMuted}
-                value={location}
-                onChangeText={(t) => { setLocation(t); setErrors(e => ({ ...e, location: '' })); }}
-                accessibilityLabel="Location of Incident"
-              />
-            </View>
+              <Text style={[styles.textInputField, { paddingTop: 12, color: location ? colors.textPrimary : colors.textMuted }]}>
+                {location || 'Choose a purok or barangay landmark'}
+              </Text>
+            </TouchableOpacity>
+            {location === 'Other / specify' && (
+              <View style={[styles.inputBox, errors.location ? styles.inputBoxError : null, { marginTop: 10 }]}>
+                <MapPin size={18} color="#64748b" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.textInputField}
+                  placeholder="Specify the street, purok, or landmark"
+                  placeholderTextColor={colors.textMuted}
+                  value={customLocation}
+                  onChangeText={(t) => { setCustomLocation(t); setErrors(e => ({ ...e, location: '' })); }}
+                  accessibilityLabel="Specify incident location"
+                />
+              </View>
+            )}
             {errors.location ? (
               <View style={styles.errorRow}>
                 <AlertCircle size={13} color="#dc2626" />
@@ -617,6 +640,25 @@ const BlotterReportScreen = () => {
         </View>
 
       </ScrollView>
+
+      <Modal visible={showLocationPicker} transparent animationType="slide" onRequestClose={() => setShowLocationPicker(false)}>
+        <View style={styles.locationModalBackdrop}>
+          <View style={styles.locationModalCard}>
+            <Text style={styles.locationModalTitle}>Choose Incident Location</Text>
+            {INCIDENT_LOCATIONS.map((item) => (
+              <TouchableOpacity key={item} style={styles.locationOption} onPress={() => {
+                setLocation(item);
+                setCustomLocation('');
+                setErrors(e => ({ ...e, location: '' }));
+                setShowLocationPicker(false);
+              }}>
+                <Text style={styles.locationOptionText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity style={styles.locationCancel} onPress={() => setShowLocationPicker(false)}><Text style={styles.locationCancelText}>Cancel</Text></TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* FOOTER CTA WITH DRAFT SAVE & SUBMIT */}
       <View style={styles.footer}>
@@ -1093,6 +1135,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyShortcutLink: {
+    color: '#0038A8',
+    fontWeight: '800',
+  },
+  locationModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  locationModalCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 20,
+    paddingBottom: 30,
+  },
+  locationModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 10,
+  },
+  locationOption: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  locationOptionText: {
+    fontSize: 15,
+    color: '#334155',
+    fontWeight: '600',
+  },
+  locationCancel: {
+    marginTop: 14,
+    alignItems: 'center',
+    padding: 12,
+  },
+  locationCancelText: {
     color: '#0038A8',
     fontWeight: '800',
   },

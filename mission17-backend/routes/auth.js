@@ -19,9 +19,7 @@ import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import sgMail from '@sendgrid/mail';
-import { google } from 'googleapis';
 import rateLimit from 'express-rate-limit';
-import { OAuth2Client } from 'google-auth-library';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { logAudit, verifyAdmin, verifyAuthenticatedUser, verifyFirebaseToken } from '../utils/authMiddleware.js';
@@ -36,6 +34,7 @@ import {
   createLegalConsentRecord,
   hasCurrentLegalConsent
 } from '../utils/legalConsent.js';
+import { normalizeResidentProfile, validateResidentProfile } from '../utils/residentProfileValidation.js';
 
 // 🛡️ ANTI-FRAUD: Known disposable email domains
 const DISPOSABLE_DOMAINS = [
@@ -49,12 +48,6 @@ const isDisposableEmail = (email) => {
 };
 
 const router = express.Router();
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  'https://auth.expo.io/@kurtperez/mission17-app'
-);
-
 // ==========================================
 // 🔧 EMAIL HELPER (OTP)
 // ==========================================
@@ -67,11 +60,6 @@ const sendOTP = async (user, type = 'mfa') => {
   const subtitle = isSignup
     ? `We're excited to have you, ${user.username}! To finish setting up your account and start your journey, please verify your email:`
     : 'To complete your sign in, please use the following verification code:';
-
-  await User.findByIdAndUpdate(user._id, {
-    otpCode: otp,
-    otpExpires: Date.now() + 10 * 60 * 1000
-  });
 
   try {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -107,10 +95,18 @@ const sendOTP = async (user, type = 'mfa') => {
       text: `${title}: ${otp}. it expires in 10 minutes.`,
       html: htmlTemplate,
     });
+    // Replace the current code only after the new one was accepted by the
+    // email provider. A failed resend must not invalidate a still-valid code.
+    await User.findByIdAndUpdate(user._id, {
+      otpCode: otp,
+      otpExpires: Date.now() + 10 * 60 * 1000
+    });
     console.log('✅ Email sent successfully!');
+    return true;
   } catch (error) {
     console.error('❌ Email Send Failed:', error);
     if (error.response) console.error('SendGrid Error Details:', JSON.stringify(error.response.body, null, 2));
+    return false;
   }
 };
 
@@ -172,6 +168,22 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const otpResendLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many OTP resend requests. Please wait before trying again.' }
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many verification attempts. Please wait before trying again.' }
+});
+
 // ==========================================
 // 🔓 PUBLIC ROUTES
 // ==========================================
@@ -224,70 +236,18 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
         return res.status(403).json({ message: "Access denied: Admins only." });
       }
 
-      // 🛡️ MFA (OTP) Check with Gmail API
+      // 🛡️ MFA (OTP) Check
       // We also trigger this for 'pending' users so they can verify their email!
       // Pending residents need an OTP only until their email is verified.
       // Admin accounts always require it; active residents follow their MFA setting.
       const requiresEmailVerification = user.accountStatus === 'pending' && user.isVerified !== true;
       if (requiresEmailVerification || ['admin', 'super_admin'].includes(user.role) || user.mfaEnabled) {
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        await User.updateOne(
-          { _id: user._id },
-          { $set: { otpCode: otp, otpExpires: new Date(Date.now() + 10 * 60000) } }
-        );
-
-        const htmlTemplate = `
-          <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-            <h2 style="color: #4CAF50;">Mission 17 Secure Login</h2>
-            <p>Your one-time password (OTP) is:</p>
-            <h1 style="letter-spacing: 5px; color: #222;">${otp}</h1>
-            <p>This code will expire in 10 minutes.</p>
-          </div>
-        `;
-
-        try {
-          const oAuth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            "https://developers.google.com/oauthplayground"
-          );
-          oAuth2Client.setCredentials({ refresh_token: process.env.GOOGLE_REFRESH_TOKEN });
-          
-          const gmail = google.gmail({ version: 'v1', auth: oAuth2Client });
-          const subject = 'Login OTP - Mission 17';
-          const utf8Subject = `=?utf-8?B?${Buffer.from(subject).toString('base64')}?=`;
-          const messageParts = [
-            `From: "Mission17 Admin" <${process.env.EMAIL_USER}>`,
-            `To: ${user.email}`,
-            `Content-Type: text/html; charset=utf-8`,
-            `MIME-Version: 1.0`,
-            `Subject: ${utf8Subject}`,
-            '',
-            htmlTemplate
-          ];
-          const message = messageParts.join('\r\n');
-          
-          const encodedMessage = Buffer.from(message)
-            .toString('base64')
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=+$/, '');
-
-          // ⚡ OPTIMIZATION: Don't await the email so the client doesn't time out!
-          gmail.users.messages.send({
-            userId: 'me',
-            requestBody: {
-              raw: encodedMessage
-            }
-          })
-          .then(() => console.log(`✅ Login OTP sent to ${user.email} via Gmail API`))
-          .catch((error) => console.error('❌ Login OTP Email Failed:', error));
-        } catch (error) {
-          console.error('❌ Login OTP Email Setup Failed:', error);
+        if (user.otpCode && user.otpExpires && user.otpExpires.getTime() > Date.now()) {
+          return res.status(200).json({ mfaRequired: true, tempUserId: user._id });
         }
-
-        logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for 2FA via Gmail API", req);
+        const delivered = await sendOTP(user, requiresEmailVerification ? 'signup' : 'mfa');
+        if (!delivered) return res.status(502).json({ message: 'The verification code could not be delivered. Please try again later.' });
+        await logAudit(user._id, user.username, "OTP_SENT", "OTP sent to email for two-factor verification", req);
         return res.status(200).json({ mfaRequired: true, tempUserId: user._id });
       }
 
@@ -296,12 +256,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     }
 
     // Otherwise, create a new user in MongoDB (Signup Flow)
-    let {
-      firstName, middleName, lastName, suffix, birthDate, age, placeOfBirth, gender, civilStatus,
-      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
-      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
-      numberOfFamilyMembers, educationalAttainment, bloodType, disability, username
-    } = req.body;
+    const { username } = req.body;
 
     // This applies only to a newly created resident record. Existing and legacy
     // accounts retain their historical access and are not backfilled here.
@@ -311,14 +266,19 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       });
     }
 
+    const residentProfile = normalizeResidentProfile(req.body);
+    const profileValidationError = validateResidentProfile(residentProfile, { requireCore: true });
+    if (profileValidationError) return res.status(400).json({ message: profileValidationError });
+
     // Grab file URLs if they exist
     const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
     const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
     const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
 
     // Use firstName+lastName for the auto-generated username
-    const generatedUsername = `${firstName || ''}${lastName || ''}`.replace(/\s+/g, '') + Math.floor(Math.random() * 100);
-    let cleanUsername = username || generatedUsername || (email ? email.split('@')[0] + Math.floor(Math.random() * 1000) : '');
+    const generatedUsername = `${residentProfile.firstName}${residentProfile.lastName}`.replace(/\s+/g, '') + firebaseUid.slice(-6);
+    const requestedUsername = typeof username === 'string' ? username.trim() : '';
+    const cleanUsername = requestedUsername || generatedUsername || (email ? email.split('@')[0] + firebaseUid.slice(-6) : '');
 
     user = new User({
       firebaseUid,
@@ -330,10 +290,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       accountStatus: 'pending',
       legalConsent: createLegalConsentRecord(),
 
-      firstName, middleName, lastName, suffix, birthDate, age, placeOfBirth, gender, civilStatus,
-      nationality, religion, completeAddress, purok, yearsOfResidency, mobileNumber,
-      voterStatus, employmentStatus, occupation, householdHead, emergencyContactPerson,
-      numberOfFamilyMembers, educationalAttainment, bloodType, disability,
+      ...residentProfile,
       validIdFrontUrl, validIdBackUrl, profileImageUrl
     });
 
@@ -344,6 +301,8 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     res.status(201).json({ message: "Account created and synced!", user });
   } catch (error) {
     console.error("Sync Error:", error);
+    if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
+    if (error?.code === 11000) return res.status(409).json({ message: 'An account with the same username or email already exists.' });
     res.status(500).json({ message: "Failed to sync user data with Firebase." });
   }
 });
@@ -352,7 +311,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
 // ==========================================
 // 🛡️ VERIFY OTP ROUTE (Nodemailer)
 // ==========================================
-router.post('/verify-otp', verifyFirebaseToken, async (req, res) => {
+router.post('/verify-otp', verifyFirebaseToken, otpVerifyLimiter, async (req, res) => {
   const { otp } = req.body;
   try {
     const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
@@ -391,6 +350,24 @@ router.post('/verify-otp', verifyFirebaseToken, async (req, res) => {
   }
 });
 
+// Request a fresh code without forcing the user to restart the login flow.
+router.post('/resend-otp', verifyFirebaseToken, otpResendLimiter, async (req, res) => {
+  try {
+    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+    if (!user || user.accountStatus === 'rejected') return res.status(403).json({ message: 'This account is not eligible to receive a verification code.' });
+    const requiresOtp = user.accountStatus === 'pending' || ['admin', 'super_admin'].includes(user.role) || user.mfaEnabled;
+    if (!requiresOtp) return res.status(400).json({ message: 'Two-factor authentication is not enabled for this account.' });
+
+    const delivered = await sendOTP(user, user.accountStatus === 'pending' ? 'signup' : 'mfa');
+    if (!delivered) return res.status(502).json({ message: 'The code could not be delivered. Please try again later.' });
+    await logAudit(user._id, user.username, 'OTP_RESENT', 'OTP resent at user request.', req);
+    return res.json({ message: 'A new verification code was sent to your registered email.' });
+  } catch (error) {
+    console.error('OTP resend error:', error);
+    return res.status(500).json({ message: 'Unable to resend the verification code right now.' });
+  }
+});
+
 // 4. TOGGLE MFA
 router.post('/toggle-mfa', verifyAuthenticatedUser, async (req, res) => {
   const { enable } = req.body;
@@ -412,6 +389,39 @@ router.post('/toggle-mfa', verifyAuthenticatedUser, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: "Error updating MFA" });
+  }
+});
+
+// Firebase owns the actual password. This route stores only bcrypt hashes of
+// recently accepted passwords, allowing each client to reject reuse before it
+// asks Firebase to update the credential.
+router.post('/password-history/:action', verifyAuthenticatedUser, async (req, res) => {
+  const { action } = req.params;
+  const { password } = req.body;
+  if (!['validate', 'record'].includes(action)) return res.status(404).json({ message: 'Unknown password-history action.' });
+  if (typeof password !== 'string' || password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+
+  try {
+    const user = await User.findById(req.user._id).select('+passwordHistory');
+    const hashes = user.passwordHistory || [];
+
+    if (action === 'validate') {
+      const wasUsed = (await Promise.all(hashes.map((hash) => bcrypt.compare(password, hash)))).some(Boolean);
+      if (wasUsed) return res.status(400).json({ message: 'Choose a password you have not used recently.' });
+      return res.json({ allowed: true });
+    }
+
+    const alreadyRecorded = (await Promise.all(hashes.map((hash) => bcrypt.compare(password, hash)))).some(Boolean);
+    if (!alreadyRecorded) {
+      const hash = await bcrypt.hash(password, 12);
+      user.passwordHistory = [hash, ...hashes].slice(0, 5);
+    }
+    await user.save();
+    await logAudit(user._id, user.username, 'PASSWORD_HISTORY_RECORDED', 'Password history updated after a credential change.', req);
+    return res.json({ message: 'Password history updated.' });
+  } catch (error) {
+    console.error('Password history error:', error);
+    return res.status(500).json({ message: 'Unable to validate password history right now.' });
   }
 });
 
@@ -446,11 +456,32 @@ router.post('/save-push-token', verifyAuthenticatedUser, async (req, res) => {
   }
 
   try {
-    await User.findByIdAndUpdate(req.user._id, { expoPushToken });
+    await User.findByIdAndUpdate(req.user._id, { expoPushToken, pushNotificationsEnabled: true });
     res.json({ message: "Push token saved successfully." });
   } catch (error) {
     console.error("Error saving push token:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+router.post('/notification-preference', verifyAuthenticatedUser, async (req, res) => {
+  const { enabled } = req.body;
+  if (typeof enabled !== 'boolean') return res.status(400).json({ message: 'enabled must be a boolean.' });
+
+  try {
+    const update = enabled
+      ? { $set: { pushNotificationsEnabled: true } }
+      : { $set: { pushNotificationsEnabled: false }, $unset: { expoPushToken: 1 } };
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true });
+    if (!user) return res.status(404).json({ message: 'Account not found.' });
+    await logAudit(user._id, user.username, 'PUSH_PREFERENCE_UPDATE', `Push notifications set to ${enabled}`, req);
+    return res.json({
+      message: `Push notifications are now ${enabled ? 'enabled' : 'disabled'}.`,
+      pushNotificationsEnabled: user.pushNotificationsEnabled
+    });
+  } catch (error) {
+    console.error('Notification preference error:', error);
+    return res.status(500).json({ message: 'Could not update notification preferences.' });
   }
 });
 
@@ -471,6 +502,7 @@ router.post('/save-pending-push-token', verifyFirebaseToken, async (req, res) =>
     }
 
     user.expoPushToken = expoPushToken;
+    user.pushNotificationsEnabled = true;
     await user.save();
     await logAudit(user._id, user.username, 'PENDING_PUSH_TOKEN_SAVED', 'Resident opted in to account-review notifications.', req);
     return res.json({ message: 'Account-review notifications enabled.' });

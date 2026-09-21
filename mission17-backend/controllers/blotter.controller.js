@@ -22,7 +22,9 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
+const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const MAX_REMOTE_EVIDENCE_BYTES = 8 * 1024 * 1024;
+const MAX_INLINE_EVIDENCE_LENGTH = Math.ceil(MAX_REMOTE_EVIDENCE_BYTES * 4 / 3) + 256;
 
 const isApprovedCloudinaryEvidenceUrl = (value) => {
   try {
@@ -46,12 +48,31 @@ export const submitReport = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const username = req.user.username;
 
-  if (!incidentType || !description || !location || !dateOfIncident) {
+  const cleanName = typeof fullName === 'string' ? fullName.trim() : '';
+  const cleanContact = typeof contactNumber === 'string' ? contactNumber.replace(/\s/g, '') : '';
+  const cleanDescription = typeof description === 'string' ? description.trim() : '';
+  const cleanLocation = typeof location === 'string' ? location.trim() : '';
+  const parsedIncidentDate = new Date(dateOfIncident);
+
+  if (!incidentType || !cleanDescription || !cleanLocation || !dateOfIncident) {
     return res.status(400).json({ message: 'Missing required fields: incidentType, description, location, dateOfIncident.' });
   }
+  if (cleanName.length < 3 || cleanName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
+  if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
+  if (cleanDescription.length < 10 || cleanDescription.length > 2000) return res.status(400).json({ message: 'Incident description must be between 10 and 2,000 characters.' });
+  if (cleanLocation.length < 3 || cleanLocation.length > 250) return res.status(400).json({ message: 'Please enter a valid incident location.' });
+  if (Number.isNaN(parsedIncidentDate.getTime()) || parsedIncidentDate.getTime() > Date.now() + 5 * 60_000) return res.status(400).json({ message: 'Please provide a valid incident date.' });
+  if (evidenceUrl && (typeof evidenceUrl !== 'string' || evidenceUrl.length > MAX_INLINE_EVIDENCE_LENGTH)) return res.status(413).json({ message: 'Evidence image is too large.' });
+
+  const recentDuplicate = await BlotterReport.findOne({
+    userId, incidentType, description: cleanDescription, location: cleanLocation,
+    createdAt: { $gte: new Date(Date.now() - 2 * 60_000) }
+  });
+  if (recentDuplicate) return res.status(409).json({ message: 'This incident report was already submitted. Check your blotter history.' });
 
   let finalEvidenceUrl = evidenceUrl;
   if (evidenceUrl && evidenceUrl.startsWith('data:image')) {
+    if (!/^data:image\/(?:jpeg|jpg|png|webp);base64,/i.test(evidenceUrl)) return res.status(400).json({ message: 'Unsupported evidence image format.' });
     const base64Data = evidenceUrl.split(',')[1];
     const buffer = Buffer.from(base64Data, 'base64');
     
@@ -68,8 +89,8 @@ export const submitReport = asyncHandler(async (req, res) => {
   }
 
   const report = await BlotterReport.create({
-    userId, username, fullName, contactNumber, incidentType, description, location,
-    dateOfIncident: new Date(dateOfIncident),
+    userId, username, fullName: cleanName, contactNumber: cleanContact, incidentType, description: cleanDescription, location: cleanLocation,
+    dateOfIncident: parsedIncidentDate,
     evidenceUrl: finalEvidenceUrl,
   });
 
@@ -182,6 +203,23 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
   }
+  if (adminRemarks !== undefined && (typeof adminRemarks !== 'string' || adminRemarks.length > 2000)) {
+    return res.status(400).json({ message: 'Admin remarks must be text with no more than 2,000 characters.' });
+  }
+  if (respondentName !== undefined && (typeof respondentName !== 'string' || respondentName.length > 120)) {
+    return res.status(400).json({ message: 'Respondent name must be text with no more than 120 characters.' });
+  }
+  if (hearingStage !== undefined && !ALLOWED_HEARING_STAGES.includes(hearingStage)) {
+    return res.status(400).json({ message: 'Please select a valid Lupon hearing stage.' });
+  }
+  if (luponOfficerInCharge !== undefined && (typeof luponOfficerInCharge !== 'string' || luponOfficerInCharge.length > 160)) {
+    return res.status(400).json({ message: 'Lupon officer name must be text with no more than 160 characters.' });
+  }
+  let parsedHearingDate;
+  if (hearingDate) {
+    parsedHearingDate = new Date(hearingDate);
+    if (Number.isNaN(parsedHearingDate.getTime())) return res.status(400).json({ message: 'Please provide a valid hearing date and time.' });
+  }
 
   const report = await BlotterReport.findById(req.params.id);
   if (!report) return res.status(404).json({ message: 'Report not found.' });
@@ -192,11 +230,11 @@ export const updateStatus = asyncHandler(async (req, res) => {
   }
 
   if (status) report.status = status;
-  if (adminRemarks !== undefined) report.adminRemarks = adminRemarks;
-  if (respondentName !== undefined) report.respondentName = respondentName;
-  if (hearingDate !== undefined) report.hearingDate = hearingDate ? new Date(hearingDate) : null;
+  if (adminRemarks !== undefined) report.adminRemarks = adminRemarks.trim();
+  if (respondentName !== undefined) report.respondentName = respondentName.trim();
+  if (hearingDate !== undefined) report.hearingDate = hearingDate ? parsedHearingDate : null;
   if (hearingStage !== undefined) report.hearingStage = hearingStage;
-  if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge;
+  if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge.trim();
 
   // ⛓️ Record on blockchain when a blotter is Resolved
   if (status === 'Resolved' && !report.blockchainTxHash) {

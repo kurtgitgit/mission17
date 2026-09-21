@@ -4,6 +4,7 @@ import ToastMessage from 'react-native-toast-message';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
+import { getAuthData } from '../utils/storage';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -263,9 +264,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const userId = GlobalState.userId;
       if (!userId || token.type !== 'expo') return;
 
-      void savePushToken(userId, token.data).catch((error) => {
-        console.error('Failed to update a rotated Expo push token:', error);
-      });
+      void getAuthData().then((authData) => {
+        if (authData?.user?.pushNotificationsEnabled === false) return;
+        return savePushToken(userId, token.data);
+      }).catch((error) => {
+          console.error('Failed to update a rotated Expo push token:', error);
+        });
     });
 
     return () => subscription.remove();

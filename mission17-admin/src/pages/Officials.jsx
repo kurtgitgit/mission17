@@ -133,6 +133,13 @@ const Officials = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return showNotification('Name is required.', 'error');
+    if (form.contact && !/^09\d{9}$/.test(form.contact)) return showNotification('Contact must be an 11-digit Philippine mobile number.', 'error');
+    if (form.term) {
+      const years = form.term.match(/\d{4}/g);
+      if (!/^\d{4}\s*[-–]\s*\d{4}$/.test(form.term) || !years || Number(years[1]) < Number(years[0])) {
+        return showNotification('Term must use YYYY - YYYY, with a valid year range.', 'error');
+      }
+    }
     setSubmitting(true);
     try {
       const url    = editItem ? `${baseUrl}/api/officials/${editItem._id}` : `${baseUrl}/api/officials`;
@@ -293,8 +300,9 @@ const Officials = () => {
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Contact Number</label>
-                  <input className="pa-input" placeholder="09XX XXX XXXX" value={form.contact}
-                    onChange={e => setForm({ ...form, contact: e.target.value })} />
+                  <input className="pa-input" placeholder="09171234567" value={form.contact}
+                    onChange={e => setForm({ ...form, contact: e.target.value.replace(/\D/g, '').slice(0, 11) })}
+                    inputMode="numeric" maxLength="11" />
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Email</label>
@@ -303,8 +311,9 @@ const Officials = () => {
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Term</label>
-                  <input className="pa-input" placeholder="2023 – 2026" value={form.term}
-                    onChange={e => setForm({ ...form, term: e.target.value })} />
+                  <input className="pa-input" placeholder="2023 - 2026" value={form.term}
+                    onChange={e => setForm({ ...form, term: e.target.value.slice(0, 11) })}
+                    maxLength="11" pattern="\d{4}\s*[-–]\s*\d{4}" title="Use YYYY - YYYY" />
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Committee</label>

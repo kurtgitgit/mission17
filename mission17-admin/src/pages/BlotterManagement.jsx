@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer, Scale, Calendar, ShieldCheck, AlertCircle } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
@@ -158,6 +158,7 @@ const BlotterManagement = () => {
   const [evidenceObjectUrl, setEvidenceObjectUrl] = useState(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
+  const updatingRef = useRef(false);
 
   useEffect(() => {
     fetchReports();
@@ -220,6 +221,8 @@ const BlotterManagement = () => {
   };
 
   const handleUpdateStatus = async () => {
+    if (!selectedReport || updatingRef.current) return;
+    updatingRef.current = true;
     setUpdating(true);
     try {
       const res = await blotterApi.updateStatus(selectedReport._id, {
@@ -248,6 +251,7 @@ const BlotterManagement = () => {
       console.error('Failed to update status', err);
       showNotification('Failed to update report status.', 'error');
     } finally {
+      updatingRef.current = false;
       setUpdating(false);
     }
   };
@@ -594,6 +598,7 @@ const BlotterManagement = () => {
                           placeholder="e.g. Pedro C. Santos"
                           value={respondentName}
                           onChange={(e) => setRespondentName(e.target.value)}
+                          maxLength={120}
                         />
                       </div>
 
@@ -628,6 +633,7 @@ const BlotterManagement = () => {
                           placeholder="e.g. Hon. Barangay Captain / Lupon Chair"
                           value={luponOfficerInCharge}
                           onChange={(e) => setLuponOfficerInCharge(e.target.value)}
+                          maxLength={160}
                         />
                       </div>
                     </div>
@@ -640,6 +646,7 @@ const BlotterManagement = () => {
                         placeholder="Provide mediation notes, agreements, or hearing instructions for the resident..."
                         value={adminRemarks}
                         onChange={(e) => setAdminRemarks(e.target.value)}
+                        maxLength={2000}
                       />
                     </div>
 

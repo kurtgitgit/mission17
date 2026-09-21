@@ -12,6 +12,7 @@ const ReportGeneration = () => {
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   const filterByDate = useCallback((arr) => {
     if (!startDate && !endDate) return arr;
@@ -31,6 +32,7 @@ const ReportGeneration = () => {
 
   const fetchReportData = useCallback(async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const token = localStorage.getItem('token');
       if (reportType === 'analytics') {
@@ -79,6 +81,8 @@ const ReportGeneration = () => {
       }
     } catch (err) {
       console.error('Error fetching report data', err);
+      setData([]);
+      setLoadError(err.response?.data?.message || 'Report data could not be loaded. Check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -174,7 +178,7 @@ const ReportGeneration = () => {
           <tr key={index}>
             <td>{item.username}</td>
             <td>{item.email}</td>
-            <td>{item.isAdmin ? 'Admin' : 'Resident'}</td>
+            <td>{item.role === 'super_admin' ? 'Barangay Captain' : item.role === 'admin' ? 'Admin' : item.role === 'lgu' ? 'LGU Staff' : 'Resident'}</td>
             <td>{new Date(item.createdAt).toLocaleDateString()}</td>
           </tr>
         );
@@ -266,10 +270,16 @@ const ReportGeneration = () => {
               <div style={{ marginTop: '25px' }}>
                 <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '13px', color: '#475569' }}>DATE RANGE (Optional)</label>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={startDate} onChange={e => setStartDate(e.target.value)} />
-                  <input type="date" className="form-input" style={{ padding: '8px' }} value={endDate} onChange={e => setEndDate(e.target.value)} />
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={startDate} max={endDate || undefined} onChange={e => setStartDate(e.target.value)} />
+                  <input type="date" className="form-input" style={{ padding: '8px' }} value={endDate} min={startDate || undefined} onChange={e => setEndDate(e.target.value)} />
                 </div>
               </div>
+              {loadError && (
+                <div style={{ marginTop: 18, padding: 14, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', fontSize: 13 }}>
+                  <div style={{ marginBottom: 10 }}>{loadError}</div>
+                  <button type="button" className="btn" onClick={fetchReportData}>Try Again</button>
+                </div>
+              )}
             </div>
           </div>
 

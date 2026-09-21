@@ -24,6 +24,8 @@ import {
 import '../styles/Sidebar.css';
 import Modal from './Modal';
 import logoImg from '../assets/logo.png';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 const MENU_GROUPS = [
   {
@@ -100,10 +102,17 @@ const Sidebar = () => {
     setOpenGroups(prev => ({ ...prev, [id]: true }));
   };
 
-  const executeLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/');
+  const executeLogout = async () => {
+    setShowLogoutConfirm(false);
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Firebase logout failed:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/', { replace: true });
+    }
   };
 
   return (

@@ -3,9 +3,9 @@ import mongoose from 'mongoose';
 const DocumentRequestSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   username: { type: String, required: true },
-  fullName: { type: String, required: true },
-  address: { type: String, required: true },
-  contactNumber: { type: String, required: true },
+  fullName: { type: String, required: true, trim: true, minlength: 3, maxlength: 120 },
+  address: { type: String, required: true, trim: true, minlength: 5, maxlength: 250 },
+  contactNumber: { type: String, required: true, match: [/^09\d{9}$/, 'Enter a valid 11-digit Philippine mobile number.'] },
   documentType: {
     type: String,
     enum: [
@@ -18,7 +18,7 @@ const DocumentRequestSchema = new mongoose.Schema({
     ],
     required: true
   },
-  purpose: { type: String, required: true },
+  purpose: { type: String, required: true, trim: true, minlength: 5, maxlength: 500 },
   status: {
     type: String,
     enum: ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'],

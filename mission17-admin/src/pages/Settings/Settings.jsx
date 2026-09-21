@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useNotification } from '../../context/NotificationContext';
 import { endpoints } from '../../config/api';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
+import { auth } from '../../config/firebase';
 import AccessibilityControls from '../../components/AccessibilityControls';
 import LegalFooter from '../../components/LegalFooter';
 import '../../styles/Settings.css';
@@ -156,31 +158,45 @@ const Settings = () => {
       showNotification('New password and confirm password do not match.', 'error');
       return;
     }
+    if (oldPassword === newPassword) {
+      showNotification('Your new password must be different from your current password.', 'error');
+      return;
+    }
 
     setIsChangingPassword(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${endpoints.auth.baseUrl}/change-password`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'auth-token': token
-        },
-        body: JSON.stringify({ userId: adminId, oldPassword, newPassword })
-      });
+      const currentUser = auth.currentUser;
+      if (!currentUser?.email) throw new Error('Your session has expired. Please sign in again.');
+      await reauthenticateWithCredential(currentUser, EmailAuthProvider.credential(currentUser.email, oldPassword));
 
-      const data = await response.json();
-      if (response.ok) {
-        showNotification(data.message || 'Password changed successfully!', 'success');
-        setOldPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-      } else {
-        showNotification(data.message || 'Failed to change password.', 'error');
-      }
+      const token = await currentUser.getIdToken();
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const historyCheck = await fetch(`${endpoints.auth.baseUrl}/password-history/validate`, {
+        method: 'POST', headers, body: JSON.stringify({ password: newPassword })
+      });
+      const historyData = await historyCheck.json().catch(() => ({}));
+      if (!historyCheck.ok) throw new Error(historyData.message || 'Choose a password you have not used recently.');
+
+      const currentRecord = await fetch(`${endpoints.auth.baseUrl}/password-history/record`, {
+        method: 'POST', headers, body: JSON.stringify({ password: oldPassword })
+      });
+      if (!currentRecord.ok) throw new Error('Could not safely update password history. Please try again.');
+
+      await updatePassword(currentUser, newPassword);
+      const refreshedToken = await currentUser.getIdToken(true);
+      const newRecord = await fetch(`${endpoints.auth.baseUrl}/password-history/record`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refreshedToken}` }, body: JSON.stringify({ password: newPassword })
+      });
+      showNotification(
+        newRecord.ok ? 'Password changed successfully!' : 'Password changed, but its history could not be recorded. Contact support before changing it again.',
+        newRecord.ok ? 'success' : 'error'
+      );
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (error) {
       console.error('Change password error:', error);
-      showNotification('Server connection failed.', 'error');
+      showNotification(error.message || 'Unable to change password.', 'error');
     } finally {
       setIsChangingPassword(false);
     }

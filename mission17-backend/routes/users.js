@@ -19,6 +19,7 @@ import Notification from '../models/Notification.js';
 import { verifyAdmin, verifySuperAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
 import { sendPushNotification } from '../utils/pushNotifier.js';
+import { normalizeResidentProfile, validateResidentProfile } from '../utils/residentProfileValidation.js';
 
 const router = express.Router();
 
@@ -340,42 +341,24 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
       return res.status(400).json({ message: 'Email changes must be completed through the Firebase account flow.' });
     }
 
-    const { 
-      username, bio, walletAddress,
-      firstName, middleName, lastName, suffix, email, mobileNumber,
-      birthDate, age, gender, civilStatus, placeOfBirth,
-      completeAddress, nationality, religion, yearsOfResidency, voterStatus,
-      employmentStatus, occupation, educationalAttainment
-    } = req.body;
+    const updateData = normalizeResidentProfile(req.body);
+    const profileValidationError = validateResidentProfile(updateData);
+    if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
-    const updateData = {};
-    if (username !== undefined) updateData.username = username;
-    if (bio !== undefined) updateData.bio = bio;
-    if (walletAddress !== undefined) updateData.walletAddress = walletAddress;
-    if (firstName !== undefined) updateData.firstName = firstName;
-    if (middleName !== undefined) updateData.middleName = middleName;
-    if (lastName !== undefined) updateData.lastName = lastName;
-    if (suffix !== undefined) updateData.suffix = suffix;
-    if (email !== undefined) updateData.email = email;
-    if (mobileNumber !== undefined) updateData.mobileNumber = mobileNumber;
-    if (birthDate !== undefined) updateData.birthDate = birthDate;
-    if (age !== undefined) updateData.age = age;
-    if (gender !== undefined) updateData.gender = gender;
-    if (civilStatus !== undefined) updateData.civilStatus = civilStatus;
-    if (placeOfBirth !== undefined) updateData.placeOfBirth = placeOfBirth;
-    if (completeAddress !== undefined) updateData.completeAddress = completeAddress;
-    if (nationality !== undefined) updateData.nationality = nationality;
-    if (religion !== undefined) updateData.religion = religion;
-    if (yearsOfResidency !== undefined) updateData.yearsOfResidency = yearsOfResidency;
-    if (voterStatus !== undefined) updateData.voterStatus = voterStatus;
-    if (employmentStatus !== undefined) updateData.employmentStatus = employmentStatus;
-    if (occupation !== undefined) updateData.occupation = occupation;
-    if (educationalAttainment !== undefined) updateData.educationalAttainment = educationalAttainment;
+    if (req.body.username !== undefined) {
+      if (typeof req.body.username !== 'string' || req.body.username.trim().length < 3 || req.body.username.trim().length > 80) {
+        return res.status(400).json({ message: 'Username must be between 3 and 80 characters.' });
+      }
+      updateData.username = req.body.username.trim();
+    }
+    if (req.body.walletAddress !== undefined) updateData.walletAddress = req.body.walletAddress;
 
     const updatedUser = await User.findByIdAndUpdate(req.user._id, updateData, { new: true, runValidators: true }).select('-points');
     logAudit(req.user._id, updatedUser.username, 'PROFILE_UPDATE', 'User updated profile information', req);
     res.json(updatedUser);
   } catch (error) {
+    if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
+    if (error?.code === 11000) return res.status(409).json({ message: 'That username is already in use.' });
     res.status(500).json({ message: 'Update failed' });
   }
 });

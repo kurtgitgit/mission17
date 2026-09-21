@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../components/Layout';
 import { Search, RefreshCw, FileText, XCircle, AlertTriangle, CheckCircle2, Calendar, Smartphone, ShieldCheck, Eye, UserCheck } from 'lucide-react';
 import { endpoints } from '../config/api';
@@ -167,6 +167,7 @@ const RejectModal = ({ onConfirm, onCancel }) => {
             placeholder="Explain why this request is incomplete or what specific documents they must bring..."
             value={reason}
             onChange={e => setReason(e.target.value)}
+            maxLength={1000}
           />
         </div>
 
@@ -302,6 +303,7 @@ const DocumentRequests = () => {
   const [rejectTarget, setRejectTarget] = useState(null); // id of request being rejected
   const [readyTarget, setReadyTarget]   = useState(null);  // id of request being set to ready
   const [kycTarget, setKycTarget]       = useState(null);  // resident object being inspected
+  const processingRef = useRef(false);
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
@@ -321,12 +323,18 @@ const DocumentRequests = () => {
   useEffect(() => { void fetchData(); }, [fetchData]);
 
   const updateStatus = async (id, newStatus, rejectionReason = '', pickupDate = null) => {
+    if (processingRef.current) return;
+    processingRef.current = true;
     setProcessing(id);
     try {
       const res = await fetch(`${baseUrl}/api/document-requests/${id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'auth-token': token },
-        body: JSON.stringify({ status: newStatus, rejectionReason, pickupDate }),
+        body: JSON.stringify({
+          status: newStatus,
+          ...(rejectionReason.trim() && { rejectionReason: rejectionReason.trim() }),
+          ...(pickupDate !== null && { pickupDate })
+        }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -336,7 +344,12 @@ const DocumentRequests = () => {
         const d = await res.json();
         showNotification(d.message || 'Failed.', 'error');
       }
-    } finally { setProcessing(null); }
+    } catch {
+      showNotification('Network error while updating the request.', 'error');
+    } finally {
+      processingRef.current = false;
+      setProcessing(null);
+    }
   };
 
   const handleNextStatus = (req) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Lightbulb, MessageSquare, Search, CheckCircle, Clock, ChevronRight, User, Trash2, AlertTriangle, XCircle, Smile, Meh, Frown, Sparkles, Filter, RefreshCw, Send } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
@@ -27,6 +27,7 @@ const Suggestions = () => {
   const [adminReply, setAdminReply]     = useState('');
   const [updating, setUpdating]         = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const updatingRef = useRef(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -56,7 +57,12 @@ const Suggestions = () => {
   };
 
   const handleUpdate = async () => {
-    if (!selectedItem) return;
+    if (!selectedItem || updatingRef.current) return;
+    if (adminReply.length > 2000) {
+      showNotification('Official response cannot exceed 2,000 characters.', 'error');
+      return;
+    }
+    updatingRef.current = true;
     setUpdating(true);
     try {
       await suggestionsApi.updateStatus(selectedItem._id, { status: newStatus, adminReply });
@@ -69,6 +75,7 @@ const Suggestions = () => {
     } catch {
       showNotification('Failed to update feedback.', 'error');
     } finally {
+      updatingRef.current = false;
       setUpdating(false);
     }
   };
@@ -474,6 +481,7 @@ const Suggestions = () => {
                         placeholder="Write official response or action taken by Barangay Bagong Pag-asa..."
                         value={adminReply}
                         onChange={(e) => setAdminReply(e.target.value)}
+                        maxLength={2000}
                         style={{ fontSize: 13.5 }}
                       />
                     </div>

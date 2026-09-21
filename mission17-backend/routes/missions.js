@@ -14,6 +14,23 @@ const getMissionData = (body = {}) => {
   return Object.fromEntries(allowedFields.filter(field => body[field] !== undefined).map(field => [field, body[field]]));
 };
 
+const normalizeMissionData = (body = {}) => {
+  const data = getMissionData(body);
+  if (typeof data.title === 'string') data.title = data.title.trim().replace(/\s+/g, ' ');
+  if (typeof data.description === 'string') data.description = data.description.trim();
+  if (data.sdgNumber !== undefined) data.sdgNumber = Number(data.sdgNumber);
+  return data;
+};
+
+const validateMission = ({ title, sdgNumber, description, color }) => {
+  if (typeof title !== 'string' || title.length < 3 || title.length > 120) return 'Mission title must be between 3 and 120 characters.';
+  if (!Number.isInteger(sdgNumber) || sdgNumber < 1 || sdgNumber > 17) return 'SDG number must be a whole number from 1 to 17.';
+  if (description !== undefined && typeof description !== 'string') return 'Description must be text.';
+  if (typeof description === 'string' && description.length > 1000) return 'Description cannot exceed 1,000 characters.';
+  if (color !== undefined && (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color))) return 'Please select a valid theme color.';
+  return null;
+};
+
 // POST /upload — Admin: Upload a mission/event image to Cloudinary
 // Called by admin when user picks an image file in the Missions or Events form
 router.post('/upload', verifyAdmin, uploadCloudinary.single('image'), asyncHandler(async (req, res) => {
@@ -58,8 +75,11 @@ router.get('/all-missions', asyncHandler(async (req, res) => {
 
 // POST /add-mission — Admin
 router.post('/add-mission', verifyAdmin, asyncHandler(async (req, res) => {
-  if (!req.body.title) return res.status(400).json({ message: 'Mission title is required.' });
-  const missionData = getMissionData(req.body);
+  const missionData = normalizeMissionData(req.body);
+  const validationError = validateMission(missionData);
+  if (validationError) return res.status(400).json({ message: validationError });
+  const duplicate = await Mission.findOne({ title: missionData.title, sdgNumber: missionData.sdgNumber, isActive: { $ne: false } });
+  if (duplicate) return res.status(409).json({ message: 'An active mission with the same title and SDG already exists.' });
   const mission = await Mission.create(missionData);
   logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_CREATE', `Created mission: ${mission.title}`, req);
   res.status(201).json({ message: 'Mission created!', mission });
@@ -67,9 +87,14 @@ router.post('/add-mission', verifyAdmin, asyncHandler(async (req, res) => {
 
 // PUT /update-mission/:id — Admin
 router.put('/update-mission/:id', verifyAdmin, asyncHandler(async (req, res) => {
-  const missionData = getMissionData(req.body);
+  const current = await Mission.findById(req.params.id);
+  if (!current) return res.status(404).json({ message: 'Mission not found.' });
+  const missionData = normalizeMissionData({ ...current.toObject(), ...req.body });
+  const validationError = validateMission(missionData);
+  if (validationError) return res.status(400).json({ message: validationError });
+  const duplicate = await Mission.findOne({ title: missionData.title, sdgNumber: missionData.sdgNumber, isActive: { $ne: false }, _id: { $ne: current._id } });
+  if (duplicate) return res.status(409).json({ message: 'An active mission with the same title and SDG already exists.' });
   const mission = await Mission.findByIdAndUpdate(req.params.id, missionData, { new: true, runValidators: true });
-  if (!mission) return res.status(404).json({ message: 'Mission not found.' });
   logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_UPDATE', `Updated mission: ${mission.title}`, req);
   res.json(mission);
 }));

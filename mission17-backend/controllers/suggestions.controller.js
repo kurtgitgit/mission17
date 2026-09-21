@@ -9,6 +9,7 @@ import { analyzeSentiment } from '../utils/sentimentAnalyzer.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['New', 'Under Review', 'Resolved', 'Dismissed'];
+const ALLOWED_CATEGORIES = ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
 
 // POST / — Resident: Submit private feedback / concern to Barangay Head
 export const submitSuggestion = asyncHandler(async (req, res) => {
@@ -16,19 +17,29 @@ export const submitSuggestion = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const username = req.user.username;
 
-  if (!title?.trim() || !description?.trim()) {
-    return res.status(400).json({ message: 'Title and description are required.' });
-  }
+  const cleanTitle = typeof title === 'string' ? title.trim() : '';
+  const cleanDescription = typeof description === 'string' ? description.trim() : '';
+  const cleanCategory = ALLOWED_CATEGORIES.includes(category) ? category : 'General';
+  if (cleanTitle.length < 5 || cleanTitle.length > 100) return res.status(400).json({ message: 'Title must be between 5 and 100 characters.' });
+  if (cleanDescription.length < 10 || cleanDescription.length > 500) return res.status(400).json({ message: 'Description must be between 10 and 500 characters.' });
+
+  const recentDuplicate = await Suggestion.findOne({
+    userId,
+    title: cleanTitle,
+    description: cleanDescription,
+    createdAt: { $gte: new Date(Date.now() - 60_000) }
+  });
+  if (recentDuplicate) return res.status(409).json({ message: 'This feedback was already submitted. Check your feedback history.' });
 
   // 🧠 Run bilingual sentiment analysis
-  const analysis = analyzeSentiment(`${title} ${description}`);
+  const analysis = analyzeSentiment(`${cleanTitle} ${cleanDescription}`);
 
   const suggestion = await Suggestion.create({
     userId:      userId || null,
     username:    isAnonymous ? 'Anonymous Resident' : (username || 'Resident'),
-    title:       title.trim(),
-    category:    category || 'General',
-    description: description.trim(),
+    title:       cleanTitle,
+    category:    cleanCategory,
+    description: cleanDescription,
     sentiment:   analysis.sentiment,
     sentimentScore: analysis.score,
     isAnonymous: !!isAnonymous,
@@ -111,6 +122,9 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
+  }
+  if (adminReply !== undefined && (typeof adminReply !== 'string' || adminReply.length > 2000)) {
+    return res.status(400).json({ message: 'Official reply must be text with no more than 2,000 characters.' });
   }
 
   const suggestion = await Suggestion.findByIdAndUpdate(

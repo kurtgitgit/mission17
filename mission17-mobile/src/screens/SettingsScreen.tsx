@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, 
   Platform, SafeAreaView, Alert, Modal, TextInput, ActivityIndicator 
@@ -13,12 +13,13 @@ import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const SettingsScreen = ({ navigation }: any) => {
-  const { showNotification } = useNotification();
+  const { showNotification, registerPushToken } = useNotification();
   const { theme, isDarkMode, toggleTheme } = useTheme();
   const styles = getStyles(theme);
   
   // App Preferences
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [isNotificationUpdating, setIsNotificationUpdating] = useState(false);
   
   // Account Security
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -33,6 +34,8 @@ const SettingsScreen = ({ navigation }: any) => {
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const mfaUpdatingRef = useRef(false);
+  const notificationUpdatingRef = useRef(false);
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
@@ -64,14 +67,16 @@ const SettingsScreen = ({ navigation }: any) => {
 
       setMfaEnabled(Boolean(currentUser.mfaEnabled));
       setIsAdmin(['admin', 'super_admin'].includes(currentUser.role));
+      setNotificationsEnabled(currentUser.pushNotificationsEnabled !== false);
     } finally {
       setIsSecurityLoading(false);
     }
   };
 
   const toggleMFA = async (value: boolean) => {
-    if (!GlobalState.userId || isAdmin || isMfaUpdating) return;
+    if (!GlobalState.userId || isAdmin || mfaUpdatingRef.current) return;
 
+    mfaUpdatingRef.current = true;
     const previousValue = mfaEnabled;
     setMfaEnabled(value);
     setIsMfaUpdating(true);
@@ -103,7 +108,38 @@ const SettingsScreen = ({ navigation }: any) => {
         setMfaEnabled(previousValue);
         showNotification(getFriendlyNetworkMessage(error, 'Could not update security settings. Please try again.'), "error");
     } finally {
+        mfaUpdatingRef.current = false;
         setIsMfaUpdating(false);
+    }
+  };
+
+  const toggleNotifications = async (value: boolean) => {
+    if (!GlobalState.userId || notificationUpdatingRef.current) return;
+    notificationUpdatingRef.current = true;
+    const previousValue = notificationsEnabled;
+    setNotificationsEnabled(value);
+    setIsNotificationUpdating(true);
+    try {
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/notification-preference`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        body: JSON.stringify({ enabled: value })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Could not update notification settings.');
+
+      if (value) await registerPushToken(GlobalState.userId);
+      const authData = await getAuthData();
+      if (authData?.user) {
+        await saveAuthData(authData.token, { ...authData.user, pushNotificationsEnabled: value });
+      }
+      showNotification(result.message || `Push notifications are now ${value ? 'ON' : 'OFF'}.`, 'success');
+    } catch (error: any) {
+      setNotificationsEnabled(previousValue);
+      showNotification(error?.message || getFriendlyNetworkMessage(error, 'Could not update notification settings.'), 'error');
+    } finally {
+      notificationUpdatingRef.current = false;
+      setIsNotificationUpdating(false);
     }
   };
 
@@ -114,6 +150,10 @@ const SettingsScreen = ({ navigation }: any) => {
     }
     if (newPass.length < 8) {
         showNotification("New password must be at least 8 characters.", "error");
+        return;
+    }
+    if (oldPass === newPass) {
+        showNotification("Your new password must be different from your current password.", "error");
         return;
     }
 
@@ -130,10 +170,31 @@ const SettingsScreen = ({ navigation }: any) => {
         const credential = EmailAuthProvider.credential(user.email, oldPass);
         await reauthenticateWithCredential(user, credential);
 
+        const headers = await getAuthHeaders();
+        const historyCheck = await fetchWithTimeout(`${endpoints.auth.baseUrl}/password-history/validate`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ password: newPass })
+        });
+        const historyResult = await historyCheck.json().catch(() => ({}));
+        if (!historyCheck.ok) throw new Error(historyResult.message || 'Choose a password you have not used recently.');
+
+        // Record the verified current password before replacing it so the
+        // first change cannot immediately cycle back to that old password.
+        const currentRecord = await fetchWithTimeout(`${endpoints.auth.baseUrl}/password-history/record`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ password: oldPass })
+        });
+        if (!currentRecord.ok) throw new Error('Could not safely update password history. Please try again.');
+
         // 2. Update Password
         await updatePassword(user, newPass);
 
-        showNotification("Password updated successfully!", "success");
+        const refreshedHeaders = { Authorization: `Bearer ${await user.getIdToken(true)}` };
+        const newRecord = await fetchWithTimeout(`${endpoints.auth.baseUrl}/password-history/record`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json', ...refreshedHeaders }, body: JSON.stringify({ password: newPass })
+        });
+        showNotification(
+            newRecord.ok ? 'Password updated successfully!' : 'Password updated, but its history could not be recorded. Please contact support before changing it again.',
+            newRecord.ok ? 'success' : 'error'
+        );
         setShowPasswordModal(false);
         setOldPass('');
         setNewPass('');
@@ -144,7 +205,7 @@ const SettingsScreen = ({ navigation }: any) => {
         } else if (error.code === 'auth/weak-password') {
             showNotification("The new password is too weak.", "error");
         } else {
-            showNotification("Failed to update password.", "error");
+            showNotification(error?.message || "Failed to update password.", "error");
         }
     } finally {
         setLoading(false);
@@ -229,7 +290,8 @@ const SettingsScreen = ({ navigation }: any) => {
             label="Push Notifications" 
             isSwitch 
             value={notificationsEnabled} 
-            onValueChange={setNotificationsEnabled} 
+            onValueChange={toggleNotifications}
+            switchDisabled={isNotificationUpdating || isSecurityLoading}
             isLast
           />
         </View>

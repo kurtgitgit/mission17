@@ -36,6 +36,7 @@ const SignupStep2 = ({
           placeholder="Birthdate (MM/DD/YYYY)"
           value={formData.birthDate}
           onChangeText={(val) => handleInputChange("birthDate", val)}
+          maxLength={40}
           required
         />
       ) : (
@@ -74,8 +75,9 @@ const SignupStep2 = ({
       <FormInput
         placeholder="Age"
         value={formData.age}
-        onChangeText={(val) => handleInputChange("age", val)}
+        onChangeText={(val) => handleInputChange("age", val.replace(/\D/g, '').slice(0, 3))}
         keyboardType="numeric"
+        maxLength={3}
       />
       
       <CustomDropdown 
@@ -99,8 +101,9 @@ const SignupStep2 = ({
       <FormInput
         placeholder="Mobile Number (Example: 09***)"
         value={formData.mobileNumber}
-        onChangeText={(val) => handleInputChange("mobileNumber", val)}
+        onChangeText={(val) => handleInputChange("mobileNumber", val.replace(/\D/g, '').slice(0, 11))}
         keyboardType="phone-pad"
+        maxLength={11}
         required
       />
 

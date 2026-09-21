@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -61,6 +61,13 @@ export default function LoginScreen() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const timer = setTimeout(() => setResendCooldown(value => Math.max(value - 1, 0)), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const refreshCaptcha = () => {
     setNum1(Math.floor(Math.random() * 10) + 1);
@@ -130,6 +137,7 @@ export default function LoginScreen() {
       if (response.ok && data.mfaRequired) {
         GlobalState.tempToken = firebaseToken;
         setMfaRequired(true);
+        setResendCooldown(30);
         showNotification('Please enter the OTP sent to your email.', 'info');
       } else if (response.ok && data.user?.accountStatus === 'pending') {
         await signOut(auth);
@@ -205,6 +213,7 @@ export default function LoginScreen() {
           setTempUserId(data.tempUserId);
           GlobalState.tempToken = firebaseToken; // Store temporarily
           setMfaRequired(true);
+          setResendCooldown(30);
           showNotification('Please enter the OTP sent to your email.', 'info');
         } else if (data.user?.accountStatus === 'pending') {
           await signOut(auth);
@@ -282,8 +291,8 @@ export default function LoginScreen() {
     showNotification(`Welcome back, ${data.user.username}!`, "success");
     
     // Register device for push notifications
-    if (registerPushToken) {
-      registerPushToken(userId);
+    if (registerPushToken && data.user.pushNotificationsEnabled !== false) {
+      void registerPushToken(userId);
     }
     
     navigation.replace('Home', { 
@@ -456,7 +465,7 @@ export default function LoginScreen() {
                               placeholder="123456" 
                               style={[styles.input, styles.otpInput]} 
                               value={otp}
-                              onChangeText={setOtp}
+                              onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
                               keyboardType="number-pad"
                               maxLength={6}
                               placeholderTextColor="#94a3b8"
@@ -471,9 +480,34 @@ export default function LoginScreen() {
                         accessibilityRole="button"
                       >
                           {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Verify Code</Text>}
-                      </TouchableOpacity>
+                       </TouchableOpacity>
 
-                      <TouchableOpacity 
+                       <TouchableOpacity
+                         onPress={async () => {
+                           try {
+                             setLoading(true);
+                             const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/resend-otp`, {
+                               method: 'POST',
+                               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${GlobalState.tempToken}` }
+                             });
+                             const data = await response.json().catch(() => ({}));
+                             if (response.ok) setResendCooldown(30);
+                             showNotification(data.message || (response.ok ? 'A new code was sent.' : 'Unable to resend the code.'), response.ok ? 'success' : 'error');
+                           } catch (error) {
+                             showNotification(getFriendlyNetworkMessage(error, 'Unable to resend the code right now.'), 'error');
+                           } finally {
+                             setLoading(false);
+                           }
+                         }}
+                         disabled={loading || resendCooldown > 0}
+                         style={{ padding: 12 }}
+                         accessibilityRole="button"
+                         accessibilityLabel="Resend verification code"
+                       >
+                         <Text style={styles.cancelLink}>{resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend Code'}</Text>
+                       </TouchableOpacity>
+
+                       <TouchableOpacity
                         onPress={() => { setMfaRequired(false); setOtp(''); }}
                         style={{ padding: 12 }}
                       >

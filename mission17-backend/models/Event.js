@@ -12,4 +12,7 @@ const EventSchema = new mongoose.Schema({
   image: { type: String }
 }, { timestamps: true });
 
+// A rapid double-click must not be able to publish the same event twice.
+EventSchema.index({ title: 1, date: 1, time: 1, location: 1 }, { unique: true });
+
 export default mongoose.model('Event', EventSchema);

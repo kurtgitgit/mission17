@@ -93,7 +93,7 @@ const VerifySignup = () => {
             keyboardType="number-pad"
             maxLength={6}
             value={otp}
-            onChangeText={setOtp}
+            onChangeText={(value) => setOtp(value.replace(/\D/g, '').slice(0, 6))}
             {...(Platform.OS === 'web' ? { outlineStyle: 'none' } : {})}
           />
         </View>

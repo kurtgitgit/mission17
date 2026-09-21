@@ -112,6 +112,20 @@ export const useSignup = () => {
         showNotification('Birthdate is required.', 'error');
         return;
       }
+      const parsedBirthDate = new Date(formData.birthDate);
+      const today = new Date();
+      if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > today) {
+        showNotification('Please enter a valid birthdate that is not in the future.', 'error');
+        return;
+      }
+      let calculatedAge = today.getFullYear() - parsedBirthDate.getFullYear();
+      const monthDifference = today.getMonth() - parsedBirthDate.getMonth();
+      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < parsedBirthDate.getDate())) calculatedAge--;
+      if (calculatedAge < 0 || calculatedAge > 120) {
+        showNotification('Please enter a realistic birthdate.', 'error');
+        return;
+      }
+      if (formData.age !== String(calculatedAge)) handleInputChange('age', String(calculatedAge));
       if (!formData.gender) {
         showNotification('Gender is required.', 'error');
         return;

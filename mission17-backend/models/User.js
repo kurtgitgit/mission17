@@ -27,31 +27,35 @@ const UserSchema = new mongoose.Schema({
   expoPushToken: {
     type: String
   },
+  pushNotificationsEnabled: {
+    type: Boolean,
+    default: true
+  },
   // ==================================================
   // 📝 EXTENDED RESIDENT INFORMATION
   // ==================================================
-  firstName: { type: String, required: true },
-  middleName: { type: String },
-  lastName: { type: String, required: true },
-  suffix: { type: String },
-  birthDate: { type: String },
-  age: { type: String },
-  placeOfBirth: { type: String },
-  gender: { type: String },
-  civilStatus: { type: String },
-  nationality: { type: String },
-  religion: { type: String },
-  completeAddress: { type: String },
+  firstName: { type: String, required: true, trim: true, maxlength: 80 },
+  middleName: { type: String, trim: true, maxlength: 80 },
+  lastName: { type: String, required: true, trim: true, maxlength: 80 },
+  suffix: { type: String, trim: true, maxlength: 20 },
+  birthDate: { type: String, trim: true, maxlength: 40 },
+  age: { type: String, trim: true, match: [/^\d{1,3}$/, 'Age must be a whole number.'] },
+  placeOfBirth: { type: String, trim: true, maxlength: 160 },
+  gender: { type: String, enum: ['Male', 'Female', 'Other', 'Prefer not to say'] },
+  civilStatus: { type: String, enum: ['Single', 'Married', 'Widowed', 'Separated'] },
+  nationality: { type: String, trim: true, minlength: 2, maxlength: 80 },
+  religion: { type: String, trim: true, maxlength: 80 },
+  completeAddress: { type: String, trim: true, minlength: 5, maxlength: 250 },
   purok: { type: String },
   yearsOfResidency: { type: String },
-  mobileNumber: { type: String },
-  voterStatus: { type: String },
-  employmentStatus: { type: String },
-  occupation: { type: String },
+  mobileNumber: { type: String, match: [/^09\d{9}$/, 'Mobile number must be an 11-digit Philippine number beginning with 09.'] },
+  voterStatus: { type: String, enum: ['Registered', 'Not Registered'] },
+  employmentStatus: { type: String, enum: ['', 'Employed', 'Self-Employed', 'Unemployed', 'Student', 'Retired'] },
+  occupation: { type: String, trim: true, maxlength: 120 },
   householdHead: { type: String },
   emergencyContactPerson: { type: String },
   numberOfFamilyMembers: { type: String },
-  educationalAttainment: { type: String },
+  educationalAttainment: { type: String, trim: true, maxlength: 120 },
   bloodType: { type: String },
   disability: { type: String },
   profileImageUrl: { type: String },
@@ -89,6 +93,13 @@ const UserSchema = new mongoose.Schema({
   },
   otpExpires: { 
     type: Date 
+  },
+  // Firebase remains the password authority.  We retain hashes only to stop a
+  // user from cycling through recently used passwords after a verified change.
+  passwordHistory: {
+    type: [String],
+    select: false,
+    default: []
   },
   isVerified: { 
     type: Boolean, 

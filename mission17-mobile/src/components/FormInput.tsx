@@ -11,6 +11,7 @@ interface FormInputProps {
   secureTextEntry?: boolean;
   containerStyle?: object;
   rightIcon?: React.ReactNode;
+  maxLength?: number;
 }
 
 const FormInput = ({
@@ -22,7 +23,8 @@ const FormInput = ({
   editable = true,
   secureTextEntry = false,
   containerStyle,
-  rightIcon
+  rightIcon,
+  maxLength
 }: FormInputProps) => {
   const webInputStyle = Platform.OS === 'web' ? { outlineStyle: 'none' } : {};
 
@@ -37,6 +39,7 @@ const FormInput = ({
         placeholderTextColor="#94a3b8"
         editable={editable}
         secureTextEntry={secureTextEntry}
+        maxLength={maxLength}
       />
       {required && <Text style={{ color: '#ef4444', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }}>*</Text>}
       {rightIcon}

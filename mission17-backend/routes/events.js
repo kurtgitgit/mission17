@@ -16,6 +16,23 @@ import { verifyAdmin } from '../utils/authMiddleware.js';
 
 const router = express.Router();
 
+const normalizeEventText = (value = '') => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+const validateEvent = ({ title, date, time, location }) => {
+  if (typeof title !== 'string' || typeof location !== 'string' || typeof date !== 'string' || typeof time !== 'string') {
+    return 'Title, date, time, and location must be text values.';
+  }
+  if (!title.trim() || !location.trim() || !date || !time) return 'Title, date, time, and location are required.';
+  if (title.length > 120 || location.length > 250) return 'Title cannot exceed 120 characters and location cannot exceed 250 characters.';
+  if (!DATE_PATTERN.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) return 'Please provide a valid event date.';
+  if (!TIME_PATTERN.test(time)) return 'Please provide a valid event time.';
+  const today = new Date().toISOString().slice(0, 10);
+  if (date < today) return 'Event date cannot be in the past.';
+  return null;
+};
+
 const getEventData = (body = {}) => {
   const allowedFields = ['title', 'date', 'time', 'location', 'color', 'description', 'image'];
   return Object.fromEntries(allowedFields.filter(field => body[field] !== undefined).map(field => [field, body[field]]));
@@ -59,10 +76,17 @@ router.get('/events', async (req, res) => {
 router.post('/events', verifyAdmin, async (req, res) => {
   try {
     const eventData = getEventData(req.body);
+    eventData.title = normalizeEventText(eventData.title);
+    eventData.location = normalizeEventText(eventData.location);
+    const validationError = validateEvent(eventData);
+    if (validationError) return res.status(400).json({ message: validationError });
+    const existing = await Event.findOne({ title: eventData.title, date: eventData.date, time: eventData.time, location: eventData.location });
+    if (existing) return res.status(409).json({ message: 'An identical event already exists.' });
     const newEvent = new Event(eventData);
     await newEvent.save();
     res.status(201).json(newEvent);
   } catch (error) {
+    if (error?.code === 11000) return res.status(409).json({ message: 'An identical event already exists.' });
     res.status(500).json({ message: 'Error creating event' });
   }
 });
@@ -70,10 +94,19 @@ router.post('/events', verifyAdmin, async (req, res) => {
 // 3. UPDATE EVENT
 router.put('/events/:id', verifyAdmin, async (req, res) => {
   try {
-    const eventData = getEventData(req.body);
-    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, eventData, { new: true });
+    const current = await Event.findById(req.params.id);
+    if (!current) return res.status(404).json({ message: 'Event not found.' });
+    const eventData = { ...current.toObject(), ...getEventData(req.body) };
+    eventData.title = normalizeEventText(eventData.title);
+    eventData.location = normalizeEventText(eventData.location);
+    const validationError = validateEvent(eventData);
+    if (validationError) return res.status(400).json({ message: validationError });
+    const duplicate = await Event.findOne({ title: eventData.title, date: eventData.date, time: eventData.time, location: eventData.location, _id: { $ne: current._id } });
+    if (duplicate) return res.status(409).json({ message: 'An identical event already exists.' });
+    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, getEventData(eventData), { new: true, runValidators: true });
     res.json(updatedEvent);
   } catch (error) {
+    if (error?.code === 11000) return res.status(409).json({ message: 'An identical event already exists.' });
     res.status(500).json({ message: 'Error updating event' });
   }
 });
@@ -81,7 +114,8 @@ router.put('/events/:id', verifyAdmin, async (req, res) => {
 // 4. DELETE EVENT
 router.delete('/events/:id', verifyAdmin, async (req, res) => {
   try {
-    await Event.findByIdAndDelete(req.params.id);
+    const event = await Event.findByIdAndDelete(req.params.id);
+    if (!event) return res.status(404).json({ message: 'Event not found.' });
     res.json({ message: 'Event deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting event' });

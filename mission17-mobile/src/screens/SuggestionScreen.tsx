@@ -32,6 +32,7 @@ const SuggestionScreen = () => {
   const [submitError, setSubmitError] = useState('');
   const formScrollRef = useRef<ScrollView>(null);
   const descriptionInputRef = useRef<TextInput>(null);
+  const submittingRef = useRef(false);
 
   const revealDetailedConcern = () => {
     // Wait for the keyboard animation and resized viewport before scrolling.
@@ -83,10 +84,12 @@ const SuggestionScreen = () => {
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
+    submittingRef.current = true;
     setSubmitError('');
     setLoading(true);
     try {
@@ -114,6 +117,7 @@ const SuggestionScreen = () => {
     } catch (error) {
       setSubmitError(getFriendlyNetworkMessage(error, 'Could not submit your feedback. Please try again.'));
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

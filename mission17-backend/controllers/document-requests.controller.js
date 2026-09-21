@@ -9,6 +9,10 @@ import { logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
+const ALLOWED_DOCUMENT_TYPES = [
+  'Barangay Clearance', 'Certificate of Indigency', 'Certificate of Residency',
+  'Business Clearance', 'Certificate of Good Moral Character', 'Barangay ID'
+];
 
 // Builds the resident notification for each status transition
 const buildNotification = (docRequest, status, rejectionReason, pickupDate) => {
@@ -48,12 +52,25 @@ export const submitRequest = asyncHandler(async (req, res) => {
   const userId = req.user._id;
   const username = req.user.username;
 
-  if (!fullName || !documentType || !purpose) {
-    return res.status(400).json({ message: 'Missing required fields: fullName, documentType, purpose.' });
-  }
+  const cleanFullName = typeof fullName === 'string' ? fullName.trim() : '';
+  const cleanAddress = typeof address === 'string' ? address.trim() : '';
+  const cleanContact = typeof contactNumber === 'string' ? contactNumber.replace(/\s/g, '') : '';
+  const cleanPurpose = typeof purpose === 'string' ? purpose.trim() : '';
+  if (cleanFullName.length < 3 || cleanFullName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
+  if (cleanAddress.length < 5 || cleanAddress.length > 250) return res.status(400).json({ message: 'Please enter a valid barangay address.' });
+  if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
+  if (!ALLOWED_DOCUMENT_TYPES.includes(documentType)) return res.status(400).json({ message: 'Please select a valid document type.' });
+  if (cleanPurpose.length < 5 || cleanPurpose.length > 500) return res.status(400).json({ message: 'Purpose must be between 5 and 500 characters.' });
+
+  const recentDuplicate = await DocumentRequest.findOne({
+    userId, documentType, purpose: cleanPurpose,
+    status: { $in: ['Pending', 'Processing'] },
+    createdAt: { $gte: new Date(Date.now() - 60_000) }
+  });
+  if (recentDuplicate) return res.status(409).json({ message: 'This request was already submitted. Check your request status.' });
 
   const docRequest = await DocumentRequest.create({
-    userId, username, fullName, address, contactNumber, documentType, purpose,
+    userId, username, fullName: cleanFullName, address: cleanAddress, contactNumber: cleanContact, documentType, purpose: cleanPurpose,
   });
 
   const notifTitle = 'Document Request Submitted';
@@ -111,14 +128,29 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (!ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
   }
+  if (rejectionReason !== undefined && (typeof rejectionReason !== 'string' || rejectionReason.trim().length > 1000)) {
+    return res.status(400).json({ message: 'Rejection or missing-requirements note must be text with no more than 1,000 characters.' });
+  }
+  if (status === 'Rejected' && (!rejectionReason || rejectionReason.trim().length < 5)) {
+    return res.status(400).json({ message: 'Please provide a clear rejection or missing-requirements reason.' });
+  }
+  let parsedPickupDate = null;
+  if (pickupDate) {
+    parsedPickupDate = new Date(pickupDate);
+    if (Number.isNaN(parsedPickupDate.getTime())) return res.status(400).json({ message: 'Please provide a valid pickup date.' });
+  }
+  if (status === 'Ready for Pickup' && !parsedPickupDate) {
+    return res.status(400).json({ message: 'A pickup date is required when a document is ready.' });
+  }
 
   const docRequest = await DocumentRequest.findById(req.params.id);
   if (!docRequest) return res.status(404).json({ message: 'Request not found.' });
 
   docRequest.status      = status;
   docRequest.processedBy = req.user.username;
-  if (rejectionReason !== undefined) docRequest.rejectionReason = rejectionReason;
-  if (pickupDate !== undefined)      docRequest.pickupDate = pickupDate ? new Date(pickupDate) : null;
+  if (rejectionReason !== undefined) docRequest.rejectionReason = rejectionReason.trim();
+  if (pickupDate !== undefined)      docRequest.pickupDate = parsedPickupDate;
+  if (status === 'Rejected')         docRequest.pickupDate = null;
   await docRequest.save();
 
   // Create in-app notification in DB

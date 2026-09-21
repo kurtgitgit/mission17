@@ -32,6 +32,7 @@ const Missions = () => {
   });
 
   const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState([]);
 
   // MODAL STATE
@@ -227,6 +228,7 @@ const Missions = () => {
   // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
     const url = isEditing ? endpoints.missions.update(currentId) : endpoints.missions.add;
     const method = isEditing ? 'PUT' : 'POST';
 
@@ -238,6 +240,7 @@ const Missions = () => {
         return;
     }
 
+    setSubmitting(true);
     try {
       const res = await fetch(url, {
         method: method,
@@ -260,6 +263,8 @@ const Missions = () => {
     } catch (error) {
       console.error("Save error:", error);
       showNotification("Network error while saving mission.", "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -429,7 +434,9 @@ const Missions = () => {
 
               <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                 <button type="button" onClick={() => setShowForm(false)} style={styles.cancelBtn}>Cancel</button>
-                <button type="submit" style={styles.submitBtn}>{isEditing ? 'Update Mission' : 'Publish Mission'}</button>
+                <button type="submit" disabled={submitting} style={{ ...styles.submitBtn, opacity: submitting ? 0.65 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                  {submitting ? 'Saving...' : (isEditing ? 'Update Mission' : 'Publish Mission')}
+                </button>
               </div>
             </form>
           </div>

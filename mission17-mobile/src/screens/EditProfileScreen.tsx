@@ -9,6 +9,7 @@ import { colors, spacing, radius, typography } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import CustomDropdown from '../components/CustomDropdown';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const EditProfileScreen = ({ navigation }: any) => {
   const [userData, setUserData] = useState<any>(null);
@@ -16,6 +17,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [nationalitySelection, setNationalitySelection] = useState('');
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
@@ -42,9 +44,44 @@ const EditProfileScreen = ({ navigation }: any) => {
   }, [fetchCurrentData]);
 
   const handleSave = async () => {
+    if (saving) return;
+    const firstName = userData?.firstName?.trim() || '';
+    const lastName = userData?.lastName?.trim() || '';
+    if (!firstName || !lastName) {
+      Alert.alert('Name required', 'First name and last name are required.');
+      return;
+    }
+    const birthDate = userData?.birthDate?.trim() || '';
+    const parsedBirthDate = new Date(birthDate);
+    const today = new Date();
+    if (!birthDate || Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > today) {
+      Alert.alert('Invalid birthdate', 'Please enter a valid birthdate that is not in the future.');
+      return;
+    }
+    let calculatedAge = today.getFullYear() - parsedBirthDate.getFullYear();
+    const monthDifference = today.getMonth() - parsedBirthDate.getMonth();
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < parsedBirthDate.getDate())) calculatedAge -= 1;
+    if (calculatedAge < 0 || calculatedAge > 120) {
+      Alert.alert('Invalid birthdate', 'Please enter a realistic birthdate.');
+      return;
+    }
+    if (!userData?.gender || !userData?.civilStatus || !userData?.voterStatus) {
+      Alert.alert('Required information', 'Gender, civil status, and voter status are required.');
+      return;
+    }
+    const mobileNumber = userData?.mobileNumber?.replace(/\D/g, '') || '';
+    if (!/^09\d{9}$/.test(mobileNumber)) {
+      Alert.alert('Invalid mobile number', 'Enter an 11-digit Philippine mobile number beginning with 09.');
+      return;
+    }
+    const completeAddress = userData?.completeAddress?.trim() || '';
+    if (completeAddress.length < 5) {
+      Alert.alert('Address required', 'Please enter your complete address.');
+      return;
+    }
     const normalizedNationality = userData?.nationality?.trim() || '';
-    if (nationalitySelection === 'Other' && !normalizedNationality) {
-      Alert.alert('Nationality required', 'Please specify your nationality.');
+    if (!normalizedNationality) {
+      Alert.alert('Nationality required', nationalitySelection === 'Other' ? 'Please specify your nationality.' : 'Please select your nationality.');
       return;
     }
 
@@ -53,13 +90,23 @@ const EditProfileScreen = ({ navigation }: any) => {
       const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
-        body: JSON.stringify({ ...userData, nationality: normalizedNationality })
+        body: JSON.stringify({
+          ...userData,
+          firstName,
+          lastName,
+          birthDate,
+          age: String(calculatedAge),
+          mobileNumber,
+          completeAddress,
+          nationality: normalizedNationality
+        })
       });
       if (res.ok) {
         Alert.alert("Success", "Profile updated successfully!");
         navigation.goBack();
       } else {
-        Alert.alert("Error", "Failed to update profile.");
+        const errorData = await res.json().catch(() => null);
+        Alert.alert("Error", errorData?.message || "Failed to update profile.");
       }
     } catch (e) {
       Alert.alert("Error", getFriendlyNetworkMessage(e, 'Could not save your profile. Please try again.'));
@@ -71,7 +118,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   if (initialLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>;
   if (loadError || !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError || 'Please try again.'} onRetry={fetchCurrentData} />;
 
-  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true }: any) => (
+  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true, maxLength }: any) => (
     <View style={styles.infoRow}>
       <View style={styles.iconContainer}>
         {icon}
@@ -86,6 +133,7 @@ const EditProfileScreen = ({ navigation }: any) => {
           placeholder={placeholder || `Enter ${label}`}
           placeholderTextColor={colors.textMuted}
           editable={editable}
+          maxLength={maxLength}
           accessibilityState={{ disabled: !editable }}
         />
         {!editable && <Text style={styles.fieldHint}>Verified email changes require a secure account process.</Text>}
@@ -144,16 +192,51 @@ const EditProfileScreen = ({ navigation }: any) => {
             <View style={styles.divider} />
             <EditableRow icon={<Mail size={20} color={colors.textSecondary} />} label="Email Address" value={userData?.email} onChangeText={() => undefined} keyboardType="email-address" editable={false} />
             <View style={styles.divider} />
-            <EditableRow icon={<Phone size={20} color={colors.textSecondary} />} label="Mobile Number" value={userData?.mobileNumber} onChangeText={(t: string) => setUserData({...userData, mobileNumber: t})} keyboardType="phone-pad" />
+            <EditableRow icon={<Phone size={20} color={colors.textSecondary} />} label="Mobile Number" value={userData?.mobileNumber} onChangeText={(t: string) => setUserData({...userData, mobileNumber: t.replace(/\D/g, '').slice(0, 11)})} keyboardType="phone-pad" maxLength={11} />
           </View>
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Demographics</Text>
           <View style={styles.card}>
-            <EditableRow icon={<Calendar size={20} color={colors.textSecondary} />} label="Birthdate" value={userData?.birthDate} onChangeText={(t: string) => setUserData({...userData, birthDate: t})} placeholder="YYYY-MM-DD" />
+            {Platform.OS === 'web' ? (
+              <EditableRow icon={<Calendar size={20} color={colors.textSecondary} />} label="Birthdate" value={userData?.birthDate} onChangeText={(t: string) => setUserData({...userData, birthDate: t})} placeholder="MM/DD/YYYY" maxLength={40} />
+            ) : (
+              <View style={styles.infoRow}>
+                <View style={styles.iconContainer}><Calendar size={20} color={colors.textSecondary} /></View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Birthdate</Text>
+                  <TouchableOpacity style={styles.dateInput} onPress={() => setShowBirthDatePicker(true)}>
+                    <Text style={userData?.birthDate ? styles.dateText : styles.datePlaceholder}>{userData?.birthDate || 'Select birthdate'}</Text>
+                  </TouchableOpacity>
+                  {showBirthDatePicker && (
+                    <DateTimePicker
+                      value={!Number.isNaN(new Date(userData?.birthDate).getTime()) ? new Date(userData.birthDate) : new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      maximumDate={new Date()}
+                      onChange={(_, selectedDate) => {
+                        if (Platform.OS === 'android') setShowBirthDatePicker(false);
+                        if (selectedDate) {
+                          const now = new Date();
+                          let age = now.getFullYear() - selectedDate.getFullYear();
+                          const months = now.getMonth() - selectedDate.getMonth();
+                          if (months < 0 || (months === 0 && now.getDate() < selectedDate.getDate())) age -= 1;
+                          setUserData({...userData, birthDate: selectedDate.toDateString(), age: String(age)});
+                        }
+                      }}
+                    />
+                  )}
+                  {Platform.OS === 'ios' && showBirthDatePicker && (
+                    <TouchableOpacity style={styles.dateConfirmButton} onPress={() => setShowBirthDatePicker(false)}>
+                      <Text style={styles.dateConfirmText}>Confirm Date</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            )}
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Age" value={userData?.age?.toString()} onChangeText={(t: string) => setUserData({...userData, age: parseInt(t) || 0})} keyboardType="numeric" />
+            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Age" value={userData?.age?.toString()} onChangeText={(t: string) => setUserData({...userData, age: t.replace(/\D/g, '').slice(0, 3)})} keyboardType="numeric" maxLength={3} />
             <View style={styles.divider} />
             <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Gender" value={userData?.gender} options={["Male", "Female", "Other", "Prefer not to say"]} onSelect={(gender: string) => setUserData({...userData, gender})} />
             <View style={styles.divider} />
@@ -277,6 +360,21 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     marginTop: 2
   },
+  dateInput: {
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingVertical: 6
+  },
+  dateText: { fontSize: 15, color: colors.textPrimary, fontWeight: '500' },
+  datePlaceholder: { fontSize: 15, color: colors.textMuted },
+  dateConfirmButton: {
+    backgroundColor: colors.primary,
+    borderRadius: radius.sm,
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+    marginTop: spacing.sm
+  },
+  dateConfirmText: { color: 'white', fontWeight: '700' },
   fieldHint: {
     color: colors.textMuted,
     fontSize: 11,

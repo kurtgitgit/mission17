@@ -35,6 +35,7 @@ const Events = () => {
     });
 
     const [uploading, setUploading] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     // Reset to page 1 when search changes
     useEffect(() => {
@@ -131,6 +132,7 @@ const Events = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (submitting) return;
 
         // Hard-block past dates regardless of what the picker allowed through
         if (formData.date < today) {
@@ -148,6 +150,7 @@ const Events = () => {
             return;
         }
 
+        setSubmitting(true);
         try {
             const res = await fetch(url, {
                 method: method,
@@ -169,6 +172,9 @@ const Events = () => {
             }
         } catch (error) {
             console.error("Save error:", error);
+            showNotification("Could not save the event. Please try again.", "error");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -306,7 +312,9 @@ const Events = () => {
 
                             <div style={{display: 'flex', justifyContent: 'flex-end', gap: '10px'}}>
                                 <button type="button" onClick={() => setShowForm(false)} style={styles.cancelBtn}>Cancel</button>
-                                <button type="submit" style={styles.submitBtn}>{isEditing ? 'Update Event' : 'Publish Event'}</button>
+                                <button type="submit" disabled={submitting} style={{ ...styles.submitBtn, opacity: submitting ? 0.65 : 1, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+                                  {submitting ? 'Saving...' : (isEditing ? 'Update Event' : 'Publish Event')}
+                                </button>
                             </div>
                         </form>
                     </div>

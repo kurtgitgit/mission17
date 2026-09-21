@@ -16,6 +16,8 @@ import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 // YOUR SYSTEM RELAYER ADDRESS
 const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
@@ -84,6 +86,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const performLogout = async () => {
     try {
       setShowLogoutModal(false);
+      await signOut(auth).catch((error) => console.error('Firebase logout failed:', error));
       await clearAuthData();
       GlobalState.userId = null;
       GlobalState.username = null;

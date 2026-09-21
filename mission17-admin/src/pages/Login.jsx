@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
@@ -18,10 +18,17 @@ const Login = () => {
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [tempToken, setTempToken] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const isSubmitting = useRef(false);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return undefined;
+    const timer = window.setTimeout(() => setResendCooldown(value => Math.max(value - 1, 0)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -69,6 +76,7 @@ const Login = () => {
       if (data.mfaRequired) {
         setTempToken(idToken);
         setShowOtp(true);
+        setResendCooldown(30);
         showNotification("OTP sent to your email", "info");
         return;
       }
@@ -125,6 +133,27 @@ const Login = () => {
       navigate('/dashboard');
     } catch (err) {
       showNotification(err.message, "error");
+    } finally {
+      setLoading(false);
+      isSubmitting.current = false;
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (isSubmitting.current || resendCooldown > 0) return;
+    isSubmitting.current = true;
+    setLoading(true);
+    try {
+      const response = await fetch(`${endpoints.auth.baseUrl}/resend-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tempToken}` }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || 'Unable to resend the code.');
+      setResendCooldown(30);
+      showNotification(data.message || 'A new OTP was sent to your email.', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Unable to resend the code.', 'error');
     } finally {
       setLoading(false);
       isSubmitting.current = false;
@@ -221,7 +250,8 @@ const Login = () => {
                     type="text"
                     placeholder="123456"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    inputMode="numeric"
                     maxLength={6}
                     required
                     style={{ letterSpacing: '4px', fontWeight: 'bold' }}
@@ -231,6 +261,14 @@ const Login = () => {
               <button type="submit" className="submit-btn" disabled={loading}>
                 {loading ? <Loader2 className="animate-spin" size={18} /> : "Verify Code"}
                 {!loading && <ArrowRight size={18} />}
+              </button>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={loading || resendCooldown > 0}
+                style={{ background: 'none', border: 'none', color: '#0038A8', marginTop: '14px', cursor: resendCooldown > 0 ? 'not-allowed' : 'pointer', width: '100%', fontWeight: 700 }}
+              >
+                {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Resend Code'}
               </button>
               <button
                 type="button"
