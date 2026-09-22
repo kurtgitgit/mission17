@@ -55,6 +55,27 @@ describe('official and event validation', () => {
     expect((await request(app).post('/api/officials').send({ name: 123, position: 'Kagawad' })).status).toBe(400);
     expect((await request(app).post('/api/officials').send({ ...payload, term: '2026 - 2026' })).status).toBe(400);
     expect((await request(app).post('/api/officials').send({ ...payload, name: '111' })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, email: `${'a'.repeat(245)}@example.com` })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, committee: '1'.repeat(121) })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, order: 100 })).status).toBe(400);
+  });
+
+  it('archives, restores, and only permanently deletes archived officials', async () => {
+    const created = await request(app).post('/api/officials').send({
+      name: 'Juan Dela Cruz',
+      position: 'Barangay Kagawad',
+      contact: '09171234567',
+      term: '2023 - 2026',
+    });
+    const id = created.body.official._id;
+
+    expect((await request(app).delete(`/api/officials/${id}`)).status).toBe(409);
+    expect((await request(app).patch(`/api/officials/${id}/archive`).send({ reason: 'Test record' })).status).toBe(200);
+    expect((await request(app).patch(`/api/officials/${id}/restore`)).status).toBe(200);
+    expect((await request(app).delete(`/api/officials/${id}`)).status).toBe(409);
+    expect((await request(app).patch(`/api/officials/${id}/archive`).send({ reason: 'Test record' })).status).toBe(200);
+    expect((await request(app).delete(`/api/officials/${id}`)).status).toBe(200);
+    expect(await Official.findById(id)).toBeNull();
   });
 
   it('rejects invalid and duplicate event submissions', async () => {

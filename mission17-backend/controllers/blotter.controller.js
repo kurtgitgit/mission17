@@ -23,6 +23,8 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const TERMINAL_STATUSES = ['Resolved', 'Dismissed'];
+const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const MAX_REMOTE_EVIDENCE_BYTES = 8 * 1024 * 1024;
 const MAX_INLINE_EVIDENCE_LENGTH = Math.ceil(MAX_REMOTE_EVIDENCE_BYTES * 4 / 3) + 256;
 
@@ -228,6 +230,22 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (isStatusTransition && req.user.role !== 'super_admin') {
     return res.status(403).json({ message: 'Only the Barangay Captain can change a blotter case status.' });
   }
+  if (isStatusTransition) {
+    const currentRank = ALLOWED_STATUSES.indexOf(report.status);
+    const nextRank = ALLOWED_STATUSES.indexOf(status);
+    if (TERMINAL_STATUSES.includes(report.status) || nextRank <= currentRank) {
+      return res.status(409).json({ message: `Case status cannot move backward from "${report.status}" to "${status}".` });
+    }
+  }
+
+  const isHearingTransition = Boolean(hearingStage && hearingStage !== report.hearingStage);
+  if (isHearingTransition) {
+    const currentRank = ALLOWED_HEARING_STAGES.indexOf(report.hearingStage || 'None');
+    const nextRank = ALLOWED_HEARING_STAGES.indexOf(hearingStage);
+    if (TERMINAL_HEARING_STAGES.includes(report.hearingStage) || nextRank <= currentRank) {
+      return res.status(409).json({ message: `Lupon hearing stage cannot move backward from "${report.hearingStage}" to "${hearingStage}".` });
+    }
+  }
 
   if (status) report.status = status;
   if (adminRemarks !== undefined) report.adminRemarks = adminRemarks.trim();
@@ -265,16 +283,20 @@ export const updateStatus = asyncHandler(async (req, res) => {
   const notificationTitle = report.hearingDate ? '⚖️ Lupon Hearing Scheduled' : 'Blotter Report Update';
   const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${report.status}".${hearingStr}`;
 
-  await Notification.create({
-    userId:  report.userId,
-    title:   notificationTitle,
-    message: notificationMessage,
-    type:    report.status === 'Resolved' ? 'success' : 'info',
-  });
+  try {
+    await Notification.create({
+      userId:  report.userId,
+      title:   notificationTitle,
+      message: notificationMessage,
+      type:    report.status === 'Resolved' ? 'success' : 'info',
+    });
 
-  const resident = await User.findById(report.userId);
-  if (resident && resident.expoPushToken) {
-    await sendPushNotification(resident.expoPushToken, notificationTitle, notificationMessage, { screen: 'BlotterHistory' });
+    const resident = await User.findById(report.userId);
+    if (resident && resident.expoPushToken) {
+      await sendPushNotification(resident.expoPushToken, notificationTitle, notificationMessage, { screen: 'BlotterHistory' });
+    }
+  } catch (notificationError) {
+    console.error('Blotter status saved, but resident notification failed:', notificationError.message);
   }
 
   await logAudit(req.user.id, req.user.username, isStatusTransition ? 'BLOTTER_FINAL_DECISION' : 'BLOTTER_UPDATE',

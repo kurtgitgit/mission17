@@ -95,6 +95,11 @@ const developmentCorsOrigins = [
   'http://localhost:3000',
   'http://localhost:5173',
   'http://localhost:8081',
+  // Vite can be opened through either local hostname. Keep this development-
+  // only, rather than allowing arbitrary origins in production.
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+  'http://127.0.0.1:8081',
 ];
 
 const allowedCorsOrigins = new Set([

@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Upload, Eye, EyeOff, Check } from 'lucide-react-native';
 import FormInput from '../FormInput';
+import { getPasswordRequirements, isStrongSignupPassword } from '../../utils/signupValidation';
 
 interface SignupStep3Props {
   formData: any;
@@ -38,9 +39,31 @@ const SignupStep3 = ({
   setTermsAccepted,
   navigation
 }: SignupStep3Props) => {
+  const passwordRequirements = getPasswordRequirements(formData.password);
+  const passwordsMatch = Boolean(formData.confirmPassword) && formData.password === formData.confirmPassword;
+  const canSubmit = Boolean(
+    !loading &&
+    validIdFront &&
+    validIdBack &&
+    isStrongSignupPassword(formData.password) &&
+    passwordsMatch &&
+    privacyAccepted &&
+    termsAccepted
+  );
+  const passwordRules = [
+    ['At least 8 characters', passwordRequirements.minimumLength],
+    ['One uppercase letter', passwordRequirements.uppercase],
+    ['One lowercase letter', passwordRequirements.lowercase],
+    ['One number', passwordRequirements.number],
+    ['One special character (for example: ! @ # $)', passwordRequirements.specialCharacter],
+  ] as const;
+
   return (
     <View style={styles.form}>
       <Text style={styles.sectionTitle}>Attachments</Text>
+      <Text style={styles.attachmentHint}>
+        Please capture a clear photo of the entire ID. Make sure all details are readable and avoid glare or blur.
+      </Text>
       
       <View style={styles.uploadRow}>
         <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idFront')}>
@@ -67,6 +90,7 @@ const SignupStep3 = ({
         value={formData.password}
         onChangeText={(val) => handleInputChange('password', val)}
         secureTextEntry={!showPassword}
+        maxLength={128}
         required
         rightIcon={
           <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
@@ -75,13 +99,35 @@ const SignupStep3 = ({
         }
       />
 
+      <View style={styles.passwordChecklist} accessibilityLiveRegion="polite">
+        <Text style={styles.passwordChecklistTitle}>Password must include:</Text>
+        {passwordRules.map(([label, isMet]) => (
+          <Text
+            key={label}
+            style={[
+              styles.passwordRule,
+              isMet && styles.passwordRuleMet,
+              Boolean(formData.password) && !isMet && styles.passwordRuleMissing,
+            ]}
+          >
+            {isMet ? '✓' : '○'} {label}
+          </Text>
+        ))}
+      </View>
+
       <FormInput
         placeholder="Confirm Password"
         value={formData.confirmPassword}
         onChangeText={(val) => handleInputChange('confirmPassword', val)}
         secureTextEntry={!showPassword}
+        maxLength={128}
         required
       />
+      {formData.confirmPassword ? (
+        <Text style={passwordsMatch ? styles.passwordMatch : styles.passwordMismatch} accessibilityLiveRegion="polite">
+          {passwordsMatch ? '✓ Passwords match.' : 'Passwords do not match.'}
+        </Text>
+      ) : null}
 
       <Text style={styles.sectionTitle}>Your agreement</Text>
       <Text style={styles.consentHint}>Please read and accept both items before creating your account.</Text>
@@ -103,9 +149,11 @@ const SignupStep3 = ({
 
       <View style={styles.navButtonsContainer}>
         <TouchableOpacity 
-          style={[styles.primaryButtonBlue, (loading || !privacyAccepted || !termsAccepted) && styles.disabledButton]}
+          style={[styles.primaryButtonBlue, !canSubmit && styles.disabledButton]}
           onPress={handleSignup}
-          disabled={loading || !privacyAccepted || !termsAccepted}
+          disabled={!canSubmit}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canSubmit }}
         >
           {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonTextBlue}>Complete Registration</Text>}
         </TouchableOpacity>
@@ -117,6 +165,7 @@ const SignupStep3 = ({
 const styles = StyleSheet.create({
   form: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 10, marginBottom: 4 },
+  attachmentHint: { fontSize: 12.5, color: '#64748b', lineHeight: 18, marginTop: -6, marginBottom: 2 },
   uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   uploadButton: { 
     flexDirection: 'row', alignItems: 'center', gap: 8, 
@@ -125,6 +174,13 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: { fontSize: 14, color: '#475569', fontWeight: '500' },
   fileLabel: { fontSize: 12, color: '#10b981', fontWeight: '600' },
+  passwordChecklist: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12, gap: 3, marginTop: -7 },
+  passwordChecklistTitle: { color: '#334155', fontSize: 12.5, fontWeight: '700', marginBottom: 2 },
+  passwordRule: { color: '#64748b', fontSize: 12, lineHeight: 17 },
+  passwordRuleMet: { color: '#15803d' },
+  passwordRuleMissing: { color: '#b91c1c' },
+  passwordMatch: { color: '#15803d', fontSize: 12, fontWeight: '600', marginTop: -8 },
+  passwordMismatch: { color: '#b91c1c', fontSize: 12, fontWeight: '600', marginTop: -8 },
   consentHint: { fontSize: 13, color: '#64748b', lineHeight: 19, marginTop: -6 },
   consentRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 4, paddingVertical: 4 },
   checkboxHitArea: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', marginLeft: -11, marginRight: -6 },

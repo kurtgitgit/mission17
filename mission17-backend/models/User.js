@@ -34,9 +34,9 @@ const UserSchema = new mongoose.Schema({
   // ==================================================
   // 📝 EXTENDED RESIDENT INFORMATION
   // ==================================================
-  firstName: { type: String, required: true, trim: true, maxlength: 80 },
-  middleName: { type: String, trim: true, maxlength: 80 },
-  lastName: { type: String, required: true, trim: true, maxlength: 80 },
+  firstName: { type: String, required: true, trim: true, maxlength: 80, match: [/^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u, 'First name contains invalid characters.'] },
+  middleName: { type: String, trim: true, maxlength: 80, match: [/^(?:[\p{L}\p{M}][\p{L}\p{M} .'-]*)?$/u, 'Middle name contains invalid characters.'] },
+  lastName: { type: String, required: true, trim: true, maxlength: 80, match: [/^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u, 'Last name contains invalid characters.'] },
   suffix: { type: String, trim: true, maxlength: 20 },
   birthDate: { type: String, trim: true, maxlength: 40 },
   age: { type: String, trim: true, match: [/^\d{1,3}$/, 'Age must be a whole number.'] },

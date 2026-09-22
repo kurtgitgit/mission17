@@ -15,6 +15,32 @@ const LUPON_STAGES = [
   'Issued Certificate to File Action (CFA)'
 ];
 
+const CASE_STATUSES = [
+  { value: 'Pending', label: 'Pending Review' },
+  { value: 'In Progress', label: 'Active / In Progress' },
+  { value: 'Resolved', label: 'Resolved / Closed' },
+  { value: 'Dismissed', label: 'Dismissed' }
+];
+
+const TERMINAL_CASE_STATUSES = ['Resolved', 'Dismissed'];
+const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+
+const toDateTimeLocalValue = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return value;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 16);
+};
+
+const getCaseFormValues = (report) => ({
+  status: report?.status || 'Pending',
+  adminRemarks: report?.adminRemarks || '',
+  respondentName: report?.respondentName || '',
+  hearingDate: toDateTimeLocalValue(report?.hearingDate),
+  hearingStage: report?.hearingStage || 'None',
+  luponOfficerInCharge: report?.luponOfficerInCharge || 'Punong Barangay / Lupon Tagapamayapa'
+});
+
 const formatIncidentDateTime = (value) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
@@ -23,6 +49,13 @@ const formatIncidentDateTime = (value) => {
 
 // ─── OFFICIAL KP FORM NO. 9 PRINTABLE SUMMONS (PATAWAG) MODAL ───────────────
 const KPForm9Modal = ({ report, complainantName, onClose }) => {
+  useEffect(() => {
+    if (!report) return undefined;
+
+    document.body.classList.add('kp-form-printing');
+    return () => document.body.classList.remove('kp-form-printing');
+  }, [report]);
+
   if (!report) return null;
 
   const handlePrint = () => {
@@ -41,14 +74,14 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
   const currentYear = today.getFullYear();
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)' }}>
-      <div style={{ backgroundColor: 'white', width: '100%', maxWidth: '800px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+    <div className="kp-form-modal" role="dialog" aria-modal="true" aria-labelledby="kp-form-modal-title" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)' }}>
+      <div className="kp-form-dialog" style={{ backgroundColor: 'white', width: '100%', maxWidth: '800px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
         
         {/* MODAL CONTROLS */}
         <div className="no-print" style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Scale size={20} color="#0038A8" />
-            <strong style={{ fontSize: 16, color: '#0f172a' }}>Generic Lupon Summons Draft</strong>
+            <strong id="kp-form-modal-title" style={{ fontSize: 16, color: '#0f172a' }}>Generic Lupon Summons Draft</strong>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
@@ -162,6 +195,7 @@ const BlotterManagement = () => {
   const [hearingDate, setHearingDate] = useState('');
   const [hearingStage, setHearingStage] = useState('None');
   const [luponOfficerInCharge, setLuponOfficerInCharge] = useState('Punong Barangay / Lupon Tagapamayapa');
+  const [savedCaseForm, setSavedCaseForm] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [showKpModal, setShowKpModal] = useState(false);
   const [evidenceObjectUrl, setEvidenceObjectUrl] = useState(null);
@@ -220,17 +254,42 @@ const BlotterManagement = () => {
   };
 
   const handleSelectReport = (report) => {
+    const values = getCaseFormValues(report);
     setSelectedReport(report);
-    setNewStatus(report.status);
-    setAdminRemarks(report.adminRemarks || '');
-    setRespondentName(report.respondentName || '');
-    setHearingDate(report.hearingDate ? new Date(report.hearingDate).toISOString().slice(0, 16) : '');
-    setHearingStage(report.hearingStage || 'None');
-    setLuponOfficerInCharge(report.luponOfficerInCharge || 'Punong Barangay / Lupon Tagapamayapa');
+    setNewStatus(values.status);
+    setAdminRemarks(values.adminRemarks);
+    setRespondentName(values.respondentName);
+    setHearingDate(values.hearingDate);
+    setHearingStage(values.hearingStage);
+    setLuponOfficerInCharge(values.luponOfficerInCharge);
+    setSavedCaseForm(values);
+  };
+
+  const hasCaseFormChanges = Boolean(savedCaseForm && (
+    newStatus !== savedCaseForm.status ||
+    adminRemarks !== savedCaseForm.adminRemarks ||
+    respondentName !== savedCaseForm.respondentName ||
+    hearingDate !== savedCaseForm.hearingDate ||
+    hearingStage !== savedCaseForm.hearingStage ||
+    luponOfficerInCharge !== savedCaseForm.luponOfficerInCharge
+  ));
+
+  const isCaseStatusDisabled = (status) => {
+    if (!savedCaseForm || status === savedCaseForm.status) return false;
+    if (TERMINAL_CASE_STATUSES.includes(savedCaseForm.status)) return true;
+    const savedRank = CASE_STATUSES.findIndex(item => item.value === savedCaseForm.status);
+    const optionRank = CASE_STATUSES.findIndex(item => item.value === status);
+    return optionRank <= savedRank;
+  };
+
+  const isHearingStageDisabled = (stage) => {
+    if (!savedCaseForm || stage === savedCaseForm.hearingStage) return false;
+    if (TERMINAL_HEARING_STAGES.includes(savedCaseForm.hearingStage)) return true;
+    return LUPON_STAGES.indexOf(stage) <= LUPON_STAGES.indexOf(savedCaseForm.hearingStage);
   };
 
   const handleUpdateStatus = async () => {
-    if (!selectedReport || updatingRef.current) return;
+    if (!selectedReport || !hasCaseFormChanges || updatingRef.current) return;
     updatingRef.current = true;
     setUpdating(true);
     try {
@@ -255,10 +314,18 @@ const BlotterManagement = () => {
       // Update local state to reflect change instantly
       setReports(reports.map(r => r._id === selectedReport._id ? updatedReport : r));
       setSelectedReport(updatedReport);
+      const savedValues = getCaseFormValues(updatedReport);
+      setNewStatus(savedValues.status);
+      setAdminRemarks(savedValues.adminRemarks);
+      setRespondentName(savedValues.respondentName);
+      setHearingDate(savedValues.hearingDate);
+      setHearingStage(savedValues.hearingStage);
+      setLuponOfficerInCharge(savedValues.luponOfficerInCharge);
+      setSavedCaseForm(savedValues);
       showNotification('Blotter record & Lupon schedule saved successfully.', 'success');
     } catch (err) {
       console.error('Failed to update status', err);
-      showNotification('Failed to update report status.', 'error');
+      showNotification(err.response?.data?.message || 'Failed to update report status.', 'error');
     } finally {
       updatingRef.current = false;
       setUpdating(false);
@@ -587,14 +654,24 @@ const BlotterManagement = () => {
                           disabled={!isSuperAdmin}
                           title={isSuperAdmin ? 'Change case status' : 'Only the Barangay Captain can change case status'}
                         >
-                          <option value="Pending">Pending Review</option>
-                          <option value="In Progress">Active / In Progress</option>
-                          <option value="Resolved">Resolved / Closed</option>
-                          <option value="Dismissed">Dismissed</option>
+                          {CASE_STATUSES.map(status => (
+                            <option
+                              key={status.value}
+                              value={status.value}
+                              disabled={isCaseStatusDisabled(status.value)}
+                            >
+                              {status.label}
+                            </option>
+                          ))}
                         </select>
                         {!isSuperAdmin && (
                           <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
                             Staff may update hearing details. Final status decisions require the Barangay Captain.
+                          </small>
+                        )}
+                        {isSuperAdmin && (
+                          <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                            Saved case statuses move forward only; completed stages cannot be selected again.
                           </small>
                         )}
                       </div>
@@ -619,9 +696,12 @@ const BlotterManagement = () => {
                           onChange={(e) => setHearingStage(e.target.value)}
                         >
                           {LUPON_STAGES.map(stage => (
-                            <option key={stage} value={stage}>{stage}</option>
+                            <option key={stage} value={stage} disabled={isHearingStageDisabled(stage)}>{stage}</option>
                           ))}
                         </select>
+                        <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                          Previous hearing stages are locked after the next stage is saved.
+                        </small>
                       </div>
 
                       <div className="form-group">
@@ -661,10 +741,20 @@ const BlotterManagement = () => {
 
                     <div style={{ display: 'flex', gap: 12 }}>
                       <button
+                        type="button"
                         className="btn primary" 
                         onClick={handleUpdateStatus} 
-                        disabled={updating}
-                        style={{ padding: '10px 20px', fontSize: '14px', width: 'auto', fontWeight: 800 }}
+                        disabled={updating || !hasCaseFormChanges}
+                        aria-disabled={updating || !hasCaseFormChanges}
+                        title={!hasCaseFormChanges ? 'Change at least one case or hearing field before saving' : 'Save case and hearing changes'}
+                        style={{
+                          padding: '10px 20px',
+                          fontSize: '14px',
+                          width: 'auto',
+                          fontWeight: 800,
+                          cursor: updating || !hasCaseFormChanges ? 'not-allowed' : 'pointer',
+                          opacity: updating || !hasCaseFormChanges ? 0.55 : 1
+                        }}
                       >
                         {updating ? 'Saving Changes...' : '💾 Save Case & Schedule Hearing'}
                       </button>

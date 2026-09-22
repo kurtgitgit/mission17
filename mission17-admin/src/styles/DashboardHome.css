@@ -357,4 +357,47 @@
     border: none !important;
     box-shadow: none !important;
   }
+
+  /* When the Lupon summons modal is open, print only that document. The
+     default blotter rule above otherwise exposes the selected case record. */
+  body.kp-form-printing .dashboard-container > main > div > div:nth-child(2),
+  body.kp-form-printing .dashboard-container > main > div > div:nth-child(2) * {
+    visibility: hidden !important;
+  }
+
+  body.kp-form-printing .kp-form-modal,
+  body.kp-form-printing .kp-form-dialog,
+  body.kp-form-printing #printable-kp-form,
+  body.kp-form-printing #printable-kp-form * {
+    visibility: visible !important;
+  }
+
+  body.kp-form-printing .kp-form-modal,
+  body.kp-form-printing .kp-form-dialog {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    background: white !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  body.kp-form-printing #printable-kp-form {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    box-sizing: border-box !important;
+    padding: 12mm 16mm !important;
+    overflow: visible !important;
+    background: white !important;
+  }
 }

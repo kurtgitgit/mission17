@@ -7,6 +7,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { isDirectoryPurok } from '../config/addressDirectory';
+import {
+  calculateAge,
+  formatBirthDate,
+  getLatestEligibleBirthDate,
+  isStrongSignupPassword,
+  isValidPersonName,
+  MAXIMUM_RESIDENT_AGE,
+  MINIMUM_SIGNUP_AGE,
+} from '../utils/signupValidation';
 
 export const LEGAL_POLICY_VERSION = '2026-09-08-capstone-v1';
 
@@ -29,7 +38,7 @@ export const useSignup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [noMiddleName, setNoMiddleName] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateObj, setDateObj] = useState(new Date());
+  const [dateObj, setDateObj] = useState(getLatestEligibleBirthDate());
 
   const [validIdFront, setValidIdFront] = useState<any>(null);
   const [validIdBack, setValidIdBack] = useState<any>(null);
@@ -48,17 +57,12 @@ export const useSignup = () => {
     }
     if (selectedDate) {
       setDateObj(selectedDate);
-      const formattedDate = selectedDate.toDateString();
+      const formattedDate = formatBirthDate(selectedDate);
       handleInputChange('birthDate', formattedDate);
 
       // Auto calculate age
-      const today = new Date();
-      let calcAge = today.getFullYear() - selectedDate.getFullYear();
-      const m = today.getMonth() - selectedDate.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < selectedDate.getDate())) {
-        calcAge--;
-      }
-      handleInputChange('age', calcAge.toString());
+      const calculatedAge = calculateAge(selectedDate);
+      handleInputChange('age', calculatedAge === null ? '' : String(calculatedAge));
     }
   };
 
@@ -97,6 +101,14 @@ export const useSignup = () => {
         showNotification('First and Last Name are required.', 'error');
         return;
       }
+      if (!isValidPersonName(formData.firstName) || !isValidPersonName(formData.lastName)) {
+        showNotification('First and Last Name may contain letters, spaces, hyphens, apostrophes, and periods only.', 'error');
+        return;
+      }
+      if (formData.middleName && !isValidPersonName(formData.middleName)) {
+        showNotification('Middle Name may contain letters, spaces, hyphens, apostrophes, and periods only.', 'error');
+        return;
+      }
       if (!formData.email) {
         showNotification('Email Address is required.', 'error');
         return;
@@ -114,16 +126,17 @@ export const useSignup = () => {
         return;
       }
       const parsedBirthDate = new Date(formData.birthDate);
-      const today = new Date();
-      if (Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > today) {
+      if (Number.isNaN(parsedBirthDate.getTime())) {
         showNotification('Please enter a valid birthdate that is not in the future.', 'error');
         return;
       }
-      let calculatedAge = today.getFullYear() - parsedBirthDate.getFullYear();
-      const monthDifference = today.getMonth() - parsedBirthDate.getMonth();
-      if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < parsedBirthDate.getDate())) calculatedAge--;
-      if (calculatedAge < 0 || calculatedAge > 120) {
+      const calculatedAge = calculateAge(parsedBirthDate);
+      if (calculatedAge === null || calculatedAge < 0 || calculatedAge > MAXIMUM_RESIDENT_AGE) {
         showNotification('Please enter a realistic birthdate.', 'error');
+        return;
+      }
+      if (calculatedAge < MINIMUM_SIGNUP_AGE) {
+        showNotification(`You must be at least ${MINIMUM_SIGNUP_AGE} years old to create an account.`, 'error');
         return;
       }
       if (formData.age !== String(calculatedAge)) handleInputChange('age', String(calculatedAge));
@@ -184,7 +197,7 @@ export const useSignup = () => {
       return;
     }
     // Match the password-change policy: length plus every character class.
-    if (formData.password.length < 8 || !/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/\d/.test(formData.password) || !/[^A-Za-z0-9]/.test(formData.password)) {
+    if (!isStrongSignupPassword(formData.password)) {
       showNotification('Use 8+ characters with uppercase, lowercase, a number, and a special character.', 'error');
       return;
     }

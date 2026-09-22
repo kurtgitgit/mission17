@@ -47,6 +47,7 @@ const isDisposableEmail = (email) => {
   return DISPOSABLE_DOMAINS.includes(domain);
 };
 
+
 const router = express.Router();
 
 const isStrongPassword = (password) => typeof password === 'string'
@@ -258,7 +259,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     const email = decodedToken.email;
 
     let user = await User.findOne({ firebaseUid });
-    
+
     // If not found by UID, check if they exist by email (Legacy Account Migration)
     if (!user && email) {
       user = await User.findOne({ email: new RegExp('^' + email + '$', 'i') });
@@ -325,13 +326,16 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     }
 
     const residentProfile = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(residentProfile, { requireCore: true });
+    const profileValidationError = validateResidentProfile(residentProfile, { requireCore: true, minimumAge: 18 });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
     // Grab file URLs if they exist
     const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
     const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
     const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
+    if (!validIdFrontUrl || !validIdBackUrl) {
+      return res.status(400).json({ message: 'Clear photos of both the front and back of a valid ID are required.' });
+    }
 
     // Use firstName+lastName for the auto-generated username
     const generatedUsername = `${residentProfile.firstName}${residentProfile.lastName}`.replace(/\s+/g, '') + firebaseUid.slice(-6);
@@ -353,7 +357,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     });
 
     await user.save();
-    
+
     logAudit(user._id, user.username, "SIGNUP_INITIATED", "New account synced via Firebase", req);
 
     res.status(201).json({ message: "Account created and synced!", user });
@@ -392,11 +396,13 @@ router.post('/verify-otp', verifyFirebaseToken, otpVerifyLimiter, async (req, re
     // OTP verifies email possession. It must never replace human account approval.
     const updatedUser = await User.findByIdAndUpdate(
       user._id,
-      { $set: { 
-          otpCode: null, 
+      {
+        $set: {
+          otpCode: null,
           otpExpires: null,
           isVerified: true
-        } },
+        }
+      },
       { new: true }
     );
 

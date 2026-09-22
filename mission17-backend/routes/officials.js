@@ -17,15 +17,21 @@ const hasMeaningfulText = (value) => {
   return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
 };
 
-const validateOfficial = ({ name, position, contact, email, term }) => {
+const validateOfficial = ({ name, position, contact, email, term, committee, order }) => {
   if (typeof name !== 'string' || typeof position !== 'string' || !name.trim() || !position.trim()) return 'Name and position are required.';
   if (name.trim().length > 120 || position.trim().length > 120) return 'Name and position cannot exceed 120 characters.';
   if (!hasMeaningfulText(name) || !hasMeaningfulText(position)) return 'Name and position must contain meaningful text.';
   if (contact !== undefined && contact !== null && typeof contact !== 'string') return 'Contact must be text.';
   if (email !== undefined && email !== null && typeof email !== 'string') return 'Email must be text.';
   if (term !== undefined && term !== null && typeof term !== 'string') return 'Term must be text.';
+  if (committee !== undefined && committee !== null && typeof committee !== 'string') return 'Committee must be text.';
   if (contact && !/^09\d{9}$/.test(normalizeContact(contact))) return 'Contact must be an 11-digit Philippine mobile number.';
+  if (email && email.trim().length > 254) return 'Email cannot exceed 254 characters.';
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Please enter a valid email address.';
+  if (committee && committee.trim().length > 120) return 'Committee cannot exceed 120 characters.';
+  if (order !== undefined && order !== null && (!Number.isInteger(Number(order)) || Number(order) < 1 || Number(order) > 99)) {
+    return 'Sort order must be a whole number from 1 to 99.';
+  }
   if (term) {
     if (!TERM_PATTERN.test(term.trim())) return 'Term must use the format YYYY - YYYY.';
     const [start, end] = term.match(/\d{4}/g).map(Number);
@@ -127,7 +133,11 @@ router.patch('/:id/restore', verifyAdmin, asyncHandler(async (req, res) => {
 
 // DELETE /:id — Admin: permanent delete official
 router.delete('/:id', verifyAdmin, asyncHandler(async (req, res) => {
-  const official = await Official.findByIdAndDelete(req.params.id);
+  const official = await Official.findOneAndDelete({ _id: req.params.id, isArchived: true });
+  if (!official) {
+    const exists = await Official.exists({ _id: req.params.id });
+    if (exists) return res.status(409).json({ message: 'Archive the official before permanently deleting the record.' });
+  }
   if (!official) return res.status(404).json({ message: 'Official not found.' });
   logAudit(req.user.id, req.user.username, 'OFFICIAL_DELETE', `Permanently removed: ${official.name}`, req);
   res.json({ message: 'Official permanently deleted.' });

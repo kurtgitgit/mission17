@@ -14,6 +14,15 @@ import CustomDropdown from '../components/CustomDropdown';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIXED_BARANGAY_ADDRESS, isDirectoryPurok, PUROK_OPTIONS } from '../config/addressDirectory';
+import {
+  MAXIMUM_RESIDENT_AGE,
+  MINIMUM_SIGNUP_AGE,
+  calculateAge,
+  formatBirthDate,
+  getLatestEligibleBirthDate,
+  isValidPersonName,
+  sanitizePersonName,
+} from '../utils/signupValidation';
 
 const EditProfileScreen = ({ navigation }: any) => {
   const route = useRoute<any>();
@@ -53,23 +62,28 @@ const EditProfileScreen = ({ navigation }: any) => {
   const handleSave = async () => {
     if (saving) return;
     const firstName = userData?.firstName?.trim() || '';
+    const middleName = userData?.middleName?.trim() || '';
     const lastName = userData?.lastName?.trim() || '';
     if (!firstName || !lastName) {
       Alert.alert('Name required', 'First name and last name are required.');
       return;
     }
-    const birthDate = userData?.birthDate?.trim() || '';
-    const parsedBirthDate = new Date(birthDate);
-    const today = new Date();
-    if (!birthDate || Number.isNaN(parsedBirthDate.getTime()) || parsedBirthDate > today) {
-      Alert.alert('Invalid birthdate', 'Please enter a valid birthdate that is not in the future.');
+    if (!isValidPersonName(firstName) || !isValidPersonName(lastName) || (middleName && !isValidPersonName(middleName))) {
+      Alert.alert('Invalid name', 'Names may contain letters, spaces, hyphens, apostrophes, and periods only.');
       return;
     }
-    let calculatedAge = today.getFullYear() - parsedBirthDate.getFullYear();
-    const monthDifference = today.getMonth() - parsedBirthDate.getMonth();
-    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < parsedBirthDate.getDate())) calculatedAge -= 1;
-    if (calculatedAge < 0 || calculatedAge > 120) {
-      Alert.alert('Invalid birthdate', 'Please enter a realistic birthdate.');
+    const birthDate = userData?.birthDate?.trim() || '';
+    const calculatedAge = calculateAge(birthDate);
+    if (!birthDate || calculatedAge === null) {
+      Alert.alert('Invalid birthdate', 'Please enter a valid birthdate.');
+      return;
+    }
+    if (calculatedAge < MINIMUM_SIGNUP_AGE) {
+      Alert.alert('Age requirement', `Residents must be at least ${MINIMUM_SIGNUP_AGE} years old.`);
+      return;
+    }
+    if (calculatedAge > MAXIMUM_RESIDENT_AGE) {
+      Alert.alert('Invalid birthdate', `Please enter a realistic birthdate (maximum age ${MAXIMUM_RESIDENT_AGE}).`);
       return;
     }
     if (!userData?.gender || !userData?.civilStatus || !userData?.voterStatus) {
@@ -107,6 +121,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         body: JSON.stringify({
           ...userData,
           firstName,
+          middleName,
           lastName,
           birthDate,
           age: String(calculatedAge),
@@ -138,7 +153,7 @@ const EditProfileScreen = ({ navigation }: any) => {
   if (initialLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>;
   if (loadError || !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError || 'Please try again.'} onRetry={fetchCurrentData} />;
 
-  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true, maxLength }: any) => (
+  const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true, maxLength, hint = '' }: any) => (
     <View style={styles.infoRow}>
       <View style={styles.iconContainer}>
         {icon}
@@ -156,7 +171,7 @@ const EditProfileScreen = ({ navigation }: any) => {
           maxLength={maxLength}
           accessibilityState={{ disabled: !editable }}
         />
-        {!editable && <Text style={styles.fieldHint}>Verified email changes require a secure account process.</Text>}
+        {hint ? <Text style={styles.fieldHint}>{hint}</Text> : null}
       </View>
     </View>
   );
@@ -204,15 +219,15 @@ const EditProfileScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Basic Identity</Text>
           <View style={styles.card}>
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="First Name" value={userData?.firstName} onChangeText={(t: string) => setUserData({...userData, firstName: t})} />
+            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="First Name" value={userData?.firstName} onChangeText={(t: string) => setUserData({...userData, firstName: sanitizePersonName(t)})} maxLength={80} />
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Middle Name" value={userData?.middleName} onChangeText={(t: string) => setUserData({...userData, middleName: t})} />
+            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Middle Name" value={userData?.middleName} onChangeText={(t: string) => setUserData({...userData, middleName: sanitizePersonName(t)})} maxLength={80} />
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Last Name" value={userData?.lastName} onChangeText={(t: string) => setUserData({...userData, lastName: t})} />
+            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Last Name" value={userData?.lastName} onChangeText={(t: string) => setUserData({...userData, lastName: sanitizePersonName(t)})} maxLength={80} />
             <View style={styles.divider} />
             <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Suffix" value={userData?.suffix || 'None'} options={["None", "Jr.", "Sr.", "II", "III", "IV"]} onSelect={(suffix: string) => setUserData({...userData, suffix: suffix === 'None' ? '' : suffix})} />
             <View style={styles.divider} />
-            <EditableRow icon={<Mail size={20} color={colors.textSecondary} />} label="Email Address" value={userData?.email} onChangeText={() => undefined} keyboardType="email-address" editable={false} />
+            <EditableRow icon={<Mail size={20} color={colors.textSecondary} />} label="Email Address" value={userData?.email} onChangeText={() => undefined} keyboardType="email-address" editable={false} hint="Verified email changes require a secure account process." />
             <View style={styles.divider} />
             <EditableRow icon={<Phone size={20} color={colors.textSecondary} />} label="Mobile Number" value={userData?.mobileNumber} onChangeText={(t: string) => setUserData({...userData, mobileNumber: t.replace(/\D/g, '').slice(0, 11)})} keyboardType="phone-pad" maxLength={11} />
           </View>
@@ -222,7 +237,11 @@ const EditProfileScreen = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Demographics</Text>
           <View style={styles.card}>
             {Platform.OS === 'web' ? (
-              <EditableRow icon={<Calendar size={20} color={colors.textSecondary} />} label="Birthdate" value={userData?.birthDate} onChangeText={(t: string) => setUserData({...userData, birthDate: t})} placeholder="MM/DD/YYYY" maxLength={40} />
+              <EditableRow icon={<Calendar size={20} color={colors.textSecondary} />} label="Birthdate" value={userData?.birthDate} onChangeText={(t: string) => {
+                const birthDate = t.slice(0, 10);
+                const age = calculateAge(birthDate);
+                setUserData({...userData, birthDate, age: age === null ? '' : String(age)});
+              }} placeholder="MM/DD/YYYY (age 18+)" maxLength={10} hint={`You must be at least ${MINIMUM_SIGNUP_AGE} years old.`} />
             ) : (
               <View style={styles.infoRow}>
                 <View style={styles.iconContainer}><Calendar size={20} color={colors.textSecondary} /></View>
@@ -233,18 +252,15 @@ const EditProfileScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
                   {showBirthDatePicker && (
                     <DateTimePicker
-                      value={!Number.isNaN(new Date(userData?.birthDate).getTime()) ? new Date(userData.birthDate) : new Date()}
+                      value={!Number.isNaN(new Date(userData?.birthDate).getTime()) ? new Date(userData.birthDate) : getLatestEligibleBirthDate()}
                       mode="date"
                       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                      maximumDate={new Date()}
+                      maximumDate={getLatestEligibleBirthDate()}
                       onChange={(_, selectedDate) => {
                         if (Platform.OS === 'android') setShowBirthDatePicker(false);
                         if (selectedDate) {
-                          const now = new Date();
-                          let age = now.getFullYear() - selectedDate.getFullYear();
-                          const months = now.getMonth() - selectedDate.getMonth();
-                          if (months < 0 || (months === 0 && now.getDate() < selectedDate.getDate())) age -= 1;
-                          setUserData({...userData, birthDate: selectedDate.toDateString(), age: String(age)});
+                          const age = calculateAge(selectedDate);
+                          setUserData({...userData, birthDate: formatBirthDate(selectedDate), age: age === null ? '' : String(age)});
                         }
                       }}
                     />
@@ -254,11 +270,12 @@ const EditProfileScreen = ({ navigation }: any) => {
                       <Text style={styles.dateConfirmText}>Confirm Date</Text>
                     </TouchableOpacity>
                   )}
+                  <Text style={styles.fieldHint}>You must be at least {MINIMUM_SIGNUP_AGE} years old.</Text>
                 </View>
               </View>
             )}
             <View style={styles.divider} />
-            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Age" value={userData?.age?.toString()} onChangeText={(t: string) => setUserData({...userData, age: t.replace(/\D/g, '').slice(0, 3)})} keyboardType="numeric" maxLength={3} />
+            <EditableRow icon={<User size={20} color={colors.textSecondary} />} label="Age" value={userData?.age?.toString()} onChangeText={() => undefined} keyboardType="numeric" maxLength={3} editable={false} hint="Automatically calculated from your birthdate." />
             <View style={styles.divider} />
             <DropdownRow icon={<User size={20} color={colors.textSecondary} />} label="Gender" value={userData?.gender} options={["Male", "Female", "Other", "Prefer not to say"]} onSelect={(gender: string) => setUserData({...userData, gender})} />
             <View style={styles.divider} />

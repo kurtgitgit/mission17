@@ -312,8 +312,8 @@ const HomeScreen: React.FC = () => {
                     <IconComp size={22} color={svc.color} />
                   </View>
                   <View style={styles.svcTextContent}>
-                    <Text style={styles.svcLabel} numberOfLines={1}>{svc.label}</Text>
-                    <Text style={styles.svcSub} numberOfLines={1}>{svc.subtitle}</Text>
+                    <Text style={styles.svcLabel} numberOfLines={2}>{svc.label}</Text>
+                    <Text style={styles.svcSub} numberOfLines={2}>{svc.subtitle}</Text>
                   </View>
                   <ChevronRight size={15} color="#94A3B8" />
                 </TouchableOpacity>
@@ -600,7 +600,11 @@ const getStyles = (theme: any) => StyleSheet.create({
     gap: 10 
   },
   svcCard: {
-    width: '48.5%', 
+    // Two cards per row on narrow Android devices. A 45% basis leaves room
+    // for the fixed grid gap; flexGrow then divides the remaining row evenly.
+    flexBasis: '45%',
+    flexGrow: 1,
+    minWidth: 0,
     backgroundColor: '#FFFFFF', 
     borderRadius: 14, 
     padding: 12, 
@@ -613,18 +617,19 @@ const getStyles = (theme: any) => StyleSheet.create({
     elevation: 1.5, 
     borderWidth: 1, 
     borderColor: '#E2E8F0',
-    minHeight: 64,
+    minHeight: 76,
   },
   svcIconBox: { 
     width: 38, 
     height: 38, 
     borderRadius: 10, 
     alignItems: 'center', 
-    justifyContent: 'center' 
+    justifyContent: 'center',
+    flexShrink: 0,
   },
-  svcTextContent: { flex: 1 },
-  svcLabel:  { fontSize: 12, fontWeight: '800', color: '#0F172A' },
-  svcSub:    { fontSize: 10.5, color: '#64748B', marginTop: 1, fontWeight: '500' },
+  svcTextContent: { flex: 1, minWidth: 0 },
+  svcLabel:  { fontSize: 12, fontWeight: '800', color: '#0F172A', lineHeight: 16 },
+  svcSub:    { fontSize: 10.5, color: '#64748B', marginTop: 1, fontWeight: '500', lineHeight: 14 },
 
   // ANNOUNCEMENTS
   annCard: {

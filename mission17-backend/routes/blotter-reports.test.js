@@ -255,5 +255,67 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       expect(report.status).toBe('In Progress');
       expect(report.save).toHaveBeenCalledTimes(1);
     });
+
+    it('prevents the Barangay Captain from moving a case status backward', async () => {
+      const report = { ...makeReport(), status: 'In Progress' };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'captain123')
+        .set('x-mock-user-role', 'super_admin')
+        .send({ status: 'Pending' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('cannot move backward');
+      expect(report.status).toBe('In Progress');
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('prevents a completed Lupon hearing stage from being selected again', async () => {
+      const report = { ...makeReport(), hearingStage: 'Conciliation (2nd Hearing)' };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({ status: 'Pending', hearingStage: 'Mediation (1st Hearing)' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toContain('cannot move backward');
+      expect(report.hearingStage).toBe('Conciliation (2nd Hearing)');
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('locks a terminal Lupon outcome from further stage changes', async () => {
+      const report = { ...makeReport(), hearingStage: 'Amicable Settlement' };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({ status: 'Pending', hearingStage: 'Issued Certificate to File Action (CFA)' });
+
+      expect(res.status).toBe(409);
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('keeps a Captain dismissal successful when resident notification fails', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+      Notification.create.mockRejectedValueOnce(new Error('notification unavailable'));
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'captain123')
+        .set('x-mock-user-role', 'super_admin')
+        .send({ status: 'Dismissed' });
+
+      expect(res.status).toBe(200);
+      expect(report.status).toBe('Dismissed');
+      expect(report.save).toHaveBeenCalledTimes(1);
+    });
   });
 });

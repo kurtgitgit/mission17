@@ -148,23 +148,28 @@ export const updateStatus = asyncHandler(async (req, res) => {
     const notifMap = {
       'Resolved':     { title: '✅ Feedback Resolved',     type: 'success', message: `Your concern "${suggestion.title}" has been addressed by the Barangay Captain!${adminReply ? ' Note: ' + adminReply : ''}` },
       'Under Review': { title: '🔍 Feedback Under Review',  type: 'info',    message: `Your message "${suggestion.title}" is currently being processed by our office.` },
-      'Dismissed':    { title: 'ℹ️ Feedback Update',        type: 'warning', message: `Your message "${suggestion.title}" has been reviewed.${adminReply ? ' Note: ' + adminReply : ''}` },
+      'Dismissed':    { title: 'ℹ️ Feedback Update',        type: 'alert',   message: `Your message "${suggestion.title}" has been reviewed.${adminReply ? ' Note: ' + adminReply : ''}` },
       'New':          { title: '📩 Official Reply Added',   type: 'info',    message: `The Barangay replied to your concern "${suggestion.title}": ${adminReply}` },
     };
 
     const notif = notifMap[status] || notifMap['New'];
     if (notif) {
-      await Notification.create({ userId: suggestion.userId, ...notif });
+      try {
+        await Notification.create({ userId: suggestion.userId, ...notif });
 
-      // Trigger mobile lock-screen alert
-      const residentUser = await User.findById(suggestion.userId).select('expoPushToken');
-      if (residentUser?.expoPushToken) {
-        await sendPushNotification(
-          residentUser.expoPushToken,
-          `🏛️ Barangay Feedback Update`,
-          notif.message,
-          { screen: 'Suggestions', feedbackId: suggestion._id.toString() }
-        );
+        // Trigger mobile lock-screen alert. Notification delivery is secondary;
+        // a provider/database failure must not undo a saved status transition.
+        const residentUser = await User.findById(suggestion.userId).select('expoPushToken');
+        if (residentUser?.expoPushToken) {
+          await sendPushNotification(
+            residentUser.expoPushToken,
+            `🏛️ Barangay Feedback Update`,
+            notif.message,
+            { screen: 'Suggestions', feedbackId: suggestion._id.toString() }
+          );
+        }
+      } catch (notificationError) {
+        console.error('Feedback status saved, but resident notification failed:', notificationError.message);
       }
     }
   }

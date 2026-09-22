@@ -361,17 +361,120 @@
 
 .pa-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
 
-/* Keep council card controls together instead of leaving Archive below Edit. */
+/* Officials cards contain their actions and tolerate malformed legacy values. */
+.pa-official-card {
+  min-width: 0;
+  overflow: hidden;
+}
+.pa-official-card.archived {
+  background-color: #fdfbf7;
+  border: 1px dashed #d97706;
+}
+.pa-official-card .pa-card-row {
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+.pa-official-content {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.pa-official-badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.pa-official-archived-badge {
+  background: #fef3c7;
+  border-radius: 4px;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+}
+.pa-official-break {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+.pa-official-meta {
+  color: #64748b;
+  font-size: 12px;
+  margin: 2px 0;
+}
+.pa-official-meta.muted { color: #94a3b8; }
+.pa-official-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 10px;
+  min-width: 0;
+}
+.pa-official-phone {
+  color: #0038A8;
+  font-size: 13px;
+  font-weight: 700;
+}
+.pa-official-email { color: #64748b; font-size: 12px; }
+.pa-official-archive-note {
+  background: #fffbeb;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 8px 10px;
+}
+.pa-official-archive-date {
+  color: #b45309;
+  font-size: 11px;
+  margin-top: 2px;
+}
 .pa-official-actions {
   align-items: center;
+  border-top: 1px solid #eef2f7;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 12px;
+  width: 100%;
+}
+.pa-official-action {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 6px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 11px;
+  white-space: nowrap;
+}
+.pa-official-action.edit { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+.pa-official-action.archive { background: #fffbeb; border-color: #fde68a; color: #b45309; }
+.pa-official-action.restore { background: #16a34a; color: #fff; }
+.pa-official-action.delete { background: #fff1f2; border-color: #fecdd3; color: #dc2626; }
+.pa-official-action:hover { filter: brightness(0.97); }
+.pa-official-action:focus-visible {
+  outline: 3px solid rgba(0, 56, 168, 0.25);
+  outline-offset: 2px;
 }
 
 @media (max-width: 860px) {
   .pa-official-actions {
     align-self: stretch;
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
+}
+
+@media (max-width: 420px) {
+  .pa-official-action { flex: 1 1 120px; }
 }
 
 /* ── Category / Status Badges ── */

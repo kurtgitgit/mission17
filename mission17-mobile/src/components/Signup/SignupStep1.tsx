@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CheckSquare, Square } from 'lucide-react-native';
 import FormInput from '../FormInput';
 import CustomDropdown from '../CustomDropdown';
+import { sanitizePersonName } from '../../utils/signupValidation';
 
 interface SignupStep1Props {
   formData: any;
@@ -21,7 +22,8 @@ const SignupStep1 = ({ formData, handleInputChange, noMiddleName, setNoMiddleNam
           <FormInput
             placeholder="First Name"
             value={formData.firstName}
-            onChangeText={(val) => handleInputChange("firstName", val)}
+            onChangeText={(val) => handleInputChange("firstName", sanitizePersonName(val))}
+            maxLength={80}
             required
           />
         </View>
@@ -38,7 +40,8 @@ const SignupStep1 = ({ formData, handleInputChange, noMiddleName, setNoMiddleNam
       <FormInput
         placeholder="Middle Name"
         value={noMiddleName ? '' : formData.middleName}
-        onChangeText={(val) => handleInputChange("middleName", val)}
+        onChangeText={(val) => handleInputChange("middleName", sanitizePersonName(val))}
+        maxLength={80}
         editable={!noMiddleName}
       />
       
@@ -53,7 +56,8 @@ const SignupStep1 = ({ formData, handleInputChange, noMiddleName, setNoMiddleNam
       <FormInput
         placeholder="Last Name"
         value={formData.lastName}
-        onChangeText={(val) => handleInputChange("lastName", val)}
+        onChangeText={(val) => handleInputChange("lastName", sanitizePersonName(val))}
+        maxLength={80}
         required
       />
 
@@ -62,6 +66,7 @@ const SignupStep1 = ({ formData, handleInputChange, noMiddleName, setNoMiddleNam
         value={formData.email}
         onChangeText={(val) => handleInputChange("email", val)}
         keyboardType="email-address"
+        maxLength={254}
         required
       />
 

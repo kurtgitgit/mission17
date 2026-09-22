@@ -19,6 +19,11 @@ const POS_STYLE = {
   'Other':             { bg: '#f1f5f9', text: '#64748b' },
 };
 
+const hasMeaningfulText = (value = '') => {
+  const compact = value.replace(/\s/g, '');
+  return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
+};
+
 // ─── Archive Modal ───────────────────────────────────────────────────────────
 const ArchiveModal = ({ official, onConfirm, onCancel }) => {
   const [reason, setReason] = useState('Term Completed');
@@ -80,6 +85,7 @@ const ArchiveModal = ({ official, onConfirm, onCancel }) => {
             value={reason}
             onChange={e => setReason(e.target.value)}
             placeholder="e.g. End of 2020-2023 Barangay Council Term"
+            maxLength={500}
           />
         </div>
 
@@ -133,10 +139,14 @@ const Officials = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return showNotification('Name is required.', 'error');
+    if (!hasMeaningfulText(form.name)) return showNotification('Name must contain meaningful text, not only repeated numbers or symbols.', 'error');
+    if (form.name.trim().length > 120) return showNotification('Name cannot exceed 120 characters.', 'error');
     if (form.contact && !/^09\d{9}$/.test(form.contact)) return showNotification('Contact must be an 11-digit Philippine mobile number.', 'error');
+    if (form.email.trim().length > 254) return showNotification('Email cannot exceed 254 characters.', 'error');
+    if (form.committee.trim().length > 120) return showNotification('Committee cannot exceed 120 characters.', 'error');
     if (form.term) {
       const years = form.term.match(/\d{4}/g);
-      if (!/^\d{4}\s*[-–]\s*\d{4}$/.test(form.term) || !years || Number(years[1]) < Number(years[0])) {
+      if (!/^\d{4}\s*[-–]\s*\d{4}$/.test(form.term) || !years || Number(years[1]) <= Number(years[0])) {
         return showNotification('Term must use YYYY - YYYY, with a valid year range.', 'error');
       }
     }
@@ -154,9 +164,11 @@ const Officials = () => {
         fetchData();
         resetForm();
       } else {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         showNotification(d.message || 'Failed.', 'error');
       }
+    } catch {
+      showNotification('Network error while saving the official.', 'error');
     } finally { setSubmitting(false); }
   };
 
@@ -201,10 +213,23 @@ const Officials = () => {
   };
 
 
-  const handleDeletePermanent = async (id) => {
-    if (!window.confirm('PERMANENT DELETION: Are you sure you want to permanently delete this official record from the database?')) return;
-    const res = await fetch(`${baseUrl}/api/officials/${id}`, { method: 'DELETE', headers: { 'auth-token': token } });
-    if (res.ok) { showNotification('Official permanently deleted.', 'success'); fetchData(); }
+  const handleDeletePermanent = async (official) => {
+    if (!window.confirm(`PERMANENT DELETION: Delete the archived record for "${official.name}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${baseUrl}/api/officials/${official._id}`, {
+        method: 'DELETE',
+        headers: { 'auth-token': token },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showNotification(data.message || 'Official permanently deleted.', 'success');
+        fetchData();
+      } else {
+        showNotification(data.message || `Failed to delete official (${res.status}).`, 'error');
+      }
+    } catch {
+      showNotification('Network error while deleting the official.', 'error');
+    }
   };
 
   const startEdit = (item) => {
@@ -290,7 +315,7 @@ const Officials = () => {
                 <div className="pa-form-group">
                   <label className="pa-label">Full Name *</label>
                   <input className="pa-input" placeholder="Hon. Juan dela Cruz" value={form.name}
-                    onChange={e => setForm({ ...form, name: e.target.value })} required />
+                    onChange={e => setForm({ ...form, name: e.target.value })} maxLength="120" required />
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Position *</label>
@@ -307,7 +332,7 @@ const Officials = () => {
                 <div className="pa-form-group">
                   <label className="pa-label">Email</label>
                   <input className="pa-input" placeholder="official@brgy.gov.ph" value={form.email}
-                    onChange={e => setForm({ ...form, email: e.target.value })} type="email" />
+                    onChange={e => setForm({ ...form, email: e.target.value })} type="email" maxLength="254" />
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Term</label>
@@ -318,7 +343,7 @@ const Officials = () => {
                 <div className="pa-form-group">
                   <label className="pa-label">Committee</label>
                   <input className="pa-input" placeholder="Health, Peace & Order, etc." value={form.committee}
-                    onChange={e => setForm({ ...form, committee: e.target.value })} />
+                    onChange={e => setForm({ ...form, committee: e.target.value })} maxLength="120" />
                 </div>
                 <div className="pa-form-group">
                   <label className="pa-label">Sort Order (1 = Punong Brgy first)</label>
@@ -356,34 +381,34 @@ const Officials = () => {
             {officials.map(off => {
               const ps = POS_STYLE[off.position] || POS_STYLE['Other'];
               return (
-                <div key={off._id} className="pa-card" style={off.isArchived ? { backgroundColor: '#fdfbf7', border: '1px dashed #d97706' } : {}}>
+                <div key={off._id} className={`pa-card pa-official-card${off.isArchived ? ' archived' : ''}`}>
                   <div className="pa-card-row">
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <div className="pa-official-content">
+                      <div className="pa-official-badges">
                         <span className="pa-badge" style={{ backgroundColor: ps.bg, color: ps.text }}>
                           {off.position}
                         </span>
                         {off.isArchived && (
-                          <span style={{ fontSize: 11, backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: 4, fontWeight: 800 }}>
+                          <span className="pa-official-archived-badge">
                             ARCHIVED
                           </span>
                         )}
                       </div>
-                      <p className="pa-card-title">{off.name}</p>
-                      {off.committee && <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0' }}>Committee on {off.committee}</p>}
-                      {off.term      && <p style={{ fontSize: 12, color: '#94a3b8', margin: '2px 0' }}>Term: {off.term}</p>}
+                      <p className="pa-card-title pa-official-break">{off.name}</p>
+                      {off.committee && <p className="pa-official-meta pa-official-break">Committee on {off.committee}</p>}
+                      {off.term      && <p className="pa-official-meta muted pa-official-break">Term: {off.term}</p>}
                       
                       {off.isArchived && (
-                        <div style={{ marginTop: 6, padding: '6px 10px', backgroundColor: '#fffbeb', borderRadius: 6, fontSize: 12, color: '#92400e' }}>
+                        <div className="pa-official-archive-note pa-official-break">
                           📦 <strong>Reason:</strong> {off.archiveReason || 'Term Completed'}
-                          {off.archivedAt && <div style={{ fontSize: 11, color: '#b45309', marginTop: 2 }}>Archived: {new Date(off.archivedAt).toLocaleDateString('en-PH')}</div>}
+                          {off.archivedAt && <div className="pa-official-archive-date">Archived: {new Date(off.archivedAt).toLocaleDateString('en-PH')}</div>}
                         </div>
                       )}
 
                       {!off.isArchived && (
-                        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                          {off.contact && <span style={{ fontSize: 13, color: '#0038A8', fontWeight: 700 }}>📞 {off.contact}</span>}
-                          {off.email   && <span style={{ fontSize: 12, color: '#64748b' }}>✉️ {off.email}</span>}
+                        <div className="pa-official-contact">
+                          {off.contact && <span className="pa-official-phone pa-official-break">📞 {off.contact}</span>}
+                          {off.email   && <span className="pa-official-email pa-official-break">✉️ {off.email}</span>}
                         </div>
                       )}
                     </div>
@@ -391,31 +416,36 @@ const Officials = () => {
                     <div className="pa-card-actions pa-official-actions">
                       {!off.isArchived ? (
                         <>
-                          <button className="pa-btn-icon blue" title="Edit Official" aria-label={`Edit ${off.name}`} onClick={() => startEdit(off)}><Edit3 size={15} /></button>
+                          <button type="button" className="pa-official-action edit" title="Edit Official" aria-label={`Edit ${off.name}`} onClick={() => startEdit(off)}><Edit3 size={15} /> Edit</button>
                           <button
-                            className="pa-btn-icon amber"
+                            type="button"
+                            className="pa-official-action archive"
                             title="Archive Official (Preserve History)"
                             aria-label={`Archive ${off.name}`}
                             onClick={() => setArchiveTarget(off)}
                           >
-                            <Archive size={15} />
+                            <Archive size={15} /> Archive
                           </button>
                         </>
                       ) : (
                         <>
                           <button
-                            style={{ padding: '7px 12px', borderRadius: 8, border: 'none', backgroundColor: '#16a34a', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 700 }}
+                            type="button"
+                            className="pa-official-action restore"
                             title="Restore Official Profile"
+                            aria-label={`Restore ${off.name}`}
                             onClick={() => handleRestore(off)}
                           >
                             <RotateCcw size={14} /> Restore
                           </button>
                           <button
-                            className="pa-btn-icon red"
+                            type="button"
+                            className="pa-official-action delete"
                             title="Permanently Delete"
-                            onClick={() => handleDeletePermanent(off._id)}
+                            aria-label={`Permanently delete ${off.name}`}
+                            onClick={() => handleDeletePermanent(off)}
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={14} /> Delete
                           </button>
                         </>
                       )}

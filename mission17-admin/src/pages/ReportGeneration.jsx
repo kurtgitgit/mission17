@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
@@ -13,10 +13,11 @@ const ReportGeneration = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loadError, setLoadError] = useState('');
+  const latestRequestId = useRef(0);
 
   const filterByDate = useCallback((arr) => {
+    if (!Array.isArray(arr)) return [];
     if (!startDate && !endDate) return arr;
-    if (!Array.isArray(arr)) return arr;
     return arr.filter(item => {
       const d = new Date(item.createdAt || item.date || item.timestamp);
       if (isNaN(d.getTime())) return true; // If no valid date, keep it just in case
@@ -31,6 +32,7 @@ const ReportGeneration = () => {
   }, [startDate, endDate]);
 
   const fetchReportData = useCallback(async () => {
+    const requestId = ++latestRequestId.current;
     setLoading(true);
     setLoadError('');
     try {
@@ -55,6 +57,7 @@ const ReportGeneration = () => {
         const docs = filterByDate(docRes.data || []);
         const blotters = filterByDate(blotterRes.data || []);
 
+        if (requestId !== latestRequestId.current) return;
         setData({
           users: filteredUsers.length || 0,
           documents: docs.length || 0,
@@ -77,14 +80,16 @@ const ReportGeneration = () => {
         let rawArr = res.data.data || res.data.users || res.data.missions || res.data;
         if (!Array.isArray(rawArr)) rawArr = [];
         
+        if (requestId !== latestRequestId.current) return;
         setData(filterByDate(rawArr));
       }
     } catch (err) {
+      if (requestId !== latestRequestId.current) return;
       console.error('Error fetching report data', err);
       setData([]);
       setLoadError(err.response?.data?.message || 'Report data could not be loaded. Check your connection and try again.');
     } finally {
-      setLoading(false);
+      if (requestId === latestRequestId.current) setLoading(false);
     }
   }, [filterByDate, reportType]);
 
@@ -154,7 +159,8 @@ const ReportGeneration = () => {
   };
 
   const renderTableRows = () => {
-    return data.map((item, index) => {
+    const rows = Array.isArray(data) ? data : [];
+    return rows.map((item, index) => {
       switch(reportType) {
         case 'blotter': return (
           <tr key={index}>
@@ -226,6 +232,10 @@ const ReportGeneration = () => {
     );
   };
 
+  const hasReportData = reportType === 'analytics'
+    ? Boolean(data && !Array.isArray(data))
+    : Array.isArray(data) && data.length > 0;
+
   return (
     <div className="dashboard-container">
       <Sidebar />
@@ -237,7 +247,7 @@ const ReportGeneration = () => {
           </div>
           
           <div className="header-actions">
-            <button className="btn primary" onClick={handlePrint} disabled={loading || data.length === 0} style={{ padding: '12px 24px', fontSize: '15px' }}>
+            <button className="btn primary" onClick={handlePrint} disabled={loading || !hasReportData} style={{ padding: '12px 24px', fontSize: '15px' }}>
               <Printer size={20} style={{ marginRight: '8px' }} /> Print / Export PDF
             </button>
           </div>
@@ -312,7 +322,7 @@ const ReportGeneration = () => {
                     </p>
                   </div>
 
-                  {(!data || (Array.isArray(data) && data.length === 0)) ? (
+                  {!hasReportData ? (
                     <div className="empty-state" style={{ marginTop: '50px' }}>
                       <FileBarChart size={48} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
                       <h3 style={{ color: '#64748b' }}>No data available for this report.</h3>

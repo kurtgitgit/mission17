@@ -22,6 +22,19 @@ describe('resident profile validation', () => {
     expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, birthDate: '2999-01-01' }), { requireCore: true })).toMatch(/birthdate/i);
   });
 
+  it('rejects numeric names and residents below the registration age', () => {
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, firstName: '11111' }), { requireCore: true, minimumAge: 18 })).toMatch(/first name/i);
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, lastName: '22222' }), { requireCore: true, minimumAge: 18 })).toMatch(/last name/i);
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, birthDate: new Date().toISOString().slice(0, 10) }), { requireCore: true, minimumAge: 18 })).toMatch(/at least 18/i);
+  });
+
+  it('accepts an applicant who has reached age 18', () => {
+    const eligibleBirthDate = new Date();
+    eligibleBirthDate.setFullYear(eligibleBirthDate.getFullYear() - 18);
+    const profile = normalizeResidentProfile({ ...validProfile, birthDate: eligibleBirthDate.toISOString().slice(0, 10) });
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toBeNull();
+  });
+
   it('requires a provisional purok selection for new or resubmitted registrations', () => {
     expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: '' }), { requireCore: true })).toMatch(/purok/i);
     expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: 'Purok 2' }), { requireCore: true })).toMatch(/purok/i);

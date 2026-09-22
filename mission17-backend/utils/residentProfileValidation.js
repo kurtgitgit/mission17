@@ -3,6 +3,7 @@ const CIVIL_STATUSES = new Set(['Single', 'Married', 'Widowed', 'Separated']);
 const VOTER_STATUSES = new Set(['Registered', 'Not Registered']);
 const EMPLOYMENT_STATUSES = new Set(['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Retired']);
 const PROVISIONAL_PUROKS = new Set(['Purok 7', 'Other / Not listed']);
+const PERSON_NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u;
 
 const PROFILE_TEXT_LIMITS = {
   firstName: 80,
@@ -70,7 +71,7 @@ export const normalizeResidentProfile = (input = {}) => {
   return clean;
 };
 
-export const validateResidentProfile = (profile, { requireCore = false } = {}) => {
+export const validateResidentProfile = (profile, { requireCore = false, minimumAge = null } = {}) => {
   const requiredFields = [
     ['firstName', 'First name'],
     ['lastName', 'Last name'],
@@ -100,6 +101,15 @@ export const validateResidentProfile = (profile, { requireCore = false } = {}) =
 
   if (profile.firstName !== undefined && !profile.firstName) return 'First name cannot be empty.';
   if (profile.lastName !== undefined && !profile.lastName) return 'Last name cannot be empty.';
+  if (profile.firstName !== undefined && !PERSON_NAME_PATTERN.test(profile.firstName)) {
+    return 'First name may contain letters, spaces, hyphens, apostrophes, and periods only.';
+  }
+  if (profile.middleName !== undefined && profile.middleName && !PERSON_NAME_PATTERN.test(profile.middleName)) {
+    return 'Middle name may contain letters, spaces, hyphens, apostrophes, and periods only.';
+  }
+  if (profile.lastName !== undefined && !PERSON_NAME_PATTERN.test(profile.lastName)) {
+    return 'Last name may contain letters, spaces, hyphens, apostrophes, and periods only.';
+  }
   if (profile.mobileNumber !== undefined && !/^09\d{9}$/.test(profile.mobileNumber)) {
     return 'Mobile number must be an 11-digit Philippine number beginning with 09.';
   }
@@ -107,6 +117,7 @@ export const validateResidentProfile = (profile, { requireCore = false } = {}) =
     if (!profile.birthDate) return 'Birthdate cannot be empty.';
     const age = calculateAge(profile.birthDate);
     if (age === null || age < 0 || age > 120) return 'Please provide a valid birthdate that is not in the future.';
+    if (minimumAge !== null && age < minimumAge) return `Residents must be at least ${minimumAge} years old to register.`;
   }
   if (profile.age !== undefined && (!/^\d{1,3}$/.test(profile.age) || Number(profile.age) > 120)) {
     return 'Age must be a whole number from 0 to 120.';

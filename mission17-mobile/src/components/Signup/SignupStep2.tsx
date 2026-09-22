@@ -4,6 +4,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import FormInput from '../FormInput';
 import CustomDropdown from '../CustomDropdown';
 import { FIXED_BARANGAY_ADDRESS, PUROK_OPTIONS } from '../../config/addressDirectory';
+import { getLatestEligibleBirthDate, MINIMUM_SIGNUP_AGE } from '../../utils/signupValidation';
 
 interface SignupStep2Props {
   formData: any;
@@ -28,16 +29,18 @@ const SignupStep2 = ({
   handleDateChange, 
   nextStep 
 }: SignupStep2Props) => {
+  const latestEligibleBirthDate = getLatestEligibleBirthDate();
+
   return (
     <View style={styles.form}>
       <Text style={styles.sectionTitle}>Basic Information</Text>
       
       {Platform.OS === 'web' ? (
         <FormInput
-          placeholder="Birthdate (MM/DD/YYYY)"
+          placeholder={`Birthdate (MM/DD/YYYY, age ${MINIMUM_SIGNUP_AGE}+)`}
           value={formData.birthDate}
           onChangeText={(val) => handleInputChange("birthDate", val)}
-          maxLength={40}
+          maxLength={10}
           required
         />
       ) : (
@@ -57,7 +60,7 @@ const SignupStep2 = ({
               value={dateObj}
               mode="date"
               display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              maximumDate={new Date()}
+              maximumDate={latestEligibleBirthDate}
               onChange={handleDateChange}
             />
           )}
@@ -74,12 +77,14 @@ const SignupStep2 = ({
       )}
       
       <FormInput
-        placeholder="Age"
+        placeholder="Age (calculated automatically)"
         value={formData.age}
-        onChangeText={(val) => handleInputChange("age", val.replace(/\D/g, '').slice(0, 3))}
+        onChangeText={() => undefined}
         keyboardType="numeric"
         maxLength={3}
+        editable={false}
       />
+      <Text style={styles.ageHint}>You must be at least {MINIMUM_SIGNUP_AGE} years old to register.</Text>
       
       <CustomDropdown 
         label="Gender" 
@@ -185,6 +190,7 @@ const styles = StyleSheet.create({
   addressLabel: { color: '#1e3a8a', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   fixedAddress: { color: '#0f172a', fontSize: 15, fontWeight: '700' },
   addressHint: { color: '#475569', fontSize: 12, lineHeight: 17 },
+  ageHint: { color: '#64748b', fontSize: 12, lineHeight: 17, marginTop: -8 },
   primaryButtonBlue: { backgroundColor: '#0038A8', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   primaryButtonTextBlue: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   navButtonsContainer: { marginTop: 16 },

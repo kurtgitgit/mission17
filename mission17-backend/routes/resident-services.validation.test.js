@@ -74,6 +74,27 @@ describe('resident service validation and duplicate protection', () => {
     expect((await request(app).post('/api/suggestions').send(payload)).status).toBe(409);
   });
 
+  it('allows feedback to move between terminal and active statuses', async () => {
+    const created = await request(app).post('/api/suggestions').send({
+      title: 'Damaged drainage cover',
+      description: 'The drainage cover beside the covered court needs inspection.',
+      category: 'Infrastructure'
+    });
+
+    const dismissed = await request(app)
+      .patch(`/api/suggestions/${created.body.suggestion._id}/status`)
+      .send({ status: 'Dismissed', adminReply: 'Reviewed and recorded.' });
+    expect(dismissed.status).toBe(200);
+    expect(dismissed.body.suggestion.status).toBe('Dismissed');
+    expect((await Notification.findOne({ userId: residentId }).sort({ createdAt: -1 })).type).toBe('alert');
+
+    const reopened = await request(app)
+      .patch(`/api/suggestions/${created.body.suggestion._id}/status`)
+      .send({ status: 'Under Review', adminReply: 'Reopened for another inspection.' });
+    expect(reopened.status).toBe(200);
+    expect(reopened.body.suggestion.status).toBe('Under Review');
+  });
+
   it('validates document requests and rejects a rapid duplicate', async () => {
     const payload = {
       fullName: 'Juan Dela Cruz', address: 'Purok 2, Bagong Pag-asa', contactNumber: '09171234567',

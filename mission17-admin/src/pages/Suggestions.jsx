@@ -72,8 +72,8 @@ const Suggestions = () => {
       // Refresh stats
       const s = await suggestionsApi.getStats().catch(() => null);
       if (s?.data) setStats(s.data);
-    } catch {
-      showNotification('Failed to update feedback.', 'error');
+    } catch (error) {
+      showNotification(error.response?.data?.message || 'Failed to update feedback.', 'error');
     } finally {
       updatingRef.current = false;
       setUpdating(false);

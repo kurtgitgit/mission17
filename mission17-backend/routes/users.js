@@ -354,7 +354,7 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
     }
 
     const updateData = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(updateData);
+    const profileValidationError = validateResidentProfile(updateData, { minimumAge: 18 });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
     if (req.body.username !== undefined) {
@@ -389,7 +389,7 @@ router.put('/resubmit-registration', verifyRegistrationReviewUser, async (req, r
     }
 
     const updateData = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(updateData, { requireCore: true });
+    const profileValidationError = validateResidentProfile(updateData, { requireCore: true, minimumAge: 18 });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
     const updatedUser = await User.findByIdAndUpdate(
