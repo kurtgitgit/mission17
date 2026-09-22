@@ -13,6 +13,7 @@ import SignupScreen      from './src/screens/SignupScreen';
 import VerifySignup      from './src/screens/VerifySignup';
 import SignupSuccessScreen from './src/screens/SignupSuccessScreen';
 import PendingApprovalScreen from './src/screens/PendingApprovalScreen';
+import RegistrationReviewScreen from './src/screens/RegistrationReviewScreen';
 import HomeScreen        from './src/screens/HomeScreen';
 import MissionsScreen    from './src/screens/MissionsScreen';
 import MissionDetailScreen from './src/screens/MissionDetailScreen';
@@ -255,6 +256,7 @@ export default function App() {
               <Stack.Screen name="VerifySignup"  component={VerifySignup} />
               <Stack.Screen name="SignupSuccess" component={SignupSuccessScreen} />
               <Stack.Screen name="PendingApproval" component={PendingApprovalScreen} />
+              <Stack.Screen name="RegistrationReview" component={RegistrationReviewScreen} />
               <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
               <Stack.Screen name="LegalInformation" component={LegalInformationScreen} />
 

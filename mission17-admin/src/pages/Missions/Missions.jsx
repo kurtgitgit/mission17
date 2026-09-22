@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
-import { Plus, Trash2, Edit, Search, X, Image as ImageIcon, Sparkles } from 'lucide-react';
+import { Plus, Archive, RotateCcw, Edit, Search, X, Image as ImageIcon, Sparkles } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNotification } from '../../context/NotificationContext';
 import '../../styles/Missions.css'; 
@@ -12,6 +12,7 @@ const Missions = () => {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('active');
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,7 +42,8 @@ const Missions = () => {
     title: '',
     message: '',
     type: 'info',
-    onConfirm: () => {}
+    onConfirm: () => {},
+    confirmText: 'Confirm'
   });
 
   // 🧠 AI DATA: Keywords for detection
@@ -89,15 +91,16 @@ const Missions = () => {
   // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, statusFilter]);
 
   const fetchMissions = useCallback(async () => {
     setLoading(true);
     try {
-      let url = `${endpoints.missions.getAll}?page=${currentPage}&limit=${limit}`;
+      let url = `${endpoints.missions.adminList}?page=${currentPage}&limit=${limit}&status=${statusFilter}`;
       if (searchTerm) url += `&search=${encodeURIComponent(searchTerm)}`;
 
-      const response = await fetch(url);
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, { headers: { 'auth-token': token } });
       const data = await response.json();
       if (response.ok) {
         setMissions(data.data || []);
@@ -112,7 +115,7 @@ const Missions = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, limit, searchTerm, showNotification]);
+  }, [currentPage, limit, searchTerm, showNotification, statusFilter]);
 
   // Debounce search
   useEffect(() => {
@@ -269,33 +272,61 @@ const Missions = () => {
   };
 
   // 🛠️ FIX APPLIED HERE: Added Headers with Auth Token
-  const handleDelete = (id) => {
+  const handleArchive = (id) => {
     setModalConfig({
       isOpen: true,
-      title: 'Delete Mission',
-      message: 'Are you sure you want to delete this mission? This action cannot be undone.',
-      type: 'danger',
-      onConfirm: () => executeDelete(id)
+      title: 'Archive Mission',
+      message: 'Archive this mission? Residents will no longer see it, but participation history will be preserved.',
+      type: 'info',
+      onConfirm: () => executeArchive(id),
+      confirmText: 'Archive'
     });
   };
 
-  const executeDelete = async (id) => {
+  const executeArchive = async (id) => {
     const token = localStorage.getItem('token'); 
     try {
-      const res = await fetch(endpoints.missions.delete(id), { 
-          method: 'DELETE',
+      const res = await fetch(endpoints.missions.archive(id), {
+          method: 'PATCH',
           headers: { 'auth-token': token }
       });
 
       if (res.ok) {
           setMissions(missions.filter(m => m._id !== id));
-          showNotification("Mission deleted successfully", "success");
+          showNotification("Mission archived. Participation history is preserved.", "success");
       } else {
-          showNotification("Failed to delete mission", "error");
+          const data = await res.json().catch(() => ({}));
+          showNotification(data.message || "Failed to archive mission", "error");
       }
     } catch (error) {
-      console.error("Delete error:", error);
-      showNotification("Error deleting mission.", "error");
+      console.error("Archive error:", error);
+      showNotification("Error archiving mission.", "error");
+    } finally {
+      closeModal();
+    }
+  };
+
+  const handleRestore = (id) => {
+    setModalConfig({
+      isOpen: true,
+      title: 'Restore Mission',
+      message: 'Restore this mission so it becomes visible to residents again?',
+      type: 'success',
+      onConfirm: () => executeRestore(id),
+      confirmText: 'Restore'
+    });
+  };
+
+  const executeRestore = async (id) => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch(endpoints.missions.restore(id), { method: 'PATCH', headers: { 'auth-token': token } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || 'Failed to restore mission.');
+      setMissions(missions.filter(m => m._id !== id));
+      showNotification('Mission restored and visible to residents.', 'success');
+    } catch (error) {
+      showNotification(error.message || 'Error restoring mission.', 'error');
     } finally {
       closeModal();
     }
@@ -313,7 +344,11 @@ const Missions = () => {
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px'}}>
           <div>
             <h1 style={{fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0}}>Manage Missions</h1>
-            <p style={{color: '#64748b', margin: '4px 0 0 0'}}>Create and track SDG activities.</p>
+            <p style={{color: '#64748b', margin: '4px 0 0 0'}}>Create, archive, and restore SDG activities.</p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+            {['active', 'archived'].map(status => <button key={status} onClick={() => setStatusFilter(status)} style={{ padding: '8px 13px', borderRadius: 8, border: '1px solid #cbd5e1', cursor: 'pointer', fontWeight: 700, background: statusFilter === status ? '#0038A8' : '#fff', color: statusFilter === status ? '#fff' : '#475569' }}>{status === 'active' ? 'Active Missions' : 'Archived Missions'}</button>)}
           </div>
 
           <div style={{display: 'flex', gap: '15px', alignItems: 'center'}}>
@@ -477,7 +512,9 @@ const Missions = () => {
                     <td style={styles.td}>
                       <div style={{display: 'flex', gap: '8px'}}>
                         <button onClick={() => openEditForm(mission)} style={styles.actionBtn('#3b82f6')} title="Edit"><Edit size={18} /></button>
-                        <button onClick={() => handleDelete(mission._id)} style={styles.actionBtn('#ef4444')} title="Delete"><Trash2 size={18} /></button>
+                        {statusFilter === 'active'
+                          ? <button onClick={() => handleArchive(mission._id)} style={styles.actionBtn('#b45309')} title="Archive"><Archive size={18} /></button>
+                          : <button onClick={() => handleRestore(mission._id)} style={styles.actionBtn('#15803d')} title="Restore"><RotateCcw size={18} /></button>}
                       </div>
                     </td>
                   </tr>
@@ -518,7 +555,7 @@ const Missions = () => {
           title={modalConfig.title}
           message={modalConfig.message}
           type={modalConfig.type}
-          confirmText="Delete"
+          confirmText={modalConfig.confirmText}
         />
       </div>
     </Layout>

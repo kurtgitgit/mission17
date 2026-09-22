@@ -20,7 +20,7 @@ const Suggestions = () => {
   const [loading, setLoading]         = useState(true);
   const [searchTerm, setSearchTerm]   = useState('');
   const [sentimentFilter, setSentimentFilter] = useState('All'); // 'All' | 'Positive' | 'Neutral' | 'Negative'
-  const statusFilter = 'All';
+  const [statusFilter, setStatusFilter] = useState('Open');
   
   const [selectedItem, setSelectedItem] = useState(null);
   const [newStatus, setNewStatus]       = useState('');
@@ -100,7 +100,9 @@ const Suggestions = () => {
                           s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (s.category && s.category.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSentiment = sentimentFilter === 'All' || s.sentiment === sentimentFilter;
-    const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
+    const matchesStatus = statusFilter === 'All'
+      || (statusFilter === 'Open' && !['Resolved', 'Dismissed'].includes(s.status || 'New'))
+      || s.status === statusFilter;
     return matchesSearch && matchesSentiment && matchesStatus;
   });
 
@@ -303,6 +305,23 @@ const Suggestions = () => {
                     }}
                   >
                     {s === 'All' ? 'All Sentiments' : s}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                {['Open', 'Resolved', 'Dismissed', 'All'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setStatusFilter(status)}
+                    style={{
+                      padding: '4px 10px', borderRadius: 14, border: '1px solid', fontSize: 11.5,
+                      fontWeight: 700, cursor: 'pointer',
+                      borderColor: statusFilter === status ? '#0038A8' : '#e2e8f0',
+                      backgroundColor: statusFilter === status ? '#0038A8' : '#ffffff',
+                      color: statusFilter === status ? '#ffffff' : '#475569'
+                    }}
+                  >
+                    {status === 'Open' ? 'Open Feedback' : status}
                   </button>
                 ))}
               </div>

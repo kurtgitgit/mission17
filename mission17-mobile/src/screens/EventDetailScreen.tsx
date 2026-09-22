@@ -160,7 +160,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
           </View>
 
           <View style={styles.infoRow}><Calendar size={18} color="#64748b" /><Text style={styles.infoText}>{prettyDate}</Text></View>
-          <View style={styles.infoRow}><Clock size={18} color="#64748b" /><Text style={styles.infoText}>{event.time}</Text></View>
+          <View style={styles.infoRow}><Clock size={18} color="#64748b" /><Text style={styles.infoText}>{event.time}{event.endTime ? ` – ${event.endTime}` : ''}</Text></View>
           <View style={styles.infoRow}><MapPin size={18} color="#64748b" /><Text style={styles.infoText}>{event.location}</Text></View>
 
           <Text style={styles.description}>

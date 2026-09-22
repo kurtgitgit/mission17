@@ -150,6 +150,12 @@ describe('E2E Staging Verification - Resident and Admin Flows', () => {
   it('Mission creation ignores legacy points input and does not expose rewards', async () => {
     mockVerifyIdToken.mockResolvedValue({ uid: 'adminUid', email: 'admin@mission17.com' });
 
+    const meaninglessMission = await request(app)
+      .post('/api/auth/add-mission')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ title: '111', sdgNumber: 11 });
+    expect(meaninglessMission.status).toBe(400);
+
     const createRes = await request(app)
       .post('/api/auth/add-mission')
       .set('Authorization', `Bearer ${adminToken}`)
@@ -205,5 +211,31 @@ describe('E2E Staging Verification - Resident and Admin Flows', () => {
 
     const updatedSub = await Submission.findById(submissionId);
     expect(updatedSub.status).toBe('Approved');
+  });
+
+  it('Admin can archive and restore a mission without exposing archived work to residents', async () => {
+    mockVerifyIdToken.mockResolvedValue({ uid: 'adminUid', email: 'admin@mission17.com' });
+
+    const archiveRes = await request(app)
+      .patch(`/api/auth/archive-mission/${missionId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(archiveRes.status).toBe(200);
+    expect(archiveRes.body.mission.isActive).toBe(false);
+
+    const publicRes = await request(app).get('/api/auth/all-missions');
+    expect(publicRes.status).toBe(200);
+    expect(publicRes.body.data.some((mission) => mission._id === missionId.toString())).toBe(false);
+
+    const archivedRes = await request(app)
+      .get('/api/auth/admin-missions?status=archived')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(archivedRes.status).toBe(200);
+    expect(archivedRes.body.data.some((mission) => mission._id === missionId.toString())).toBe(true);
+
+    const restoreRes = await request(app)
+      .patch(`/api/auth/restore-mission/${missionId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(restoreRes.status).toBe(200);
+    expect(restoreRes.body.mission.isActive).toBe(true);
   });
 });

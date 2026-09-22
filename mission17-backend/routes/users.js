@@ -16,12 +16,19 @@
 import express from 'express';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { verifyAdmin, verifySuperAdmin, verifyAuthenticatedUser, logAudit } from '../utils/authMiddleware.js';
+import { verifyAdmin, verifySuperAdmin, verifyAuthenticatedUser, verifyRegistrationReviewUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import { normalizeResidentProfile, validateResidentProfile } from '../utils/residentProfileValidation.js';
 
 const router = express.Router();
+
+const isStrongPassword = (password) => typeof password === 'string'
+  && password.length >= 8
+  && /[A-Z]/.test(password)
+  && /[a-z]/.test(password)
+  && /\d/.test(password)
+  && /[^A-Za-z0-9]/.test(password);
 
 // 1. GET ALL USERS (Admin) - With Pagination & Search
 router.get('/users', verifyAdmin, async (req, res) => {
@@ -76,9 +83,9 @@ router.post('/add-user', verifySuperAdmin, async (req, res) => {
     if (!['resident', 'lgu', 'admin'].includes(normalizedRole)) {
       return res.status(400).json({ message: 'Invalid role.' });
     }
-    const minimumPasswordLength = normalizedRole === 'admin' ? 12 : 6;
-    if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < minimumPasswordLength) {
-      return res.status(400).json({ message: `Username, email, and a password of at least ${minimumPasswordLength} characters are required.` });
+    const minimumPasswordLength = normalizedRole === 'admin' ? 12 : 8;
+    if (!normalizedUsername || !normalizedEmail || typeof password !== 'string' || password.length < minimumPasswordLength || !isStrongPassword(password)) {
+      return res.status(400).json({ message: `Username, email, and a strong password of at least ${minimumPasswordLength} characters are required.` });
     }
     if (await User.exists({ $or: [{ username: normalizedUsername }, { email: normalizedEmail }] })) {
       return res.status(409).json({ message: 'A user with that username or email already exists.' });
@@ -205,6 +212,7 @@ router.put('/admin-update-user/:id', verifySuperAdmin, async (req, res) => {
 router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => {
   try {
     const { accountStatus } = req.body;
+    const rejectionReason = typeof req.body.rejectionReason === 'string' ? req.body.rejectionReason.trim() : '';
     if (!['approved', 'rejected'].includes(accountStatus)) {
       return res.status(400).json({ message: 'Account status must be approved or rejected.' });
     }
@@ -221,8 +229,12 @@ router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => 
     if (!userToReview.isVerified) {
       return res.status(409).json({ message: 'Verify the resident email before approving this account.' });
     }
+    if (accountStatus === 'rejected' && (rejectionReason.length < 5 || rejectionReason.length > 500)) {
+      return res.status(400).json({ message: 'A clear rejection reason between 5 and 500 characters is required.' });
+    }
 
     userToReview.accountStatus = accountStatus;
+    userToReview.rejectionReason = accountStatus === 'rejected' ? rejectionReason : undefined;
     await userToReview.save();
 
     const action = accountStatus === 'approved' ? 'USER_ACCOUNT_APPROVED' : 'USER_ACCOUNT_REJECTED';
@@ -234,7 +246,7 @@ router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => 
         }
       : {
           title: 'Account Registration Update',
-          message: 'Your BrgyLink account registration was not approved. Please contact your barangay office for assistance.',
+          message: `Your BrgyLink account needs correction before approval. Reason: ${rejectionReason}`,
           type: 'error',
         };
 
@@ -254,7 +266,7 @@ router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => 
       });
     }
 
-    await logAudit(req.user._id, req.user.username, action, `Admin ${accountStatus} user ID: ${userToReview._id}`, req);
+    await logAudit(req.user._id, req.user.username, action, `Admin ${accountStatus} user ID: ${userToReview._id}${accountStatus === 'rejected' ? `. Reason: ${rejectionReason}` : ''}`, req);
     res.json({ message: `Account ${accountStatus}.`, user: userToReview });
   } catch (error) {
     console.error('Account-status update failed:', error);
@@ -360,6 +372,36 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
     if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
     if (error?.code === 11000) return res.status(409).json({ message: 'That username is already in use.' });
     res.status(500).json({ message: 'Update failed' });
+  }
+});
+
+// Rejected residents can retrieve and correct their own registration without
+// receiving access to ordinary resident routes. A successful submission moves
+// the account back to the same pending-review queue.
+router.get('/registration-review', verifyRegistrationReviewUser, async (req, res) => {
+  return res.json(req.user.toObject({ versionKey: false }));
+});
+
+router.put('/resubmit-registration', verifyRegistrationReviewUser, async (req, res) => {
+  try {
+    if (req.user.accountStatus !== 'rejected') {
+      return res.status(409).json({ message: 'Only rejected registrations can be resubmitted.' });
+    }
+
+    const updateData = normalizeResidentProfile(req.body);
+    const profileValidationError = validateResidentProfile(updateData, { requireCore: true });
+    if (profileValidationError) return res.status(400).json({ message: profileValidationError });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { ...updateData, accountStatus: 'pending', rejectionReason: undefined, lastResubmittedAt: new Date() } },
+      { new: true, runValidators: true }
+    ).select('-points');
+    await logAudit(req.user._id, updatedUser.username, 'USER_REGISTRATION_RESUBMITTED', 'Resident corrected and resubmitted registration for review.', req);
+    return res.json({ message: 'Your corrected registration was sent for review.', user: updatedUser });
+  } catch (error) {
+    if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
+    return res.status(500).json({ message: 'Could not resubmit your registration.' });
   }
 });
 

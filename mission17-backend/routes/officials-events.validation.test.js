@@ -53,14 +53,18 @@ describe('official and event validation', () => {
     expect((await request(app).post('/api/officials').send(payload)).status).toBe(201);
     expect((await request(app).post('/api/officials').send(payload)).status).toBe(409);
     expect((await request(app).post('/api/officials').send({ name: 123, position: 'Kagawad' })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, term: '2026 - 2026' })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, name: '111' })).status).toBe(400);
   });
 
   it('rejects invalid and duplicate event submissions', async () => {
-    const payload = { title: 'Clean-up Drive', date: tomorrow, time: '09:00', location: 'Barangay Hall' };
+    const payload = { title: 'Clean-up Drive', date: tomorrow, time: '09:00', endTime: '11:00', location: 'Barangay Hall' };
     expect((await request(app).post('/api/auth/events').send({ ...payload, date: 'not-a-date' })).status).toBe(400);
+    expect((await request(app).post('/api/auth/events').send({ ...payload, endTime: '08:59' })).status).toBe(400);
     expect((await request(app).post('/api/auth/events').send(payload)).status).toBe(201);
     expect((await request(app).post('/api/auth/events').send(payload)).status).toBe(409);
     expect((await request(app).post('/api/auth/events').send({ ...payload, title: 123 })).status).toBe(400);
+    expect((await request(app).post('/api/auth/events').send({ ...payload, title: '111' })).status).toBe(400);
   });
 
   it('validates announcements and blocks rapid duplicate broadcasts', async () => {

@@ -7,7 +7,7 @@ import '../styles/Print.css';
 import { endpoints } from '../config/api';
 
 const ReportGeneration = () => {
-  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, analytics
+  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, missions, analytics
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -67,7 +67,7 @@ const ReportGeneration = () => {
         if (reportType === 'blotter') url = `${endpoints.auth.backendBaseUrl}/api/blotter-reports`;
         else if (reportType === 'documents') url = `${endpoints.auth.backendBaseUrl}/api/document-requests`;
         else if (reportType === 'users') url = endpoints.users.getAll;
-        else if (reportType === 'missions') url = endpoints.missions.getAll;
+        else if (reportType === 'missions') url = `${endpoints.missions.adminList}?status=active&limit=100`;
 
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}`, 'auth-token': token }
@@ -185,7 +185,7 @@ const ReportGeneration = () => {
         case 'missions': return (
           <tr key={index}>
             <td>{item.title}</td>
-            <td>{item.sdgCategory}</td>
+            <td>SDG {item.sdgNumber}</td>
             <td>{item.status || 'Active'}</td>
           </tr>
         );
@@ -210,7 +210,7 @@ const ReportGeneration = () => {
         <tr>
           <td style={{ fontWeight: 'bold' }}>Approved Civic Tasks</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold', color: '#16a34a' }}>{data.approvedSubmissions}</td>
-          <td>Verified and recorded on blockchain</td>
+          <td>Approved after authorized review</td>
         </tr>
         <tr>
           <td style={{ fontWeight: 'bold' }}>Document Requests</td>
@@ -261,6 +261,9 @@ const ReportGeneration = () => {
                 </button>
                 <button className={`report-type-btn ${reportType === 'users' ? 'active' : ''}`} onClick={() => setReportType('users')}>
                   <Users size={16} /> Registered Residents
+                </button>
+                <button className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
+                  <Target size={16} /> Civic Tasks / SDGs
                 </button>
                 <button className={`report-type-btn ${reportType === 'analytics' ? 'active' : ''}`} onClick={() => setReportType('analytics')}>
                   <TrendingUp size={16} /> Analytics Summary

@@ -35,6 +35,7 @@ const Announcements = () => {
   const [form, setForm] = useState({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, image: '' });
   const [imageMode, setImageMode] = useState('url'); // 'url' | 'upload'
   const [uploading, setUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const fileInputRef = useRef(null);
   const submittingRef = useRef(false);
 
@@ -153,8 +154,9 @@ const Announcements = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this announcement?')) return;
+  const handleDelete = async () => {
+    const id = deleteTarget?._id;
+    if (!id) return;
     try {
       const res = await fetch(`${baseUrl}/api/announcements/${id}`, { method: 'DELETE', headers: { 'auth-token': token } });
       const data = await res.json().catch(() => ({}));
@@ -163,6 +165,8 @@ const Announcements = () => {
       fetchData();
     } catch (error) {
       showNotification(error.message || 'Network error while deleting the announcement.', 'error');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -195,6 +199,23 @@ const Announcements = () => {
 
   return (
     <Layout title="Announcements">
+      {deleteTarget && (
+        <div role="presentation" onMouseDown={() => setDeleteTarget(null)} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'grid', placeItems: 'center', padding: 20, background: 'rgba(15, 23, 42, 0.45)', backdropFilter: 'blur(3px)' }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="delete-announcement-title" onMouseDown={(event) => event.stopPropagation()} style={{ width: 'min(100%, 440px)', borderRadius: 16, background: '#fff', boxShadow: '0 24px 64px rgba(15, 23, 42, 0.25)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '20px 22px', borderBottom: '1px solid #e2e8f0' }}>
+              <div>
+                <h2 id="delete-announcement-title" style={{ margin: 0, color: '#0f172a', fontSize: 18 }}>Delete announcement?</h2>
+                <p style={{ margin: '7px 0 0', color: '#64748b', fontSize: 14, lineHeight: 20 }}>This permanently removes &ldquo;{deleteTarget.title}&rdquo; from resident feeds.</p>
+              </div>
+              <button type="button" onClick={() => setDeleteTarget(null)} aria-label="Close delete confirmation" style={{ border: 0, background: 'transparent', color: '#64748b', cursor: 'pointer', padding: 3 }}><X size={20} /></button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 22px', background: '#f8fafc' }}>
+              <button type="button" onClick={() => setDeleteTarget(null)} style={{ border: '1px solid #cbd5e1', borderRadius: 9, background: '#fff', color: '#334155', cursor: 'pointer', fontWeight: 700, padding: '9px 16px' }}>Cancel</button>
+              <button type="button" onClick={handleDelete} style={{ border: 0, borderRadius: 9, background: '#dc2626', color: '#fff', cursor: 'pointer', fontWeight: 700, padding: '9px 16px' }}>Delete</button>
+            </div>
+          </section>
+        </div>
+      )}
       <div className="pa-page">
 
         {/* ── HEADER ── */}
@@ -525,7 +546,7 @@ const Announcements = () => {
                         <Pin size={16} />
                       </button>
                       <button className="pa-btn-icon blue" onClick={() => startEdit(ann)}><Edit3 size={16} /></button>
-                      <button className="pa-btn-icon red" onClick={() => handleDelete(ann._id)}><Trash2 size={16} /></button>
+                      <button className="pa-btn-icon red" onClick={() => setDeleteTarget(ann)} aria-label={`Delete ${ann.title}`}><Trash2 size={16} /></button>
                     </div>
                   </div>
                 </div>

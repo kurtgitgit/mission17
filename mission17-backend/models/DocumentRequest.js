@@ -14,10 +14,12 @@ const DocumentRequestSchema = new mongoose.Schema({
       'Certificate of Residency',
       'Business Clearance',
       'Certificate of Good Moral Character',
-      'Barangay ID'
+      'Barangay ID',
+      'Other'
     ],
     required: true
   },
+  customDocumentType: { type: String, trim: true, maxlength: 80 },
   purpose: { type: String, required: true, trim: true, minlength: 5, maxlength: 500 },
   status: {
     type: String,

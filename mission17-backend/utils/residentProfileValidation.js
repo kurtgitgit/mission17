@@ -2,6 +2,7 @@ const GENDERS = new Set(['Male', 'Female', 'Other', 'Prefer not to say']);
 const CIVIL_STATUSES = new Set(['Single', 'Married', 'Widowed', 'Separated']);
 const VOTER_STATUSES = new Set(['Registered', 'Not Registered']);
 const EMPLOYMENT_STATUSES = new Set(['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Retired']);
+const PROVISIONAL_PUROKS = new Set(['Purok 7', 'Other / Not listed']);
 
 const PROFILE_TEXT_LIMITS = {
   firstName: 80,
@@ -77,6 +78,7 @@ export const validateResidentProfile = (profile, { requireCore = false } = {}) =
     ['gender', 'Gender'],
     ['civilStatus', 'Civil status'],
     ['nationality', 'Nationality'],
+    ['purok', 'Purok / Sitio'],
     ['completeAddress', 'Complete address'],
     ['mobileNumber', 'Mobile number'],
     ['voterStatus', 'Voter status']
@@ -116,6 +118,9 @@ export const validateResidentProfile = (profile, { requireCore = false } = {}) =
   }
   if (profile.completeAddress !== undefined && profile.completeAddress.length < 5) {
     return 'Complete address must contain at least 5 characters.';
+  }
+  if (requireCore && !PROVISIONAL_PUROKS.has(profile.purok)) {
+    return 'Please select a valid Purok / Sitio.';
   }
   if (profile.voterStatus !== undefined && !VOTER_STATUSES.has(profile.voterStatus)) return 'Please select a valid voter status.';
   if (profile.employmentStatus !== undefined && profile.employmentStatus && !EMPLOYMENT_STATUSES.has(profile.employmentStatus)) {

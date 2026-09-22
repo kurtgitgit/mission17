@@ -26,9 +26,12 @@ export const endpoints = {
   },
   missions: {
     getAll:  `${API_URL}/auth/all-missions`,
+    adminList: `${API_URL}/auth/admin-missions`,
     add:     `${API_URL}/auth/add-mission`,
     update:  (id) => `${API_URL}/auth/update-mission/${id}`,
     delete:  (id) => `${API_URL}/auth/delete-mission/${id}`,
+    archive: (id) => `${API_URL}/auth/archive-mission/${id}`,
+    restore: (id) => `${API_URL}/auth/restore-mission/${id}`,
   },
   users: {
     getAll:  `${API_URL}/auth/users`,

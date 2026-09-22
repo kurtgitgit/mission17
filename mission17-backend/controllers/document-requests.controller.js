@@ -11,7 +11,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 const ALLOWED_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
 const ALLOWED_DOCUMENT_TYPES = [
   'Barangay Clearance', 'Certificate of Indigency', 'Certificate of Residency',
-  'Business Clearance', 'Certificate of Good Moral Character', 'Barangay ID'
+  'Business Clearance', 'Certificate of Good Moral Character', 'Barangay ID', 'Other'
 ];
 
 // Builds the resident notification for each status transition
@@ -48,7 +48,7 @@ const buildNotification = (docRequest, status, rejectionReason, pickupDate) => {
 
 // POST / — Resident: Submit a document request
 export const submitRequest = asyncHandler(async (req, res) => {
-  const { fullName, address, contactNumber, documentType, purpose } = req.body;
+  const { fullName, address, contactNumber, documentType, customDocumentType, purpose } = req.body;
   const userId = req.user._id;
   const username = req.user.username;
 
@@ -56,21 +56,23 @@ export const submitRequest = asyncHandler(async (req, res) => {
   const cleanAddress = typeof address === 'string' ? address.trim() : '';
   const cleanContact = typeof contactNumber === 'string' ? contactNumber.replace(/\s/g, '') : '';
   const cleanPurpose = typeof purpose === 'string' ? purpose.trim() : '';
-  if (cleanFullName.length < 3 || cleanFullName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
-  if (cleanAddress.length < 5 || cleanAddress.length > 250) return res.status(400).json({ message: 'Please enter a valid barangay address.' });
+  const cleanCustomDocumentType = typeof customDocumentType === 'string' ? customDocumentType.trim().replace(/\s+/g, ' ') : '';
+  if (cleanFullName.length < 3 || cleanFullName.length > 120 || !/[A-Za-z]/.test(cleanFullName) || /^(.)\1+$/.test(cleanFullName.replace(/\s/g, ''))) return res.status(400).json({ message: 'Please enter a valid complete name.' });
+  if (cleanAddress.length < 5 || cleanAddress.length > 250 || !/[A-Za-z]/.test(cleanAddress) || /^(.)\1+$/.test(cleanAddress.replace(/\s/g, ''))) return res.status(400).json({ message: 'Please enter a valid barangay address.' });
   if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
   if (!ALLOWED_DOCUMENT_TYPES.includes(documentType)) return res.status(400).json({ message: 'Please select a valid document type.' });
-  if (cleanPurpose.length < 5 || cleanPurpose.length > 500) return res.status(400).json({ message: 'Purpose must be between 5 and 500 characters.' });
+  if (documentType === 'Other' && (cleanCustomDocumentType.length < 3 || cleanCustomDocumentType.length > 80 || !/[A-Za-z]/.test(cleanCustomDocumentType))) return res.status(400).json({ message: 'Please specify the document type you need.' });
+  if (cleanPurpose.length < 5 || cleanPurpose.length > 500 || !/[A-Za-z]/.test(cleanPurpose) || /^(.)\1+$/.test(cleanPurpose.replace(/\s/g, ''))) return res.status(400).json({ message: 'Purpose must be between 5 and 500 meaningful characters.' });
 
   const recentDuplicate = await DocumentRequest.findOne({
-    userId, documentType, purpose: cleanPurpose,
+    userId, documentType, customDocumentType: cleanCustomDocumentType || undefined, purpose: cleanPurpose,
     status: { $in: ['Pending', 'Processing'] },
     createdAt: { $gte: new Date(Date.now() - 60_000) }
   });
   if (recentDuplicate) return res.status(409).json({ message: 'This request was already submitted. Check your request status.' });
 
   const docRequest = await DocumentRequest.create({
-    userId, username, fullName: cleanFullName, address: cleanAddress, contactNumber: cleanContact, documentType, purpose: cleanPurpose,
+    userId, username, fullName: cleanFullName, address: cleanAddress, contactNumber: cleanContact, documentType, customDocumentType: cleanCustomDocumentType || undefined, purpose: cleanPurpose,
   });
 
   const notifTitle = 'Document Request Submitted';

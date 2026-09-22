@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { onIdTokenChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import Login from './pages/Login';
-import Signup from './pages/Signup';
 import PublicVerify from './pages/PublicVerify';
 import DashboardHome from './pages/Dashboard/DashboardHome';
 import Missions from './pages/Missions/Missions';
@@ -97,7 +96,8 @@ function App() {
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          {/* Admin accounts are provisioned only by an authorized Super Admin. */}
+          <Route path="/signup" element={<Navigate to="/" replace />} />
           <Route path="/public-verify" element={<PublicVerify />} />
           <Route path="/privacy" element={<LegalPage type="privacy" />} />
           <Route path="/terms" element={<LegalPage type="terms" />} />

@@ -15,6 +15,12 @@ const LUPON_STAGES = [
   'Issued Certificate to File Action (CFA)'
 ];
 
+const formatIncidentDateTime = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
 // ─── OFFICIAL KP FORM NO. 9 PRINTABLE SUMMONS (PATAWAG) MODAL ───────────────
 const KPForm9Modal = ({ report, complainantName, onClose }) => {
   if (!report) return null;
@@ -42,14 +48,14 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
         <div className="no-print" style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Scale size={20} color="#0038A8" />
-            <strong style={{ fontSize: 16, color: '#0f172a' }}>Katarungang Pambarangay — KP Form No. 9 (Summons)</strong>
+            <strong style={{ fontSize: 16, color: '#0f172a' }}>Generic Lupon Summons Draft</strong>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
               onClick={handlePrint}
               style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0038A8', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
             >
-              <Printer size={15} /> Print Official KP Form 9
+              <Printer size={15} /> Print Generic Draft
             </button>
             <button
               onClick={onClose}
@@ -62,6 +68,9 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
 
         {/* PRINTABLE DOCUMENT CONTENT */}
         <div id="printable-kp-form" style={{ padding: '40px 50px', overflowY: 'auto', color: '#111827', fontFamily: 'Georgia, serif', lineHeight: 1.6, backgroundColor: 'white' }}>
+          <div style={{ marginBottom: '18px', padding: '11px 14px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: 1.45 }}>
+            Temporary generic template only. It is not an official prescribed KP Form No. 9 and must be replaced with the Barangay/Lupon-approved form before official issuance.
+          </div>
           
           {/* HEADER */}
           <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '16px', marginBottom: '24px' }}>
@@ -94,7 +103,7 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
 
           <div style={{ textAlign: 'center', margin: '24px 0' }}>
             <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textDecoration: 'underline', margin: 0 }}>
-              KP Form Blg. 9: PATAWAG (SUMMONS)
+              PATAWAG (GENERIC SUMMONS DRAFT)
             </h2>
           </div>
 
@@ -393,7 +402,7 @@ const BlotterManagement = () => {
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
-                        {new Date(report.dateOfIncident || report.createdAt).toLocaleDateString()}
+                        {formatIncidentDateTime(report.dateOfIncident || report.createdAt)}
                       </span>
                       <ChevronRight size={15} color={selectedReport?._id === report._id ? '#0038A8' : '#cbd5e1'} />
                     </div>
@@ -431,10 +440,10 @@ const BlotterManagement = () => {
                       className="no-print"
                       onClick={() => setShowKpModal(true)}
                       style={{ background: '#0038A8', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 'bold' }}
-                      title="Print Official Katarungang Pambarangay Summons"
+                      title="Print temporary generic Lupon summons draft"
                     >
                       <Scale size={14} />
-                      KP Form 9 (Summons)
+                      Generic Summons Draft
                     </button>
                     )}
 
@@ -506,9 +515,9 @@ const BlotterManagement = () => {
                         <Clock size={18} color="#0038A8" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Incident Date</div>
+                        <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>Incident date & time</div>
                         <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 'bold' }}>
-                          {new Date(selectedReport.dateOfIncident || selectedReport.createdAt).toLocaleDateString()}
+                          {formatIncidentDateTime(selectedReport.dateOfIncident || selectedReport.createdAt)}
                         </div>
                       </div>
                     </div>
@@ -666,7 +675,7 @@ const BlotterManagement = () => {
                         onClick={() => setShowKpModal(true)}
                         style={{ padding: '10px 18px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}
                       >
-                        <Scale size={15} color="#0038A8" /> Print KP Form 9 (Summons)
+                        <Scale size={15} color="#0038A8" /> Print Generic Summons Draft
                       </button>
                       )}
                     </div>

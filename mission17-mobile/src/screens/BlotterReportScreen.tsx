@@ -9,6 +9,7 @@ import {
   Copy, Bookmark, Info, AlertCircle, RefreshCw, X, MapPin, Phone, User, FileText, Home, History
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +18,7 @@ import { colors, spacing, radius, shadow, sharedStyles, typography } from '../co
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const INCIDENT_TYPES = ['Disturbance', 'Theft', 'Vandalism', 'Accident', 'Other'];
-const INCIDENT_LOCATIONS = ['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Barangay Hall', 'Covered Court', 'Other / specify'];
+const INCIDENT_LOCATIONS = ['Purok 7', 'Barangay Hall', 'Covered Court', 'Other / specify'];
 
 const DRAFT_STORAGE_KEY = 'brgy_blotter_draft_v1';
 
@@ -32,6 +33,11 @@ const BlotterReportScreen = () => {
   const [location, setLocation]           = useState('');
   const [customLocation, setCustomLocation] = useState('');
   const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [incidentDateTime, setIncidentDateTime] = useState(new Date());
+  const [incidentDateSelected, setIncidentDateSelected] = useState(false);
+  const [incidentTimeSelected, setIncidentTimeSelected] = useState(false);
+  const [incidentPickerMode, setIncidentPickerMode] = useState<'date' | 'time'>('date');
+  const [showIncidentPicker, setShowIncidentPicker] = useState(false);
   const [evidenceUri, setEvidenceUri]     = useState('');
   const [evidenceBase64, setEvidenceBase64] = useState('');
 
@@ -56,7 +62,7 @@ const BlotterReportScreen = () => {
       const saved = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.fullName || parsed.description || parsed.location || parsed.customIncidentType) {
+        if (parsed.fullName || parsed.description || parsed.location || parsed.customIncidentType || parsed.incidentDateSelected || parsed.incidentTimeSelected) {
           setHasDraft(true);
           setDraftSavedTime(parsed.savedAt ? new Date(parsed.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null);
         }
@@ -78,6 +84,9 @@ const BlotterReportScreen = () => {
         if (parsed.description) setDescription(parsed.description);
         if (parsed.location) setLocation(parsed.location);
         if (parsed.customLocation) setCustomLocation(parsed.customLocation);
+        if (parsed.incidentDateTime && !Number.isNaN(new Date(parsed.incidentDateTime).getTime())) setIncidentDateTime(new Date(parsed.incidentDateTime));
+        setIncidentDateSelected(Boolean(parsed.incidentDateSelected));
+        setIncidentTimeSelected(Boolean(parsed.incidentTimeSelected));
         setHasDraft(false);
       }
     } catch (e) {
@@ -95,6 +104,9 @@ const BlotterReportScreen = () => {
         description,
         location,
         customLocation,
+        incidentDateTime: incidentDateTime.toISOString(),
+        incidentDateSelected,
+        incidentTimeSelected,
         savedAt: new Date().toISOString(),
       };
       await AsyncStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
@@ -132,6 +144,28 @@ const BlotterReportScreen = () => {
     setEvidenceBase64('');
   };
 
+  const openIncidentPicker = (mode: 'date' | 'time') => {
+    setIncidentPickerMode(mode);
+    setShowIncidentPicker(true);
+  };
+
+  const handleIncidentPickerChange = (_event: unknown, selected?: Date) => {
+    if (Platform.OS !== 'ios') setShowIncidentPicker(false);
+    if (!selected) return;
+
+    const next = new Date(incidentDateTime);
+    if (incidentPickerMode === 'date') {
+      next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
+      setIncidentDateSelected(true);
+      setErrors(current => ({ ...current, incidentDate: '' }));
+    } else {
+      next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+      setIncidentTimeSelected(true);
+      setErrors(current => ({ ...current, incidentTime: '' }));
+    }
+    setIncidentDateTime(next);
+  };
+
   // ─── Validation ────────────────────────────────────────────────────────────
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -154,6 +188,12 @@ const BlotterReportScreen = () => {
     const cleanLocation = (location === 'Other / specify' ? customLocation : location).trim();
     if (!cleanLocation || cleanLocation.length < 5 || !/[a-zA-Z]/.test(cleanLocation) || /^(.)\1+$/.test(cleanLocation))
       newErrors.location = 'Please specify the exact street, purok, or landmark in Bagong Pag-asa.';
+
+    if (!incidentDateSelected) newErrors.incidentDate = 'Please select the date when the incident happened.';
+    if (!incidentTimeSelected) newErrors.incidentTime = 'Please select the time when the incident happened.';
+    if (incidentDateSelected && incidentTimeSelected && incidentDateTime.getTime() > Date.now() + 5 * 60_000) {
+      newErrors.incidentTime = 'Incident date and time cannot be in the future.';
+    }
 
     const cleanDesc = description.trim();
     if (!cleanDesc || cleanDesc.length < 10 || !/[a-zA-Z]/.test(cleanDesc) || /^(.)\1+$/.test(cleanDesc))
@@ -186,7 +226,7 @@ const BlotterReportScreen = () => {
           incidentType:    incidentType,
           description:     finalDescription,
           location:        (location === 'Other / specify' ? customLocation : location).trim(),
-          dateOfIncident:  new Date().toISOString(),
+          dateOfIncident:  incidentDateTime.toISOString(),
           evidenceUrl:     evidenceBase64 || null,
         }),
       });
@@ -201,6 +241,9 @@ const BlotterReportScreen = () => {
         setDescription('');
         setLocation('');
         setCustomLocation('');
+        setIncidentDateTime(new Date());
+        setIncidentDateSelected(false);
+        setIncidentTimeSelected(false);
         setEvidenceUri('');
         setEvidenceBase64('');
         setErrors({});
@@ -565,6 +608,59 @@ const BlotterReportScreen = () => {
               </View>
             ) : null}
           </View>
+
+          <View style={[styles.inputGroup, { marginTop: 6 }]}>
+            <Text style={styles.fieldLabel}>
+              When did it happen? <Text style={styles.requiredStar}>*</Text>
+            </Text>
+            <View style={styles.incidentDateTimeRow}>
+              <View style={styles.incidentDateTimeField}>
+                <Text style={styles.incidentDateTimeLabel}>Incident date</Text>
+                <TouchableOpacity
+                  style={[styles.inputBox, errors.incidentDate ? styles.inputBoxError : null]}
+                  onPress={() => openIncidentPicker('date')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select incident date"
+                >
+                  <Text style={[styles.textInputField, { paddingTop: 12, color: incidentDateSelected ? colors.textPrimary : colors.textMuted }]}>
+                    {incidentDateSelected ? incidentDateTime.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Select date'}
+                  </Text>
+                </TouchableOpacity>
+                {errors.incidentDate ? <Text style={styles.errorText}>{errors.incidentDate}</Text> : null}
+              </View>
+              <View style={styles.incidentDateTimeField}>
+                <Text style={styles.incidentDateTimeLabel}>Incident time</Text>
+                <TouchableOpacity
+                  style={[styles.inputBox, errors.incidentTime ? styles.inputBoxError : null]}
+                  onPress={() => openIncidentPicker('time')}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select incident time"
+                >
+                  <Text style={[styles.textInputField, { paddingTop: 12, color: incidentTimeSelected ? colors.textPrimary : colors.textMuted }]}>
+                    {incidentTimeSelected ? incidentDateTime.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : 'Select time'}
+                  </Text>
+                </TouchableOpacity>
+                {errors.incidentTime ? <Text style={styles.errorText}>{errors.incidentTime}</Text> : null}
+              </View>
+            </View>
+            <Text style={styles.helperText}>Enter when the incident occurred, not when you are filing this report.</Text>
+            {showIncidentPicker && (
+              <View style={styles.incidentPickerWrap}>
+                <DateTimePicker
+                  value={incidentDateTime}
+                  mode={incidentPickerMode}
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  maximumDate={incidentPickerMode === 'date' ? new Date() : undefined}
+                  onChange={handleIncidentPickerChange}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity style={styles.incidentPickerDone} onPress={() => setShowIncidentPicker(false)} accessibilityRole="button" accessibilityLabel="Done selecting incident date and time">
+                    <Text style={styles.incidentPickerDoneText}>Done</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </View>
         </View>
 
         {/* ──────────────────────────────────────────────────────────────────
@@ -770,6 +866,12 @@ const styles = StyleSheet.create({
   requiredStar: { color: '#dc2626' },
   helperText: { fontSize: 11, color: '#64748b', marginTop: 4, marginLeft: 2 },
   charCounter: { fontSize: 11, color: '#64748b', fontWeight: '600' },
+  incidentDateTimeRow: { flexDirection: 'row', gap: 10 },
+  incidentDateTimeField: { flex: 1 },
+  incidentDateTimeLabel: { fontSize: 11.5, fontWeight: '700', color: '#475569', marginBottom: 5 },
+  incidentPickerWrap: { marginTop: 8, borderRadius: 10, backgroundColor: '#f8fafc', overflow: 'hidden' },
+  incidentPickerDone: { alignSelf: 'flex-end', paddingHorizontal: 16, paddingVertical: 10 },
+  incidentPickerDoneText: { color: '#0038A8', fontWeight: '800', fontSize: 13 },
 
   inputBox: {
     flexDirection: 'row',

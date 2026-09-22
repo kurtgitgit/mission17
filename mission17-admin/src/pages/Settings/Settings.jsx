@@ -150,8 +150,8 @@ const Settings = () => {
       showNotification('Please fill in all password fields.', 'error');
       return;
     }
-    if (newPassword.length < 8) {
-      showNotification('New password must be at least 8 characters.', 'error');
+    if (newPassword.length < 8 || !/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword) || !/[^A-Za-z0-9]/.test(newPassword)) {
+      showNotification('Use 8+ characters with uppercase, lowercase, a number, and a special character.', 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -419,13 +419,13 @@ const Settings = () => {
               {newPassword && (
                 <div style={{
                   fontSize: '11px', padding: '8px 12px', borderRadius: '6px',
-                  backgroundColor: newPassword.length >= 8 ? '#f0fdf4' : '#fff7ed',
-                  color: newPassword.length >= 8 ? '#15803d' : '#c2410c',
+                  backgroundColor: newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword) ? '#f0fdf4' : '#fff7ed',
+                  color: newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword) ? '#15803d' : '#c2410c',
                   display: 'flex', alignItems: 'center', gap: '6px'
                 }}>
-                  {newPassword.length >= 8
-                    ? <><CheckCircle size={12} /> Password meets minimum length</>
-                    : <><AlertTriangle size={12} /> Password must be at least 8 characters</>
+                  {newPassword.length >= 8 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword) && /[^A-Za-z0-9]/.test(newPassword)
+                    ? <><CheckCircle size={12} /> Password meets the security policy</>
+                    : <><AlertTriangle size={12} /> 8+ characters, uppercase, lowercase, number, and special character required</>
                   }
                 </div>
               )}

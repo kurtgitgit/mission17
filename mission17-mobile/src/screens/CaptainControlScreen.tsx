@@ -22,6 +22,7 @@ type Blotter = {
   evidenceUrl?: string;
 };
 type BlotterDecision = { report: Blotter; status: 'In Progress' | 'Resolved' | 'Dismissed'; label: string };
+type AccountDecision = { user: User; status: 'approved' | 'rejected' };
 type Feedback = { _id: string; title: string; category?: string; sentiment?: string; status?: string };
 type DocumentRequest = { _id: string; status?: string };
 type Announcement = { _id: string; isUrgent?: boolean; category?: string };
@@ -41,7 +42,9 @@ const CaptainControlScreen = () => {
   const [creating, setCreating] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [blotterDecision, setBlotterDecision] = useState<BlotterDecision | null>(null);
+  const [accountDecision, setAccountDecision] = useState<AccountDecision | null>(null);
   const [decisionRemarks, setDecisionRemarks] = useState('');
+  const [accountRejectionReason, setAccountRejectionReason] = useState('');
   const [form, setForm] = useState({ username: '', email: '', password: '' });
 
   const load = useCallback(async () => {
@@ -86,29 +89,46 @@ const CaptainControlScreen = () => {
   useEffect(() => { void load(); }, [load]);
 
   const confirmAccountDecision = (user: User, accountStatus: 'approved' | 'rejected') => {
+    if (accountStatus === 'rejected') {
+      setAccountRejectionReason('');
+      setAccountDecision({ user, status: accountStatus });
+      return;
+    }
     Alert.alert(
-      accountStatus === 'approved' ? 'Approve resident account?' : 'Reject resident account?',
+      'Approve resident account?',
       `${user.username} will be ${accountStatus}. This action is recorded in the audit trail.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: accountStatus === 'approved' ? 'Approve' : 'Reject',
-          style: accountStatus === 'approved' ? 'default' : 'destructive',
-          onPress: async () => {
-            setProcessingId(user._id);
-            try {
-              const headers = await getAuthHeaders();
-              const response = await fetchWithTimeout(endpoints.captain.updateAccountStatus(user._id), {
-                method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ accountStatus }),
-              });
-              if (!response.ok) throw new Error((await response.json()).message);
-              await load();
-            } catch (cause: any) { Alert.alert('Decision not saved', cause?.message || 'Please try again.'); }
-            finally { setProcessingId(null); }
-          },
+          text: 'Approve',
+          onPress: () => void saveAccountDecision({ user, status: accountStatus }),
         },
       ],
     );
+  };
+
+  const saveAccountDecision = async (decision: AccountDecision, rejectionReason = '') => {
+    if (decision.status === 'rejected' && rejectionReason.trim().length < 5) {
+      Alert.alert('Reason required', 'Explain what the resident must correct before rejecting the registration.');
+      return;
+    }
+    setProcessingId(decision.user._id);
+    try {
+      const headers = await getAuthHeaders();
+      const response = await fetchWithTimeout(endpoints.captain.updateAccountStatus(decision.user._id), {
+        method: 'PATCH',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountStatus: decision.status, rejectionReason: rejectionReason.trim() }),
+      });
+      if (!response.ok) throw new Error((await response.json()).message);
+      setAccountDecision(null);
+      setAccountRejectionReason('');
+      await load();
+    } catch (cause: any) {
+      Alert.alert('Decision not saved', cause?.message || 'Please try again.');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const confirmBlotterDecision = (report: Blotter, status: 'In Progress' | 'Resolved' | 'Dismissed') => {
@@ -144,8 +164,13 @@ const CaptainControlScreen = () => {
   };
 
   const createStaffAdmin = async () => {
-    if (!form.username.trim() || !form.email.trim() || form.password.length < 12) {
-      Alert.alert('Incomplete details', 'Enter a name, email, and a temporary password with at least 12 characters.');
+    const strongTemporaryPassword = form.password.length >= 12
+      && /[A-Z]/.test(form.password)
+      && /[a-z]/.test(form.password)
+      && /\d/.test(form.password)
+      && /[^A-Za-z0-9]/.test(form.password);
+    if (!form.username.trim() || !form.email.trim() || !strongTemporaryPassword) {
+      Alert.alert('Incomplete details', 'Enter a name, email, and a 12+ character temporary password with uppercase, lowercase, a number, and a special character.');
       return;
     }
     setCreating(true);
@@ -290,6 +315,28 @@ const CaptainControlScreen = () => {
             <View style={styles.modalActions}>
               <TouchableOpacity disabled={creating} onPress={() => setShowCreateModal(false)} style={styles.cancel}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
               <TouchableOpacity disabled={creating} onPress={() => void createStaffAdmin()} style={[styles.create, creating && styles.disabled]}><Text style={styles.actionText}>{creating ? 'Creating...' : 'Create admin'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      <Modal visible={Boolean(accountDecision)} transparent animationType="slide" onRequestClose={() => setAccountDecision(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Return registration for correction</Text>
+            <Text style={styles.modalSub}>Tell {accountDecision?.user.username} what to correct. They can update the details and resubmit for review.</Text>
+            <TextInput
+              value={accountRejectionReason}
+              onChangeText={setAccountRejectionReason}
+              placeholder="Reason for correction (required)"
+              placeholderTextColor="#64748b"
+              selectionColor="#0038A8"
+              multiline
+              maxLength={500}
+              style={[styles.input, styles.remarksInput]}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity disabled={Boolean(processingId)} onPress={() => setAccountDecision(null)} style={styles.cancel}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
+              <TouchableOpacity disabled={Boolean(processingId)} onPress={() => accountDecision && void saveAccountDecision(accountDecision, accountRejectionReason)} style={[styles.rejectDecision, processingId && styles.disabled]}><Text style={styles.actionText}>{processingId ? 'Saving...' : 'Return for correction'}</Text></TouchableOpacity>
             </View>
           </View>
         </View>

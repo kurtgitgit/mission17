@@ -68,6 +68,7 @@ describe('resident service validation and duplicate protection', () => {
 
   it('validates feedback and rejects a rapid duplicate', async () => {
     expect((await request(app).post('/api/suggestions').send({ title: 'Bad', description: 'Too short' })).status).toBe(400);
+    expect((await request(app).post('/api/suggestions').send({ title: '11111', description: '1111111111' })).status).toBe(400);
     const payload = { title: 'Broken street light', description: 'The street light near Purok 2 has been broken for several nights.', category: 'Infrastructure' };
     expect((await request(app).post('/api/suggestions').send(payload)).status).toBe(201);
     expect((await request(app).post('/api/suggestions').send(payload)).status).toBe(409);
@@ -79,6 +80,7 @@ describe('resident service validation and duplicate protection', () => {
       documentType: 'Barangay Clearance', purpose: 'Employment requirement'
     };
     expect((await request(app).post('/api/document-requests').send({ ...payload, contactNumber: '11111111111' })).status).toBe(400);
+    expect((await request(app).post('/api/document-requests').send({ ...payload, fullName: '111' })).status).toBe(400);
     expect((await request(app).post('/api/document-requests').send(payload)).status).toBe(201);
     expect((await request(app).post('/api/document-requests').send(payload)).status).toBe(409);
   });

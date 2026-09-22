@@ -62,6 +62,7 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [tempUserId, setTempUserId] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpRateLimited, setOtpRateLimited] = useState(false);
 
   useEffect(() => {
     if (resendCooldown <= 0) return undefined;
@@ -137,11 +138,16 @@ export default function LoginScreen() {
       if (response.ok && data.mfaRequired) {
         GlobalState.tempToken = firebaseToken;
         setMfaRequired(true);
+        setOtpRateLimited(false);
         setResendCooldown(30);
         showNotification('Please enter the OTP sent to your email.', 'info');
       } else if (response.ok && data.user?.accountStatus === 'pending') {
         await signOut(auth);
         navigation.replace('PendingApproval', { firebaseToken });
+      } else if (response.ok && data.user?.accountStatus === 'rejected') {
+        GlobalState.userId = data.user._id || data.user.id;
+        GlobalState.role = data.user.role || 'resident';
+        navigation.replace('RegistrationReview', { reason: data.user.rejectionReason });
       } else if (response.ok) {
         data.token = firebaseToken; 
         await processLoginSuccess(data);
@@ -213,11 +219,16 @@ export default function LoginScreen() {
           setTempUserId(data.tempUserId);
           GlobalState.tempToken = firebaseToken; // Store temporarily
           setMfaRequired(true);
+          setOtpRateLimited(false);
           setResendCooldown(30);
           showNotification('Please enter the OTP sent to your email.', 'info');
         } else if (data.user?.accountStatus === 'pending') {
           await signOut(auth);
           navigation.replace('PendingApproval', { firebaseToken });
+        } else if (data.user?.accountStatus === 'rejected') {
+          GlobalState.userId = data.user._id || data.user.id;
+          GlobalState.role = data.user.role || 'resident';
+          navigation.replace('RegistrationReview', { reason: data.user.rejectionReason });
         } else {
           // Make sure token is passed so processLoginSuccess can save it
           data.token = firebaseToken; 
@@ -241,6 +252,7 @@ export default function LoginScreen() {
   };
 
   const handleVerifyOtp = async () => {
+    if (otpRateLimited) return;
     if (otp.length < 6) {
         showNotification("Please enter the full 6-digit code.", "error");
         return;
@@ -269,7 +281,8 @@ export default function LoginScreen() {
         data.token = GlobalState.tempToken;
         await processLoginSuccess(data);
       } else {
-        showNotification("Invalid Code. Please try again.", "error");
+        if (response.status === 429) setOtpRateLimited(true);
+        showNotification(data.message || 'Invalid code. Please try again.', 'error');
       }
     } catch (error) {
       showNotification(getFriendlyNetworkMessage(error, 'Could not verify the code. Please try again.'), "error");
@@ -474,13 +487,14 @@ export default function LoginScreen() {
                       </View>
 
                       <TouchableOpacity 
-                        style={[styles.primaryButton, loading && styles.btnDisabled]} 
+                        style={[styles.primaryButton, (loading || otpRateLimited) && styles.btnDisabled]}
                         onPress={handleVerifyOtp} 
-                        disabled={loading}
+                        disabled={loading || otpRateLimited}
                         accessibilityRole="button"
                       >
                           {loading ? <ActivityIndicator color="white" /> : <Text style={styles.primaryButtonText}>Verify Code</Text>}
                        </TouchableOpacity>
+                       {otpRateLimited ? <Text style={styles.rateLimitHint}>Too many verification attempts. For security, wait 10 minutes before requesting a fresh code.</Text> : null}
 
                        <TouchableOpacity
                          onPress={async () => {
@@ -508,7 +522,7 @@ export default function LoginScreen() {
                        </TouchableOpacity>
 
                        <TouchableOpacity
-                        onPress={() => { setMfaRequired(false); setOtp(''); }}
+                        onPress={() => { setMfaRequired(false); setOtp(''); setOtpRateLimited(false); }}
                         style={{ padding: 12 }}
                       >
                           <Text style={styles.cancelLink}>Cancel & Return to Login</Text>
@@ -779,6 +793,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     color: '#0f172a',
     marginTop: 2,
   },
+  rateLimitHint: { color: '#b91c1c', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 10 },
   captchaInput: { 
     width: 58, 
     height: 44, 

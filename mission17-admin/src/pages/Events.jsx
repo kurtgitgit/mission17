@@ -28,6 +28,7 @@ const Events = () => {
         title: '', 
         date: '', 
         time: '', 
+        endTime: '',
         location: '',
         color: '#3b82f6',
         description: '',
@@ -111,7 +112,7 @@ const Events = () => {
 
     const openAddForm = () => {
         setIsEditing(false);
-        setFormData({ title: '', date: '', time: '', location: '', color: '#3b82f6', description: '', image: '' });
+        setFormData({ title: '', date: '', time: '', endTime: '', location: '', color: '#3b82f6', description: '', image: '' });
         setShowForm(true);
     };
 
@@ -122,6 +123,7 @@ const Events = () => {
             title: event.title,
             date: event.date,
             time: event.time,
+            endTime: event.endTime || '',
             location: event.location,
             color: event.color || '#3b82f6',
             description: event.description || '',
@@ -175,6 +177,10 @@ const Events = () => {
             showNotification("Could not save the event. Please try again.", "error");
         } finally {
             setSubmitting(false);
+        }
+        if (!formData.endTime || formData.endTime <= formData.time) {
+            showNotification('Event end time must be later than the start time.', 'error');
+            return;
         }
     };
 
@@ -254,8 +260,12 @@ const Events = () => {
                                     <input type="date" name="date" value={formData.date} onChange={handleInputChange} required min={today} style={styles.input} />
                                 </div>
                                 <div style={{flex: 1}}>
-                                    <label style={styles.label}>Time</label>
+                                    <label style={styles.label}>Start Time</label>
                                     <input type="time" name="time" value={formData.time} onChange={handleInputChange} required style={styles.input} />
+                                </div>
+                                <div style={{flex: 1}}>
+                                    <label style={styles.label}>End Time</label>
+                                    <input type="time" name="endTime" value={formData.endTime} onChange={handleInputChange} required style={styles.input} />
                                 </div>
                             </div>
 
@@ -356,7 +366,7 @@ const Events = () => {
                                         <td style={styles.td}>
                                             <div style={{display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '13px'}}>
                                                 <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><Calendar size={14} color="#64748b"/> {event.date}</span>
-                                                <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><Clock size={14} color="#64748b"/> {event.time}</span>
+                                                <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}><Clock size={14} color="#64748b"/> {event.time}{event.endTime ? ` – ${event.endTime}` : ''}</span>
                                             </div>
                                         </td>
                                         <td style={styles.td}>

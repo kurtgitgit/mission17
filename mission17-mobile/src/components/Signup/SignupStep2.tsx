@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native
 import DateTimePicker from '@react-native-community/datetimepicker';
 import FormInput from '../FormInput';
 import CustomDropdown from '../CustomDropdown';
+import { FIXED_BARANGAY_ADDRESS, PUROK_OPTIONS } from '../../config/addressDirectory';
 
 interface SignupStep2Props {
   formData: any;
@@ -127,10 +128,25 @@ const SignupStep2 = ({
         />
       )}
 
+      <View style={styles.addressCard}>
+        <Text style={styles.addressLabel}>Barangay</Text>
+        <Text style={styles.fixedAddress}>{FIXED_BARANGAY_ADDRESS}</Text>
+        <Text style={styles.addressHint}>The official purok directory is still being verified with the barangay.</Text>
+      </View>
+
+      <CustomDropdown
+        label="Purok / Sitio"
+        value={formData.purok}
+        options={[...PUROK_OPTIONS]}
+        onSelect={(val) => handleInputChange('purok', val)}
+        required
+      />
+
       <FormInput
-        placeholder="Complete Address"
+        placeholder="Street, purok, sitio, or nearby landmark"
         value={formData.completeAddress}
         onChangeText={(val) => handleInputChange("completeAddress", val)}
+        maxLength={250}
         required
       />
 
@@ -165,6 +181,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#f8fafc', 
     borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 16, height: 54,
   },
+  addressCard: { backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 12, padding: 14, gap: 4 },
+  addressLabel: { color: '#1e3a8a', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
+  fixedAddress: { color: '#0f172a', fontSize: 15, fontWeight: '700' },
+  addressHint: { color: '#475569', fontSize: 12, lineHeight: 17 },
   primaryButtonBlue: { backgroundColor: '#0038A8', height: 54, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   primaryButtonTextBlue: { color: 'white', fontSize: 16, fontWeight: 'bold' },
   navButtonsContainer: { marginTop: 16 },

@@ -5,13 +5,19 @@ import {
 } from 'react-native';
 import { X, User, MapPin, Phone, Mail, Calendar, Info, GraduationCap, Briefcase, Check } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
+import { useRoute } from '@react-navigation/native';
+import { auth } from '../config/firebase';
+import { signOut } from 'firebase/auth';
 import { colors, spacing, radius, typography } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import CustomDropdown from '../components/CustomDropdown';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { FIXED_BARANGAY_ADDRESS, isDirectoryPurok, PUROK_OPTIONS } from '../config/addressDirectory';
 
 const EditProfileScreen = ({ navigation }: any) => {
+  const route = useRoute<any>();
+  const registrationReview = Boolean(route.params?.registrationReview);
   const [userData, setUserData] = useState<any>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,7 +32,8 @@ const EditProfileScreen = ({ navigation }: any) => {
       try {
         setInitialLoading(true);
         setLoadError(null);
-        const res = await fetchWithTimeout(endpoints.auth.getUser(userId), { headers: await getAuthHeaders() });
+        const target = registrationReview ? endpoints.auth.registrationReview : endpoints.auth.getUser(userId);
+        const res = await fetchWithTimeout(target, { headers: await getAuthHeaders() });
         if (!res.ok) throw new Error(`Profile request failed (${res.status})`);
         const data = await res.json();
         setUserData(data);
@@ -37,7 +44,7 @@ const EditProfileScreen = ({ navigation }: any) => {
       } finally {
         setInitialLoading(false);
       }
-    }, [userId]);
+    }, [registrationReview, userId]);
 
   useEffect(() => {
     fetchCurrentData();
@@ -75,8 +82,12 @@ const EditProfileScreen = ({ navigation }: any) => {
       return;
     }
     const completeAddress = userData?.completeAddress?.trim() || '';
+    if (!isDirectoryPurok(userData?.purok)) {
+      Alert.alert('Purok / Sitio required', 'Please select Purok 7 or Other / Not listed.');
+      return;
+    }
     if (completeAddress.length < 5) {
-      Alert.alert('Address required', 'Please enter your complete address.');
+      Alert.alert('Address required', 'Enter a street, sitio, or nearby landmark (at least 5 characters).');
       return;
     }
     const normalizedNationality = userData?.nationality?.trim() || '';
@@ -87,7 +98,10 @@ const EditProfileScreen = ({ navigation }: any) => {
 
     setSaving(true);
     try {
-      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`, {
+      const target = registrationReview
+        ? endpoints.auth.resubmitRegistration
+        : `${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`;
+      const res = await fetchWithTimeout(target, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
         body: JSON.stringify({
@@ -102,8 +116,14 @@ const EditProfileScreen = ({ navigation }: any) => {
         })
       });
       if (res.ok) {
-        Alert.alert("Success", "Profile updated successfully!");
-        navigation.goBack();
+        if (registrationReview) {
+          Alert.alert('Registration resubmitted', 'Your corrected details were sent back to the Barangay Captain for review.');
+          await signOut(auth);
+          navigation.replace('PendingApproval');
+        } else {
+          Alert.alert("Success", "Profile updated successfully!");
+          navigation.goBack();
+        }
       } else {
         const errorData = await res.json().catch(() => null);
         Alert.alert("Error", errorData?.message || "Failed to update profile.");
@@ -160,7 +180,7 @@ const EditProfileScreen = ({ navigation }: any) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
           <X size={24} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{registrationReview ? 'Correct Registration' : 'Edit Profile'}</Text>
         <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
           {saving ? <ActivityIndicator size="small" color="white" /> : (
             <>
@@ -175,7 +195,9 @@ const EditProfileScreen = ({ navigation }: any) => {
         <View style={styles.noticeBox}>
           <Info size={20} color={colors.primary} />
           <Text style={styles.noticeText}>
-            You can now update your personal demographic and identity details directly from your phone. Ensure all information matches your valid IDs.
+            {registrationReview
+              ? 'Correct the details mentioned by the reviewer, then resubmit your registration for approval.'
+              : 'You can now update your personal demographic and identity details directly from your phone. Ensure all information matches your valid IDs.'}
           </Text>
         </View>
 
@@ -249,7 +271,18 @@ const EditProfileScreen = ({ navigation }: any) => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Residency & Additional</Text>
           <View style={styles.card}>
-            <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Complete Address" value={userData?.completeAddress} onChangeText={(t: string) => setUserData({...userData, completeAddress: t})} />
+            <View style={styles.infoRow}>
+              <View style={styles.iconContainer}><MapPin size={20} color={colors.textSecondary} /></View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoLabel}>Barangay</Text>
+                <Text style={styles.fixedAddress}>{FIXED_BARANGAY_ADDRESS}</Text>
+                <Text style={styles.fieldHint}>The official purok directory is still being verified with the barangay.</Text>
+              </View>
+            </View>
+            <View style={styles.divider} />
+            <DropdownRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Purok / Sitio" value={userData?.purok} options={[...PUROK_OPTIONS]} onSelect={(purok: string) => setUserData({...userData, purok})} />
+            <View style={styles.divider} />
+            <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Street / Landmark" value={userData?.completeAddress} onChangeText={(t: string) => setUserData({...userData, completeAddress: t})} placeholder="Street, sitio, or nearby landmark" maxLength={250} />
             <View style={styles.divider} />
             <DropdownRow icon={<Info size={20} color={colors.textSecondary} />} label="Nationality" value={nationalitySelection} options={["Filipino", "Other"]} onSelect={(choice: string) => {
               setNationalitySelection(choice);
@@ -381,6 +414,7 @@ const styles = StyleSheet.create({
     lineHeight: 15,
     marginTop: 4
   },
+  fixedAddress: { color: colors.textPrimary, fontSize: 15, fontWeight: '600', marginTop: 2 },
   divider: {
     height: 1,
     backgroundColor: colors.border,

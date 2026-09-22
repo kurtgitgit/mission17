@@ -10,6 +10,10 @@ import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['New', 'Under Review', 'Resolved', 'Dismissed'];
 const ALLOWED_CATEGORIES = ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
+const hasMeaningfulText = (value) => {
+  const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
+  return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
+};
 
 // POST / — Resident: Submit private feedback / concern to Barangay Head
 export const submitSuggestion = asyncHandler(async (req, res) => {
@@ -22,6 +26,7 @@ export const submitSuggestion = asyncHandler(async (req, res) => {
   const cleanCategory = ALLOWED_CATEGORIES.includes(category) ? category : 'General';
   if (cleanTitle.length < 5 || cleanTitle.length > 100) return res.status(400).json({ message: 'Title must be between 5 and 100 characters.' });
   if (cleanDescription.length < 10 || cleanDescription.length > 500) return res.status(400).json({ message: 'Description must be between 10 and 500 characters.' });
+  if (!hasMeaningfulText(cleanTitle) || !hasMeaningfulText(cleanDescription)) return res.status(400).json({ message: 'Feedback title and description must contain meaningful text.' });
 
   const recentDuplicate = await Suggestion.findOne({
     userId,

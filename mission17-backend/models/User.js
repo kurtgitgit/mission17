@@ -67,6 +67,10 @@ const UserSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected'],
     default: 'pending' // Admin must approve before login
   },
+  // Kept with the account so a resident can see exactly what to correct before
+  // submitting the registration for another review.
+  rejectionReason: { type: String, trim: true, maxlength: 500 },
+  lastResubmittedAt: { type: Date },
   // Legacy field retained so existing accounts require no destructive migration.
   points: { type: Number, select: false },
   completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],

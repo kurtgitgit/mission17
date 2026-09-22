@@ -96,6 +96,24 @@ export const verifyAdmin = async (req, res, next) => {
   }
 };
 
+// A narrowly-scoped identity check for residents correcting a rejected
+// registration. It intentionally does not grant normal app access while the
+// account remains pending or rejected.
+export const verifyRegistrationReviewUser = async (req, res, next) => {
+  try {
+    const decodedToken = await getVerifiedFirebaseToken(req);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+    if (!user) return res.status(401).json({ message: 'Your account is not registered in this service.' });
+    if (user.role !== 'resident' || !user.isVerified || !['pending', 'rejected'].includes(user.accountStatus)) {
+      return res.status(403).json({ message: 'This account is not eligible for registration review.' });
+    }
+    req.user = user;
+    return next();
+  } catch (error) {
+    return res.status(error.status || 401).json({ message: 'Authentication failed.' });
+  }
+};
+
 // Reserved for the Barangay Captain. Keep this server-side check on every
 // sensitive final-decision endpoint; hiding a button in the portal is not an
 // authorization control.

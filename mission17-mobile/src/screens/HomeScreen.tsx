@@ -8,7 +8,7 @@ import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Megaphone,
   UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
-  Landmark, ShieldAlert, Flame, PhoneCall, ArrowRight
+  ShieldAlert, Flame, PhoneCall, ArrowRight, HeartPulse, Building2
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -59,10 +59,20 @@ const SERVICES = [
 
 // ─── EMERGENCY HOTLINES (VECTOR ICONS) ───────────────────────────────────────
 const HOTLINES = [
-  { label: 'Barangay Hall',      number: '075-529-9999', icon: Landmark,    color: '#0038A8' },
-  { label: 'PNP San Jacinto',    number: '0998-598-5123', icon: ShieldAlert, color: '#1e40af' },
-  { label: 'BFP Fire Station',   number: '0923-456-7890', icon: Flame,       color: '#dc2626' },
-  { label: 'City DRRMO Rescue',  number: '075-529-7911', icon: PhoneCall,   color: '#ea580c' },
+  {
+    id: 'mdrrmo', label: 'MDRRMO San Jacinto', icon: PhoneCall, color: '#ea580c',
+    numbers: [{ label: 'Mobile', value: '0976-402-4120' }, { label: 'Landline', value: '540-0851' }],
+  },
+  {
+    id: 'rhu', label: 'RHU Ambulance', icon: HeartPulse, color: '#dc2626',
+    numbers: [{ label: 'Mobile', value: '0991-642-1048' }, { label: 'Landline', value: '653-3164' }],
+  },
+  { id: 'dilg', label: 'DILG', icon: Building2, color: '#2563eb', numbers: [{ label: 'Mobile', value: '0917-140-1895' }] },
+  { id: 'bfp', label: 'BFP San Jacinto', icon: Flame, color: '#dc2626', numbers: [{ label: 'Mobile', value: '0917-189-4611' }] },
+  {
+    id: 'pnp', label: 'PNP San Jacinto', icon: ShieldAlert, color: '#1e40af',
+    numbers: [{ label: 'Mobile 1', value: '0906-525-9725' }, { label: 'Mobile 2', value: '0998-598-5126' }, { label: 'Landline', value: '653-1762' }],
+  },
 ];
 
 // ─── TIME-AWARE GREETING HELPER ──────────────────────────────────────────────
@@ -181,7 +191,7 @@ const HomeScreen: React.FC = () => {
       `Would you like to connect to ${number}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Call Now', onPress: () => Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Cannot open phone dialer on this device.')) }
+        { text: 'Call Now', onPress: () => Linking.openURL(`tel:${number.replace(/[^0-9+]/g, '')}`).catch(() => Alert.alert('Error', 'Cannot open phone dialer on this device.')) }
       ]
     );
   };
@@ -414,7 +424,7 @@ const HomeScreen: React.FC = () => {
           <View style={styles.sectionHeader}>
             <View>
               <Text style={styles.sectionTitle}>Emergency Hotlines</Text>
-              <Text style={styles.sectionSub}>24/7 San Jacinto emergency response</Text>
+              <Text style={styles.sectionSub}>Official San Jacinto emergency contacts</Text>
             </View>
           </View>
 
@@ -422,25 +432,30 @@ const HomeScreen: React.FC = () => {
             {HOTLINES.map((h, i) => {
               const IconComp = h.icon;
               return (
-                <TouchableOpacity
-                  key={h.number}
+                <View
+                  key={h.id}
                   style={[styles.hotlineRow, i < HOTLINES.length - 1 && styles.hotlineDivider]}
-                  onPress={() => call(h.number, h.label)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Call ${h.label} at ${h.number}`}
                 >
                   <View style={[styles.hotlineIconCircle, { backgroundColor: '#F1F5F9' }]}>
                     <IconComp size={18} color={h.color} />
                   </View>
                   <View style={styles.hotlineInfo}>
                     <Text style={styles.hotlineLabel}>{h.label}</Text>
-                    <Text style={styles.hotlineNumber}>{h.number}</Text>
+                    {h.numbers.map((entry) => (
+                      <TouchableOpacity
+                        key={entry.value}
+                        onPress={() => call(entry.value, h.label)}
+                        activeOpacity={0.7}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Call ${h.label} ${entry.label} at ${entry.value}`}
+                        style={styles.hotlineNumberAction}
+                      >
+                        <Text style={styles.hotlineNumber}>{entry.label}: {entry.value}</Text>
+                        <Text style={styles.callBadgeText}>Call</Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                  <View style={styles.callBadge}>
-                    <Text style={styles.callBadgeText}>Call</Text>
-                  </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -515,7 +530,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     height: 48, 
     borderRadius: 24, 
     backgroundColor: 'rgba(255,255,255,0.2)', 
-    alignItems: 'center', 
+    alignItems: 'flex-start',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.4)'
@@ -711,17 +726,10 @@ const getStyles = (theme: any) => StyleSheet.create({
     justifyContent: 'center',
     marginRight: 10,
   },
-  hotlineInfo: { flex: 1 },
+  hotlineInfo: { flex: 1, gap: 3 },
   hotlineLabel: { fontSize: 13.5, fontWeight: '700', color: '#0F172A' },
-  hotlineNumber: { fontSize: 12, color: '#64748B', fontWeight: '500', marginTop: 1 },
-  callBadge: {
-    backgroundColor: '#EFF6FF',
-    paddingVertical: 5,
-    paddingHorizontal: 11,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
+  hotlineNumberAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingVertical: 3 },
+  hotlineNumber: { fontSize: 12, color: '#475569', fontWeight: '600' },
   callBadgeText: {
     fontSize: 11.5,
     fontWeight: '700',

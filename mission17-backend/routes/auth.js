@@ -49,6 +49,13 @@ const isDisposableEmail = (email) => {
 
 const router = express.Router();
 
+const isStrongPassword = (password) => typeof password === 'string'
+  && password.length >= 8
+  && /[A-Z]/.test(password)
+  && /[a-z]/.test(password)
+  && /\d/.test(password)
+  && /[^A-Za-z0-9]/.test(password);
+
 const GMAIL_OAUTH_REDIRECT_URI = 'https://developers.google.com/oauthplayground';
 
 const encodeGmailMessage = ({ from, to, subject, text, html }) => {
@@ -276,9 +283,11 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     }
     // If user already exists in MongoDB, just return it (Login Flow)
     if (user) {
-      // If they were rejected, completely block login
+      // A rejected resident may authenticate only far enough to see the review
+      // reason and correct/resubmit their registration. This does not grant
+      // any normal protected-route access (enforced in authMiddleware).
       if (user.accountStatus === 'rejected') {
-        return res.status(403).json({ message: "Your account registration was rejected." });
+        return res.status(200).json({ user, registrationActionRequired: true });
       }
 
       if (req.body.isAdminLogin && !['admin', 'super_admin'].includes(user.role)) {
@@ -448,7 +457,7 @@ router.post('/password-history/:action', verifyAuthenticatedUser, async (req, re
   const { action } = req.params;
   const { password } = req.body;
   if (!['validate', 'record'].includes(action)) return res.status(404).json({ message: 'Unknown password-history action.' });
-  if (typeof password !== 'string' || password.length < 8) return res.status(400).json({ message: 'Password must be at least 8 characters.' });
+  if (!isStrongPassword(password)) return res.status(400).json({ message: 'Password must be 8+ characters with uppercase, lowercase, a number, and a special character.' });
 
   try {
     const user = await User.findById(req.user._id).select('+passwordHistory');

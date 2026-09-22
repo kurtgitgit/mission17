@@ -19,6 +19,7 @@ jest.unstable_mockModule('../utils/authMiddleware.js', () => ({
     return res.status(403).json({ message: 'Forbidden: Barangay Captain access is required.' });
   }),
   verifyAuthenticatedUser: jest.fn((_req, res) => res.status(401).json({ message: 'Authentication failed.' })),
+  verifyRegistrationReviewUser: jest.fn((_req, res) => res.status(401).json({ message: 'Authentication failed.' })),
   logAudit: jest.fn(),
 }));
 
@@ -69,7 +70,7 @@ describe('User management authorization', () => {
       .post('/api/auth/add-user')
       .set('x-mock-user-id', 'captain123')
       .set('x-mock-user-role', 'super_admin')
-      .send({ username: 'Staff Admin', email: 'staff@example.com', password: 'temporary-passphrase', role: 'admin' });
+      .send({ username: 'Staff Admin', email: 'staff@example.com', password: 'Temporary!Pass1', role: 'admin' });
 
     // The mocked existing-user check proves the handler was reached without
     // creating a Firebase or MongoDB account during this authorization test.

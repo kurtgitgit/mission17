@@ -23,6 +23,9 @@ const DOCUMENT_TYPES = [
   { id: 'Barangay ID', label: 'Barangay Resident ID', fee: '₱100.00', time: 'Same Day', desc: 'Official photo ID card issued by Barangay' },
 ];
 
+const OTHER_DOCUMENT_TYPE = { id: 'Other', label: 'Other Document', fee: 'To be confirmed', time: 'To be confirmed', desc: 'Specify the document you need for Barangay review' };
+DOCUMENT_TYPES.push(OTHER_DOCUMENT_TYPE);
+
 const STATUS_CONFIG: Record<string, { color: string; icon: any; bg: string; border: string }> = {
   'Pending':          { color: '#b45309', icon: Clock,        bg: '#fef3c7', border: '#fde68a' },
   'Processing':       { color: '#0369a1', icon: AlertCircle,  bg: '#e0f2fe', border: '#bae6fd' },
@@ -39,6 +42,7 @@ const ServicesScreen: React.FC = () => {
   const [address, setAddress] = useState('');
   const [contact, setContact] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [customDocumentType, setCustomDocumentType] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successRef, setSuccessRef] = useState<string | null>(null);
@@ -90,6 +94,7 @@ const ServicesScreen: React.FC = () => {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!docType) newErrors.docType = 'Please choose a document type.';
+    if (docType === 'Other' && (customDocumentType.trim().length < 3 || !/[a-zA-Z]/.test(customDocumentType))) newErrors.customDocumentType = 'Please specify the document type you need.';
     if (!fullName.trim() || fullName.trim().length < 3 || !/[a-zA-Z]/.test(fullName))
       newErrors.fullName = 'Please enter your complete legal name.';
     if (!address.trim() || address.trim().length < 5 || !/[a-zA-Z]/.test(address))
@@ -98,7 +103,7 @@ const ServicesScreen: React.FC = () => {
     if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact))
       newErrors.contact = 'Enter a valid 11-digit mobile number (e.g. 0917 123 4567).';
     const cleanPurpose = purpose.trim();
-    if (!cleanPurpose || cleanPurpose.length < 5 || !/[a-zA-Z]/.test(cleanPurpose))
+    if (!cleanPurpose || cleanPurpose.length < 5 || !/[a-zA-Z]/.test(cleanPurpose) || /^(.)\1+$/.test(cleanPurpose.replace(/\s/g, '')))
       newErrors.purpose = 'Please state why you need this document (at least 5 letters).';
     return newErrors;
   };
@@ -123,6 +128,7 @@ const ServicesScreen: React.FC = () => {
           address: address.trim(),
           contactNumber: contact.trim(),
           documentType: docType,
+          customDocumentType: customDocumentType.trim(),
           purpose: purpose.trim(),
         }),
       });
@@ -130,7 +136,7 @@ const ServicesScreen: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         setSuccessRef(data.referenceNumber || 'DOC-' + Date.now().toString().slice(-6));
-        setFullName(''); setAddress(''); setContact(''); setPurpose(''); setErrors({});
+        setFullName(''); setAddress(''); setContact(''); setPurpose(''); setCustomDocumentType(''); setErrors({});
       } else {
         setSubmitError(data.message || 'Failed to submit request. Please try again.');
       }
@@ -291,6 +297,22 @@ const ServicesScreen: React.FC = () => {
               <ChevronDown size={20} color="#0038A8" />
             </TouchableOpacity>
 
+            {docType === 'Other' ? (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Please specify document type <Text style={styles.requiredStar}>*</Text></Text>
+                <TextInput
+                  style={[styles.textInputField, styles.inlineTextField, errors.customDocumentType ? styles.inputBoxError : null]}
+                  placeholder="e.g. Certificate of Cohabitation"
+                  placeholderTextColor="#94a3b8"
+                  value={customDocumentType}
+                  onChangeText={(value) => { setCustomDocumentType(value); setErrors((current) => ({ ...current, customDocumentType: '' })); }}
+                  maxLength={80}
+                  accessibilityLabel="Custom document type"
+                />
+                {errors.customDocumentType ? <Text style={styles.errorText}>{errors.customDocumentType}</Text> : null}
+              </View>
+            ) : null}
+
             <View style={styles.badgeRow}>
               <View style={styles.feeBadge}>
                 <Text style={styles.feeBadgeLabel}>FEE: </Text>
@@ -361,7 +383,7 @@ const ServicesScreen: React.FC = () => {
                 />
               </View>
               {errors.contact ? <Text style={styles.errorText}>{errors.contact}</Text> : (
-                <Text style={styles.helperText}>Used for SMS pickup notifications.</Text>
+                <Text style={styles.helperText}>Used for in-app and push status updates when available.</Text>
               )}
             </View>
           </View>
@@ -382,6 +404,7 @@ const ServicesScreen: React.FC = () => {
                 value={purpose} 
                 onChangeText={(t) => { setPurpose(t); setErrors(e => ({...e, purpose: ''})); }} 
                 multiline 
+                maxLength={500}
                 textAlignVertical="top"
                 accessibilityLabel="Purpose of Request"
               />
@@ -452,7 +475,7 @@ const ServicesScreen: React.FC = () => {
               <TouchableOpacity
                 key={item.id}
                 style={[styles.modalOption, docType === item.id && styles.modalOptionActive]}
-                onPress={() => { setDocType(item.id); setShowPicker(false); }}
+                onPress={() => { setDocType(item.id); setShowPicker(false); setErrors((current) => ({ ...current, docType: '', customDocumentType: '' })); }}
                 accessibilityRole="button"
                 accessibilityLabel={`Select ${item.label}`}
               >
@@ -573,6 +596,14 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     fontWeight: '500',
     ...Platform.select({ web: { outlineStyle: 'none' as any } })
+  },
+  inlineTextField: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 48,
   },
   textAreaField: {
     backgroundColor: '#f8fafc',

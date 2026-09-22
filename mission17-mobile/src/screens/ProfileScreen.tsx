@@ -166,7 +166,7 @@ const ProfileScreen = ({ navigation }: any) => {
         return (
           <View style={{ gap: 12 }}>
             <Text style={styles.faqQuestion}>Q: How long does document processing take?</Text>
-            <Text style={styles.faqAnswer}>A: Most clearances take 1–2 working days. You will receive an SMS and in-app notification when ready for pickup.</Text>
+            <Text style={styles.faqAnswer}>A: Most clearances take 1–2 working days. You will receive an in-app notification, and a push notification when enabled, when your document is ready for pickup.</Text>
             
             <Text style={styles.faqQuestion}>Q: Are my blotter reports secure?</Text>
             <Text style={styles.faqAnswer}>A: Yes. Only authorized Barangay Desk Officers and the Punong Barangay have access to evaluated blotter statements.</Text>

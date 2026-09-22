@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Switch, ScrollView, 
-  Platform, SafeAreaView, Alert, Modal, TextInput, ActivityIndicator 
+  Platform, SafeAreaView, Alert, Modal, TextInput, ActivityIndicator, KeyboardAvoidingView
 } from 'react-native';
 import { ChevronLeft, Bell, Lock, ChevronRight, X, Shield, Eye, EyeOff, Moon, FileText } from 'lucide-react-native';
 import { getAuthData, saveAuthData } from '../utils/storage';
@@ -31,8 +31,10 @@ const SettingsScreen = ({ navigation }: any) => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [oldPass, setOldPass] = useState('');
   const [newPass, setNewPass] = useState('');
+  const [confirmNewPass, setConfirmNewPass] = useState('');
   const [showOldPass, setShowOldPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmNewPass, setShowConfirmNewPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const mfaUpdatingRef = useRef(false);
   const notificationUpdatingRef = useRef(false);
@@ -148,8 +150,12 @@ const SettingsScreen = ({ navigation }: any) => {
         showNotification("Please fill in both fields.", "error");
         return;
     }
-    if (newPass.length < 8) {
-        showNotification("New password must be at least 8 characters.", "error");
+    if (newPass.length < 8 || !/[A-Z]/.test(newPass) || !/[a-z]/.test(newPass) || !/\d/.test(newPass) || !/[^A-Za-z0-9]/.test(newPass)) {
+        showNotification("Use 8+ characters with uppercase, lowercase, a number, and a special character.", "error");
+        return;
+    }
+    if (newPass !== confirmNewPass) {
+        showNotification('New password and confirmation do not match.', 'error');
         return;
     }
     if (oldPass === newPass) {
@@ -198,6 +204,7 @@ const SettingsScreen = ({ navigation }: any) => {
         setShowPasswordModal(false);
         setOldPass('');
         setNewPass('');
+        setConfirmNewPass('');
     } catch (error: any) {
         console.error("Change Password Error:", error);
         if (error.code === 'auth/invalid-credential') {
@@ -312,7 +319,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
       {/* --- PASSWORD MODAL --- */}
       <Modal visible={showPasswordModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.modalCard}>
                 <View style={styles.modalHeader}>
                     <Text style={styles.modalTitle}>Change Password</Text>
@@ -337,7 +344,7 @@ const SettingsScreen = ({ navigation }: any) => {
 
                 <View style={styles.passwordInputContainer}>
                     <TextInput 
-                        placeholder="New Password (min 8 chars)" 
+                        placeholder="New Password"
                         style={styles.modalInput} 
                         secureTextEntry={!showNewPass}
                         value={newPass}
@@ -349,11 +356,26 @@ const SettingsScreen = ({ navigation }: any) => {
                     </TouchableOpacity>
                 </View>
 
+                <Text style={styles.passwordHint}>8+ characters, with uppercase, lowercase, number, and special character.</Text>
+                <View style={styles.passwordInputContainer}>
+                    <TextInput
+                        placeholder="Confirm New Password"
+                        style={styles.modalInput}
+                        secureTextEntry={!showConfirmNewPass}
+                        value={confirmNewPass}
+                        onChangeText={setConfirmNewPass}
+                        placeholderTextColor={theme.textTertiary}
+                    />
+                    <TouchableOpacity onPress={() => setShowConfirmNewPass(!showConfirmNewPass)} style={styles.eyeIcon}>
+                        {showConfirmNewPass ? <Eye size={20} color={theme.textSecondary} /> : <EyeOff size={20} color={theme.textSecondary} />}
+                    </TouchableOpacity>
+                </View>
+
                 <TouchableOpacity style={styles.saveBtn} onPress={handleChangePassword} disabled={loading}>
                     {loading ? <ActivityIndicator color="white" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
                 </TouchableOpacity>
             </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </RootComponent>
@@ -403,6 +425,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     color: theme.text,
     ...Platform.select({ web: { outlineStyle: 'none' as any } })
   },
+  passwordHint: { color: theme.textSecondary, fontSize: 12, lineHeight: 17, marginTop: -5, marginBottom: 12 },
   eyeIcon: { padding: 4 },
   saveBtn: { backgroundColor: theme.primary, padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },

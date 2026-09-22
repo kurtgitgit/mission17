@@ -12,9 +12,15 @@ const normalizeText = (value = '') => typeof value === 'string' ? value.trim().r
 const normalizeContact = (value = '') => typeof value === 'string' ? value.replace(/\D/g, '') : '';
 const TERM_PATTERN = /^\d{4}\s*[-–]\s*\d{4}$/;
 
+const hasMeaningfulText = (value) => {
+  const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
+  return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
+};
+
 const validateOfficial = ({ name, position, contact, email, term }) => {
   if (typeof name !== 'string' || typeof position !== 'string' || !name.trim() || !position.trim()) return 'Name and position are required.';
   if (name.trim().length > 120 || position.trim().length > 120) return 'Name and position cannot exceed 120 characters.';
+  if (!hasMeaningfulText(name) || !hasMeaningfulText(position)) return 'Name and position must contain meaningful text.';
   if (contact !== undefined && contact !== null && typeof contact !== 'string') return 'Contact must be text.';
   if (email !== undefined && email !== null && typeof email !== 'string') return 'Email must be text.';
   if (term !== undefined && term !== null && typeof term !== 'string') return 'Term must be text.';
@@ -23,7 +29,7 @@ const validateOfficial = ({ name, position, contact, email, term }) => {
   if (term) {
     if (!TERM_PATTERN.test(term.trim())) return 'Term must use the format YYYY - YYYY.';
     const [start, end] = term.match(/\d{4}/g).map(Number);
-    if (end < start) return 'Term end year cannot be earlier than the start year.';
+    if (end <= start) return 'Term end year must be later than the start year.';
   }
   return null;
 };

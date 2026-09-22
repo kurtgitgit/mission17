@@ -146,7 +146,7 @@ const LearningScreen: React.FC = () => {
           <View style={styles.infoGrid}>
             {[
               { icon: '📍', label: 'Location', value: 'San Jacinto, Pangasinan' },
-              { icon: '📞', label: 'Hotline', value: '075-529-9999' },
+              { icon: '📞', label: 'Emergency contacts', value: 'See the Home tab' },
               { icon: '🏘️', label: 'Type', value: 'Urban Barangay' },
               { icon: '🐟', label: 'Heritage', value: 'Fisherfolk Community' },
             ].map(item => (

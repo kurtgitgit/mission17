@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import '../styles/Auth.css';
 import logoImg from '../assets/logo.png';
@@ -160,6 +160,21 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    const email = formData.email.trim();
+    if (!email) {
+      showNotification('Enter your authorized admin email first, then select Forgot password.', 'error');
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showNotification('Password reset link sent. Check your email inbox.', 'success');
+    } catch (error) {
+      console.error('Admin password reset error:', error);
+      showNotification('Could not send a reset link. Check the email address and try again.', 'error');
+    }
+  };
+
   return (
     <div className="auth-container">
 
@@ -233,6 +248,9 @@ const Login = () => {
                   <span className="checkmark"></span>
                   Remember me
                 </label>
+                <button type="button" onClick={() => void handleForgotPassword()} style={{ border: 0, background: 'transparent', color: '#0038A8', cursor: 'pointer', fontWeight: 700, padding: 0 }}>
+                  Forgot password?
+                </button>
               </div>
 
               <button type="submit" className="submit-btn" disabled={loading}>

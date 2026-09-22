@@ -6,6 +6,7 @@ import { endpoints } from '../config/api';
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { isDirectoryPurok } from '../config/addressDirectory';
 
 export const LEGAL_POLICY_VERSION = '2026-09-08-capstone-v1';
 
@@ -151,8 +152,12 @@ export const useSignup = () => {
       if (normalizedNationality !== formData.nationality) {
         handleInputChange('nationality', normalizedNationality);
       }
-      if (!formData.completeAddress) {
-        showNotification('Complete Address is required.', 'error');
+      if (!isDirectoryPurok(formData.purok)) {
+        showNotification('Please select your Purok / Sitio.', 'error');
+        return;
+      }
+      if (formData.completeAddress.trim().length < 5) {
+        showNotification('Enter a street, sitio, or nearby landmark (at least 5 characters).', 'error');
         return;
       }
       if (!formData.voterStatus) {
@@ -178,9 +183,9 @@ export const useSignup = () => {
       showNotification('Password is required.', 'error');
       return;
     }
-    // Minimum 8 chars & 1 special character validation
-    if (formData.password.length < 8 || !/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
-      showNotification('Password must be 8+ chars and have a special symbol', 'error');
+    // Match the password-change policy: length plus every character class.
+    if (formData.password.length < 8 || !/[A-Z]/.test(formData.password) || !/[a-z]/.test(formData.password) || !/\d/.test(formData.password) || !/[^A-Za-z0-9]/.test(formData.password)) {
+      showNotification('Use 8+ characters with uppercase, lowercase, a number, and a special character.', 'error');
       return;
     }
 

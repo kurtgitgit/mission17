@@ -22,8 +22,14 @@ const normalizeMissionData = (body = {}) => {
   return data;
 };
 
+const hasMeaningfulText = (value) => {
+  const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
+  return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
+};
+
 const validateMission = ({ title, sdgNumber, description, color }) => {
   if (typeof title !== 'string' || title.length < 3 || title.length > 120) return 'Mission title must be between 3 and 120 characters.';
+  if (!hasMeaningfulText(title)) return 'Mission title must contain meaningful text, not only repeated numbers or symbols.';
   if (!Number.isInteger(sdgNumber) || sdgNumber < 1 || sdgNumber > 17) return 'SDG number must be a whole number from 1 to 17.';
   if (description !== undefined && typeof description !== 'string') return 'Description must be text.';
   if (typeof description === 'string' && description.length > 1000) return 'Description cannot exceed 1,000 characters.';
@@ -73,6 +79,21 @@ router.get('/all-missions', asyncHandler(async (req, res) => {
   });
 }));
 
+// GET /admin-missions — Admin: include active or archived records for management.
+router.get('/admin-missions', verifyAdmin, asyncHandler(async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 10));
+  const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
+  const query = req.query.status === 'archived' ? { isActive: false } : { isActive: { $ne: false } };
+  if (search) query.$or = [{ title: { $regex: search, $options: 'i' } }];
+
+  const [missions, total] = await Promise.all([
+    Mission.find(query).sort({ sdgNumber: 1, createdAt: -1 }).skip((page - 1) * limit).limit(limit),
+    Mission.countDocuments(query)
+  ]);
+  res.json({ data: missions, total, page, totalPages: Math.ceil(total / limit) });
+}));
+
 // POST /add-mission — Admin
 router.post('/add-mission', verifyAdmin, asyncHandler(async (req, res) => {
   const missionData = normalizeMissionData(req.body);
@@ -97,6 +118,30 @@ router.put('/update-mission/:id', verifyAdmin, asyncHandler(async (req, res) => 
   const mission = await Mission.findByIdAndUpdate(req.params.id, missionData, { new: true, runValidators: true });
   logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_UPDATE', `Updated mission: ${mission.title}`, req);
   res.json(mission);
+}));
+
+// PATCH /archive-mission/:id — Admin: preserve mission history while hiding it from residents.
+router.patch('/archive-mission/:id', verifyAdmin, asyncHandler(async (req, res) => {
+  const mission = await Mission.findById(req.params.id);
+  if (!mission) return res.status(404).json({ message: 'Mission not found.' });
+  if (mission.isActive === false) return res.status(409).json({ message: 'This mission is already archived.' });
+  mission.isActive = false;
+  await mission.save();
+  logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_ARCHIVE', `Archived mission: ${mission.title}`, req);
+  res.json({ message: 'Mission archived. Its participation history is preserved.', mission });
+}));
+
+// PATCH /restore-mission/:id — Admin: return an archived mission to resident visibility.
+router.patch('/restore-mission/:id', verifyAdmin, asyncHandler(async (req, res) => {
+  const mission = await Mission.findById(req.params.id);
+  if (!mission) return res.status(404).json({ message: 'Mission not found.' });
+  if (mission.isActive !== false) return res.status(409).json({ message: 'This mission is already active.' });
+  const duplicate = await Mission.findOne({ title: mission.title, sdgNumber: mission.sdgNumber, isActive: { $ne: false }, _id: { $ne: mission._id } });
+  if (duplicate) return res.status(409).json({ message: 'An active mission with the same title and SDG already exists.' });
+  mission.isActive = true;
+  await mission.save();
+  logAudit(req.user.id, req.user.username, 'ADMIN_MISSION_RESTORE', `Restored mission: ${mission.title}`, req);
+  res.json({ message: 'Mission restored and visible to residents.', mission });
 }));
 
 // DELETE /delete-mission/:id — Admin

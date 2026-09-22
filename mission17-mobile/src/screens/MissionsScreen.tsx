@@ -13,12 +13,19 @@ import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
+const PAGE_SIZE = 10;
+
 const MissionsScreen = ({ navigation, route }: any) => {
   const { showNotification } = useNotification();
   const { theme } = useTheme();
   
   const [missions, setMissions] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
+  const [missionPage, setMissionPage] = useState(1);
+  const [missionTotalPages, setMissionTotalPages] = useState(1);
+  const [eventPage, setEventPage] = useState(1);
+  const [eventTotalPages, setEventTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState<'missions' | 'events' | null>(null);
   const [completedMissions, setCompletedMissions] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -33,8 +40,8 @@ const MissionsScreen = ({ navigation, route }: any) => {
     try {
       setLoadError(null);
       const [missionRes, eventRes] = await Promise.all([
-        fetchWithTimeout(endpoints.missions),
-        fetchWithTimeout(endpoints.events),
+        fetchWithTimeout(`${endpoints.missions}?page=1&limit=${PAGE_SIZE}`),
+        fetchWithTimeout(`${endpoints.events}?page=1&limit=${PAGE_SIZE}`),
       ]);
 
       if (!missionRes.ok || !eventRes.ok) throw new Error('Civic opportunities request failed');
@@ -42,11 +49,15 @@ const MissionsScreen = ({ navigation, route }: any) => {
       if (missionRes.ok) {
         const missionData = await missionRes.json();
         setMissions(Array.isArray(missionData) ? missionData : (Array.isArray(missionData.data) ? missionData.data : []));
+        setMissionPage(missionData.page || 1);
+        setMissionTotalPages(missionData.totalPages || 1);
       }
 
       if (eventRes.ok) {
         const eventData = await eventRes.json();
         setEvents(Array.isArray(eventData) ? eventData : (Array.isArray(eventData.data) ? eventData.data : []));
+        setEventPage(eventData.page || 1);
+        setEventTotalPages(eventData.totalPages || 1);
       }
 
       if (userId) {
@@ -98,6 +109,35 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
+  };
+
+  const loadMore = async (type: 'missions' | 'events') => {
+    const currentPage = type === 'missions' ? missionPage : eventPage;
+    const totalPages = type === 'missions' ? missionTotalPages : eventTotalPages;
+    if (loadingMore || currentPage >= totalPages) return;
+
+    setLoadingMore(type);
+    try {
+      const endpoint = type === 'missions' ? endpoints.missions : endpoints.events;
+      const response = await fetchWithTimeout(`${endpoint}?page=${currentPage + 1}&limit=${PAGE_SIZE}`);
+      if (!response.ok) throw new Error(`Could not load more ${type}.`);
+      const payload = await response.json();
+      const nextItems = Array.isArray(payload) ? payload : (Array.isArray(payload.data) ? payload.data : []);
+      const appendUnique = (current: any[]) => [...current, ...nextItems.filter((item: any) => !current.some(existing => existing._id === item._id))];
+      if (type === 'missions') {
+        setMissions(appendUnique);
+        setMissionPage(payload.page || currentPage + 1);
+        setMissionTotalPages(payload.totalPages || totalPages);
+      } else {
+        setEvents(appendUnique);
+        setEventPage(payload.page || currentPage + 1);
+        setEventTotalPages(payload.totalPages || totalPages);
+      }
+    } catch (error) {
+      showNotification({ message: getFriendlyNetworkMessage(error, 'Could not load more items. Please try again.'), type: 'error' });
+    } finally {
+      setLoadingMore(null);
+    }
   };
 
   const handlePressMission = (item: any) => {
@@ -159,7 +199,8 @@ const MissionsScreen = ({ navigation, route }: any) => {
     const dateObj = new Date(item.date);
     const month = dateObj.toLocaleString('en-PH', { month: 'short' });
     const day = dateObj.getDate();
-    const timeStr = item.time || dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const startTime = item.time || dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = item.endTime ? `${startTime} – ${item.endTime}` : startTime;
     const hasImage = !!item.image;
 
     return (
@@ -215,6 +256,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
   const filteredMissions = activeTab === 'missions'
     ? (selectedSDG ? missions.filter(m => m.sdgNumber?.toString() === selectedSDG) : missions)
     : events;
+  const canLoadMore = activeTab === 'missions' ? missionPage < missionTotalPages : eventPage < eventTotalPages;
 
   return (
     <RootComponent style={styles.container}>
@@ -291,7 +333,7 @@ const MissionsScreen = ({ navigation, route }: any) => {
         <FlatList
           data={filteredMissions}
           renderItem={activeTab === 'missions' ? renderCard : renderEventCard}
-          keyExtractor={(item) => item._id || Math.random().toString()}
+          keyExtractor={(item, index) => item._id || `${activeTab}-${item.title || 'item'}-${index}`}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -312,6 +354,17 @@ const MissionsScreen = ({ navigation, route }: any) => {
               </Text>
             </View>
           }
+          ListFooterComponent={canLoadMore ? (
+            <TouchableOpacity
+              style={[styles.loadMoreButton, loadingMore === activeTab && styles.loadMoreButtonDisabled]}
+              disabled={loadingMore !== null}
+              onPress={() => void loadMore(activeTab)}
+              accessibilityRole="button"
+              accessibilityLabel={`Load more ${activeTab}`}
+            >
+              {loadingMore === activeTab ? <ActivityIndicator color="#0038A8" /> : <Text style={styles.loadMoreText}>Load More</Text>}
+            </TouchableOpacity>
+          ) : null}
         />
       )}
     </RootComponent>
@@ -386,6 +439,9 @@ const styles = StyleSheet.create({
   },
 
   listContent: { padding: 14, paddingBottom: 60 },
+  loadMoreButton: { alignSelf: 'center', minWidth: 150, alignItems: 'center', justifyContent: 'center', marginTop: 4, marginBottom: 18, paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, borderWidth: 1, borderColor: '#93c5fd', backgroundColor: '#eff6ff' },
+  loadMoreButtonDisabled: { opacity: 0.65 },
+  loadMoreText: { color: '#0038A8', fontWeight: '800', fontSize: 14 },
 
   // CARDS
   card: {
