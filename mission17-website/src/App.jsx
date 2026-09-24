@@ -1,6 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { Smartphone, ArrowRight, FileText, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Menu } from 'lucide-react';
 
+const OFFICIALS = [
+  { name: 'Rogie B. Quillope', position: 'Punong Barangay', contact: '09544153509', term: '2023 - 2026' },
+  { name: 'John Benedict B. Zarate', position: 'Barangay Kagawad', committee: 'Health & Sanitation', termNumber: '1st Term' },
+  { name: 'Armando M. Quillope Jr', position: 'Barangay Kagawad', committee: 'Appropriation', termNumber: 'Last Term' },
+  { name: 'Juan C. Fontalba', position: 'Barangay Kagawad', committee: 'Infrastructure', termNumber: '1st Term' },
+  { name: 'Jose A. Malinao', position: 'Barangay Kagawad', committee: 'Environmental Protection', termNumber: '1st Term' },
+  { name: 'Joel F. Ramos', position: 'Barangay Kagawad', committee: 'Agricultural', termNumber: '2nd Term' },
+  { name: 'Juanito R. Ramos', position: 'Barangay Kagawad', committee: 'Peace and Order', termNumber: '2nd Term' },
+  { name: 'Kerubin C. Ramos', position: 'Barangay Kagawad', committee: 'Education', termNumber: '1st Term' },
+  { name: 'Bhea Monique San Miguel', position: 'Barangay Secretary', contact: '09916982914', email: 'b.pag.asasj@gmail.com' },
+  { name: 'Raymond Bautista', position: 'Chief Tanod', contact: '09336828737' },
+  { name: 'Zenaida Velasco', position: 'BHW President', contact: '09074401517' },
+];
+
 function FadeInSection(props) {
   const [isVisible, setVisible] = useState(false);
   const domRef = useRef(null);
@@ -97,7 +111,7 @@ function App() {
       {/* Hero Section */}
       <header className="hero-container" style={{ 
         padding: '8rem 5% 10rem', 
-        background: 'linear-gradient(to right, rgba(0, 43, 127, 0.95) 0%, rgba(0, 43, 127, 0.7) 40%, rgba(0, 43, 127, 0.2) 100%), url("/bridge_bg.jpg") center/cover no-repeat',
+        background: 'radial-gradient(circle at 78% 32%, rgba(255, 213, 43, 0.20) 0, rgba(255, 213, 43, 0) 24%), radial-gradient(circle at 82% 80%, rgba(35, 211, 166, 0.20) 0, rgba(35, 211, 166, 0) 30%), linear-gradient(125deg, #001a57 0%, #003f9e 52%, #0759bc 100%)',
         position: 'relative',
         borderBottom: '4px solid var(--accent-gold)',
         display: 'flex',
@@ -127,6 +141,12 @@ function App() {
               Learn More About Us
             </button>
           </div>
+        </div>
+        <div className="hero-brand-mark" aria-hidden="true">
+          <div className="hero-brand-ring hero-brand-ring-one" />
+          <div className="hero-brand-ring hero-brand-ring-two" />
+          <img src="/logo.png" alt="" />
+          <span>Barangay Bagong Pag-asa</span>
         </div>
       </header>
 
@@ -232,38 +252,29 @@ function App() {
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', alignItems: 'center' }}>
-              
-              {/* Punong Barangay */}
-              <div style={{ background: 'var(--bg-light)', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '350px', border: '1px solid var(--border-light)', boxShadow: '0 20px 40px rgba(0,43,127,0.05)' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-blue), #1e40af)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', marginBottom: '1.5rem', border: '4px solid var(--accent-gold)' }}>
-                  <User size={50} />
+              {OFFICIALS.filter(({ position }) => position === 'Punong Barangay').map((official) => (
+                <div key={official.name} style={{ background: 'var(--bg-light)', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '350px', border: '1px solid var(--border-light)', boxShadow: '0 20px 40px rgba(0,43,127,0.05)' }}>
+                  <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-blue), #1e40af)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', marginBottom: '1.5rem', border: '4px solid var(--accent-gold)' }}><User size={50} /></div>
+                  <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', fontWeight: 800, marginBottom: '0.25rem' }}>{official.name}</h4>
+                  <p style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>{official.position}</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Term: {official.term}</p>
+                  <a href={`tel:${official.contact}`} style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.9rem', marginTop: '0.6rem' }}>{official.contact}</a>
                 </div>
-                <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', fontWeight: 800, marginBottom: '0.25rem' }}>Juan Dela Cruz</h4>
-                <p style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Punong Barangay</p>
-              </div>
+              ))}
 
-              {/* Kagawads Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', width: '100%' }}>
-                {[1, 2, 3, 4, 5, 6, 7].map((num) => (
-                  <div key={num} style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}>
-                      <User size={35} />
-                    </div>
-                    <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>Kagawad Name {num}</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Barangay Kagawad</p>
+                {OFFICIALS.filter(({ position }) => position !== 'Punong Barangay').map((official) => (
+                  <div key={official.name} style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}><User size={35} /></div>
+                    <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>{official.name}</h4>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>{official.position}</p>
+                    {official.committee && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>Committee on {official.committee}</p>}
+                    {official.termNumber && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.3rem' }}>{official.termNumber} · Term 2023 - 2026</p>}
+                    {official.contact && <a href={`tel:${official.contact}`} style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.9rem', marginTop: '0.65rem' }}>{official.contact}</a>}
+                    {official.email && <a href={`mailto:${official.email}`} style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.4rem', overflowWrap: 'anywhere' }}>{official.email}</a>}
                   </div>
                 ))}
-                
-                {/* SK Chairperson */}
-                <div style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}>
-                    <User size={35} />
-                  </div>
-                  <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>SK Name</h4>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>SK Chairperson</p>
-                </div>
               </div>
-
             </div>
           </div>
         </FadeInSection>

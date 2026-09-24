@@ -99,6 +99,74 @@ a { color: var(--bright-blue); text-decoration: none; }
   letter-spacing: -1px;
 }
 
+.hero-brand-mark {
+  position: relative;
+  isolation: isolate;
+  width: min(30vw, 340px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  flex: 0 1 340px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  background: rgba(0, 28, 91, 0.24);
+  box-shadow: 0 28px 64px rgba(0, 12, 49, 0.30), inset 0 0 48px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(4px);
+}
+
+.hero-brand-mark::before,
+.hero-brand-mark::after,
+.hero-brand-ring {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.hero-brand-mark::before {
+  inset: 8%;
+  border: 1px solid rgba(255, 213, 43, 0.52);
+}
+
+.hero-brand-mark::after {
+  inset: 20%;
+  border: 1px solid rgba(255, 255, 255, 0.20);
+}
+
+.hero-brand-ring-one {
+  width: 106%;
+  height: 106%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transform: rotate(-20deg) scaleY(0.62);
+}
+
+.hero-brand-ring-two {
+  width: 84%;
+  height: 84%;
+  border: 1px solid rgba(35, 211, 166, 0.50);
+  transform: rotate(28deg) scaleY(0.58);
+}
+
+.hero-brand-mark img {
+  width: 52%;
+  height: auto;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 12px 18px rgba(0, 12, 49, 0.36));
+}
+
+.hero-brand-mark span {
+  position: absolute;
+  bottom: 17%;
+  z-index: 1;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: clamp(0.66rem, 1.2vw, 0.82rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .card {
   background: white;
   border-radius: 12px;
@@ -283,6 +351,11 @@ a { color: var(--bright-blue); text-decoration: none; }
   .hero-text-block {
     flex: 1 1 100% !important;
     max-width: 100% !important;
+  }
+
+  .hero-brand-mark {
+    width: min(62vw, 290px);
+    flex-basis: auto;
   }
   
   .hero-text-block p {
