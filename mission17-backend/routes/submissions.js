@@ -115,7 +115,8 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
       submission: newSubmission,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error' });
+    console.error('[POST /api/auth/submit-mission] Submission failed:', error);
+    res.status(500).json({ message: 'Unable to save the proof image. Please try again later.' });
   }
 });
 

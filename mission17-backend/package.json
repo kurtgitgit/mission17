@@ -10,7 +10,9 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "eslint .",
     "promote:super-admin": "node promoteSuperAdmin.js",
-    "officials:replace-roster": "node scripts/replace-official-roster.js"
+    "admin:bootstrap": "node scripts/bootstrap-super-admin.js",
+    "officials:replace-roster": "node scripts/replace-official-roster.js",
+    "civic:purge-mock-content": "node scripts/purge-civic-content.js"
   },
   "keywords": [],
   "author": "",

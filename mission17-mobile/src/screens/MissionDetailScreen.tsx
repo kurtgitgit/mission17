@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Camera, ArrowLeft, CheckCircle, ShieldCheck, AlertCircle, RefreshCw, UploadCloud } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import * as Location from 'expo-location';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,6 +13,7 @@ import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 import { sharedStyles } from '../config/theme';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { createProofImagePayload } from '../utils/proofImage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -95,22 +95,6 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const getBase64 = async (uri: string) => {
-    if (Platform.OS === 'web') {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } else {
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-      return `data:image/jpeg;base64,${base64}`;
-    }
-  };
-
   const handleSubmit = async () => {
     if (!userId) {
       showNotification({ message: "Please log in to submit proof.", type: "error" });
@@ -124,7 +108,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
-      const imagePayload = await getBase64(imageUri);
+      const imagePayload = await createProofImagePayload(imageUri);
 
       const response = await fetchWithTimeout(endpoints.auth.submitMission, {
         method: 'POST',

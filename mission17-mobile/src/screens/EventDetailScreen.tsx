@@ -5,10 +5,10 @@ import {
 } from 'react-native';
 import { Camera, ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system/legacy';
 import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { createProofImagePayload } from '../utils/proofImage';
 
 // --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
 
@@ -57,22 +57,6 @@ const EventDetailScreen = ({ route, navigation }: any) => {
     if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
-  const getBase64 = async (uri: string) => {
-    if (Platform.OS === 'web') {
-      const response = await fetch(uri);
-      const blob = await response.blob();
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-    } else {
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
-      return `data:image/jpeg;base64,${base64}`;
-    }
-  };
-
   const handleSubmit = async () => {
     if (!userId) {
       showNotification("User ID missing.", "error");
@@ -86,7 +70,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
     setLoading(true);
 
     try {
-      const imagePayload = await getBase64(imageUri);
+      const imagePayload = await createProofImagePayload(imageUri);
 
       // AI assessment is performed through the authenticated backend workflow,
       // never directly from a mobile client.
