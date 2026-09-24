@@ -7,7 +7,7 @@ import { Camera, ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react-nativ
 import * as ImagePicker from 'expo-image-picker';
 import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchWithTimeout, getFriendlyNetworkMessage, readApiJson } from '../utils/network';
 import { createProofImagePayload } from '../utils/proofImage';
 
 // --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
@@ -84,12 +84,12 @@ const EventDetailScreen = ({ route, navigation }: any) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await readApiJson<{ message?: string }>(response);
 
       if (response.ok) {
         setSubmitted(true);
         navigation.navigate('Home', { screen: 'HomeTab', params: { userId, refresh: true } });
-        showNotification("🚀 Proof Submitted! Awaiting Admin Verification.", "success");
+        showNotification("Proof submitted! Awaiting Barangay evaluation.", "success");
       } else {
         showNotification(data.message || "Submission failed", "error");
       }

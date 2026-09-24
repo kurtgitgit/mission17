@@ -173,6 +173,11 @@ app.use('/api/suggestions', suggestionRoutes);
 app.use((err, req, res, _next) => {
   console.error(`[${req.method} ${req.path}]`, err.message);
   const status = err.status || err.statusCode || 500;
+  if (status === 413 || err.type === 'entity.too.large') {
+    return res.status(413).json({
+      message: 'The proof photo is too large. Please retake it and try again.',
+    });
+  }
   res.status(status).json({ message: err.message || 'Internal Server Error' });
 });
 

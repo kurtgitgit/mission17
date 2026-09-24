@@ -6,13 +6,12 @@ import {
 import { Camera, ArrowLeft, CheckCircle, ShieldCheck, AlertCircle, RefreshCw, UploadCloud } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 import { sharedStyles } from '../config/theme';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchWithTimeout, getFriendlyNetworkMessage, readApiJson } from '../utils/network';
 import { createProofImagePayload } from '../utils/proofImage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -82,16 +81,9 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         // Continue if GPS unavailable
       }
 
-      try {
-        const manipResult = await ImageManipulator.manipulateAsync(
-          asset.uri,
-          [{ resize: { width: 800 } }],
-          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        setImageUri(manipResult.uri);
-      } catch {
-        setImageUri(asset.uri);
-      }
+      // Keep the original camera URI for preview. The shared proof helper does
+      // one controlled compression pass immediately before upload.
+      setImageUri(asset.uri);
     }
   };
 
@@ -119,7 +111,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
         }),
       });
 
-      const data = await response.json();
+      const data = await readApiJson<{ message?: string }>(response);
 
       if (response.ok) {
         setSubmitted(true);
@@ -139,7 +131,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
     } catch (error) {
       console.error("Submit Error:", error);
       showNotification({
-        title: "Network Error",
+        title: "Submission Failed",
         message: getFriendlyNetworkMessage(error, 'Could not submit your proof. Please try again.'),
         type: "error"
       });
