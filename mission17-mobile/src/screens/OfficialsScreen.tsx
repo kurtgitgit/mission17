@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { BARANGAY_INFO } from '../config/barangayInfo';
 
 const OfficialsScreen: React.FC = () => {
   const [officials, setOfficials] = useState<any[]>([]);
@@ -69,6 +70,7 @@ const OfficialsScreen: React.FC = () => {
         </View>
         {item.committee ? <Text style={styles.committee}>Chairperson, Committee on {item.committee}</Text> : null}
         {item.term ? <Text style={styles.term}>Term: {item.term}</Text> : null}
+        {item.termNumber ? <Text style={styles.term}>Term number: {item.termNumber} term</Text> : null}
 
         <View style={styles.contactRow}>
           {item.contact ? (
@@ -141,7 +143,7 @@ const OfficialsScreen: React.FC = () => {
           <View style={{ flex: 1 }}>
             <Text style={styles.bannerTitle}>Barangay Bagong Pag-asa Council</Text>
             <Text style={styles.bannerText}>
-              San Jacinto, Pangasinan • Office Hours: Mon–Fri, 8:00 AM – 5:00 PM
+              {BARANGAY_INFO.municipality} • Office Hours: {BARANGAY_INFO.officeDays}, {BARANGAY_INFO.officeHours}
             </Text>
           </View>
         </View>

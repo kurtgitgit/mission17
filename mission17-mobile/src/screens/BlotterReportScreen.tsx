@@ -16,9 +16,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { PUROK_OPTIONS } from '../config/addressDirectory';
+import CustomDropdown from '../components/CustomDropdown';
 
 const INCIDENT_TYPES = ['Disturbance', 'Theft', 'Vandalism', 'Accident', 'Other'];
-const INCIDENT_LOCATIONS = ['Purok 7', 'Barangay Hall', 'Covered Court', 'Other / specify'];
 
 const DRAFT_STORAGE_KEY = 'brgy_blotter_draft_v1';
 
@@ -31,8 +32,7 @@ const BlotterReportScreen = () => {
   const [customIncidentType, setCustomIncidentType] = useState('');
   const [description, setDescription]     = useState('');
   const [location, setLocation]           = useState('');
-  const [customLocation, setCustomLocation] = useState('');
-  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [incidentPurok, setIncidentPurok] = useState('');
   const [incidentDateTime, setIncidentDateTime] = useState(new Date());
   const [incidentDateSelected, setIncidentDateSelected] = useState(false);
   const [incidentTimeSelected, setIncidentTimeSelected] = useState(false);
@@ -82,8 +82,10 @@ const BlotterReportScreen = () => {
         if (parsed.incidentType) setIncidentType(parsed.incidentType);
         if (parsed.customIncidentType) setCustomIncidentType(parsed.customIncidentType);
         if (parsed.description) setDescription(parsed.description);
-        if (parsed.location) setLocation(parsed.location);
-        if (parsed.customLocation) setCustomLocation(parsed.customLocation);
+        // Preserve drafts created before the exact-location field replaced the old picker.
+        if (parsed.location === 'Other / specify' && parsed.customLocation) setLocation(parsed.customLocation);
+        else if (parsed.location) setLocation(parsed.location);
+        if (PUROK_OPTIONS.includes(parsed.incidentPurok)) setIncidentPurok(parsed.incidentPurok);
         if (parsed.incidentDateTime && !Number.isNaN(new Date(parsed.incidentDateTime).getTime())) setIncidentDateTime(new Date(parsed.incidentDateTime));
         setIncidentDateSelected(Boolean(parsed.incidentDateSelected));
         setIncidentTimeSelected(Boolean(parsed.incidentTimeSelected));
@@ -103,7 +105,7 @@ const BlotterReportScreen = () => {
         customIncidentType,
         description,
         location,
-        customLocation,
+        incidentPurok,
         incidentDateTime: incidentDateTime.toISOString(),
         incidentDateSelected,
         incidentTimeSelected,
@@ -185,9 +187,9 @@ const BlotterReportScreen = () => {
       }
     }
 
-    const cleanLocation = (location === 'Other / specify' ? customLocation : location).trim();
+    const cleanLocation = location.trim();
     if (!cleanLocation || cleanLocation.length < 5 || !/[a-zA-Z]/.test(cleanLocation) || /^(.)\1+$/.test(cleanLocation))
-      newErrors.location = 'Please specify the exact street, purok, or landmark in Bagong Pag-asa.';
+      newErrors.location = 'Please enter the exact incident location inside Barangay Bagong Pag-asa.';
 
     if (!incidentDateSelected) newErrors.incidentDate = 'Please select the date when the incident happened.';
     if (!incidentTimeSelected) newErrors.incidentTime = 'Please select the time when the incident happened.';
@@ -225,7 +227,7 @@ const BlotterReportScreen = () => {
           contactNumber:   contactNumber.trim(),
           incidentType:    incidentType,
           description:     finalDescription,
-          location:        (location === 'Other / specify' ? customLocation : location).trim(),
+          location:        incidentPurok ? `${location.trim()} (${incidentPurok})` : location.trim(),
           dateOfIncident:  incidentDateTime.toISOString(),
           evidenceUrl:     evidenceBase64 || null,
         }),
@@ -240,7 +242,7 @@ const BlotterReportScreen = () => {
         setCustomIncidentType('');
         setDescription('');
         setLocation('');
-        setCustomLocation('');
+        setIncidentPurok('');
         setIncidentDateTime(new Date());
         setIncidentDateSelected(false);
         setIncidentTimeSelected(false);
@@ -575,38 +577,38 @@ const BlotterReportScreen = () => {
           {/* LOCATION */}
           <View style={[styles.inputGroup, { marginTop: 14 }]}>
             <Text style={styles.fieldLabel}>
-              Location of Incident <Text style={styles.requiredStar}>*</Text>
+              Exact Incident Location <Text style={styles.requiredStar}>*</Text>
             </Text>
-            <TouchableOpacity
-              style={[styles.inputBox, errors.location ? styles.inputBoxError : null]}
-              onPress={() => setShowLocationPicker(true)}
-              accessibilityRole="button"
-              accessibilityLabel="Choose incident location"
-            >
+            <View style={[styles.inputBox, errors.location ? styles.inputBoxError : null]}>
               <MapPin size={18} color="#64748b" style={styles.inputIcon} />
-              <Text style={[styles.textInputField, { paddingTop: 12, color: location ? colors.textPrimary : colors.textMuted }]}>
-                {location || 'Choose a purok or barangay landmark'}
-              </Text>
-            </TouchableOpacity>
-            {location === 'Other / specify' && (
-              <View style={[styles.inputBox, errors.location ? styles.inputBoxError : null, { marginTop: 10 }]}>
-                <MapPin size={18} color="#64748b" style={styles.inputIcon} />
-                <TextInput
-                  style={styles.textInputField}
-                  placeholder="Specify the street, purok, or landmark"
-                  placeholderTextColor={colors.textMuted}
-                  value={customLocation}
-                  onChangeText={(t) => { setCustomLocation(t); setErrors(e => ({ ...e, location: '' })); }}
-                  accessibilityLabel="Specify incident location"
-                />
-              </View>
-            )}
+              <TextInput
+                style={styles.textInputField}
+                placeholder="Street, house, business, or nearby landmark"
+                placeholderTextColor={colors.textMuted}
+                value={location}
+                maxLength={250}
+                onChangeText={(t) => { setLocation(t); setErrors(e => ({ ...e, location: '' })); }}
+                accessibilityLabel="Exact incident location"
+              />
+            </View>
+            <Text style={styles.helperText}>Describe the exact place inside Barangay Bagong Pag-asa.</Text>
             {errors.location ? (
               <View style={styles.errorRow}>
                 <AlertCircle size={13} color="#dc2626" />
                 <Text style={styles.errorText}>{errors.location}</Text>
               </View>
             ) : null}
+          </View>
+
+          <View style={[styles.inputGroup, { marginTop: 2 }]}>
+            <Text style={styles.fieldLabel}>Purok <Text style={{ color: colors.textMuted, fontWeight: '500' }}>(optional)</Text></Text>
+            <CustomDropdown
+              label="Select Purok"
+              value={incidentPurok}
+              options={[...PUROK_OPTIONS]}
+              onSelect={setIncidentPurok}
+            />
+            <Text style={styles.helperText}>Use this only if you know the incident's Purok.</Text>
           </View>
 
           <View style={[styles.inputGroup, { marginTop: 6 }]}>
@@ -736,25 +738,6 @@ const BlotterReportScreen = () => {
         </View>
 
       </ScrollView>
-
-      <Modal visible={showLocationPicker} transparent animationType="slide" onRequestClose={() => setShowLocationPicker(false)}>
-        <View style={styles.locationModalBackdrop}>
-          <View style={styles.locationModalCard}>
-            <Text style={styles.locationModalTitle}>Choose Incident Location</Text>
-            {INCIDENT_LOCATIONS.map((item) => (
-              <TouchableOpacity key={item} style={styles.locationOption} onPress={() => {
-                setLocation(item);
-                setCustomLocation('');
-                setErrors(e => ({ ...e, location: '' }));
-                setShowLocationPicker(false);
-              }}>
-                <Text style={styles.locationOptionText}>{item}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.locationCancel} onPress={() => setShowLocationPicker(false)}><Text style={styles.locationCancelText}>Cancel</Text></TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* FOOTER CTA WITH DRAFT SAVE & SUBMIT */}
       <View style={styles.footer}>
@@ -1237,43 +1220,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyShortcutLink: {
-    color: '#0038A8',
-    fontWeight: '800',
-  },
-  locationModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  locationModalCard: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    padding: 20,
-    paddingBottom: 30,
-  },
-  locationModalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 10,
-  },
-  locationOption: {
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-  },
-  locationOptionText: {
-    fontSize: 15,
-    color: '#334155',
-    fontWeight: '600',
-  },
-  locationCancel: {
-    marginTop: 14,
-    alignItems: 'center',
-    padding: 12,
-  },
-  locationCancelText: {
     color: '#0038A8',
     fontWeight: '800',
   },

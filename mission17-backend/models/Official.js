@@ -7,6 +7,7 @@ const OfficialSchema = new mongoose.Schema({
   contact: { type: String, default: null, match: [/^09\d{9}$/, 'Contact must be an 11-digit Philippine mobile number.'] },
   email: { type: String, trim: true, maxlength: 254, default: null },
   term: { type: String, default: null, match: [/^\d{4}\s*[-–]\s*\d{4}$/, 'Term must use the format YYYY - YYYY.'] },
+  termNumber: { type: String, enum: ['1st', '2nd', 'Last'], default: null },
   // Normalized name + position + term.  Sparse keeps legacy records valid
   // until they are edited, while preventing new duplicate council profiles.
   identityKey: { type: String, unique: true, sparse: true, select: false },

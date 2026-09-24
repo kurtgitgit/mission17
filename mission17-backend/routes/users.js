@@ -320,7 +320,7 @@ router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
 // 5b. GET USER IDS (Admin)
 router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('validIdFrontUrl validIdBackUrl');
+    const user = await User.findById(req.params.id).select('idType validIdFrontUrl validIdBackUrl');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const formatUrl = (uri) => {
@@ -334,6 +334,7 @@ router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
     };
 
     res.json({
+      idType: user.idType || null,
       front: formatUrl(user.validIdFrontUrl),
       back: formatUrl(user.validIdBackUrl)
     });

@@ -2,7 +2,7 @@ const GENDERS = new Set(['Male', 'Female', 'Other', 'Prefer not to say']);
 const CIVIL_STATUSES = new Set(['Single', 'Married', 'Widowed', 'Separated']);
 const VOTER_STATUSES = new Set(['Registered', 'Not Registered']);
 const EMPLOYMENT_STATUSES = new Set(['Employed', 'Self-Employed', 'Unemployed', 'Student', 'Retired']);
-const PROVISIONAL_PUROKS = new Set(['Purok 7', 'Other / Not listed']);
+const CONFIRMED_PUROKS = new Set(['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5', 'Purok 6', 'Purok 7']);
 const PERSON_NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u;
 
 const PROFILE_TEXT_LIMITS = {
@@ -39,9 +39,30 @@ export const RESIDENT_PROFILE_FIELDS = Object.freeze([
 
 const normalizeText = value => value.trim().replace(/\s+/g, ' ');
 
+const parseBirthDate = birthDate => {
+  if (typeof birthDate !== 'string') return null;
+  const normalized = birthDate.trim();
+  const usDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(normalized);
+  const isoDate = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:T.*)?$/.exec(normalized);
+
+  const year = usDate ? Number(usDate[3]) : isoDate ? Number(isoDate[1]) : NaN;
+  const month = usDate ? Number(usDate[1]) : isoDate ? Number(isoDate[2]) : NaN;
+  const day = usDate ? Number(usDate[2]) : isoDate ? Number(isoDate[3]) : NaN;
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+
+  const parsed = new Date(year, month - 1, day, 12);
+  if (
+    parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) return null;
+
+  return parsed;
+};
+
 const calculateAge = birthDate => {
-  const parsed = new Date(birthDate);
-  if (Number.isNaN(parsed.getTime())) return null;
+  const parsed = parseBirthDate(birthDate);
+  if (!parsed) return null;
   const now = new Date();
   let age = now.getFullYear() - parsed.getFullYear();
   const monthDifference = now.getMonth() - parsed.getMonth();
@@ -79,7 +100,7 @@ export const validateResidentProfile = (profile, { requireCore = false, minimumA
     ['gender', 'Gender'],
     ['civilStatus', 'Civil status'],
     ['nationality', 'Nationality'],
-    ['purok', 'Purok / Sitio'],
+    ['purok', 'Purok'],
     ['completeAddress', 'Complete address'],
     ['mobileNumber', 'Mobile number'],
     ['voterStatus', 'Voter status']
@@ -130,8 +151,8 @@ export const validateResidentProfile = (profile, { requireCore = false, minimumA
   if (profile.completeAddress !== undefined && profile.completeAddress.length < 5) {
     return 'Complete address must contain at least 5 characters.';
   }
-  if (requireCore && !PROVISIONAL_PUROKS.has(profile.purok)) {
-    return 'Please select a valid Purok / Sitio.';
+  if (requireCore && !CONFIRMED_PUROKS.has(profile.purok)) {
+    return 'Please select a valid Purok.';
   }
   if (profile.voterStatus !== undefined && !VOTER_STATUSES.has(profile.voterStatus)) return 'Please select a valid voter status.';
   if (profile.employmentStatus !== undefined && profile.employmentStatus && !EMPLOYMENT_STATUSES.has(profile.employmentStatus)) {

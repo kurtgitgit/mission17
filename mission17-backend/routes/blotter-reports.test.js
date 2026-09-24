@@ -226,7 +226,7 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       expect(report.save).not.toHaveBeenCalled();
     });
 
-    it('allows a regular admin to maintain hearing details without changing status', async () => {
+    it('requires a hearing date and presiding officer before a regular admin can schedule a hearing', async () => {
       const report = makeReport();
       BlotterReport.findById.mockResolvedValue(report);
 
@@ -234,10 +234,52 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
         .patch('/api/blotter-reports/reportABC/status')
         .set('x-mock-user-id', 'admin123')
         .set('x-mock-user-role', 'admin')
-        .send({ status: 'Pending', respondentName: 'Respondent', hearingStage: 'Mediation (1st Hearing)' });
+        .send({ status: 'Pending', hearingStage: 'Mediation (1st Hearing)' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('hearing date and time');
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('requires a presiding officer before a regular admin can schedule a hearing', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          hearingStage: 'Mediation (1st Hearing)',
+          hearingDate: '2026-09-26T09:30:00.000Z',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('presiding officer');
+      expect(report.save).not.toHaveBeenCalled();
+    });
+
+    it('allows a regular admin to maintain complete hearing details without changing status', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          respondentName: 'Respondent',
+          hearingStage: 'Mediation (1st Hearing)',
+          hearingDate: '2026-09-26T09:30:00.000Z',
+          luponOfficerInCharge: 'Lupon Chair',
+        });
 
       expect(res.status).toBe(200);
       expect(report.respondentName).toBe('Respondent');
+      expect(report.hearingDate).toEqual(new Date('2026-09-26T09:30:00.000Z'));
+      expect(report.luponOfficerInCharge).toBe('Lupon Chair');
       expect(report.save).toHaveBeenCalledTimes(1);
     });
 

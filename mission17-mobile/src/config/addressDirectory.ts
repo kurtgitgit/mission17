@@ -1,10 +1,14 @@
-// Provisional directory only. Expand this list only after the Barangay or
-// Municipal LGU provides an approved purok/street directory.
+// Confirmed Barangay Bagong Pag-asa purok directory.
 export const FIXED_BARANGAY_ADDRESS = 'Barangay Bagong Pag-asa, San Jacinto, Pangasinan';
 
 export const PUROK_OPTIONS = [
+  'Purok 1',
+  'Purok 2',
+  'Purok 3',
+  'Purok 4',
+  'Purok 5',
+  'Purok 6',
   'Purok 7',
-  'Other / Not listed',
 ] as const;
 
 export const isDirectoryPurok = (value?: string) =>

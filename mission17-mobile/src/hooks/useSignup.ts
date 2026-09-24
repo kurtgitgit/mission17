@@ -15,6 +15,7 @@ import {
   isValidPersonName,
   MAXIMUM_RESIDENT_AGE,
   MINIMUM_SIGNUP_AGE,
+  parseBirthDate,
 } from '../utils/signupValidation';
 
 export const LEGAL_POLICY_VERSION = '2026-09-08-capstone-v1';
@@ -30,7 +31,7 @@ export const useSignup = () => {
     placeOfBirth: '', gender: '', civilStatus: '', nationality: '', religion: '',
     completeAddress: '', purok: '', yearsOfResidency: '', mobileNumber: '',
     email: '', voterStatus: '', employmentStatus: '', occupation: '',
-    educationalAttainment: '', disability: '',
+    educationalAttainment: '', disability: '', idType: '',
     password: '', confirmPassword: ''
   });
 
@@ -125,8 +126,8 @@ export const useSignup = () => {
         showNotification('Birthdate is required.', 'error');
         return;
       }
-      const parsedBirthDate = new Date(formData.birthDate);
-      if (Number.isNaN(parsedBirthDate.getTime())) {
+      const parsedBirthDate = parseBirthDate(formData.birthDate);
+      if (!parsedBirthDate) {
         showNotification('Please enter a valid birthdate that is not in the future.', 'error');
         return;
       }
@@ -166,11 +167,11 @@ export const useSignup = () => {
         handleInputChange('nationality', normalizedNationality);
       }
       if (!isDirectoryPurok(formData.purok)) {
-        showNotification('Please select your Purok / Sitio.', 'error');
+        showNotification('Please select your Purok.', 'error');
         return;
       }
       if (formData.completeAddress.trim().length < 5) {
-        showNotification('Enter a street, sitio, or nearby landmark (at least 5 characters).', 'error');
+        showNotification('Enter your street (at least 5 characters).', 'error');
         return;
       }
       if (!formData.voterStatus) {
@@ -207,8 +208,13 @@ export const useSignup = () => {
       return;
     }
 
-    if (!validIdFront || !validIdBack) {
-      showNotification('Please attach both the front and back of a Valid ID.', 'error');
+    const requiresIdBack = formData.idType !== 'Passport';
+    if (!formData.idType) {
+      showNotification('Please select the type of valid ID you are submitting.', 'error');
+      return;
+    }
+    if (!validIdFront || (requiresIdBack && !validIdBack)) {
+      showNotification(requiresIdBack ? 'Please attach both the front and back of your valid ID.' : 'Please attach your passport information page.', 'error');
       return;
     }
 
@@ -245,7 +251,7 @@ export const useSignup = () => {
           type: 'image/jpeg'
         } as any);
       }
-      if (validIdBack) {
+      if (validIdBack && formData.idType !== 'Passport') {
         formPayload.append('validIdBack', {
           uri: formatUri(validIdBack.uri),
           name: 'valid_id_back.jpg',

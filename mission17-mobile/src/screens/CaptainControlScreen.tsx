@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator, Alert, FlatList, Modal, RefreshControl, SafeAreaView,
-  StyleSheet, Text, TextInput, TouchableOpacity, View,
+  ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { AlertTriangle, ArrowLeft, BarChart3, BellRing, Check, FileText, Megaphone, MessageSquare, ShieldCheck, Siren, UserPlus, UsersRound, X } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +20,11 @@ type Blotter = {
   dateOfIncident?: string;
   adminRemarks?: string;
   evidenceUrl?: string;
+  contactNumber?: string;
+  respondentName?: string;
+  hearingDate?: string;
+  hearingStage?: string;
+  luponOfficerInCharge?: string;
 };
 type BlotterDecision = { report: Blotter; status: 'In Progress' | 'Resolved' | 'Dismissed'; label: string };
 type AccountDecision = { user: User; status: 'approved' | 'rejected' };
@@ -42,6 +47,7 @@ const CaptainControlScreen = () => {
   const [creating, setCreating] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [blotterDecision, setBlotterDecision] = useState<BlotterDecision | null>(null);
+  const [selectedBlotter, setSelectedBlotter] = useState<Blotter | null>(null);
   const [accountDecision, setAccountDecision] = useState<AccountDecision | null>(null);
   const [decisionRemarks, setDecisionRemarks] = useState('');
   const [accountRejectionReason, setAccountRejectionReason] = useState('');
@@ -202,6 +208,10 @@ const CaptainControlScreen = () => {
     return counts;
   }, {});
   const topCategory = Object.entries(leadingCategory).sort(([, left], [, right]) => right - left)[0]?.[0] || 'No feedback yet';
+  const formatDateTime = (value?: string) => {
+    if (!value || Number.isNaN(new Date(value).getTime())) return 'Not scheduled';
+    return new Date(value).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -254,6 +264,12 @@ const CaptainControlScreen = () => {
           </>}
           renderItem={({ item }) => (
             <View style={styles.caseCard}>
+              <TouchableOpacity
+                onPress={() => setSelectedBlotter(item)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel={`View details for blotter ${item.referenceNumber}`}
+              >
               <View style={styles.caseHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardTitle}>{item.referenceNumber}</Text>
@@ -267,6 +283,8 @@ const CaptainControlScreen = () => {
               <Text style={styles.metaText}>Incident date: {item.dateOfIncident ? new Date(item.dateOfIncident).toLocaleDateString('en-PH') : 'Not provided'}</Text>
               <Text style={styles.metaText}>Evidence: {item.evidenceUrl ? 'Attached — review in the admin portal' : 'None attached'}</Text>
               {item.adminRemarks ? <Text style={styles.metaText}>Staff remarks: {item.adminRemarks}</Text> : null}
+              <Text style={styles.viewDetails}>View full case details →</Text>
+              </TouchableOpacity>
               <View style={styles.caseActions}>
                 {item.status === 'Pending' ? (
                   <TouchableOpacity
@@ -341,6 +359,49 @@ const CaptainControlScreen = () => {
           </View>
         </View>
       </Modal>
+      <Modal visible={Boolean(selectedBlotter)} transparent animationType="slide" onRequestClose={() => setSelectedBlotter(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modal, styles.caseDetailsModal]}>
+            <View style={styles.caseDetailsHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalTitle}>Blotter case details</Text>
+                <Text style={styles.modalSub}>{selectedBlotter?.referenceNumber}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setSelectedBlotter(null)} accessibilityRole="button" accessibilityLabel="Close case details" style={styles.closeDetails}>
+                <X size={20} color="#334155" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.caseDetailsContent} showsVerticalScrollIndicator={false}>
+              <Text style={styles.caseDetailLabel}>Case status</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.status || 'Pending'}</Text>
+              <Text style={styles.caseDetailLabel}>Complainant</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.fullName || 'Resident report'}</Text>
+              <Text style={styles.caseDetailLabel}>Contact number</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.contactNumber || 'Not provided'}</Text>
+              <Text style={styles.caseDetailLabel}>Incident</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.incidentType || 'Not provided'}</Text>
+              <Text style={styles.caseDetailLabel}>When it happened</Text>
+              <Text style={styles.caseDetailValue}>{formatDateTime(selectedBlotter?.dateOfIncident)}</Text>
+              <Text style={styles.caseDetailLabel}>Exact location</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.location || 'Not provided'}</Text>
+              <Text style={styles.caseDetailLabel}>Resident narrative</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.description || 'No description provided.'}</Text>
+              <Text style={styles.caseDetailLabel}>Respondent</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.respondentName || 'Not yet identified'}</Text>
+              <Text style={styles.caseDetailLabel}>Lupon hearing stage</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.hearingStage && selectedBlotter.hearingStage !== 'None' ? selectedBlotter.hearingStage : 'Not scheduled'}</Text>
+              <Text style={styles.caseDetailLabel}>Hearing date and time</Text>
+              <Text style={styles.caseDetailValue}>{formatDateTime(selectedBlotter?.hearingDate)}</Text>
+              <Text style={styles.caseDetailLabel}>Presiding official</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.luponOfficerInCharge || 'Not assigned'}</Text>
+              <Text style={styles.caseDetailLabel}>Staff remarks</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.adminRemarks || 'No staff remarks yet.'}</Text>
+              <Text style={styles.caseDetailLabel}>Evidence</Text>
+              <Text style={styles.caseDetailValue}>{selectedBlotter?.evidenceUrl ? 'Attached — view securely in the web Admin Portal.' : 'No evidence attached.'}</Text>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <Modal visible={Boolean(blotterDecision)} transparent animationType="slide" onRequestClose={() => setBlotterDecision(null)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modal}>
@@ -372,7 +433,7 @@ const CaptainControlScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f8fafc' }, header: { backgroundColor: '#0038A8', padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }, headerTitle: { color: '#fff', fontSize: 18, fontWeight: '900' }, headerSub: { color: '#bfdbfe', fontSize: 12, marginTop: 2 }, content: { padding: 16, paddingBottom: 40 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }, error: { color: '#b91c1c', textAlign: 'center' }, retry: { marginTop: 14, padding: 10, backgroundColor: '#0038A8', borderRadius: 8 }, retryText: { color: '#fff', fontWeight: '800' }, hero: { backgroundColor: '#0038A8', borderRadius: 18, padding: 18, marginBottom: 14 }, eyebrow: { color: '#bfdbfe', fontSize: 10, fontWeight: '900', letterSpacing: 1 }, heroTitle: { color: '#fff', fontSize: 21, fontWeight: '900', marginTop: 5 }, heroText: { color: '#dbeafe', fontSize: 12, lineHeight: 17, marginTop: 7 }, summaryText: { color: '#dbeafe', fontSize: 12, lineHeight: 17, marginTop: 5 }, snapshotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }, snapshotCard: { width: '48%', flexGrow: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12 }, snapshotValue: { color: '#0f172a', fontSize: 22, fontWeight: '900', marginTop: 6 }, snapshotLabel: { color: '#64748b', fontSize: 11, fontWeight: '700', marginTop: 1 }, sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }, sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginBottom: 10 }, quickActions: { flexDirection: 'row', gap: 10, marginBottom: 10 }, quickAction: { flex: 1, minHeight: 120, backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#dbeafe' }, quickTitle: { color: '#0f172a', fontWeight: '900', fontSize: 13, marginTop: 9 }, quickText: { color: '#64748b', fontSize: 11, lineHeight: 15, marginTop: 4 }, emergencyAction: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#dc2626', borderRadius: 14, padding: 14, marginBottom: 20 }, emergencyTitle: { color: '#fff', fontWeight: '900', fontSize: 14 }, emergencyText: { color: '#fee2e2', fontSize: 11, lineHeight: 15, marginTop: 3 }, attentionCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 14, marginBottom: 20 }, attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }, attentionText: { color: '#334155', fontSize: 12, fontWeight: '700', flex: 1 }, pulseCard: { backgroundColor: '#eff6ff', borderRadius: 14, padding: 15, marginBottom: 22 }, pulseHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, pulseSub: { color: '#64748b', fontSize: 11, marginTop: -7, marginBottom: 12 }, pulseStats: { flexDirection: 'row', gap: 16 }, pulseValue: { color: '#0038A8', fontSize: 19, fontWeight: '900' }, pulseCategory: { color: '#0038A8', fontSize: 13, fontWeight: '900' }, pulseLabel: { color: '#64748b', fontSize: 10, fontWeight: '700', marginTop: 2 }, managementHeading: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 18, marginBottom: 8 }, managementSub: { color: '#64748b', fontSize: 12, marginTop: -7 }, addButton: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: '#0038A8', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }, addText: { color: '#fff', fontSize: 12, fontWeight: '800' }, card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#e2e8f0' }, caseCard: { backgroundColor: '#fff', borderRadius: 14, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }, caseHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 }, cardTitle: { fontWeight: '900', color: '#1e293b' }, cardSub: { color: '#64748b', fontSize: 12, marginTop: 3 }, unverified: { color: '#b45309', fontSize: 11, fontWeight: '700', marginTop: 4 }, status: { color: '#b45309', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, fontSize: 11, fontWeight: '800' }, detailLabel: { color: '#475569', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4 }, detailText: { color: '#1e293b', fontSize: 13, lineHeight: 18, marginBottom: 8 }, metaText: { color: '#64748b', fontSize: 12, lineHeight: 17 }, caseActions: { flexDirection: 'row', gap: 8, marginTop: 14 }, empty: { color: '#64748b', fontSize: 13, marginBottom: 10 }, iconApprove: { backgroundColor: '#16a34a', padding: 9, borderRadius: 8 }, iconReject: { backgroundColor: '#dc2626', padding: 9, borderRadius: 8 }, resolve: { flex: 1, alignItems: 'center', backgroundColor: '#16a34a', padding: 10, borderRadius: 8 }, dismiss: { flex: 1, alignItems: 'center', backgroundColor: '#dc2626', padding: 10, borderRadius: 8 }, disabled: { opacity: 0.55 }, actionText: { color: '#fff', fontWeight: '800', fontSize: 12 }, modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,.5)' }, modal: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 22 }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#0f172a' }, modalSub: { color: '#64748b', fontSize: 12, lineHeight: 17, marginVertical: 7 }, input: { color: '#0f172a', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#94a3b8', borderRadius: 9, padding: 12, marginTop: 9, fontSize: 15 }, remarksInput: { minHeight: 96, textAlignVertical: 'top' }, modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }, cancel: { padding: 12 }, cancelText: { color: '#334155', fontWeight: '800', fontSize: 13 }, create: { backgroundColor: '#0038A8', padding: 12, borderRadius: 8 }, rejectDecision: { backgroundColor: '#dc2626', padding: 12, borderRadius: 8 },
+  safe: { flex: 1, backgroundColor: '#f8fafc' }, header: { backgroundColor: '#0038A8', padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14 }, headerTitle: { color: '#fff', fontSize: 18, fontWeight: '900' }, headerSub: { color: '#bfdbfe', fontSize: 12, marginTop: 2 }, content: { padding: 16, paddingBottom: 40 }, center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }, error: { color: '#b91c1c', textAlign: 'center' }, retry: { marginTop: 14, padding: 10, backgroundColor: '#0038A8', borderRadius: 8 }, retryText: { color: '#fff', fontWeight: '800' }, hero: { backgroundColor: '#0038A8', borderRadius: 18, padding: 18, marginBottom: 14 }, eyebrow: { color: '#bfdbfe', fontSize: 10, fontWeight: '900', letterSpacing: 1 }, heroTitle: { color: '#fff', fontSize: 21, fontWeight: '900', marginTop: 5 }, heroText: { color: '#dbeafe', fontSize: 12, lineHeight: 17, marginTop: 7 }, summaryText: { color: '#dbeafe', fontSize: 12, lineHeight: 17, marginTop: 5 }, snapshotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 }, snapshotCard: { width: '48%', flexGrow: 1, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 12, padding: 12 }, snapshotValue: { color: '#0f172a', fontSize: 22, fontWeight: '900', marginTop: 6 }, snapshotLabel: { color: '#64748b', fontSize: 11, fontWeight: '700', marginTop: 1 }, sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }, sectionTitle: { fontSize: 16, fontWeight: '900', color: '#0f172a', marginBottom: 10 }, quickActions: { flexDirection: 'row', gap: 10, marginBottom: 10 }, quickAction: { flex: 1, minHeight: 120, backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#dbeafe' }, quickTitle: { color: '#0f172a', fontWeight: '900', fontSize: 13, marginTop: 9 }, quickText: { color: '#64748b', fontSize: 11, lineHeight: 15, marginTop: 4 }, emergencyAction: { flexDirection: 'row', alignItems: 'center', gap: 11, backgroundColor: '#dc2626', borderRadius: 14, padding: 14, marginBottom: 20 }, emergencyTitle: { color: '#fff', fontWeight: '900', fontSize: 14 }, emergencyText: { color: '#fee2e2', fontSize: 11, lineHeight: 15, marginTop: 3 }, attentionCard: { backgroundColor: '#fff', borderRadius: 14, borderWidth: 1, borderColor: '#e2e8f0', paddingHorizontal: 14, marginBottom: 20 }, attentionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }, attentionText: { color: '#334155', fontSize: 12, fontWeight: '700', flex: 1 }, pulseCard: { backgroundColor: '#eff6ff', borderRadius: 14, padding: 15, marginBottom: 22 }, pulseHeading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }, pulseSub: { color: '#64748b', fontSize: 11, marginTop: -7, marginBottom: 12 }, pulseStats: { flexDirection: 'row', gap: 16 }, pulseValue: { color: '#0038A8', fontSize: 19, fontWeight: '900' }, pulseCategory: { color: '#0038A8', fontSize: 13, fontWeight: '900' }, pulseLabel: { color: '#64748b', fontSize: 10, fontWeight: '700', marginTop: 2 }, managementHeading: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 18, marginBottom: 8 }, managementSub: { color: '#64748b', fontSize: 12, marginTop: -7 }, addButton: { flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: '#0038A8', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 }, addText: { color: '#fff', fontSize: 12, fontWeight: '800' }, card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#e2e8f0' }, caseCard: { backgroundColor: '#fff', borderRadius: 14, padding: 15, marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0' }, caseHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 12 }, cardTitle: { fontWeight: '900', color: '#1e293b' }, cardSub: { color: '#64748b', fontSize: 12, marginTop: 3 }, unverified: { color: '#b45309', fontSize: 11, fontWeight: '700', marginTop: 4 }, status: { color: '#b45309', backgroundColor: '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 999, fontSize: 11, fontWeight: '800' }, detailLabel: { color: '#475569', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginBottom: 4 }, detailText: { color: '#1e293b', fontSize: 13, lineHeight: 18, marginBottom: 8 }, metaText: { color: '#64748b', fontSize: 12, lineHeight: 17 }, viewDetails: { color: '#0038A8', fontSize: 12, fontWeight: '800', marginTop: 10 }, caseActions: { flexDirection: 'row', gap: 8, marginTop: 14 }, empty: { color: '#64748b', fontSize: 13, marginBottom: 10 }, iconApprove: { backgroundColor: '#16a34a', padding: 9, borderRadius: 8 }, iconReject: { backgroundColor: '#dc2626', padding: 9, borderRadius: 8 }, resolve: { flex: 1, alignItems: 'center', backgroundColor: '#16a34a', padding: 10, borderRadius: 8 }, dismiss: { flex: 1, alignItems: 'center', backgroundColor: '#dc2626', padding: 10, borderRadius: 8 }, disabled: { opacity: 0.55 }, actionText: { color: '#fff', fontWeight: '800', fontSize: 12 }, modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(15,23,42,.5)' }, modal: { backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, padding: 22 }, caseDetailsModal: { maxHeight: '88%' }, caseDetailsHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 6 }, closeDetails: { padding: 6, marginRight: -6, marginTop: -4 }, caseDetailsContent: { paddingBottom: 18 }, caseDetailLabel: { color: '#64748b', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', marginTop: 14, marginBottom: 3 }, caseDetailValue: { color: '#1e293b', fontSize: 14, lineHeight: 20 }, modalTitle: { fontSize: 19, fontWeight: '900', color: '#0f172a' }, modalSub: { color: '#64748b', fontSize: 12, lineHeight: 17, marginVertical: 7 }, input: { color: '#0f172a', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#94a3b8', borderRadius: 9, padding: 12, marginTop: 9, fontSize: 15 }, remarksInput: { minHeight: 96, textAlignVertical: 'top' }, modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16 }, cancel: { padding: 12 }, cancelText: { color: '#334155', fontWeight: '800', fontSize: 13 }, create: { backgroundColor: '#0038A8', padding: 12, borderRadius: 8 }, rejectDecision: { backgroundColor: '#dc2626', padding: 12, borderRadius: 8 },
 });
 
 export default CaptainControlScreen;

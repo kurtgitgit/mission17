@@ -15,6 +15,10 @@ const DocumentRequestSchema = new mongoose.Schema({
       'Business Clearance',
       'Certificate of Good Moral Character',
       'Barangay ID',
+      'Certificate of Tree Planting',
+      'Certificate for First-Time Job Seeker',
+      'Oath of Undertaking',
+      'Certificate of Low Income',
       'Other'
     ],
     required: true

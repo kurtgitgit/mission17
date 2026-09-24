@@ -21,6 +21,7 @@ import {
   formatBirthDate,
   getLatestEligibleBirthDate,
   isValidPersonName,
+  parseBirthDate,
   sanitizePersonName,
 } from '../utils/signupValidation';
 
@@ -97,11 +98,11 @@ const EditProfileScreen = ({ navigation }: any) => {
     }
     const completeAddress = userData?.completeAddress?.trim() || '';
     if (!isDirectoryPurok(userData?.purok)) {
-      Alert.alert('Purok / Sitio required', 'Please select Purok 7 or Other / Not listed.');
+      Alert.alert('Purok required', 'Please select your Purok.');
       return;
     }
     if (completeAddress.length < 5) {
-      Alert.alert('Address required', 'Enter a street, sitio, or nearby landmark (at least 5 characters).');
+      Alert.alert('Street required', 'Enter your street (at least 5 characters).');
       return;
     }
     const normalizedNationality = userData?.nationality?.trim() || '';
@@ -252,7 +253,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                   </TouchableOpacity>
                   {showBirthDatePicker && (
                     <DateTimePicker
-                      value={!Number.isNaN(new Date(userData?.birthDate).getTime()) ? new Date(userData.birthDate) : getLatestEligibleBirthDate()}
+                      value={parseBirthDate(userData?.birthDate || '') || getLatestEligibleBirthDate()}
                       mode="date"
                       display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                       maximumDate={getLatestEligibleBirthDate()}
@@ -293,13 +294,13 @@ const EditProfileScreen = ({ navigation }: any) => {
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Barangay</Text>
                 <Text style={styles.fixedAddress}>{FIXED_BARANGAY_ADDRESS}</Text>
-                <Text style={styles.fieldHint}>The official purok directory is still being verified with the barangay.</Text>
+                <Text style={styles.fieldHint}>Select your confirmed Purok, then enter your street below.</Text>
               </View>
             </View>
             <View style={styles.divider} />
-            <DropdownRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Purok / Sitio" value={userData?.purok} options={[...PUROK_OPTIONS]} onSelect={(purok: string) => setUserData({...userData, purok})} />
+            <DropdownRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Purok" value={userData?.purok} options={[...PUROK_OPTIONS]} onSelect={(purok: string) => setUserData({...userData, purok})} />
             <View style={styles.divider} />
-            <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Street / Landmark" value={userData?.completeAddress} onChangeText={(t: string) => setUserData({...userData, completeAddress: t})} placeholder="Street, sitio, or nearby landmark" maxLength={250} />
+            <EditableRow icon={<MapPin size={20} color={colors.textSecondary} />} label="Street" value={userData?.completeAddress} onChangeText={(t: string) => setUserData({...userData, completeAddress: t})} placeholder="Street" maxLength={250} />
             <View style={styles.divider} />
             <DropdownRow icon={<Info size={20} color={colors.textSecondary} />} label="Nationality" value={nationalitySelection} options={["Filipino", "Other"]} onSelect={(choice: string) => {
               setNationalitySelection(choice);

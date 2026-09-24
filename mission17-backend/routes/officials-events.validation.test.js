@@ -49,7 +49,7 @@ describe('official and event validation', () => {
     const invalid = await request(app).post('/api/officials').send({ name: 'Ana Cruz', position: 'Barangay Kagawad', contact: 'abc' });
     expect(invalid.status).toBe(400);
 
-    const payload = { name: 'Ana Cruz', position: 'Barangay Kagawad', contact: '09171234567', term: '2023 - 2026' };
+    const payload = { name: 'Ana Cruz', position: 'Barangay Kagawad', contact: '09171234567', term: '2023 - 2026', termNumber: '1st' };
     expect((await request(app).post('/api/officials').send(payload)).status).toBe(201);
     expect((await request(app).post('/api/officials').send(payload)).status).toBe(409);
     expect((await request(app).post('/api/officials').send({ name: 123, position: 'Kagawad' })).status).toBe(400);
@@ -58,6 +58,7 @@ describe('official and event validation', () => {
     expect((await request(app).post('/api/officials').send({ ...payload, email: `${'a'.repeat(245)}@example.com` })).status).toBe(400);
     expect((await request(app).post('/api/officials').send({ ...payload, committee: '1'.repeat(121) })).status).toBe(400);
     expect((await request(app).post('/api/officials').send({ ...payload, order: 100 })).status).toBe(400);
+    expect((await request(app).post('/api/officials').send({ ...payload, name: 'Maria Cruz', termNumber: '3rd' })).status).toBe(400);
   });
 
   it('archives, restores, and only permanently deletes archived officials', async () => {

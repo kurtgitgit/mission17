@@ -24,6 +24,7 @@ const CASE_STATUSES = [
 
 const TERMINAL_CASE_STATUSES = ['Resolved', 'Dismissed'];
 const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const SCHEDULED_HEARING_STAGES = ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
 
 const toDateTimeLocalValue = (value) => {
   if (!value) return '';
@@ -274,6 +275,19 @@ const BlotterManagement = () => {
     luponOfficerInCharge !== savedCaseForm.luponOfficerInCharge
   ));
 
+  const requiresHearingSchedule = SCHEDULED_HEARING_STAGES.includes(hearingStage);
+  const hasCompleteHearingSchedule = !requiresHearingSchedule || Boolean(
+    hearingDate && luponOfficerInCharge.trim()
+  );
+  const canPrintSummons = Boolean(
+    !TERMINAL_CASE_STATUSES.includes(selectedReport?.status)
+    && requiresHearingSchedule
+    && hearingDate
+    && respondentName.trim()
+    && luponOfficerInCharge.trim()
+  );
+  const isCaseFormSaveDisabled = updating || !hasCaseFormChanges || !hasCompleteHearingSchedule;
+
   const isCaseStatusDisabled = (status) => {
     if (!savedCaseForm || status === savedCaseForm.status) return false;
     if (TERMINAL_CASE_STATUSES.includes(savedCaseForm.status)) return true;
@@ -289,7 +303,7 @@ const BlotterManagement = () => {
   };
 
   const handleUpdateStatus = async () => {
-    if (!selectedReport || !hasCaseFormChanges || updatingRef.current) return;
+    if (!selectedReport || !hasCaseFormChanges || !hasCompleteHearingSchedule || updatingRef.current) return;
     updatingRef.current = true;
     setUpdating(true);
     try {
@@ -506,8 +520,9 @@ const BlotterManagement = () => {
                     <button
                       className="no-print"
                       onClick={() => setShowKpModal(true)}
-                      style={{ background: '#0038A8', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 'bold' }}
-                      title="Print temporary generic Lupon summons draft"
+                      disabled={!canPrintSummons}
+                      style={{ background: '#0038A8', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: canPrintSummons ? 'pointer' : 'not-allowed', opacity: canPrintSummons ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 'bold' }}
+                      title={canPrintSummons ? 'Print temporary generic Lupon summons draft' : 'Add the respondent, hearing stage, date and time, and presiding officer first'}
                     >
                       <Scale size={14} />
                       Generic Summons Draft
@@ -700,7 +715,7 @@ const BlotterManagement = () => {
                           ))}
                         </select>
                         <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
-                          Previous hearing stages are locked after the next stage is saved.
+                          A hearing stage requires its date, time, and presiding officer. Previous stages are locked after the next stage is saved.
                         </small>
                       </div>
 
@@ -708,9 +723,10 @@ const BlotterManagement = () => {
                         <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Scheduled Hearing Date & Time</label>
                         <input
                           type="datetime-local"
-                          className="form-input"
-                          value={hearingDate}
-                          onChange={(e) => setHearingDate(e.target.value)}
+                        className="form-input"
+                        value={hearingDate}
+                        onChange={(e) => setHearingDate(e.target.value)}
+                        required={requiresHearingSchedule}
                         />
                       </div>
 
@@ -720,9 +736,10 @@ const BlotterManagement = () => {
                           type="text"
                           className="form-input"
                           placeholder="e.g. Hon. Barangay Captain / Lupon Chair"
-                          value={luponOfficerInCharge}
-                          onChange={(e) => setLuponOfficerInCharge(e.target.value)}
-                          maxLength={160}
+                        value={luponOfficerInCharge}
+                        onChange={(e) => setLuponOfficerInCharge(e.target.value)}
+                        maxLength={160}
+                        required={requiresHearingSchedule}
                         />
                       </div>
                     </div>
@@ -744,16 +761,16 @@ const BlotterManagement = () => {
                         type="button"
                         className="btn primary" 
                         onClick={handleUpdateStatus} 
-                        disabled={updating || !hasCaseFormChanges}
-                        aria-disabled={updating || !hasCaseFormChanges}
-                        title={!hasCaseFormChanges ? 'Change at least one case or hearing field before saving' : 'Save case and hearing changes'}
+                        disabled={isCaseFormSaveDisabled}
+                        aria-disabled={isCaseFormSaveDisabled}
+                        title={!hasCaseFormChanges ? 'Change at least one case or hearing field before saving' : !hasCompleteHearingSchedule ? 'Add the hearing date, time, and presiding officer before saving this hearing stage' : 'Save case and hearing changes'}
                         style={{
                           padding: '10px 20px',
                           fontSize: '14px',
                           width: 'auto',
                           fontWeight: 800,
-                          cursor: updating || !hasCaseFormChanges ? 'not-allowed' : 'pointer',
-                          opacity: updating || !hasCaseFormChanges ? 0.55 : 1
+                          cursor: isCaseFormSaveDisabled ? 'not-allowed' : 'pointer',
+                          opacity: isCaseFormSaveDisabled ? 0.55 : 1
                         }}
                       >
                         {updating ? 'Saving Changes...' : '💾 Save Case & Schedule Hearing'}
@@ -763,7 +780,9 @@ const BlotterManagement = () => {
                       <button
                         type="button"
                         onClick={() => setShowKpModal(true)}
-                        style={{ padding: '10px 18px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}
+                        disabled={!canPrintSummons}
+                        title={canPrintSummons ? 'Print temporary generic Lupon summons draft' : 'Add the respondent, hearing stage, date and time, and presiding officer first'}
+                        style={{ padding: '10px 18px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: canPrintSummons ? 'pointer' : 'not-allowed', opacity: canPrintSummons ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}
                       >
                         <Scale size={15} color="#0038A8" /> Print Generic Summons Draft
                       </button>

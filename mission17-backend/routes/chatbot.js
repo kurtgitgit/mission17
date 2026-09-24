@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { ChatOllama } from "@langchain/ollama";
 import { SystemMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
 import rateLimit from 'express-rate-limit';
+import { BARANGAY_INFO } from '../config/barangayInfo.js';
 
 const router = express.Router();
 
@@ -45,6 +46,13 @@ Your purpose is to answer inquiries about:
 3. Information about the 17 Sustainable Development Goals (SDGs).
 4. General barangay processes and schedules.
 5. General Philippine government and public-service processes, while clearly identifying when the user should confirm current requirements with the responsible agency.
+
+VERIFIED BARANGAY CONTACT INFORMATION:
+- Address: ${BARANGAY_INFO.address}
+- Official mobile number: ${BARANGAY_INFO.mobileDisplay}
+- Contact person: ${BARANGAY_INFO.contactPerson}
+- Email: ${BARANGAY_INFO.email}
+- Office hours: ${BARANGAY_INFO.officeDays}, ${BARANGAY_INFO.officeHours}
 
 LANGUAGE RULES (CRITICAL):
 - Detect the language the user is writing in and always respond in that same language.
@@ -99,10 +107,11 @@ const languageCapabilityReply = (language) => {
 };
 
 const contactOfficeReply = (language) => {
-  if (language === 'pangasinan') return 'Wala ak na beripikado ya kasalukuyan ya detalye. Pakisilip so Announcements odino pakaammo ed opisyal ya barangay office.';
-  if (language === 'ilocano') return 'Awan kaniak ti napasingkedan a kasalukuyan a detalye. Kitaem ti Announcements wenno agdamag iti opisial a barangay office.';
-  if (language === 'tagalog') return 'Wala akong beripikadong kasalukuyang detalye. Pakitingin ang Announcements o magtanong sa opisyal na barangay office.';
-  return 'I do not have verified current details. Please check Announcements or contact the official barangay office.';
+  const details = `${BARANGAY_INFO.mobileDisplay}, ${BARANGAY_INFO.email}, ${BARANGAY_INFO.officeDays} ${BARANGAY_INFO.officeHours}`;
+  if (language === 'pangasinan') return `Say beripikado ya contact na opisyal ya barangay office na ${BARANGAY_INFO.name}: ${details}. Contact person: ${BARANGAY_INFO.contactPerson}.`;
+  if (language === 'ilocano') return `Ti napasingkedan a contact ti opisial a barangay office ti ${BARANGAY_INFO.name}: ${details}. Contact person: ${BARANGAY_INFO.contactPerson}.`;
+  if (language === 'tagalog') return `Makipag-ugnayan sa opisyal na barangay office ng ${BARANGAY_INFO.name}: ${details}. Contact person: ${BARANGAY_INFO.contactPerson}.`;
+  return `Contact the official barangay office of ${BARANGAY_INFO.name}: ${details}. Contact person: ${BARANGAY_INFO.contactPerson}.`;
 };
 
 // These are deliberately limited to app-navigation facts documented in USER_MANUAL.md.
@@ -116,6 +125,9 @@ export const getControlledFaq = (message) => {
   const isClearance = /barangay\s+clearance|clearance/.test(text);
   const isBlotter = /blotter|incident\s+report|reklamo/.test(text);
   const isDocument = /document|dokumento|dokument|sertipiko|certificate/.test(text);
+  const isBarangayContact = /contact|phone|telephone|mobile|number|email|address|office\s+hours|oras\s+ng\s+opisina|barangay\s+hall/.test(text);
+
+  if (isBarangayContact) return contactOfficeReply(language);
 
   if (isClearance) {
     if (language === 'pangasinan') return "Para mangikeddeng na Barangay Clearance, buksan so 'Document Requests' ed BrgyLink, piliyen so 'Barangay Clearance', punan so form, tan subaybayan so status na request. Para ed kasapulan, bayad, oras, odino panangala, pakisilip so Announcements odino pakaammo ed opisyal ya barangay office.";

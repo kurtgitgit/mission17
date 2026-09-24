@@ -55,14 +55,14 @@ const ResidentKYCModal = ({ resident, applicantName, onClose }) => {
               <span style={{ fontSize: 12, color: '#64748b' }}>Account Status: {(resident.accountStatus || 'Pending').toUpperCase()}</span>
             </div>
             <span style={{ fontSize: 12, fontWeight: 800, color: isVerified ? '#15803d' : '#b45309', backgroundColor: 'white', padding: '4px 10px', borderRadius: 20 }}>
-              {resident.purok ? `Purok ${resident.purok}` : 'Barangay Bagong Pag-asa'}
+              {resident.purok || 'Barangay Bagong Pag-asa'}
             </span>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: 16 }}>
             <div style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-              <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Years of Residency</span>
-              <strong style={{ fontSize: 13, color: '#0f172a' }}>{resident.yearsOfResidency ? `${resident.yearsOfResidency} Years` : 'Bona fide resident'}</strong>
+              <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>ID Type</span>
+              <strong style={{ fontSize: 13, color: '#0f172a' }}>{resident.idType || 'Not recorded (legacy account)'}</strong>
             </div>
             <div style={{ padding: '10px 14px', backgroundColor: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 11, color: '#64748b', display: 'block' }}>Voter Status</span>
@@ -75,25 +75,25 @@ const ResidentKYCModal = ({ resident, applicantName, onClose }) => {
           </div>
 
           <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
-            Submitted Government ID Photos
+            Submitted Government ID Photos{resident.idType ? ` — ${resident.idType}` : ''}
           </h4>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: resident.idType === 'Passport' ? '1fr' : '1fr 1fr', gap: 12 }}>
             <div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>ID Front Photo</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>{resident.idType === 'Passport' ? 'Passport Information Page' : 'ID Front Photo'}</span>
               {resident.validIdFrontUrl ? (
                 <img src={resident.validIdFrontUrl} alt="Valid ID Front" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, border: '1.5px solid #cbd5e1' }} />
               ) : (
                 <div style={{ height: 140, backgroundColor: '#f1f5f9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 12 }}>No Front ID</div>
               )}
             </div>
-            <div>
+            {resident.idType !== 'Passport' && <div>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>ID Back Photo</span>
               {resident.validIdBackUrl ? (
                 <img src={resident.validIdBackUrl} alt="Valid ID Back" style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10, border: '1.5px solid #cbd5e1' }} />
               ) : (
                 <div style={{ height: 140, backgroundColor: '#f1f5f9', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 12 }}>No Back ID</div>
               )}
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -479,16 +479,11 @@ const DocumentRequests = () => {
                         )}
                       </div>
 
-                      {/* Document Type & Fee */}
+                      {/* Document Type & verified fee notice */}
                       <div className="pa-document-heading">
                         <p className="pa-card-title" style={{ margin: 0 }}>{req.documentType}</p>
                         <span style={{ fontSize: 11.5, fontWeight: 800, backgroundColor: '#f1f5f9', color: '#0f172a', padding: '2px 8px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                          💵 Fee: {
-                            req.documentType?.includes('Indigency') ? 'FREE' :
-                            req.documentType?.includes('Business') ? '₱150.00' :
-                            req.documentType?.includes('Residency') ? '₱30.00' :
-                            req.documentType?.includes('ID') ? '₱100.00' : '₱50.00'
-                          } · Cash on Pickup
+                          Fee and payment details: Confirm with Barangay Hall
                         </span>
                       </div>
 

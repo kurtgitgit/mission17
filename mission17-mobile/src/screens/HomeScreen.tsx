@@ -17,6 +17,7 @@ import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { BARANGAY_CONTACTS } from '../config/barangayInfo';
 
 const SERVICES = [
   { 
@@ -59,6 +60,22 @@ const SERVICES = [
 
 // ─── EMERGENCY HOTLINES (VECTOR ICONS) ───────────────────────────────────────
 const HOTLINES = [
+  {
+    id: BARANGAY_CONTACTS[0].id, label: `${BARANGAY_CONTACTS[0].label} - ${BARANGAY_CONTACTS[0].contactPerson}`, icon: Building2, color: '#0038A8',
+    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[0].displayNumber }],
+  },
+  {
+    id: BARANGAY_CONTACTS[1].id, label: `${BARANGAY_CONTACTS[1].label} - ${BARANGAY_CONTACTS[1].contactPerson}`, icon: UserCheck, color: '#15803d',
+    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[1].displayNumber }],
+  },
+  {
+    id: BARANGAY_CONTACTS[2].id, label: `${BARANGAY_CONTACTS[2].label} - ${BARANGAY_CONTACTS[2].contactPerson}`, icon: Shield, color: '#1e40af',
+    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[2].displayNumber }],
+  },
+  {
+    id: BARANGAY_CONTACTS[3].id, label: `${BARANGAY_CONTACTS[3].label} - ${BARANGAY_CONTACTS[3].contactPerson}`, icon: HeartPulse, color: '#be123c',
+    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[3].displayNumber }],
+  },
   {
     id: 'mdrrmo', label: 'MDRRMO San Jacinto', icon: PhoneCall, color: '#ea580c',
     numbers: [{ label: 'Mobile', value: '0976-402-4120' }, { label: 'Landline', value: '540-0851' }],
@@ -530,7 +547,7 @@ const getStyles = (theme: any) => StyleSheet.create({
     height: 48, 
     borderRadius: 24, 
     backgroundColor: 'rgba(255,255,255,0.2)', 
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.4)'

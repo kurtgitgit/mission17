@@ -15,12 +15,16 @@ import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
-  { id: 'Barangay Clearance', label: 'Barangay Clearance', fee: '₱50.00', time: '1–2 Days', desc: 'For employment, business, or general legal verification' },
-  { id: 'Certificate of Indigency', label: 'Certificate of Indigency', fee: 'FREE', time: '1 Day', desc: 'For medical, financial, or scholarship assistance' },
-  { id: 'Certificate of Residency', label: 'Certificate of Residency', fee: '₱30.00', time: '1 Day', desc: 'Proof of bona fide residence in Bagong Pag-asa' },
-  { id: 'Business Clearance', label: 'Business Clearance', fee: '₱150.00', time: '2–3 Days', desc: 'Permit clearance for micro & local businesses' },
-  { id: 'Certificate of Good Moral Character', label: 'Good Moral Character', fee: '₱50.00', time: '1–2 Days', desc: 'For school admission, job applications, or court' },
-  { id: 'Barangay ID', label: 'Barangay Resident ID', fee: '₱100.00', time: 'Same Day', desc: 'Official photo ID card issued by Barangay' },
+  { id: 'Barangay Clearance', label: 'Barangay Clearance', fee: 'Confirm', time: 'Confirm', desc: 'For employment, business, or general legal verification' },
+  { id: 'Certificate of Indigency', label: 'Certificate of Indigency', fee: 'Confirm', time: 'Confirm', desc: 'For medical, financial, or scholarship assistance' },
+  { id: 'Certificate of Residency', label: 'Certificate of Residency', fee: 'Confirm', time: 'Confirm', desc: 'Proof of bona fide residence in Bagong Pag-asa' },
+  { id: 'Business Clearance', label: 'Business Clearance', fee: 'Confirm', time: 'Confirm', desc: 'Permit clearance for micro and local businesses' },
+  { id: 'Certificate of Good Moral Character', label: 'Good Moral Certificate', fee: 'Confirm', time: 'Confirm', desc: 'For school, employment, or other official purposes' },
+  { id: 'Barangay ID', label: 'Barangay Resident ID', fee: 'Confirm', time: 'Confirm', desc: 'Official resident identification issued by the Barangay' },
+  { id: 'Certificate of Tree Planting', label: 'Certificate of Tree Planting', fee: 'Confirm', time: 'Confirm', desc: 'Certification of participation in an eligible tree-planting activity' },
+  { id: 'Certificate for First-Time Job Seeker', label: 'First-Time Job Seeker Certificate', fee: 'Confirm', time: 'Confirm', desc: 'For qualified first-time job seekers requesting barangay certification' },
+  { id: 'Oath of Undertaking', label: 'Oath of Undertaking', fee: 'Confirm', time: 'Confirm', desc: 'Barangay-issued undertaking document for an approved purpose' },
+  { id: 'Certificate of Low Income', label: 'Certificate of Low Income', fee: 'Confirm', time: 'Confirm', desc: 'Certification of low-income status for an official transaction' },
 ];
 
 const OTHER_DOCUMENT_TYPE = { id: 'Other', label: 'Other Document', fee: 'To be confirmed', time: 'To be confirmed', desc: 'Specify the document you need for Barangay review' };
@@ -413,9 +417,8 @@ const ServicesScreen: React.FC = () => {
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>🏛️ Pickup Location: Barangay Hall, San Jacinto, Pangasinan</Text>
-              <Text style={styles.infoText}>💵 Payment Mode: Over-the-Counter Cash ({selectedDocObj.fee}) upon physical claiming.</Text>
-              <Text style={styles.infoText}>📋 Requirements: Present 1 Valid ID and Reference Number at the release desk.</Text>
-              <Text style={styles.infoText}>💡 Indigent residents are entitled to 100% free document fee exemption.</Text>
+              <Text style={styles.infoText}>📋 Current fees, requirements, and release schedules will be confirmed by Barangay staff during review.</Text>
+              <Text style={styles.infoText}>🔖 Keep your reference number and follow the instructions shown in your request status.</Text>
             </View>
 
 
@@ -471,25 +474,27 @@ const ServicesScreen: React.FC = () => {
         <TouchableOpacity style={styles.modalBackdrop} onPress={() => setShowPicker(false)} activeOpacity={1}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Document Type</Text>
-            {DOCUMENT_TYPES.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.modalOption, docType === item.id && styles.modalOptionActive]}
-                onPress={() => { setDocType(item.id); setShowPicker(false); setErrors((current) => ({ ...current, docType: '', customDocumentType: '' })); }}
-                accessibilityRole="button"
-                accessibilityLabel={`Select ${item.label}`}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalOptionText, docType === item.id && styles.modalOptionTextActive]}>
-                    {item.label}
-                  </Text>
-                  <Text style={styles.modalOptionSub}>{item.desc}</Text>
-                </View>
-                <View style={styles.modalOptionBadge}>
-                  <Text style={styles.modalOptionFee}>{item.fee}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
+            <ScrollView style={styles.modalOptionsScroll} showsVerticalScrollIndicator>
+              {DOCUMENT_TYPES.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.modalOption, docType === item.id && styles.modalOptionActive]}
+                  onPress={() => { setDocType(item.id); setShowPicker(false); setErrors((current) => ({ ...current, docType: '', customDocumentType: '' })); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Select ${item.label}`}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.modalOptionText, docType === item.id && styles.modalOptionTextActive]}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.modalOptionSub}>{item.desc}</Text>
+                  </View>
+                  <View style={styles.modalOptionBadge}>
+                    <Text style={styles.modalOptionFee}>{item.fee}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -771,7 +776,8 @@ const styles = StyleSheet.create({
 
   // MODAL
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
+  modalContent: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, maxHeight: '85%' },
+  modalOptionsScroll: { flexGrow: 0 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 14 },
   modalOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
   modalOptionActive: { backgroundColor: '#eff6ff', borderRadius: 10 },

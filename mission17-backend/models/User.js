@@ -59,6 +59,14 @@ const UserSchema = new mongoose.Schema({
   bloodType: { type: String },
   disability: { type: String },
   profileImageUrl: { type: String },
+  idType: {
+    type: String,
+    enum: [
+      'PhilSys National ID / ePhilID', "Driver's License", 'Passport',
+      'UMID / SSS / GSIS ID', 'Voter’s ID / Voter’s Certificate', 'Postal ID',
+      'PRC ID', 'PWD ID', 'Senior Citizen ID', 'Other government-issued ID'
+    ]
+  },
   validIdFrontUrl: { type: String },
   validIdBackUrl: { type: String },
   fcmToken: { type: String },

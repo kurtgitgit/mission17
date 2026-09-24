@@ -11,24 +11,27 @@ const router = express.Router();
 const normalizeText = (value = '') => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').toLowerCase() : '';
 const normalizeContact = (value = '') => typeof value === 'string' ? value.replace(/\D/g, '') : '';
 const TERM_PATTERN = /^\d{4}\s*[-–]\s*\d{4}$/;
+const TERM_NUMBERS = new Set(['1st', '2nd', 'Last']);
 
 const hasMeaningfulText = (value) => {
   const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
   return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
 };
 
-const validateOfficial = ({ name, position, contact, email, term, committee, order }) => {
+const validateOfficial = ({ name, position, contact, email, term, termNumber, committee, order }) => {
   if (typeof name !== 'string' || typeof position !== 'string' || !name.trim() || !position.trim()) return 'Name and position are required.';
   if (name.trim().length > 120 || position.trim().length > 120) return 'Name and position cannot exceed 120 characters.';
   if (!hasMeaningfulText(name) || !hasMeaningfulText(position)) return 'Name and position must contain meaningful text.';
   if (contact !== undefined && contact !== null && typeof contact !== 'string') return 'Contact must be text.';
   if (email !== undefined && email !== null && typeof email !== 'string') return 'Email must be text.';
   if (term !== undefined && term !== null && typeof term !== 'string') return 'Term must be text.';
+  if (termNumber !== undefined && termNumber !== null && typeof termNumber !== 'string') return 'Term number must be text.';
   if (committee !== undefined && committee !== null && typeof committee !== 'string') return 'Committee must be text.';
   if (contact && !/^09\d{9}$/.test(normalizeContact(contact))) return 'Contact must be an 11-digit Philippine mobile number.';
   if (email && email.trim().length > 254) return 'Email cannot exceed 254 characters.';
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Please enter a valid email address.';
   if (committee && committee.trim().length > 120) return 'Committee cannot exceed 120 characters.';
+  if (termNumber && !TERM_NUMBERS.has(termNumber.trim())) return 'Term number must be 1st, 2nd, or Last.';
   if (order !== undefined && order !== null && (!Number.isInteger(Number(order)) || Number(order) < 1 || Number(order) > 99)) {
     return 'Sort order must be a whole number from 1 to 99.';
   }
@@ -41,10 +44,11 @@ const validateOfficial = ({ name, position, contact, email, term, committee, ord
 };
 
 const officialData = (body = {}) => {
-  const { name, position, photo, contact, email, term, committee, order } = body;
+  const { name, position, photo, contact, email, term, termNumber, committee, order } = body;
   const clean = {
     name: name?.trim(), position: position?.trim(), photo, contact: contact ? normalizeContact(contact) : null,
-    email: email?.trim() || null, term: term?.trim() || null, committee: committee?.trim() || null, order
+    email: email?.trim() || null, term: term?.trim() || null, termNumber: termNumber?.trim() || null,
+    committee: committee?.trim() || null, order
   };
   clean.identityKey = `${normalizeText(clean.name)}|${normalizeText(clean.position)}|${normalizeText(clean.term || '')}`;
   return clean;

@@ -18,8 +18,10 @@ const CaptainAnnouncementsScreen = () => {
   }, [route.params?.emergency]);
 
   const post = async () => {
-    if (!title.trim() || !body.trim()) {
-      Alert.alert('Details required', 'Enter a clear title and message before posting.');
+    const cleanTitle = title.trim();
+    const cleanBody = body.trim();
+    if (cleanTitle.length < 3 || cleanBody.length < 10) {
+      Alert.alert('Details required', 'Enter a title of at least 3 characters and a message of at least 10 characters before posting.');
       return;
     }
     setPosting(true);
@@ -28,7 +30,7 @@ const CaptainAnnouncementsScreen = () => {
       const response = await fetchWithTimeout(endpoints.announcements, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), body: body.trim(), category: isUrgent ? 'urgent' : 'general', isUrgent, isPinned: isUrgent }),
+        body: JSON.stringify({ title: cleanTitle, body: cleanBody, category: isUrgent ? 'urgent' : 'general', isUrgent, isPinned: isUrgent }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.message || 'The post could not be saved.');
@@ -37,7 +39,10 @@ const CaptainAnnouncementsScreen = () => {
       setIsUrgent(false);
       Alert.alert(isUrgent ? 'Emergency alert posted' : 'News posted', isUrgent ? 'The alert is live and has been queued for resident notifications.' : 'The announcement is now visible in Barangay Bulletins.');
     } catch (error) {
-      Alert.alert('Post not sent', getFriendlyNetworkMessage(error, 'Please check your connection and try again.'));
+      const message = error instanceof Error && error.message && !/network request failed|failed to fetch|network/i.test(error.message)
+        ? error.message
+        : getFriendlyNetworkMessage(error, 'Please check your connection and try again.');
+      Alert.alert('Post not sent', message);
     } finally {
       setPosting(false);
     }

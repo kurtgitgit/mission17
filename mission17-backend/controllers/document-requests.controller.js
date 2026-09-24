@@ -11,7 +11,9 @@ import asyncHandler from '../utils/asyncHandler.js';
 const ALLOWED_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
 const ALLOWED_DOCUMENT_TYPES = [
   'Barangay Clearance', 'Certificate of Indigency', 'Certificate of Residency',
-  'Business Clearance', 'Certificate of Good Moral Character', 'Barangay ID', 'Other'
+  'Business Clearance', 'Certificate of Good Moral Character', 'Barangay ID',
+  'Certificate of Tree Planting', 'Certificate for First-Time Job Seeker',
+  'Oath of Undertaking', 'Certificate of Low Income', 'Other'
 ];
 
 // Builds the resident notification for each status transition
@@ -117,7 +119,7 @@ export const getMyRequests = asyncHandler(async (req, res) => {
 export const getAllRequests = asyncHandler(async (req, res) => {
   const filter = req.query.status ? { status: req.query.status } : {};
   const requests = await DocumentRequest.find(filter)
-    .populate('userId', 'purok validIdFrontUrl validIdBackUrl accountStatus isVerified email completeAddress yearsOfResidency voterStatus mobileNumber')
+    .populate('userId', 'purok idType validIdFrontUrl validIdBackUrl accountStatus isVerified email completeAddress voterStatus mobileNumber')
     .sort({ createdAt: -1 });
   res.json(requests);
 });

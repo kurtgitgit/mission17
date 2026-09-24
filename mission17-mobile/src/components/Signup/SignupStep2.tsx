@@ -136,11 +136,11 @@ const SignupStep2 = ({
       <View style={styles.addressCard}>
         <Text style={styles.addressLabel}>Barangay</Text>
         <Text style={styles.fixedAddress}>{FIXED_BARANGAY_ADDRESS}</Text>
-        <Text style={styles.addressHint}>The official purok directory is still being verified with the barangay.</Text>
+        <Text style={styles.addressHint}>Select your confirmed Purok, then enter your street below.</Text>
       </View>
 
       <CustomDropdown
-        label="Purok / Sitio"
+        label="Purok"
         value={formData.purok}
         options={[...PUROK_OPTIONS]}
         onSelect={(val) => handleInputChange('purok', val)}
@@ -148,7 +148,7 @@ const SignupStep2 = ({
       />
 
       <FormInput
-        placeholder="Street, purok, sitio, or nearby landmark"
+        placeholder="Street"
         value={formData.completeAddress}
         onChangeText={(val) => handleInputChange("completeAddress", val)}
         maxLength={250}

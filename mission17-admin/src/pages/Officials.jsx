@@ -7,8 +7,10 @@ import '../styles/PortalAdmin.css';
 
 const POSITIONS = [
   'Punong Barangay', 'Barangay Kagawad', 'SK Chairperson',
-  'Barangay Secretary', 'Barangay Treasurer', 'Other',
+  'Barangay Secretary', 'Barangay Treasurer', 'Chief Tanod', 'BHW President', 'Other',
 ];
+
+const TERM_NUMBERS = ['', '1st', '2nd', 'Last'];
 
 const POS_STYLE = {
   'Punong Barangay':   { bg: '#dcfce7', text: '#15803d' },
@@ -16,6 +18,8 @@ const POS_STYLE = {
   'SK Chairperson':    { bg: '#ede9fe', text: '#7c3aed' },
   'Barangay Secretary':{ bg: '#fef3c7', text: '#b45309' },
   'Barangay Treasurer':{ bg: '#fee2e2', text: '#dc2626' },
+  'Chief Tanod':        { bg: '#dbeafe', text: '#1d4ed8' },
+  'BHW President':      { bg: '#fce7f3', text: '#be185d' },
   'Other':             { bg: '#f1f5f9', text: '#64748b' },
 };
 
@@ -113,7 +117,7 @@ const Officials = () => {
   const [editItem, setEditItem]  = useState(null);
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', committee: '', order: 99 });
+  const [form, setForm] = useState({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '', order: 99 });
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
@@ -131,7 +135,7 @@ const Officials = () => {
   useEffect(() => { void fetchData(); }, [fetchData]);
 
   const resetForm = () => {
-    setForm({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', committee: '', order: 99 });
+    setForm({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '', order: 99 });
     setEditItem(null);
     setShowForm(false);
   };
@@ -144,6 +148,7 @@ const Officials = () => {
     if (form.contact && !/^09\d{9}$/.test(form.contact)) return showNotification('Contact must be an 11-digit Philippine mobile number.', 'error');
     if (form.email.trim().length > 254) return showNotification('Email cannot exceed 254 characters.', 'error');
     if (form.committee.trim().length > 120) return showNotification('Committee cannot exceed 120 characters.', 'error');
+    if (form.termNumber && !TERM_NUMBERS.includes(form.termNumber)) return showNotification('Select a valid term number.', 'error');
     if (form.term) {
       const years = form.term.match(/\d{4}/g);
       if (!/^\d{4}\s*[-–]\s*\d{4}$/.test(form.term) || !years || Number(years[1]) <= Number(years[0])) {
@@ -234,7 +239,7 @@ const Officials = () => {
 
   const startEdit = (item) => {
     setEditItem(item);
-    setForm({ name: item.name, position: item.position, contact: item.contact || '', email: item.email || '', term: item.term || '', committee: item.committee || '', order: item.order || 99 });
+    setForm({ name: item.name, position: item.position, contact: item.contact || '', email: item.email || '', term: item.term || '', termNumber: item.termNumber || '', committee: item.committee || '', order: item.order || 99 });
     setShowForm(true);
   };
 
@@ -341,6 +346,16 @@ const Officials = () => {
                     maxLength="11" pattern="\d{4}\s*[-–]\s*\d{4}" title="Use YYYY - YYYY" />
                 </div>
                 <div className="pa-form-group">
+                  <label className="pa-label">Term Number</label>
+                  <select className="pa-input" value={form.termNumber} onChange={e => setForm({ ...form, termNumber: e.target.value })}>
+                    {TERM_NUMBERS.map(value => (
+                      <option key={value || 'none'} value={value}>
+                        {value ? `${value} Term` : 'Not specified'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="pa-form-group">
                   <label className="pa-label">Committee</label>
                   <input className="pa-input" placeholder="Health, Peace & Order, etc." value={form.committee}
                     onChange={e => setForm({ ...form, committee: e.target.value })} maxLength="120" />
@@ -397,6 +412,7 @@ const Officials = () => {
                       <p className="pa-card-title pa-official-break">{off.name}</p>
                       {off.committee && <p className="pa-official-meta pa-official-break">Committee on {off.committee}</p>}
                       {off.term      && <p className="pa-official-meta muted pa-official-break">Term: {off.term}</p>}
+                      {off.termNumber && <p className="pa-official-meta muted pa-official-break">Term number: {off.termNumber} term</p>}
                       
                       {off.isArchived && (
                         <div className="pa-official-archive-note pa-official-break">

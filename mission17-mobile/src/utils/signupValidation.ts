@@ -10,9 +10,35 @@ export const sanitizePersonName = (value: string) => value
 
 export const isValidPersonName = (value: string) => PERSON_NAME_PATTERN.test(value.trim());
 
+export const parseBirthDate = (value: string | Date) => {
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) return null;
+    return new Date(value.getFullYear(), value.getMonth(), value.getDate(), 12);
+  }
+
+  const normalized = value.trim();
+  const usDate = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(normalized);
+  const isoDate = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:T.*)?$/.exec(normalized);
+
+  const year = usDate ? Number(usDate[3]) : isoDate ? Number(isoDate[1]) : NaN;
+  const month = usDate ? Number(usDate[1]) : isoDate ? Number(isoDate[2]) : NaN;
+  const day = usDate ? Number(usDate[2]) : isoDate ? Number(isoDate[3]) : NaN;
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) return null;
+
+  const parsed = new Date(year, month - 1, day, 12);
+  if (
+    parsed.getFullYear() !== year
+    || parsed.getMonth() !== month - 1
+    || parsed.getDate() !== day
+  ) return null;
+
+  return parsed;
+};
+
 export const calculateAge = (value: string | Date) => {
-  const birthDate = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(birthDate.getTime())) return null;
+  const birthDate = parseBirthDate(value);
+  if (!birthDate) return null;
 
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();

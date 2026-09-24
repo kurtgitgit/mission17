@@ -25,6 +25,13 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(getMockReply(message)).toContain("'File New Report'");
   });
 
+  it('returns the verified barangay contact details without model invention', () => {
+    const reply = getControlledFaq('What is the Barangay Hall contact number and office hours?');
+    expect(reply).toContain('0991-698-2914');
+    expect(reply).toContain('Monday-Saturday');
+    expect(reply).toContain('Bhea Monique San Miguel');
+  });
+
   it('replaces unverified model timelines and download claims with a safe referral', () => {
     const reply = 'Processing takes 1–3 days and you can download a PDF with a QR code.';
     expect(guardModelReply('Paano ako hihingi ng barangay clearance?', reply)).toContain('opisyal na barangay office');

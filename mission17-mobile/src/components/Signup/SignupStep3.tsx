@@ -2,7 +2,21 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Upload, Eye, EyeOff, Check } from 'lucide-react-native';
 import FormInput from '../FormInput';
+import CustomDropdown from '../CustomDropdown';
 import { getPasswordRequirements, isStrongSignupPassword } from '../../utils/signupValidation';
+
+const ID_TYPES = [
+  'PhilSys National ID / ePhilID',
+  "Driver's License",
+  'Passport',
+  'UMID / SSS / GSIS ID',
+  'Voter’s ID / Voter’s Certificate',
+  'Postal ID',
+  'PRC ID',
+  'PWD ID',
+  'Senior Citizen ID',
+  'Other government-issued ID',
+];
 
 interface SignupStep3Props {
   formData: any;
@@ -39,12 +53,14 @@ const SignupStep3 = ({
   setTermsAccepted,
   navigation
 }: SignupStep3Props) => {
+  const requiresIdBack = formData.idType !== 'Passport';
   const passwordRequirements = getPasswordRequirements(formData.password);
   const passwordsMatch = Boolean(formData.confirmPassword) && formData.password === formData.confirmPassword;
   const canSubmit = Boolean(
     !loading &&
+    formData.idType &&
     validIdFront &&
-    validIdBack &&
+    (!requiresIdBack || validIdBack) &&
     isStrongSignupPassword(formData.password) &&
     passwordsMatch &&
     privacyAccepted &&
@@ -62,24 +78,37 @@ const SignupStep3 = ({
     <View style={styles.form}>
       <Text style={styles.sectionTitle}>Attachments</Text>
       <Text style={styles.attachmentHint}>
-        Please capture a clear photo of the entire ID. Make sure all details are readable and avoid glare or blur.
+        Please capture a clear, readable photo. Ensure all details and your face are visible; avoid glare, blur, or cropped edges.
       </Text>
+
+      <CustomDropdown
+        label="ID Type"
+        value={formData.idType}
+        options={ID_TYPES}
+        onSelect={(value) => handleInputChange('idType', value)}
+        required
+      />
+      {formData.idType === 'PhilSys National ID / ePhilID' && (
+        <Text style={styles.preferredIdHint}>Preferred ID for faster Barangay verification.</Text>
+      )}
       
       <View style={styles.uploadRow}>
         <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idFront')}>
           <Upload color="#475569" size={20} />
-          <Text style={styles.uploadButtonText}>Attach Valid ID (Front) <Text style={{ color: '#ef4444' }}>*</Text></Text>
+          <Text style={styles.uploadButtonText}>{requiresIdBack ? 'Attach Valid ID (Front)' : 'Upload Passport Information Page'} <Text style={{ color: '#ef4444' }}>*</Text></Text>
         </TouchableOpacity>
-        {validIdFront && <Text style={styles.fileLabel}>Front Selected</Text>}
+        {validIdFront && <Text style={styles.fileLabel}>{requiresIdBack ? 'Front Selected' : 'Passport Page Selected'}</Text>}
       </View>
 
-      <View style={styles.uploadRow}>
-        <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idBack')}>
-          <Upload color="#475569" size={20} />
-          <Text style={styles.uploadButtonText}>Attach Valid ID (Back) <Text style={{ color: '#ef4444' }}>*</Text></Text>
-        </TouchableOpacity>
-        {validIdBack && <Text style={styles.fileLabel}>Back Selected</Text>}
-      </View>
+      {requiresIdBack && (
+        <View style={styles.uploadRow}>
+          <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idBack')}>
+            <Upload color="#475569" size={20} />
+            <Text style={styles.uploadButtonText}>Attach Valid ID (Back) <Text style={{ color: '#ef4444' }}>*</Text></Text>
+          </TouchableOpacity>
+          {validIdBack && <Text style={styles.fileLabel}>Back Selected</Text>}
+        </View>
+      )}
 
 
 
@@ -166,6 +195,7 @@ const styles = StyleSheet.create({
   form: { gap: 14 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 10, marginBottom: 4 },
   attachmentHint: { fontSize: 12.5, color: '#64748b', lineHeight: 18, marginTop: -6, marginBottom: 2 },
+  preferredIdHint: { fontSize: 12.5, color: '#15803d', fontWeight: '600', marginTop: -6 },
   uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   uploadButton: { 
     flexDirection: 'row', alignItems: 'center', gap: 8, 

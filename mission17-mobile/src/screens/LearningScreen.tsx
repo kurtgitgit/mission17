@@ -165,8 +165,7 @@ const LearningScreen: React.FC = () => {
               <Text style={styles.officeTitle}>Office Hours</Text>
             </View>
             {[
-              { day: 'Monday – Friday', time: '8:00 AM – 5:00 PM' },
-              { day: 'Saturday', time: '8:00 AM – 12:00 PM' },
+              { day: 'Monday – Saturday', time: '8:00 AM – 5:00 PM' },
               { day: 'Sunday / Holidays', time: 'Closed', closed: true },
             ].map(item => (
               <View key={item.day} style={styles.officeRow}>

@@ -16,6 +16,7 @@ import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { BARANGAY_INFO } from '../config/barangayInfo';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
@@ -185,10 +186,11 @@ const ProfileScreen = ({ navigation }: any) => {
         return (
           <View style={{ gap: 10 }}>
             <Text style={styles.contactItem}><Text style={styles.contactLabel}>Barangay Bagong Pag-asa Hall</Text></Text>
-            <Text style={styles.contactItem}>📍 Location: San Jacinto, Pangasinan</Text>
-            <Text style={styles.contactItem}>📞 Telephone: (075) 123-4567</Text>
-            <Text style={styles.contactItem}>📧 Email: brgybagongpagasa@gmail.com</Text>
-            <Text style={styles.contactItem}>🕒 Office Hours: Mon–Fri, 8:00 AM – 5:00 PM</Text>
+            <Text style={styles.contactItem}>📍 Location: {BARANGAY_INFO.address}</Text>
+            <Text style={styles.contactItem}>📞 Mobile: {BARANGAY_INFO.mobileDisplay}</Text>
+            <Text style={styles.contactItem}>👤 Contact: Bhea Monique San Miguel, Barangay Secretary</Text>
+            <Text style={styles.contactItem}>📧 Email: {BARANGAY_INFO.email}</Text>
+            <Text style={styles.contactItem}>🕒 Office Hours: {BARANGAY_INFO.officeDays}, {BARANGAY_INFO.officeHours}</Text>
           </View>
         );
       default:

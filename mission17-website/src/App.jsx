@@ -283,8 +283,10 @@ function App() {
           </div>
           <div className="footer-right" style={{ textAlign: 'right' }}>
             <h4 style={{ fontSize: '1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Hall, Bagong Pag-asa, San Jacinto</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>contact@brgylink.gov.ph</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Bagong Pag-asa, San Jacinto, Pangasinan</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Mobile: 0991-698-2914 (Barangay Secretary)</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>b.pag.asasj@gmail.com</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Office hours: Monday-Saturday, 8:00 AM-5:00 PM</p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 BrgyLink Project. All rights reserved.</p>
           </div>
         </div>

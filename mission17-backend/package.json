@@ -9,7 +9,8 @@
     "dev": "nodemon index.js",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "eslint .",
-    "promote:super-admin": "node promoteSuperAdmin.js"
+    "promote:super-admin": "node promoteSuperAdmin.js",
+    "officials:replace-roster": "node scripts/replace-official-roster.js"
   },
   "keywords": [],
   "author": "",

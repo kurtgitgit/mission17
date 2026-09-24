@@ -57,6 +57,12 @@ const isStrongPassword = (password) => typeof password === 'string'
   && /\d/.test(password)
   && /[^A-Za-z0-9]/.test(password);
 
+const VALID_ID_TYPES = new Set([
+  'PhilSys National ID / ePhilID', "Driver's License", 'Passport',
+  'UMID / SSS / GSIS ID', 'Voter’s ID / Voter’s Certificate', 'Postal ID',
+  'PRC ID', 'PWD ID', 'Senior Citizen ID', 'Other government-issued ID'
+]);
+
 const GMAIL_OAUTH_REDIRECT_URI = 'https://developers.google.com/oauthplayground';
 
 const encodeGmailMessage = ({ from, to, subject, text, html }) => {
@@ -329,12 +335,21 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     const profileValidationError = validateResidentProfile(residentProfile, { requireCore: true, minimumAge: 18 });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
+    const idType = typeof req.body.idType === 'string' ? req.body.idType.trim() : '';
+    if (!VALID_ID_TYPES.has(idType)) {
+      return res.status(400).json({ message: 'Please select a valid government-issued ID type.' });
+    }
+
     // Grab file URLs if they exist
     const validIdFrontUrl = req.files && req.files['validIdFront'] ? req.files['validIdFront'][0].path : null;
     const validIdBackUrl = req.files && req.files['validIdBack'] ? req.files['validIdBack'][0].path : null;
     const profileImageUrl = req.files && req.files['profileImage'] ? req.files['profileImage'][0].path : null;
-    if (!validIdFrontUrl || !validIdBackUrl) {
-      return res.status(400).json({ message: 'Clear photos of both the front and back of a valid ID are required.' });
+    if (!validIdFrontUrl || (idType !== 'Passport' && !validIdBackUrl)) {
+      return res.status(400).json({
+        message: idType === 'Passport'
+          ? 'A clear photo of the passport information page is required.'
+          : 'Clear photos of both the front and back of a valid ID are required.'
+      });
     }
 
     // Use firstName+lastName for the auto-generated username
@@ -353,6 +368,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       legalConsent: createLegalConsentRecord(),
 
       ...residentProfile,
+      idType,
       validIdFrontUrl, validIdBackUrl, profileImageUrl
     });
 

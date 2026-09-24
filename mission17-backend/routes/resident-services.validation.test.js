@@ -106,6 +106,22 @@ describe('resident service validation and duplicate protection', () => {
     expect((await request(app).post('/api/document-requests').send(payload)).status).toBe(409);
   });
 
+  it.each([
+    'Certificate of Tree Planting',
+    'Certificate for First-Time Job Seeker',
+    'Oath of Undertaking',
+    'Certificate of Low Income',
+  ])('accepts the verified document type %s', async (documentType) => {
+    const response = await request(app).post('/api/document-requests').send({
+      fullName: 'Juan Dela Cruz',
+      address: 'Purok 7, Bagong Pag-asa',
+      contactNumber: '09171234567',
+      documentType,
+      purpose: `Requesting ${documentType}`,
+    });
+    expect(response.status).toBe(201);
+  });
+
   it('validates blotter reports and rejects a rapid duplicate', async () => {
     const payload = {
       fullName: 'Juan Dela Cruz', contactNumber: '09171234567', incidentType: 'Disturbance',

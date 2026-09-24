@@ -25,6 +25,7 @@ const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const TERMINAL_STATUSES = ['Resolved', 'Dismissed'];
 const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const SCHEDULED_HEARING_STAGES = ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
 const MAX_REMOTE_EVIDENCE_BYTES = 8 * 1024 * 1024;
 const MAX_INLINE_EVIDENCE_LENGTH = Math.ceil(MAX_REMOTE_EVIDENCE_BYTES * 4 / 3) + 256;
 
@@ -247,6 +248,25 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  // A scheduled Lupon hearing is not meaningful to the resident without its
+  // appointment details. Enforce this server-side so direct API calls cannot
+  // create a hearing stage with no date, time, or presiding officer.
+  const effectiveHearingStage = hearingStage === undefined ? (report.hearingStage || 'None') : hearingStage;
+  if (SCHEDULED_HEARING_STAGES.includes(effectiveHearingStage)) {
+    const effectiveHearingDate = hearingDate === undefined ? report.hearingDate : hearingDate;
+    const effectiveOfficer = luponOfficerInCharge === undefined
+      ? report.luponOfficerInCharge
+      : luponOfficerInCharge.trim();
+    const effectiveDate = effectiveHearingDate ? new Date(effectiveHearingDate) : null;
+
+    if (!effectiveDate || Number.isNaN(effectiveDate.getTime())) {
+      return res.status(400).json({ message: 'A Lupon hearing stage requires a valid hearing date and time.' });
+    }
+    if (!effectiveOfficer) {
+      return res.status(400).json({ message: 'A Lupon hearing stage requires a presiding officer.' });
+    }
+  }
+
   if (status) report.status = status;
   if (adminRemarks !== undefined) report.adminRemarks = adminRemarks.trim();
   if (respondentName !== undefined) report.respondentName = respondentName.trim();
@@ -277,7 +297,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   // Notify the resident
   const hearingStr = report.hearingDate 
-    ? ` Schedule: ${new Date(report.hearingDate).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} (${report.hearingStage || 'Lupon Hearing'}).`
+    ? ` Schedule: ${new Date(report.hearingDate).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} (${report.hearingStage || 'Lupon Hearing'}). Presiding official: ${report.luponOfficerInCharge || 'To be confirmed'}.`
     : '';
 
   const notificationTitle = report.hearingDate ? '⚖️ Lupon Hearing Scheduled' : 'Blotter Report Update';

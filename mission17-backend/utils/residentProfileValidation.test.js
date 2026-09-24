@@ -35,9 +35,20 @@ describe('resident profile validation', () => {
     expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toBeNull();
   });
 
-  it('requires a provisional purok selection for new or resubmitted registrations', () => {
+  it('accepts eligible MM/DD/YYYY birthdates sent by the mobile date picker', () => {
+    const profile = normalizeResidentProfile({ ...validProfile, birthDate: '08/01/2006' });
+    expect(Number(profile.age)).toBeGreaterThanOrEqual(18);
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toBeNull();
+  });
+
+  it('rejects impossible calendar dates instead of rolling them forward', () => {
+    const profile = normalizeResidentProfile({ ...validProfile, birthDate: '02/31/2000' });
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toMatch(/valid birthdate/i);
+  });
+
+  it('requires a confirmed purok selection for new or resubmitted registrations', () => {
     expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: '' }), { requireCore: true })).toMatch(/purok/i);
-    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: 'Purok 2' }), { requireCore: true })).toMatch(/purok/i);
-    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: 'Other / Not listed' }), { requireCore: true })).toBeNull();
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: 'Purok 2' }), { requireCore: true })).toBeNull();
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, purok: 'Other / Not listed' }), { requireCore: true })).toMatch(/purok/i);
   });
 });
