@@ -111,7 +111,10 @@ function App() {
       {/* Hero Section */}
       <header className="hero-container" style={{ 
         padding: '8rem 5% 10rem', 
-        background: 'radial-gradient(circle at 78% 32%, rgba(255, 213, 43, 0.20) 0, rgba(255, 213, 43, 0) 24%), radial-gradient(circle at 82% 80%, rgba(35, 211, 166, 0.20) 0, rgba(35, 211, 166, 0) 30%), linear-gradient(125deg, #001a57 0%, #003f9e 52%, #0759bc 100%)',
+        backgroundImage: 'linear-gradient(90deg, rgba(0, 22, 76, 0.94) 0%, rgba(0, 43, 127, 0.82) 48%, rgba(0, 32, 100, 0.46) 100%), url(/bridge_bg.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
         position: 'relative',
         borderBottom: '4px solid var(--accent-gold)',
         display: 'flex',
