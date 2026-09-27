@@ -15,12 +15,13 @@ import { useSignup } from '../hooks/useSignup';
 import SignupStep1 from '../components/Signup/SignupStep1';
 import SignupStep2 from '../components/Signup/SignupStep2';
 import SignupStep3 from '../components/Signup/SignupStep3';
+import SignupEmailVerification from '../components/Signup/SignupEmailVerification';
 
 const missionLogo = require('../../assets/logo.png');
 
 export default function SignupScreen() {
   const signupHook = useSignup();
-  const { step, prevStep, navigation } = signupHook;
+  const { step, prevStep, navigation, emailVerificationPending, setEmailVerificationPending } = signupHook;
   
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
@@ -35,7 +36,11 @@ export default function SignupScreen() {
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton} 
-              onPress={() => { step === 1 ? navigation.goBack() : prevStep() }}
+              onPress={() => {
+                if (emailVerificationPending) setEmailVerificationPending(false);
+                else if (step === 1) navigation.goBack();
+                else prevStep();
+              }}
             >
               <ArrowLeft color="white" size={24} />
             </TouchableOpacity>
@@ -45,7 +50,7 @@ export default function SignupScreen() {
               style={styles.logo} 
               resizeMode="contain"
             />
-            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.title}>{emailVerificationPending ? 'Verify Email' : 'Create Account'}</Text>
             <Text style={styles.subtitle}>Step {step} of 3</Text>
           </View>
 
@@ -57,7 +62,15 @@ export default function SignupScreen() {
               <View style={[styles.topProgressSegment, step >= 3 && styles.topProgressSegmentActive]} />
             </View>
 
-            {step === 1 && <SignupStep1 {...signupHook} />}
+            {emailVerificationPending ? (
+              <SignupEmailVerification
+                email={signupHook.formData.email}
+                loading={signupHook.loading}
+                onVerify={signupHook.verifySignupEmail}
+                onResend={signupHook.startSignupVerification}
+                onEditEmail={() => setEmailVerificationPending(false)}
+              />
+            ) : step === 1 ? <SignupStep1 {...signupHook} /> : null}
             {step === 2 && <SignupStep2 {...signupHook} />}
             {step === 3 && <SignupStep3 {...signupHook} />}
             

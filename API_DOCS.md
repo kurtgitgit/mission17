@@ -123,6 +123,48 @@ Validates the One-Time Password sent via Nodemailer.
 
 ---
 
+### `POST /auth/start-signup-verification`
+Sends a six-digit email code after signup Step 1, before the resident submits personal details, ID images, or a password. This endpoint does **not** create a Firebase or BrgyLink user account.
+
+* **Request Body:**
+```json
+{
+  "firstName": "Kurt",
+  "email": "kurt@example.com"
+}
+```
+* **Success Response (`200 OK`):**
+```json
+{
+  "message": "Verification code sent. Check your inbox and Spam or Junk folder.",
+  "resendAfterSeconds": 180
+}
+```
+* **Controls:** Codes expire after 10 minutes; the same email can request a new code after three minutes; requests are limited to three per 10 minutes per client IP.
+
+---
+
+### `POST /auth/verify-signup-email`
+Verifies the Step 1 code and returns a short-lived token that must be included when finalizing registration.
+
+* **Request Body:**
+```json
+{
+  "email": "kurt@example.com",
+  "otp": "849201"
+}
+```
+* **Success Response (`200 OK`):**
+```json
+{
+  "message": "Email verified. Continue with your registration.",
+  "verificationToken": "short-lived-registration-token"
+}
+```
+* **Controls:** The code is stored as a hash, allows at most 10 incorrect attempts, and the returned token is valid for 30 minutes. It must match the Firebase email supplied to `POST /auth/sync-user`.
+
+---
+
 ### `GET /auth/me`
 Retrieves current authenticated citizen profile.
 

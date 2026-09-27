@@ -242,7 +242,7 @@ const EditProfileScreen = ({ navigation }: any) => {
                 const birthDate = t.slice(0, 10);
                 const age = calculateAge(birthDate);
                 setUserData({...userData, birthDate, age: age === null ? '' : String(age)});
-              }} placeholder="MM/DD/YYYY (age 18+)" maxLength={10} hint={`You must be at least ${MINIMUM_SIGNUP_AGE} years old.`} />
+              }} placeholder={`MM/DD/YYYY (age ${MINIMUM_SIGNUP_AGE}+)`} maxLength={10} hint={`You must be at least ${MINIMUM_SIGNUP_AGE} years old.`} />
             ) : (
               <View style={styles.infoRow}>
                 <View style={styles.iconContainer}><Calendar size={20} color={colors.textSecondary} /></View>

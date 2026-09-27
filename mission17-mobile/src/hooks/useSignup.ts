@@ -5,7 +5,8 @@ import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
 import * as ImagePicker from 'expo-image-picker';
 import { auth } from '../config/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 import { isDirectoryPurok } from '../config/addressDirectory';
 import {
   calculateAge,
@@ -47,8 +48,16 @@ export const useSignup = () => {
   const [nationalitySelection, setNationalitySelection] = useState('');
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [emailVerificationPending, setEmailVerificationPending] = useState(false);
+  const [signupVerificationToken, setSignupVerificationToken] = useState('');
+  const [signupVerificationEmail, setSignupVerificationEmail] = useState('');
 
   const handleInputChange = (field: string, value: string) => {
+    if (field === 'email' && value.trim().toLowerCase() !== formData.email.trim().toLowerCase()) {
+      setSignupVerificationToken('');
+      setSignupVerificationEmail('');
+      setEmailVerificationPending(false);
+    }
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -96,7 +105,58 @@ export const useSignup = () => {
     }
   };
 
-  const nextStep = () => {
+  const startSignupVerification = async () => {
+    setLoading(true);
+    try {
+      const response = await fetchWithTimeout(endpoints.auth.startSignupVerification, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email.trim(), firstName: formData.firstName.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Could not send the verification code.');
+      setSignupVerificationEmail(formData.email.trim().toLowerCase());
+      setEmailVerificationPending(true);
+      showNotification('Verification code sent. Check your inbox and Spam or Junk folder.', 'success');
+      return true;
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? error.message
+        : getFriendlyNetworkMessage(error, 'Could not send the verification code. Please try again.');
+      showNotification(message, 'error');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const verifySignupEmail = async (otp: string) => {
+    setLoading(true);
+    try {
+      const response = await fetchWithTimeout(endpoints.auth.verifySignupEmail, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email.trim(), otp }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.verificationToken) throw new Error(data.message || 'Could not verify your email.');
+      setSignupVerificationToken(data.verificationToken);
+      setEmailVerificationPending(false);
+      setStep(2);
+      showNotification('Email verified. Continue your registration.', 'success');
+      return true;
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? error.message
+        : getFriendlyNetworkMessage(error, 'Could not verify your email. Please try again.');
+      showNotification(message, 'error');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextStep = async () => {
     if (step === 1) {
       if (!formData.firstName || !formData.lastName) {
         showNotification('First and Last Name are required.', 'error');
@@ -117,6 +177,14 @@ export const useSignup = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
         showNotification('Please enter a valid email address.', 'error');
+        return;
+      }
+      if (!signupVerificationToken) {
+        if (signupVerificationEmail === formData.email.trim().toLowerCase()) {
+          setEmailVerificationPending(true);
+          return;
+        }
+        await startSignupVerification();
         return;
       }
     }
@@ -221,9 +289,17 @@ export const useSignup = () => {
     setLoading(true);
 
     try {
-      // 1. Create User in Firebase
+      // 1. Create the Firebase credential only after the email was verified.
+      // If a previous sync attempt timed out, reuse the same credential so a
+      // resident can safely retry instead of being told their email is taken.
       const cleanEmail = formData.email.trim();
-      const userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
+      let userCredential;
+      try {
+        userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
+      } catch (firebaseError: any) {
+        if (firebaseError?.code !== 'auth/email-already-in-use') throw firebaseError;
+        userCredential = await signInWithEmailAndPassword(auth, cleanEmail, formData.password);
+      }
       const firebaseToken = await userCredential.user.getIdToken();
 
       // 2. Prepare Form Data for Sync
@@ -237,6 +313,7 @@ export const useSignup = () => {
           }
         }
       });
+      formPayload.append('signupVerificationToken', signupVerificationToken);
       formPayload.append('privacyAccepted', 'true');
       formPayload.append('termsAccepted', 'true');
       formPayload.append('policyVersion', LEGAL_POLICY_VERSION);
@@ -296,6 +373,12 @@ export const useSignup = () => {
         navigation.replace('SignupSuccess');
       } else {
         const msg = data.message || 'Something went wrong';
+        if (/verify your email in step 1/i.test(msg)) {
+          setSignupVerificationToken('');
+          setSignupVerificationEmail('');
+          setEmailVerificationPending(false);
+          setStep(1);
+        }
         showNotification(msg, 'error');
       }
     } catch (error: any) {
@@ -332,6 +415,10 @@ export const useSignup = () => {
     setPrivacyAccepted,
     termsAccepted,
     setTermsAccepted,
+    emailVerificationPending,
+    setEmailVerificationPending,
+    startSignupVerification,
+    verifySignupEmail,
     handleInputChange,
     handleDateChange,
     pickImage,

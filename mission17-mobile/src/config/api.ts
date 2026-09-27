@@ -92,6 +92,8 @@ export const endpoints = {
     forgotPassword: `${API_URL}/auth/forgot-password`,
     resetPassword: `${API_URL}/auth/reset-password`,
     verifyOTP: `${API_URL}/auth/verify-otp`,
+    startSignupVerification: `${API_URL}/auth/start-signup-verification`,
+    verifySignupEmail: `${API_URL}/auth/verify-signup-email`,
     registrationReview: `${API_URL}/auth/registration-review`,
     resubmitRegistration: `${API_URL}/auth/resubmit-registration`,
     savePendingPushToken: `${API_URL}/auth/save-pending-push-token`,

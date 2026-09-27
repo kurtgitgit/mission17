@@ -1,4 +1,8 @@
-import { normalizeResidentProfile, validateResidentProfile } from './residentProfileValidation.js';
+import {
+  MINIMUM_RESIDENT_REGISTRATION_AGE,
+  normalizeResidentProfile,
+  validateResidentProfile
+} from './residentProfileValidation.js';
 
 describe('resident profile validation', () => {
   const validProfile = {
@@ -23,27 +27,27 @@ describe('resident profile validation', () => {
   });
 
   it('rejects numeric names and residents below the registration age', () => {
-    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, firstName: '11111' }), { requireCore: true, minimumAge: 18 })).toMatch(/first name/i);
-    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, lastName: '22222' }), { requireCore: true, minimumAge: 18 })).toMatch(/last name/i);
-    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, birthDate: new Date().toISOString().slice(0, 10) }), { requireCore: true, minimumAge: 18 })).toMatch(/at least 18/i);
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, firstName: '11111' }), { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toMatch(/first name/i);
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, lastName: '22222' }), { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toMatch(/last name/i);
+    expect(validateResidentProfile(normalizeResidentProfile({ ...validProfile, birthDate: new Date().toISOString().slice(0, 10) }), { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toMatch(/at least 15/i);
   });
 
-  it('accepts an applicant who has reached age 18', () => {
+  it('accepts an applicant who has reached age 15', () => {
     const eligibleBirthDate = new Date();
-    eligibleBirthDate.setFullYear(eligibleBirthDate.getFullYear() - 18);
+    eligibleBirthDate.setFullYear(eligibleBirthDate.getFullYear() - MINIMUM_RESIDENT_REGISTRATION_AGE);
     const profile = normalizeResidentProfile({ ...validProfile, birthDate: eligibleBirthDate.toISOString().slice(0, 10) });
-    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toBeNull();
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toBeNull();
   });
 
   it('accepts eligible MM/DD/YYYY birthdates sent by the mobile date picker', () => {
     const profile = normalizeResidentProfile({ ...validProfile, birthDate: '08/01/2006' });
-    expect(Number(profile.age)).toBeGreaterThanOrEqual(18);
-    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toBeNull();
+    expect(Number(profile.age)).toBeGreaterThanOrEqual(MINIMUM_RESIDENT_REGISTRATION_AGE);
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toBeNull();
   });
 
   it('rejects impossible calendar dates instead of rolling them forward', () => {
     const profile = normalizeResidentProfile({ ...validProfile, birthDate: '02/31/2000' });
-    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: 18 })).toMatch(/valid birthdate/i);
+    expect(validateResidentProfile(profile, { requireCore: true, minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE })).toMatch(/valid birthdate/i);
   });
 
   it('requires a confirmed purok selection for new or resubmitted registrations', () => {

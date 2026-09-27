@@ -5,6 +5,9 @@ const EMPLOYMENT_STATUSES = new Set(['Employed', 'Self-Employed', 'Unemployed', 
 const CONFIRMED_PUROKS = new Set(['Purok 1', 'Purok 2', 'Purok 3', 'Purok 4', 'Purok 5', 'Purok 6', 'Purok 7']);
 const PERSON_NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u;
 
+// Barangay policy permits residents aged 15 and above to register.
+export const MINIMUM_RESIDENT_REGISTRATION_AGE = 15;
+
 const PROFILE_TEXT_LIMITS = {
   firstName: 80,
   middleName: 80,

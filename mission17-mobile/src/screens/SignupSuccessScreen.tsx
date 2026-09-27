@@ -9,24 +9,20 @@ const SignupSuccessScreen = ({ navigation }: any) => (
         <CircleCheckBig size={58} color="#15803d" />
       </View>
 
-      <Text style={styles.title}>Your account was created</Text>
+      <Text style={styles.title}>Registration submitted</Text>
       <Text style={styles.subtitle}>
-        One more step is needed before you can use BrgyLink.
+        Your email has been verified. Barangay staff will now review your profile and ID.
       </Text>
 
       <View style={styles.nextStep}>
         <MailCheck size={26} color="#0038A8" />
         <View style={styles.nextStepTextContainer}>
-          <Text style={styles.nextStepTitle}>Verify your email</Text>
+          <Text style={styles.nextStepTitle}>What happens next</Text>
           <Text style={styles.nextStepText}>
-            Sign in using the email and password you just created. We will send a verification code to your email.
+            You can sign in after your registration has been approved by the barangay.
           </Text>
         </View>
       </View>
-
-      <Text style={styles.helpText}>
-        If you do not see the code, check your Spam or Junk folder.
-      </Text>
 
       <TouchableOpacity
         style={styles.exitButton}
@@ -69,7 +65,6 @@ const styles = StyleSheet.create({
   nextStepTextContainer: { flex: 1 },
   nextStepTitle: { fontSize: 18, fontWeight: '800', color: '#1e3a8a', marginBottom: 5 },
   nextStepText: { fontSize: 15, lineHeight: 22, color: '#1e3a8a' },
-  helpText: { fontSize: 14, lineHeight: 20, color: '#64748b', textAlign: 'center', marginTop: 20, maxWidth: 360 },
   exitButton: { backgroundColor: '#0038A8', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 28, marginTop: 32, minWidth: 230 },
   exitButtonText: { color: '#fff', fontWeight: '800', fontSize: 17, textAlign: 'center' },
 });

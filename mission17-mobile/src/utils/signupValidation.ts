@@ -1,4 +1,6 @@
-export const MINIMUM_SIGNUP_AGE = 18;
+// Residents aged 15 and above may register. This matches the barangay's
+// certificate-application policy for minors.
+export const MINIMUM_SIGNUP_AGE = 15;
 export const MAXIMUM_RESIDENT_AGE = 120;
 
 const PERSON_NAME_PATTERN = /^[\p{L}\p{M}][\p{L}\p{M} .'-]*$/u;

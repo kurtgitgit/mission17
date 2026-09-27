@@ -18,10 +18,12 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { google } from 'googleapis';
 import rateLimit from 'express-rate-limit';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
+import SignupEmailVerification from '../models/SignupEmailVerification.js';
 import { logAudit, verifyAdmin, verifyAuthenticatedUser, verifyFirebaseToken } from '../utils/authMiddleware.js';
 import multer from 'multer';
 import path from 'path';
@@ -34,7 +36,11 @@ import {
   createLegalConsentRecord,
   hasCurrentLegalConsent
 } from '../utils/legalConsent.js';
-import { normalizeResidentProfile, validateResidentProfile } from '../utils/residentProfileValidation.js';
+import {
+  MINIMUM_RESIDENT_REGISTRATION_AGE,
+  normalizeResidentProfile,
+  validateResidentProfile
+} from '../utils/residentProfileValidation.js';
 
 // 🛡️ ANTI-FRAUD: Known disposable email domains
 const DISPOSABLE_DOMAINS = [
@@ -46,6 +52,19 @@ const isDisposableEmail = (email) => {
   const domain = email.split('@')[1];
   return DISPOSABLE_DOMAINS.includes(domain);
 };
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SIGNUP_OTP_TTL_MS = 10 * 60 * 1000;
+const SIGNUP_OTP_RESEND_COOLDOWN_MS = 3 * 60 * 1000;
+const SIGNUP_VERIFICATION_TOKEN_TTL = '30m';
+const MAX_SIGNUP_OTP_ATTEMPTS = 10;
+
+const normalizeEmail = (email) => typeof email === 'string' ? email.trim().toLowerCase() : '';
+const hashSignupOtp = (email, otp) => crypto.createHash('sha256').update(`${email}:${otp}`).digest('hex');
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, char => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[char]));
 
 
 const router = express.Router();
@@ -118,6 +137,44 @@ const sendGmailEmail = async ({ to, subject, text, html }) => {
       raw: encodeGmailMessage({ from: EMAIL_USER, to, subject, text, html })
     }
   });
+};
+
+const sendSignupVerificationEmail = async ({ email, firstName }) => {
+  const otp = crypto.randomInt(100000, 1000000).toString();
+  const safeName = escapeHtml(firstName || 'there');
+
+  const html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:32px 20px;background:#f8fafc">
+      <div style="background:#ffffff;border:1px solid #dbeafe;border-radius:14px;padding:32px;text-align:center">
+        <h1 style="margin:0;color:#0f172a;font-size:28px">Brgy<span style="color:#0038A8">Link</span></h1>
+        <p style="color:#475569;margin:8px 0 28px">Email verification</p>
+        <h2 style="color:#1e293b;font-size:20px">Hi ${safeName}, verify your email</h2>
+        <p style="color:#475569;line-height:1.5">Enter this code in BrgyLink to continue your registration:</p>
+        <div style="margin:24px 0;padding:18px;background:#eff6ff;border:2px dashed #93c5fd;border-radius:10px;color:#1e40af;font-size:34px;font-weight:800;letter-spacing:8px">${otp}</div>
+        <p style="color:#64748b;font-size:14px">This code expires in 10 minutes. Check your Spam or Junk folder if you cannot find this email.</p>
+      </div>
+    </div>`;
+
+  await sendGmailEmail({
+    to: email,
+    subject: 'Verify your BrgyLink email',
+    text: `Your BrgyLink verification code is ${otp}. It expires in 10 minutes. Check your Spam or Junk folder if you cannot find this email.`,
+    html
+  });
+  return otp;
+};
+
+const verifySignupEmailToken = (token, email) => {
+  if (typeof token !== 'string' || !token) throw new Error('missing');
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  if (
+    decoded?.purpose !== 'signup_email_verification'
+    || decoded?.email !== normalizeEmail(email)
+    || typeof decoded?.verificationId !== 'string'
+  ) {
+    throw new Error('invalid');
+  }
+  return decoded;
 };
 // ==========================================
 // 🔧 EMAIL HELPER (OTP)
@@ -247,6 +304,22 @@ const otpVerifyLimiter = rateLimit({
   message: { message: 'Too many verification attempts. Please wait before trying again.' }
 });
 
+const signupOtpRequestLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many verification-code requests. Please wait before trying again.' }
+});
+
+const signupOtpVerifyLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many verification attempts. Please wait before trying again.' }
+});
+
 // ==========================================
 // 🔓 PUBLIC ROUTES
 // ==========================================
@@ -257,6 +330,97 @@ const cpUpload = upload.fields([
   { name: 'validIdBack', maxCount: 1 },
   { name: 'profileImage', maxCount: 1 }
 ]);
+
+// Sends a code before the resident supplies their full profile or password.
+// This deliberately creates no Firebase or MongoDB User account.
+router.post('/start-signup-verification', signupOtpRequestLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim().slice(0, 80) : '';
+
+  if (!EMAIL_PATTERN.test(email)) return res.status(400).json({ message: 'Please enter a valid email address.' });
+  if (isDisposableEmail(email)) return res.status(400).json({ message: 'Please use a permanent email address.' });
+
+  try {
+    const existingUser = await User.findOne({ email: new RegExp(`^${escapeRegex(email)}$`, 'i') }).select('_id');
+    if (existingUser) return res.status(409).json({ message: 'That email is already registered. Please sign in instead.' });
+
+    const existingVerification = await SignupEmailVerification.findOne({ email });
+    const now = Date.now();
+    const elapsed = existingVerification?.lastSentAt ? now - existingVerification.lastSentAt.getTime() : SIGNUP_OTP_RESEND_COOLDOWN_MS;
+    if (elapsed < SIGNUP_OTP_RESEND_COOLDOWN_MS) {
+      const retryAfterSeconds = Math.ceil((SIGNUP_OTP_RESEND_COOLDOWN_MS - elapsed) / 1000);
+      return res.status(429).json({ message: `Please wait ${retryAfterSeconds} seconds before requesting another code.`, retryAfterSeconds });
+    }
+
+    // Do not replace a valid code until Gmail has accepted the new message.
+    const otp = await sendSignupVerificationEmail({ email, firstName });
+    await SignupEmailVerification.findOneAndUpdate(
+      { email },
+      {
+        $set: {
+          otpHash: hashSignupOtp(email, otp),
+          expiresAt: new Date(now + SIGNUP_OTP_TTL_MS),
+          lastSentAt: new Date(now),
+          attempts: 0,
+          verifiedAt: null
+        }
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    return res.status(200).json({
+      message: 'Verification code sent. Check your inbox and Spam or Junk folder.',
+      resendAfterSeconds: Math.ceil(SIGNUP_OTP_RESEND_COOLDOWN_MS / 1000)
+    });
+  } catch (error) {
+    console.error('Start signup verification error:', error?.message || error);
+    return res.status(502).json({ message: 'The verification code could not be delivered. Please try again later.' });
+  }
+});
+
+router.post('/verify-signup-email', signupOtpVerifyLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const otp = typeof req.body?.otp === 'string' ? req.body.otp.trim() : '';
+
+  if (!EMAIL_PATTERN.test(email) || !/^\d{6}$/.test(otp)) {
+    return res.status(400).json({ message: 'Enter the six-digit code sent to your email.' });
+  }
+
+  try {
+    const verification = await SignupEmailVerification.findOne({ email }).select('+otpHash');
+    if (!verification || verification.expiresAt.getTime() < Date.now()) {
+      return res.status(400).json({ message: 'This verification code has expired. Request a new code to continue.' });
+    }
+    if (verification.attempts >= MAX_SIGNUP_OTP_ATTEMPTS) {
+      return res.status(429).json({ message: 'Too many incorrect codes. Request a new code to continue.' });
+    }
+
+    const expectedHash = Buffer.from(verification.otpHash, 'hex');
+    const submittedHash = Buffer.from(hashSignupOtp(email, otp), 'hex');
+    const codeMatches = expectedHash.length === submittedHash.length && crypto.timingSafeEqual(expectedHash, submittedHash);
+    if (!codeMatches) {
+      await SignupEmailVerification.updateOne({ _id: verification._id }, { $inc: { attempts: 1 } });
+      return res.status(400).json({ message: 'Invalid verification code. Please try again.' });
+    }
+
+    verification.verifiedAt = new Date();
+    // Keep the record alive long enough to validate the one-time registration token.
+    verification.expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+    verification.attempts = 0;
+    await verification.save();
+
+    const verificationToken = jwt.sign(
+      { purpose: 'signup_email_verification', email, verificationId: String(verification._id) },
+      process.env.JWT_SECRET,
+      { expiresIn: SIGNUP_VERIFICATION_TOKEN_TTL }
+    );
+
+    return res.json({ message: 'Email verified. Continue with your registration.', verificationToken });
+  } catch (error) {
+    console.error('Verify signup email error:', error?.message || error);
+    return res.status(500).json({ message: 'Unable to verify your email right now. Please try again.' });
+  }
+});
 
 router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
   try {
@@ -332,8 +496,25 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     }
 
     const residentProfile = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(residentProfile, { requireCore: true, minimumAge: 18 });
+    const profileValidationError = validateResidentProfile(residentProfile, {
+      requireCore: true,
+      minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE
+    });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
+
+    let verifiedSignupEmail;
+    try {
+      const verificationClaims = verifySignupEmailToken(req.body?.signupVerificationToken, email);
+      verifiedSignupEmail = await SignupEmailVerification.findOne({
+        _id: verificationClaims.verificationId,
+        email: normalizeEmail(email)
+      });
+    } catch {
+      return res.status(403).json({ message: 'Verify your email in Step 1 before completing registration.' });
+    }
+    if (!verifiedSignupEmail?.verifiedAt) {
+      return res.status(403).json({ message: 'Verify your email in Step 1 before completing registration.' });
+    }
 
     const idType = typeof req.body.idType === 'string' ? req.body.idType.trim() : '';
     if (!VALID_ID_TYPES.has(idType)) {
@@ -363,7 +544,9 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       email: email,
       // New accounts are always residents. Elevated roles require a protected admin process.
       role: 'resident',
-      isVerified: decodedToken.email_verified || false,
+      // The early, single-use signup OTP proves possession of this email.
+      // Firebase is still the credential authority once the password is set.
+      isVerified: true,
       accountStatus: 'pending',
       legalConsent: createLegalConsentRecord(),
 
@@ -373,6 +556,9 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     });
 
     await user.save();
+
+    // The token cannot be reused after the resident record has been created.
+    await SignupEmailVerification.deleteOne({ _id: verifiedSignupEmail._id });
 
     logAudit(user._id, user.username, "SIGNUP_INITIATED", "New account synced via Firebase", req);
 

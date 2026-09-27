@@ -57,6 +57,6 @@ describe('resident edit-profile validation', () => {
       .send({ birthDate: `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}` });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('Residents must be at least 18 years old to register.');
+    expect(response.body.message).toBe('Residents must be at least 15 years old to register.');
   });
 });

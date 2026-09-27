@@ -19,7 +19,11 @@ import Notification from '../models/Notification.js';
 import { verifyAdmin, verifySuperAdmin, verifyAuthenticatedUser, verifyRegistrationReviewUser, logAudit } from '../utils/authMiddleware.js';
 import { getAuth } from 'firebase-admin/auth';
 import { sendPushNotification } from '../utils/pushNotifier.js';
-import { normalizeResidentProfile, validateResidentProfile } from '../utils/residentProfileValidation.js';
+import {
+  MINIMUM_RESIDENT_REGISTRATION_AGE,
+  normalizeResidentProfile,
+  validateResidentProfile
+} from '../utils/residentProfileValidation.js';
 
 const router = express.Router();
 
@@ -355,7 +359,9 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
     }
 
     const updateData = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(updateData, { minimumAge: 18 });
+    const profileValidationError = validateResidentProfile(updateData, {
+      minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE
+    });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
     if (req.body.username !== undefined) {
@@ -390,7 +396,10 @@ router.put('/resubmit-registration', verifyRegistrationReviewUser, async (req, r
     }
 
     const updateData = normalizeResidentProfile(req.body);
-    const profileValidationError = validateResidentProfile(updateData, { requireCore: true, minimumAge: 18 });
+    const profileValidationError = validateResidentProfile(updateData, {
+      requireCore: true,
+      minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE
+    });
     if (profileValidationError) return res.status(400).json({ message: profileValidationError });
 
     const updatedUser = await User.findByIdAndUpdate(
