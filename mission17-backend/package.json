@@ -12,7 +12,8 @@
     "promote:super-admin": "node promoteSuperAdmin.js",
     "admin:bootstrap": "node scripts/bootstrap-super-admin.js",
     "officials:replace-roster": "node scripts/replace-official-roster.js",
-    "civic:purge-mock-content": "node scripts/purge-civic-content.js"
+    "civic:purge-mock-content": "node scripts/purge-civic-content.js",
+    "civic:populate-tasks": "node scripts/populate-civic-tasks.js"
   },
   "keywords": [],
   "author": "",
