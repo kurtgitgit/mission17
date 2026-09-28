@@ -39,7 +39,7 @@ const Users = () => {
     onConfirm: () => { }
   });
 
-  const [idModal, setIdModal] = useState({ isOpen: false, front: null, back: null, loading: false });
+  const [idModal, setIdModal] = useState({ isOpen: false, idType: null, front: null, back: null, loading: false });
   const [userInfoModal, setUserInfoModal] = useState({ isOpen: false, user: null });
 
   // Helper to get token
@@ -222,7 +222,7 @@ const Users = () => {
   };
 
   const handleViewID = async (user) => {
-    setIdModal({ isOpen: true, front: null, back: null, loading: true });
+    setIdModal({ isOpen: true, idType: null, front: null, back: null, loading: true });
     try {
       const res = await fetch(`${endpoints.auth.baseUrl}/user-ids/${user._id}`, {
         headers: {
@@ -231,7 +231,7 @@ const Users = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        setIdModal({ isOpen: true, front: data.front, back: data.back, loading: false });
+        setIdModal({ isOpen: true, idType: data.idType || null, front: data.front, back: data.back, loading: false });
       } else {
         showNotification('Failed to fetch ID images', 'error');
         setIdModal(prev => ({ ...prev, loading: false }));
@@ -480,20 +480,26 @@ const Users = () => {
             <div style={{...styles.modalContent, width: '600px', maxHeight: '90vh', overflowY: 'auto'}}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
                 <h2 style={{ margin: 0 }}>User Verification IDs</h2>
-                <button onClick={() => setIdModal({ isOpen: false, front: null, back: null, loading: false })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
+                <button onClick={() => setIdModal({ isOpen: false, idType: null, front: null, back: null, loading: false })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X /></button>
               </div>
               {idModal.loading ? (
                 <p>Loading IDs...</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px' }}>
+                    <span style={{ display: 'block', fontSize: '11px', fontWeight: 800, color: '#1d4ed8', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 4 }}>Submitted ID type</span>
+                    <strong style={{ color: '#0f172a' }}>{idModal.idType || 'Not recorded for this account'}</strong>
+                  </div>
                   <div>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>Front of ID</h3>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>{idModal.idType === 'Passport' ? 'Passport Information Page' : 'Front of ID'}</h3>
                     {idModal.front ? <img src={idModal.front} alt="Front ID" style={{ width: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#f1f5f9' }} /> : <p>No Front ID uploaded.</p>}
                   </div>
-                  <div>
-                    <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>Back of ID</h3>
-                    {idModal.back ? <img src={idModal.back} alt="Back ID" style={{ width: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#f1f5f9' }} /> : <p>No Back ID uploaded.</p>}
-                  </div>
+                  {idModal.idType !== 'Passport' && (
+                    <div>
+                      <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#64748b' }}>Back of ID</h3>
+                      {idModal.back ? <img src={idModal.back} alt="Back ID" style={{ width: '100%', borderRadius: '8px', maxHeight: '300px', objectFit: 'contain', backgroundColor: '#f1f5f9' }} /> : <p>No Back ID uploaded.</p>}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

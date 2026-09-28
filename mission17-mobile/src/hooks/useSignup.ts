@@ -22,7 +22,7 @@ import {
 export const LEGAL_POLICY_VERSION = '2026-09-08-capstone-v1';
 
 export const useSignup = () => {
-  const { showNotification } = useNotification();
+  const { showNotification, registerPendingPushToken } = useNotification();
   const navigation = useNavigation<any>();
   
   const [step, setStep] = useState(1);
@@ -80,6 +80,10 @@ export const useSignup = () => {
     let result;
     
     if (type === 'idFront' || type === 'idBack') {
+      if (!formData.idType) {
+        showNotification('Select the type of valid ID before attaching its photos.', 'error');
+        return;
+      }
       const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
       if (permissionResult.granted === false) {
         showNotification('Camera permission is required to take a photo of your ID.', 'error');
@@ -370,6 +374,19 @@ export const useSignup = () => {
       }
 
       if (response.ok) {
+        // Pending residents cannot sign in yet, so ask for notification permission
+        // here and bind the device token to their verified Firebase identity. This
+        // lets them receive an approval or rejection update from barangay staff.
+        try {
+          const notificationStatus = await registerPendingPushToken(firebaseToken);
+          if (notificationStatus === 'denied') {
+            showNotification('Approval updates will not alert this device until notifications are enabled in your phone settings.', 'info');
+          }
+        } catch (pushError) {
+          // A push-provider/device issue must never make a successfully submitted
+          // registration look like a failed registration.
+          console.warn('Could not register pending-account notifications:', pushError);
+        }
         navigation.replace('SignupSuccess');
       } else {
         const msg = data.message || 'Something went wrong';

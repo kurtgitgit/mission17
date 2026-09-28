@@ -54,6 +54,7 @@ const SignupStep3 = ({
   navigation
 }: SignupStep3Props) => {
   const requiresIdBack = formData.idType !== 'Passport';
+  const hasSelectedIdType = Boolean(formData.idType);
   const passwordRequirements = getPasswordRequirements(formData.password);
   const passwordsMatch = Boolean(formData.confirmPassword) && formData.password === formData.confirmPassword;
   const canSubmit = Boolean(
@@ -78,7 +79,7 @@ const SignupStep3 = ({
     <View style={styles.form}>
       <Text style={styles.sectionTitle}>Attachments</Text>
       <Text style={styles.attachmentHint}>
-        Please capture a clear, readable photo. Ensure all details and your face are visible; avoid glare, blur, or cropped edges.
+        Please take a clear photo of your valid ID. Ensure all details and your face are visible; avoid glare, blur, or cropped edges.
       </Text>
 
       <CustomDropdown
@@ -88,13 +89,22 @@ const SignupStep3 = ({
         onSelect={(value) => handleInputChange('idType', value)}
         required
       />
+      {!hasSelectedIdType && (
+        <Text style={styles.selectIdHint}>Select an ID type first to unlock the photo attachments.</Text>
+      )}
       {formData.idType === 'PhilSys National ID / ePhilID' && (
         <Text style={styles.preferredIdHint}>Preferred ID for faster Barangay verification.</Text>
       )}
       
       <View style={styles.uploadRow}>
-        <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idFront')}>
-          <Upload color="#475569" size={20} />
+        <TouchableOpacity
+          style={[styles.uploadButton, !hasSelectedIdType && styles.uploadButtonDisabled]}
+          onPress={() => pickImage('idFront')}
+          disabled={!hasSelectedIdType}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !hasSelectedIdType }}
+        >
+          <Upload color={hasSelectedIdType ? '#475569' : '#94a3b8'} size={20} />
           <Text style={styles.uploadButtonText}>{requiresIdBack ? 'Attach Valid ID (Front)' : 'Upload Passport Information Page'} <Text style={{ color: '#ef4444' }}>*</Text></Text>
         </TouchableOpacity>
         {validIdFront && <Text style={styles.fileLabel}>{requiresIdBack ? 'Front Selected' : 'Passport Page Selected'}</Text>}
@@ -102,8 +112,14 @@ const SignupStep3 = ({
 
       {requiresIdBack && (
         <View style={styles.uploadRow}>
-          <TouchableOpacity style={styles.uploadButton} onPress={() => pickImage('idBack')}>
-            <Upload color="#475569" size={20} />
+          <TouchableOpacity
+            style={[styles.uploadButton, !hasSelectedIdType && styles.uploadButtonDisabled]}
+            onPress={() => pickImage('idBack')}
+            disabled={!hasSelectedIdType}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !hasSelectedIdType }}
+          >
+            <Upload color={hasSelectedIdType ? '#475569' : '#94a3b8'} size={20} />
             <Text style={styles.uploadButtonText}>Attach Valid ID (Back) <Text style={{ color: '#ef4444' }}>*</Text></Text>
           </TouchableOpacity>
           {validIdBack && <Text style={styles.fileLabel}>Back Selected</Text>}
@@ -196,6 +212,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '700', color: '#1e293b', marginTop: 10, marginBottom: 4 },
   attachmentHint: { fontSize: 12.5, color: '#64748b', lineHeight: 18, marginTop: -6, marginBottom: 2 },
   preferredIdHint: { fontSize: 12.5, color: '#15803d', fontWeight: '600', marginTop: -6 },
+  selectIdHint: { fontSize: 12.5, color: '#64748b', marginTop: -6 },
   uploadRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
   uploadButton: { 
     flexDirection: 'row', alignItems: 'center', gap: 8, 
@@ -203,6 +220,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' 
   },
   uploadButtonText: { fontSize: 14, color: '#475569', fontWeight: '500' },
+  uploadButtonDisabled: { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', opacity: 0.7 },
   fileLabel: { fontSize: 12, color: '#10b981', fontWeight: '600' },
   passwordChecklist: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 12, gap: 3, marginTop: -7 },
   passwordChecklistTitle: { color: '#334155', fontSize: 12.5, fontWeight: '700', marginBottom: 2 },
