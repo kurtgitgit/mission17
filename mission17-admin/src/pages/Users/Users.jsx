@@ -161,14 +161,23 @@ const Users = () => {
       title: isApproval ? 'Approve Resident Account' : 'Reject Resident Account',
       message: isApproval
         ? `Approve ${user.username}'s verified account? They will be able to sign in to BrgyLink.`
-        : `Reject ${user.username}'s account? They will not be able to sign in.`,
+        : `Reject ${user.username}'s account? They will not be able to sign in. Tell the resident what they need to correct before submitting again.`,
       type: isApproval ? 'success' : 'danger',
+      showInput: !isApproval,
+      inputPlaceholder: 'Reason for rejection (5–500 characters)',
       confirmText: isApproval ? 'Approve Account' : 'Reject Account',
-      onConfirm: () => executeAccountStatus(user._id, accountStatus),
+      onConfirm: (rejectionReason = '') => {
+        const cleanReason = rejectionReason.trim();
+        if (!isApproval && (cleanReason.length < 5 || cleanReason.length > 500)) {
+          showNotification('Enter a clear rejection reason between 5 and 500 characters.', 'error');
+          return;
+        }
+        void executeAccountStatus(user._id, accountStatus, cleanReason);
+      },
     });
   };
 
-  const executeAccountStatus = async (id, accountStatus) => {
+  const executeAccountStatus = async (id, accountStatus, rejectionReason = '') => {
     try {
       const response = await fetch(endpoints.users.accountStatus(id), {
         method: 'PATCH',
@@ -176,7 +185,10 @@ const Users = () => {
           'Content-Type': 'application/json',
           'auth-token': getToken(),
         },
-        body: JSON.stringify({ accountStatus }),
+        body: JSON.stringify({
+          accountStatus,
+          ...(accountStatus === 'rejected' ? { rejectionReason } : {}),
+        }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -472,6 +484,8 @@ const Users = () => {
           title={modalConfig.title}
           message={modalConfig.message}
           type={modalConfig.type}
+          showInput={modalConfig.showInput}
+          inputPlaceholder={modalConfig.inputPlaceholder}
           confirmText={modalConfig.confirmText || 'Confirm'}
         />
 
