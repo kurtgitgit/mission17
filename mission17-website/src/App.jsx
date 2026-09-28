@@ -1,10 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
-import { Smartphone, ArrowRight, FileText, MessageCircle, MapPin, X, Cpu, ShieldCheck, Award, User, Menu } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ArrowRight,
+  ClipboardCheck,
+  FileText,
+  Mail,
+  MapPin,
+  Menu,
+  MessageCircle,
+  Phone,
+  ShieldCheck,
+  Smartphone,
+  UsersRound,
+  X,
+} from 'lucide-react';
 
 const OFFICIALS = [
-  { name: 'Rogie B. Quillope', position: 'Punong Barangay', contact: '09544153509', term: '2023 - 2026' },
+  { name: 'Rogie B. Quillope', position: 'Punong Barangay', contact: '09544153509', term: '2023–2026' },
   { name: 'John Benedict B. Zarate', position: 'Barangay Kagawad', committee: 'Health & Sanitation', termNumber: '1st Term' },
-  { name: 'Armando M. Quillope Jr', position: 'Barangay Kagawad', committee: 'Appropriation', termNumber: 'Last Term' },
+  { name: 'Armando M. Quillope Jr.', position: 'Barangay Kagawad', committee: 'Appropriation', termNumber: 'Last Term' },
   { name: 'Juan C. Fontalba', position: 'Barangay Kagawad', committee: 'Infrastructure', termNumber: '1st Term' },
   { name: 'Jose A. Malinao', position: 'Barangay Kagawad', committee: 'Environmental Protection', termNumber: '1st Term' },
   { name: 'Joel F. Ramos', position: 'Barangay Kagawad', committee: 'Agricultural', termNumber: '2nd Term' },
@@ -15,320 +28,257 @@ const OFFICIALS = [
   { name: 'Zenaida Velasco', position: 'BHW President', contact: '09074401517' },
 ];
 
-function FadeInSection(props) {
-  const [isVisible, setVisible] = useState(false);
-  const domRef = useRef(null);
+const SERVICES = [
+  {
+    icon: <FileText aria-hidden="true" />,
+    title: 'Document requests',
+    description: 'Submit a request for barangay documents and follow its status through the BrgyLink app.',
+  },
+  {
+    icon: <ShieldCheck aria-hidden="true" />,
+    title: 'Blotter reporting',
+    description: 'File an incident report with the location, date, time, narrative, and supporting evidence.',
+  },
+  {
+    icon: <MessageCircle aria-hidden="true" />,
+    title: 'Citizen feedback',
+    description: 'Send concerns, inquiries, or suggestions directly to the barangay for review and response.',
+  },
+  {
+    icon: <ClipboardCheck aria-hidden="true" />,
+    title: 'Civic participation',
+    description: 'Find community activities and submit participation proof for barangay review.',
+  },
+];
+
+function FadeInSection({ children }) {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-        }
-      });
-    }, { threshold: 0.1 });
-    
-    const target = domRef.current;
-    if (target) observer.observe(target);
+    const target = ref.current;
+    if (!target) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.unobserve(entry.target);
+      }
+    }, { threshold: 0.12 });
+
+    observer.observe(target);
     return () => observer.disconnect();
   }, []);
 
-  return (
-    <div className={`fade-in-section ${isVisible ? 'is-visible' : ''}`} ref={domRef}>
-      {props.children}
-    </div>
-  );
+  return <div ref={ref} className={`fade-in-section${isVisible ? ' is-visible' : ''}`}>{children}</div>;
 }
 
 function App() {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [selectedSdg, setSelectedSdg] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 16);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const closeMenu = () => setIsMenuOpen(false);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', overflowX: 'hidden' }}>
-      
-      {/* Top Banner */}
-      <div className="top-banner-text" style={{ background: 'var(--primary-blue)', color: 'white', padding: '10px 5%', display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: '0.85rem' }}>
-        <span>Welcome to the Official <span className="text-gold font-serif" style={{ fontStyle: 'italic', fontWeight: 600 }}>BrgyLink</span> Website — connecting barangays digitally.</span>
+    <div className="site-shell">
+      <a className="skip-link" href="#main-content">Skip to main content</a>
+
+      <div className="top-banner" role="status">
+        <span className="top-banner-dot" aria-hidden="true" />
+        Official digital portal of Barangay Bagong Pag-asa, San Jacinto, Pangasinan
       </div>
 
-      {/* Main Navigation */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 1000,
-        background: 'white',
-        borderBottom: '1px solid var(--border-light)',
-        padding: '1rem 5%',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        boxShadow: isScrolled ? '0 4px 12px rgba(0,0,0,0.05)' : 'none',
-        transition: 'all 0.3s'
-      }}>
-        <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '45px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
-          <div>
-            <h1 style={{ fontSize: '1.25rem', color: 'var(--primary-blue)', margin: 0, lineHeight: 1.2, fontWeight: 800 }}>Barangay Bagong Pag-asa</h1>
-          </div>
-        </div>
-        <div className="nav-links" style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <a href="#services" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Home</a>
-          <a href="#about" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>About Us</a>
-          <a href="#services" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Services</a>
-          <a href="#officials" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Officials</a>
-          <a href="#news" style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '0.95rem' }}>Barangay Bulletin</a>
+      <nav className={`site-nav${isScrolled ? ' site-nav-scrolled' : ''}`} aria-label="Primary navigation">
+        <a className="site-brand" href="#home" onClick={closeMenu} aria-label="BrgyLink home">
+          <img src="/logo.png" alt="BrgyLink logo" />
+          <span>
+            <strong>Barangay Bagong Pag-asa</strong>
+            <small>BrgyLink digital portal</small>
+          </span>
+        </a>
 
+        <div className="desktop-nav-links">
+          <a href="#about">About</a>
+          <a href="#services">Services</a>
+          <a href="#officials">Officials</a>
+          <a href="#contact">Contact</a>
         </div>
-        
-        {/* Hamburger Icon (Mobile Only) */}
-        <button className="mobile-menu-btn" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? <X size={28} color="var(--primary-blue)" /> : <Menu size={28} color="var(--primary-blue)" />}
+
+        <a className="nav-download" href="/BrgyLink.apk" download="BrgyLink.apk">
+          <Smartphone size={17} aria-hidden="true" /> Download app
+        </a>
+
+        <button
+          type="button"
+          className="mobile-menu-button"
+          aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((open) => !open)}
+        >
+          {isMenuOpen ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}
         </button>
 
-        {/* Mobile Dropdown Menu */}
         {isMenuOpen && (
-          <div className="mobile-dropdown" style={{
-            position: 'absolute', top: '100%', left: 0, right: 0,
-            background: 'white', borderBottom: '1px solid var(--border-light)',
-            padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem',
-            boxShadow: '0 10px 20px rgba(0,0,0,0.1)', zIndex: 1000
-          }}>
-            <a href="#services" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Home</a>
-            <a href="#about" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>About Us</a>
-            <a href="#services" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Services</a>
-            <a href="#officials" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Officials</a>
-            <a href="#news" onClick={() => setIsMenuOpen(false)} style={{ color: 'var(--text-dark)', fontWeight: 600, textDecoration: 'none', fontSize: '1.1rem' }}>Barangay Bulletin</a>
+          <div className="mobile-nav-panel">
+            <a href="#about" onClick={closeMenu}>About</a>
+            <a href="#services" onClick={closeMenu}>Services</a>
+            <a href="#officials" onClick={closeMenu}>Officials</a>
+            <a href="#contact" onClick={closeMenu}>Contact</a>
+            <a className="mobile-download" href="/BrgyLink.apk" download="BrgyLink.apk" onClick={closeMenu}>
+              <Smartphone size={18} aria-hidden="true" /> Download BrgyLink
+            </a>
           </div>
         )}
       </nav>
 
-      {/* Hero Section */}
-      <header className="hero-container" style={{ 
-        padding: '8rem 5% 10rem', 
-        backgroundImage: 'linear-gradient(90deg, rgba(0, 22, 76, 0.94) 0%, rgba(0, 43, 127, 0.82) 48%, rgba(0, 32, 100, 0.46) 100%), url(/bridge_bg.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        position: 'relative',
-        borderBottom: '4px solid var(--accent-gold)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '4rem'
-      }}>
-        <div className="hero-text-block" style={{ flex: '1 1 500px', maxWidth: '650px', animation: 'heroSlideLeft 0.8s ease forwards', zIndex: 2 }}>
-          <h1 className="heading-hero" style={{ color: 'white' }}>
-            Welcome to the <br />
-            <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>BrgyLink</span> Portal
-          </h1>
-          <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', marginBottom: '2.5rem', lineHeight: 1.7, maxWidth: '550px' }}>
-            This platform serves as the official website of the Barangay that will connect, inform, and empower local leaders and communities. Experience transparent, secure, and modern digital governance.
-          </p>
-          <div className="hero-buttons" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-            <a 
-              className="btn-primary" 
-              style={{ background: 'var(--accent-gold)', color: 'var(--primary-blue)' }}
-              href="/BrgyLink.apk"
-              download="BrgyLink.apk"
-            >
-              <Smartphone size={20} /> Download App
-            </a>
-            <button className="btn-outline" style={{ borderColor: 'white', color: 'white' }}>
-              Learn More About Us
-            </button>
-          </div>
-        </div>
-        <div className="hero-brand-mark" aria-hidden="true">
-          <div className="hero-brand-ring hero-brand-ring-one" />
-          <div className="hero-brand-ring hero-brand-ring-two" />
-          <img src="/logo.png" alt="" />
-          <span>Barangay Bagong Pag-asa</span>
-        </div>
-      </header>
-
-
-      {/* About Us Section */}
-      <section id="about" style={{ padding: '6rem 5%', background: 'white' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1000px', margin: '0 auto', textAlign: 'center' }}>
-            <div className="section-label">About Us</div>
-            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '2rem' }}>
-              Empowering the Community of <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Bagong Pag-asa</span>
-            </h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', lineHeight: 1.8, marginBottom: '1.5rem' }}>
-              Welcome to BrgyLink, the digital heart of Barangay Bagong Pag-asa. We are committed to fostering a transparent, secure, and highly efficient ecosystem for our citizens. Our portal bridges the gap between local leaders and the community, ensuring that your voices are heard and your needs are met promptly.
+      <main id="main-content">
+        <header id="home" className="hero-section">
+          <div className="hero-content">
+            <p className="eyebrow eyebrow-light">Barangay services, closer to home</p>
+            <h1>Connect with your barangay through <em>BrgyLink.</em></h1>
+            <p className="hero-copy">
+              Access barangay services, submit concerns, receive official updates, and take part in your community from one secure mobile app.
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.15rem', lineHeight: 1.8 }}>
-              Through cutting-edge technology, AI verification, and blockchain-backed rewards, we are redefining civic engagement. Join us in building a sustainable, safe, and progressive neighborhood for everyone.
-            </p>
-          </div>
-        </FadeInSection>
-      </section>
-
-      {/* Features Section */}
-      <section id="services" style={{ padding: '6rem 5%', background: 'var(--bg-light)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto', textAlign: 'center', marginBottom: '4rem' }}>
-            <div className="section-label">Core Features</div>
-            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '1.5rem' }}>
-              Complete <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Ecosystem</span>
-            </h3>
-            <p style={{ color: 'var(--text-muted)', maxWidth: '650px', margin: '0 auto', fontSize: '1.1rem', lineHeight: 1.7 }}>
-              A fully integrated digital governance and community engagement platform built to serve the citizens of Barangay Bagong Pag-asa efficiently.
-            </p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            {[
-              { icon: <FileText size={32}/>, title: "Blotter & Reports", desc: "Submit official incident reports securely with real-time tracking and push notifications." },
-              { icon: <FileText size={32}/>, title: "Document Requests", desc: "Request Barangay Clearances, IDs, and Certificates directly from the app." },
-              { icon: <MapPin size={32}/>, title: "Civic Tasks & SDGs", desc: "Engage in community activities aligned with the UN SDGs to earn verified rewards." },
-              { icon: <Cpu size={32}/>, title: "AI Verification", desc: "Automated image validation (Python/TensorFlow) to verify task submissions instantly." },
-              { icon: <Award size={32}/>, title: "Blockchain Rewards", desc: "Earn secure, verifiable digital tokens on the blockchain for helping the community." },
-              { icon: <MessageCircle size={32}/>, title: "Multilingual Chatbot", desc: "AI assistant that answers inquiries in English, Tagalog, Pangasinan, and Ilocano." },
-              { icon: <Smartphone size={32}/>, title: "Mobile & Web Portal", desc: "Cross-platform mobile app for residents and a powerful React dashboard for Admins." },
-              { icon: <ShieldCheck size={32}/>, title: "Role-Based Access", desc: "Secure authentication with Two-Factor Auth (2FA) and detailed audit logs." }
-            ].map((srv, idx) => (
-              <div key={idx} className="card" style={{ display: 'flex', flexDirection: 'column', padding: '2rem 1.5rem', border: 'none', boxShadow: '0 10px 30px rgba(0,43,127,0.06)' }}>
-                <div style={{ color: 'white', marginBottom: '1.5rem', background: 'var(--primary-blue)', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '14px' }}>{srv.icon}</div>
-                <h4 style={{ fontSize: '1.2rem', marginBottom: '0.75rem', color: 'var(--text-dark)', fontWeight: 700 }}>{srv.title}</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '1rem', lineHeight: 1.6 }}>{srv.desc}</p>
-              </div>
-            ))}
-          </div>
-        </FadeInSection>
-      </section>
-
-      {/* News & Announcements Section */}
-      <section id="news" style={{ padding: '6rem 5%', background: 'var(--bg-white)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div className="section-title-wrapper" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '2rem' }}>
-              <div style={{ maxWidth: '600px' }}>
-                <div className="section-label">Barangay Bulletin</div>
-                <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px' }}>
-                  Latest <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>News</span>
-                </h3>
-              </div>
-              <button className="btn-outline" style={{ marginBottom: '0.5rem' }}>View All News</button>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
-              {[
-                { title: 'Upcoming Coastal Cleanup Drive', date: 'Oct 15, 2026', desc: 'Join us at the Bagong Pag-asa Plaza for our monthly community cleanup drive.' },
-                { title: 'New Barangay ID System Rollout', date: 'Oct 10, 2026', desc: 'Request your new PVC Barangay ID directly through the mobile app Document Request feature.' },
-                { title: 'Barangay Assembly Meeting', date: 'Oct 05, 2026', desc: 'All residents are invited to the bi-annual barangay assembly at the covered court.' }
-              ].map((news, idx) => (
-                <div key={idx} className="card" style={{ padding: '0', overflow: 'hidden', border: 'none', boxShadow: '0 10px 30px rgba(0,43,127,0.08)', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '160px', background: 'var(--bg-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={48} color="var(--text-muted)" opacity={0.2} />
-                  </div>
-                  <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'inline-block', padding: '4px 10px', background: 'rgba(252, 209, 22, 0.2)', color: '#b39500', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '1rem', alignSelf: 'flex-start' }}>Advisory</div>
-                    <h4 style={{ fontSize: '1.2rem', color: 'var(--text-dark)', marginBottom: '0.75rem', lineHeight: 1.4, fontWeight: 700 }}>{news.title}</h4>
-                    <p style={{ color: 'var(--text-muted)', lineHeight: 1.5, flex: 1, fontSize: '0.95rem' }}>{news.desc}</p>
-                    <div style={{ marginTop: '1.5rem', paddingTop: '1.2rem', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>{news.date}</span>
-                      <a href="#" style={{ color: 'var(--primary-blue)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem' }}>Read More <ArrowRight size={14}/></a>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="hero-actions">
+              <a className="button button-gold" href="/BrgyLink.apk" download="BrgyLink.apk">
+                <Smartphone size={20} aria-hidden="true" /> Download BrgyLink
+              </a>
+              <a className="button button-ghost" href="#services">
+                Explore services <ArrowRight size={18} aria-hidden="true" />
+              </a>
             </div>
           </div>
-        </FadeInSection>
-      </section>
 
-      {/* Barangay Officials Section */}
-      <section id="officials" style={{ padding: '6rem 5%', background: 'var(--bg-white)', borderTop: '1px solid var(--border-light)' }}>
-        <FadeInSection>
-          <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-            <div className="section-label" style={{ textAlign: 'center' }}>Leadership</div>
-            <h3 style={{ fontSize: '2.4rem', color: 'var(--primary-blue)', fontWeight: 800, letterSpacing: '-0.5px', marginBottom: '4rem', textAlign: 'center' }}>
-              Barangay <span className="font-serif text-gold" style={{ fontStyle: 'italic' }}>Officials</span>
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '3rem', alignItems: 'center' }}>
-              {OFFICIALS.filter(({ position }) => position === 'Punong Barangay').map((official) => (
-                <div key={official.name} style={{ background: 'var(--bg-light)', borderRadius: '24px', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '350px', border: '1px solid var(--border-light)', boxShadow: '0 20px 40px rgba(0,43,127,0.05)' }}>
-                  <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-blue), #1e40af)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', marginBottom: '1.5rem', border: '4px solid var(--accent-gold)' }}><User size={50} /></div>
-                  <h4 style={{ fontSize: '1.3rem', color: 'var(--primary-blue)', fontWeight: 800, marginBottom: '0.25rem' }}>{official.name}</h4>
-                  <p style={{ color: 'var(--accent-gold)', fontWeight: 700, fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px' }}>{official.position}</p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>Term: {official.term}</p>
-                  <a href={`tel:${official.contact}`} style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.9rem', marginTop: '0.6rem' }}>{official.contact}</a>
-                </div>
-              ))}
+          <aside className="hero-info-card" aria-label="Barangay contact details">
+            <div className="hero-info-symbol"><MapPin aria-hidden="true" /></div>
+            <p>Serving residents of</p>
+            <strong>Barangay Bagong Pag-asa</strong>
+            <span>San Jacinto, Pangasinan</span>
+            <a href="tel:09916982914"><Phone size={16} aria-hidden="true" /> 0991 698 2914</a>
+          </aside>
+        </header>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem', width: '100%' }}>
-                {OFFICIALS.filter(({ position }) => position !== 'Punong Barangay').map((official) => (
-                  <div key={official.name} style={{ background: 'white', borderRadius: '16px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', border: '1px solid var(--border-light)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
-                    <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'var(--bg-light)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'var(--primary-blue)', marginBottom: '1rem' }}><User size={35} /></div>
-                    <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', fontWeight: 700, marginBottom: '0.25rem' }}>{official.name}</h4>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>{official.position}</p>
-                    {official.committee && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>Committee on {official.committee}</p>}
-                    {official.termNumber && <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.3rem' }}>{official.termNumber} · Term 2023 - 2026</p>}
-                    {official.contact && <a href={`tel:${official.contact}`} style={{ color: 'var(--primary-blue)', fontWeight: 700, fontSize: '0.9rem', marginTop: '0.65rem' }}>{official.contact}</a>}
-                    {official.email && <a href={`mailto:${official.email}`} style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.4rem', overflowWrap: 'anywhere' }}>{official.email}</a>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </FadeInSection>
-      </section>
+        <section className="quick-access" aria-label="What you can do with BrgyLink">
+          <div><FileText aria-hidden="true" /><span><strong>Request documents</strong><small>Track request updates</small></span></div>
+          <div><ShieldCheck aria-hidden="true" /><span><strong>Report incidents</strong><small>File a blotter report</small></span></div>
+          <div><MessageCircle aria-hidden="true" /><span><strong>Share feedback</strong><small>Reach your barangay</small></span></div>
+        </section>
 
-      {/* Footer */}
-      <footer style={{ background: 'var(--bg-white)', padding: '4rem 5% 2rem', borderTop: '1px solid var(--border-light)', marginTop: 'auto' }}>
-        <div className="footer-container" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '3rem' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '1rem' }}>
-              <img src="/logo.png" alt="BrgyLink Logo" style={{ height: '40px', width: 'auto', filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }} />
-              <h4 style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 800 }}>BrgyLink Portal</h4>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: '300px', lineHeight: 1.5 }}>
-              Empowering Barangay Bagong Pag-asa through AI-driven e-Governance, verified civic initiatives, and Sustainable Development Goals.
-            </p>
-          </div>
-          <div className="footer-right" style={{ textAlign: 'right' }}>
-            <h4 style={{ fontSize: '1rem', color: 'var(--primary-blue)', marginBottom: '1rem', fontWeight: 700 }}>Contact Us</h4>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Barangay Bagong Pag-asa, San Jacinto, Pangasinan</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Mobile: 0991-698-2914 (Barangay Secretary)</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>b.pag.asasj@gmail.com</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Office hours: Monday-Saturday, 8:00 AM-5:00 PM</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '1.5rem' }}>&copy; 2026 BrgyLink Project. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Interactive Modal for SDG */}
-      {selectedSdg && (
-        <div className="modal-overlay" onClick={() => setSelectedSdg(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedSdg(null)}><X size={24} /></button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <img 
-                src={`/sdg/sdg${selectedSdg.id.toString().padStart(2, '0')}.png`} 
-                alt={`SDG ${selectedSdg.id}`} 
-                style={{ width: '60px', height: '60px', objectFit: 'contain', borderRadius: '6px' }} 
-              />
+        <section id="about" className="section section-about">
+          <FadeInSection>
+            <div className="section-copy split-layout">
               <div>
-                <h4 style={{ color: 'var(--primary-blue)', fontSize: '0.85rem', fontWeight: 800, textTransform: 'uppercase' }}>Goal {selectedSdg.id}</h4>
-                <h3 style={{ fontSize: '1.2rem', color: 'var(--text-dark)' }}>{selectedSdg.title}</h3>
+                <p className="eyebrow">About BrgyLink</p>
+                <h2>A clearer way to access local government services.</h2>
+              </div>
+              <div>
+                <p>
+                  BrgyLink is the digital portal of Barangay Bagong Pag-asa. It helps residents communicate with the barangay, request services, receive official announcements, and participate in community initiatives.
+                </p>
+                <p>
+                  The platform supports transparent, organized service delivery while keeping resident records and official actions within role-based workflows.
+                </p>
               </div>
             </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: 1.5 }}>{selectedSdg.desc}</p>
-            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
-              <button className="btn-primary" onClick={() => setSelectedSdg(null)} style={{ padding: '6px 16px' }}>Close</button>
+          </FadeInSection>
+        </section>
+
+        <section id="services" className="section section-services">
+          <FadeInSection>
+            <div className="section-heading">
+              <p className="eyebrow">Resident services</p>
+              <h2>One app for everyday barangay needs.</h2>
+              <p>Designed for simple requests, clear updates, and better communication between residents and barangay staff.</p>
+            </div>
+            <div className="services-grid">
+              {SERVICES.map((service) => (
+                <article className="service-card" key={service.title}>
+                  <div className="service-icon">{service.icon}</div>
+                  <h3>{service.title}</h3>
+                  <p>{service.description}</p>
+                </article>
+              ))}
+            </div>
+          </FadeInSection>
+        </section>
+
+        <section className="section how-it-works-section">
+          <FadeInSection>
+            <div className="section-heading centered-heading">
+              <p className="eyebrow">Getting started</p>
+              <h2>Simple steps for residents.</h2>
+            </div>
+            <ol className="steps-list">
+              <li><span>01</span><div><h3>Download BrgyLink</h3><p>Install the Android app from this website.</p></div></li>
+              <li><span>02</span><div><h3>Create and verify your account</h3><p>Provide accurate resident details and verify your email address.</p></div></li>
+              <li><span>03</span><div><h3>Use barangay services</h3><p>Submit requests, receive updates, and keep track of your activity.</p></div></li>
+            </ol>
+          </FadeInSection>
+        </section>
+
+        <section id="officials" className="section section-officials">
+          <FadeInSection>
+            <div className="section-heading centered-heading">
+              <p className="eyebrow">Barangay leadership</p>
+              <h2>Barangay Officials &amp; Council</h2>
+              <p>Current council roster for the 2023–2026 term.</p>
+            </div>
+
+            <div className="captain-card">
+              <div className="official-avatar official-avatar-captain"><UsersRound aria-hidden="true" /></div>
+              <div>
+                <p className="official-role">Punong Barangay</p>
+                <h3>Rogie B. Quillope</h3>
+                <p>Term: 2023–2026</p>
+              </div>
+              <a href="tel:09544153509"><Phone size={17} aria-hidden="true" /> 0954 415 3509</a>
+            </div>
+
+            <div className="officials-grid">
+              {OFFICIALS.filter(({ position }) => position !== 'Punong Barangay').map((official) => (
+                <article className="official-card" key={official.name}>
+                  <div className="official-avatar"><UsersRound aria-hidden="true" /></div>
+                  <p className="official-role">{official.position}</p>
+                  <h3>{official.name}</h3>
+                  {official.committee && <p className="official-detail">Committee on {official.committee}</p>}
+                  {official.termNumber && <p className="official-detail">{official.termNumber} · Term 2023–2026</p>}
+                  {official.contact && <a href={`tel:${official.contact}`}><Phone size={15} aria-hidden="true" /> {official.contact}</a>}
+                  {official.email && <a href={`mailto:${official.email}`}><Mail size={15} aria-hidden="true" /> {official.email}</a>}
+                </article>
+              ))}
+            </div>
+          </FadeInSection>
+        </section>
+      </main>
+
+      <footer id="contact" className="site-footer">
+        <div className="footer-grid">
+          <div className="footer-brand">
+            <img src="/logo.png" alt="BrgyLink logo" />
+            <div>
+              <strong>BrgyLink</strong>
+              <p>Official digital portal of Barangay Bagong Pag-asa.</p>
             </div>
           </div>
+          <div>
+            <p className="footer-label">Contact the barangay</p>
+            <a href="tel:09916982914"><Phone size={16} aria-hidden="true" /> 0991 698 2914</a>
+            <a href="mailto:b.pag.asasj@gmail.com"><Mail size={16} aria-hidden="true" /> b.pag.asasj@gmail.com</a>
+          </div>
+          <div>
+            <p className="footer-label">Office location</p>
+            <p><MapPin size={16} aria-hidden="true" /> Barangay Bagong Pag-asa, San Jacinto, Pangasinan</p>
+            <p>Monday–Saturday · 8:00 AM–5:00 PM</p>
+          </div>
         </div>
-      )}
+        <div className="footer-bottom">© 2026 Barangay Bagong Pag-asa · BrgyLink Project</div>
+      </footer>
     </div>
   );
 }
