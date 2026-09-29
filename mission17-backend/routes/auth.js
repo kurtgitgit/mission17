@@ -20,6 +20,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { google } from 'googleapis';
+import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import rateLimit from 'express-rate-limit';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
@@ -84,33 +85,19 @@ const VALID_ID_TYPES = new Set([
 
 const GMAIL_OAUTH_REDIRECT_URI = 'https://developers.google.com/oauthplayground';
 
-const encodeGmailMessage = ({ from, to, subject, text, html }) => {
+const encodeGmailMessage = async ({ from, to, subject, text, html }) => {
   const cleanHeader = (value) => String(value || '').replace(/[\r\n]+/g, ' ').trim();
-  const boundary = `mission17-${Date.now()}`;
-  const encodedSubject = `=?UTF-8?B?${Buffer.from(cleanHeader(subject), 'utf8').toString('base64')}?=`;
-  const message = [
-    `From: "Mission 17" <${cleanHeader(from)}>`,
-    `To: ${cleanHeader(to)}`,
-    `Subject: ${encodedSubject}`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-    '',
-    text,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 8bit',
-    '',
-    html,
-    '',
-    `--${boundary}--`
-  ].join('\r\n');
+  const message = await new MailComposer({
+    from: { name: 'BrgyLink', address: cleanHeader(from) },
+    to: cleanHeader(to),
+    subject: cleanHeader(subject),
+    text: String(text || ''),
+    html: String(html || ''),
+    textEncoding: 'quoted-printable',
+    htmlEncoding: 'quoted-printable',
+  }).compile().build();
 
-  return Buffer.from(message, 'utf8')
+  return message
     .toString('base64')
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
@@ -134,7 +121,7 @@ const sendGmailEmail = async ({ to, subject, text, html }) => {
   await gmail.users.messages.send({
     userId: 'me',
     requestBody: {
-      raw: encodeGmailMessage({ from: EMAIL_USER, to, subject, text, html })
+      raw: await encodeGmailMessage({ from: EMAIL_USER, to, subject, text, html })
     }
   });
 };

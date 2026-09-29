@@ -67,6 +67,10 @@ describe('early signup email verification', () => {
     expect(gmailSend).toHaveBeenCalledTimes(1);
 
     const sentMessage = decodeRawEmail(gmailSend.mock.calls[0][0].requestBody.raw);
+    expect(sentMessage).toMatch(/^Date:/mi);
+    expect(sentMessage).toMatch(/^Message-ID:/mi);
+    expect(sentMessage).toMatch(/^MIME-Version: 1\.0$/mi);
+    expect(sentMessage).toMatch(/^Content-Type: multipart\/alternative;/mi);
     const otp = sentMessage.match(/\b\d{6}\b/)?.[0];
     expect(otp).toMatch(/^\d{6}$/);
 
