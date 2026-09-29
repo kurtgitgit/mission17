@@ -22,7 +22,7 @@ import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
-import { saveAuthData } from '../utils/storage';
+import { saveAuthData, type FallbackSession } from '../utils/storage';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
@@ -137,6 +137,7 @@ export default function LoginScreen() {
 
       if (response.ok && data.mfaRequired) {
         GlobalState.tempToken = firebaseToken;
+        GlobalState.tempFallbackSession = null;
         setMfaRequired(true);
         setOtpRateLimited(false);
         setResendCooldown(30);
@@ -191,10 +192,41 @@ export default function LoginScreen() {
 
     try {
       const cleanEmail = email.trim();
-      
-      // 1. Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
-      const firebaseToken = await userCredential.user.getIdToken();
+      let firebaseToken: string;
+      let fallbackSession: FallbackSession | null = null;
+
+      // Prefer the native Firebase client. A small number of Android devices
+      // cannot reach that endpoint despite having internet, so only that
+      // specific network failure is retried through the BrgyLink backend.
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+        firebaseToken = await userCredential.user.getIdToken();
+      } catch (firebaseError: any) {
+        const isFirebaseNetworkFailure = firebaseError?.code === 'auth/network-request-failed'
+          || /network request failed/i.test(firebaseError?.message || '');
+        if (!isFirebaseNetworkFailure) throw firebaseError;
+
+        const fallbackResponse = await fetchWithTimeout(endpoints.auth.loginSession, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail, password })
+        }, 20_000);
+        const fallbackData = await fallbackResponse.json().catch(() => ({}));
+        if (!fallbackResponse.ok || !fallbackData.idToken || !fallbackData.refreshToken) {
+          const fallbackError: any = new Error(fallbackData.message || 'Could not sign in. Please try again.');
+          fallbackError.code = fallbackResponse.status === 401 ? 'auth/invalid-credential' : 'auth/backend-session-failed';
+          throw fallbackError;
+        }
+
+        firebaseToken = fallbackData.idToken;
+        fallbackSession = {
+          refreshToken: fallbackData.refreshToken,
+          expiresAt: Date.now() + (Number(fallbackData.expiresIn) || 3600) * 1000
+        };
+        GlobalState.token = firebaseToken;
+        GlobalState.auth = { token: firebaseToken };
+        GlobalState.fallbackSession = fallbackSession;
+      }
 
       // 2. Sync with Backend
       const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/sync-user`, {
@@ -218,12 +250,13 @@ export default function LoginScreen() {
         if (data.mfaRequired) {
           setTempUserId(data.tempUserId);
           GlobalState.tempToken = firebaseToken; // Store temporarily
+          GlobalState.tempFallbackSession = fallbackSession;
           setMfaRequired(true);
           setOtpRateLimited(false);
           setResendCooldown(30);
           showNotification('Please enter the OTP sent to your email.', 'info');
         } else if (data.user?.accountStatus === 'pending') {
-          await signOut(auth);
+          await signOut(auth).catch(() => undefined);
           navigation.replace('PendingApproval', { firebaseToken });
         } else if (data.user?.accountStatus === 'rejected') {
           GlobalState.userId = data.user._id || data.user.id;
@@ -232,6 +265,7 @@ export default function LoginScreen() {
         } else {
           // Make sure token is passed so processLoginSuccess can save it
           data.token = firebaseToken; 
+          data.fallbackSession = fallbackSession;
           await processLoginSuccess(data);
         }
       } else {
@@ -241,6 +275,8 @@ export default function LoginScreen() {
     } catch (error: any) {
       if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
         showNotification('Invalid email or password.', 'error');
+      } else if (error.code === 'auth/backend-session-failed') {
+        showNotification(error.message || 'The account service is temporarily unavailable. Please try again.', 'error');
       } else {
         showNotification(getFriendlyNetworkMessage(error, 'Could not connect to the server. Please try again.'), 'error');
         console.error(error);
@@ -279,6 +315,7 @@ export default function LoginScreen() {
         navigation.replace('PendingApproval', { firebaseToken });
       } else if (response.ok) {
         data.token = GlobalState.tempToken;
+        data.fallbackSession = GlobalState.tempFallbackSession;
         await processLoginSuccess(data);
       } else {
         if (response.status === 429) setOtpRateLimited(true);
@@ -300,7 +337,9 @@ export default function LoginScreen() {
     GlobalState.role = data.user.role || null;
     GlobalState.token = data.token;
     GlobalState.auth = { token: data.token };
-    await saveAuthData(data.token, userData);
+    GlobalState.fallbackSession = data.fallbackSession || null;
+    GlobalState.tempFallbackSession = null;
+    await saveAuthData(data.token, userData, data.fallbackSession || null);
     showNotification(`Welcome back, ${data.user.username}!`, "success");
     
     // Register device for push notifications

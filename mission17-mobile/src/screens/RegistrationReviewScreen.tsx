@@ -3,6 +3,8 @@ import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 import { CircleAlert, FilePenLine, LogOut } from 'lucide-react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
+import { GlobalState } from '../config/api';
+import { clearAuthData } from '../utils/storage';
 
 const RegistrationReviewScreen = ({ navigation, route }: any) => {
   const reason = typeof route.params?.reason === 'string' && route.params.reason.trim()
@@ -11,6 +13,15 @@ const RegistrationReviewScreen = ({ navigation, route }: any) => {
 
   const exit = async () => {
     await signOut(auth).catch(() => undefined);
+    await clearAuthData();
+    GlobalState.userId = null;
+    GlobalState.username = null;
+    GlobalState.role = null;
+    GlobalState.token = null;
+    GlobalState.auth = null;
+    GlobalState.tempToken = null;
+    GlobalState.fallbackSession = null;
+    GlobalState.tempFallbackSession = null;
     navigation.replace('Login');
   };
 

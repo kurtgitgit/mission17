@@ -319,6 +319,49 @@ const signupRegistrationLimiter = rateLimit({
   message: { message: 'Too many registration attempts. Please wait before trying again.' }
 });
 
+const firebaseSessionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  skip: req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || req.connection.remoteAddress),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many sign-in attempts. Please wait before trying again.' }
+});
+
+const firebaseRefreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  skip: req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || req.connection.remoteAddress),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many session refresh attempts. Please sign in again.' }
+});
+
+const getFirebaseWebApiKey = () => process.env.FIREBASE_WEB_API_KEY || process.env.FIREBASE_API_KEY;
+
+const callFirebaseIdentityApi = async (url, options) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    const payload = await response.json().catch(() => ({}));
+    return { response, payload };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const sendFirebaseSessionError = (res, errorCode) => {
+  const normalizedCode = typeof errorCode === 'string' ? errorCode.split(' : ')[0] : '';
+  if (['INVALID_LOGIN_CREDENTIALS', 'EMAIL_NOT_FOUND', 'INVALID_PASSWORD', 'USER_DISABLED'].includes(normalizedCode)) {
+    return res.status(401).json({ message: 'Invalid email or password.' });
+  }
+  if (normalizedCode === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+    return res.status(429).json({ message: 'Too many sign-in attempts. Please wait before trying again.' });
+  }
+  return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again shortly.' });
+};
+
 // ==========================================
 // 🔓 PUBLIC ROUTES
 // ==========================================
@@ -329,6 +372,98 @@ const cpUpload = upload.fields([
   { name: 'validIdBack', maxCount: 1 },
   { name: 'profileImage', maxCount: 1 }
 ]);
+
+// Some Android devices cannot reach Firebase Authentication directly even
+// though they can reach the BrgyLink API. This endpoint validates the same
+// Firebase email/password credential server-side and returns standard Firebase
+// session tokens. It never creates a separate password store or bypasses RBAC.
+router.post('/login-session', firebaseSessionLimiter, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const apiKey = getFirebaseWebApiKey();
+
+  if (!EMAIL_PATTERN.test(email) || !password) {
+    return res.status(400).json({ message: 'Enter a valid email address and password.' });
+  }
+  if (!apiKey) {
+    console.error('Firebase session login is unavailable: FIREBASE_WEB_API_KEY is not configured.');
+    return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again shortly.' });
+  }
+
+  try {
+    const { response, payload } = await callFirebaseIdentityApi(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      }
+    );
+
+    if (!response.ok) return sendFirebaseSessionError(res, payload?.error?.message);
+    if (!payload.idToken || !payload.refreshToken || !payload.expiresIn) {
+      return res.status(503).json({ message: 'The account service returned an incomplete session. Please try again.' });
+    }
+
+    const decodedToken = await getAuth().verifyIdToken(payload.idToken);
+    const user = await User.findOne({
+      $or: [
+        { firebaseUid: decodedToken.uid },
+        { email: new RegExp(`^${escapeRegex(email)}$`, 'i') }
+      ]
+    }).select('_id username role accountStatus');
+    if (!user) return res.status(401).json({ message: 'This account is not registered in BrgyLink.' });
+
+    return res.json({
+      idToken: payload.idToken,
+      refreshToken: payload.refreshToken,
+      expiresIn: Number(payload.expiresIn)
+    });
+  } catch (error) {
+    console.error('Firebase session login failed:', error?.name || error?.message || error);
+    return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again shortly.' });
+  }
+});
+
+router.post('/refresh-session', firebaseRefreshLimiter, async (req, res) => {
+  const refreshToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken.trim() : '';
+  const apiKey = getFirebaseWebApiKey();
+  if (!refreshToken) return res.status(400).json({ message: 'A refresh token is required.' });
+  if (!apiKey) {
+    console.error('Firebase session refresh is unavailable: FIREBASE_WEB_API_KEY is not configured.');
+    return res.status(503).json({ message: 'The account service is temporarily unavailable. Please sign in again.' });
+  }
+
+  try {
+    const { response, payload } = await callFirebaseIdentityApi(
+      `https://securetoken.googleapis.com/v1/token?key=${encodeURIComponent(apiKey)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }).toString()
+      }
+    );
+    if (!response.ok) {
+      const errorCode = typeof payload?.error?.message === 'string' ? payload.error.message.split(' : ')[0] : '';
+      if (['TOKEN_EXPIRED', 'USER_DISABLED', 'USER_NOT_FOUND', 'INVALID_REFRESH_TOKEN', 'PROJECT_NUMBER_MISMATCH'].includes(errorCode)) {
+        return res.status(401).json({ message: 'Your session expired. Please sign in again.' });
+      }
+      return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again.' });
+    }
+    if (!payload.id_token || !payload.refresh_token || !payload.expires_in) {
+      return res.status(401).json({ message: 'Your session expired. Please sign in again.' });
+    }
+
+    return res.json({
+      idToken: payload.id_token,
+      refreshToken: payload.refresh_token,
+      expiresIn: Number(payload.expires_in)
+    });
+  } catch (error) {
+    console.error('Firebase session refresh failed:', error?.name || error?.message || error);
+    return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again.' });
+  }
+});
 
 // Sends a code before the resident supplies their full profile or password.
 // This deliberately creates no Firebase or MongoDB User account.

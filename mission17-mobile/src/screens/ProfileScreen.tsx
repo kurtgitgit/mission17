@@ -95,6 +95,8 @@ const ProfileScreen = ({ navigation }: any) => {
       GlobalState.token = null;
       GlobalState.auth = null;
       GlobalState.tempToken = null;
+      GlobalState.fallbackSession = null;
+      GlobalState.tempFallbackSession = null;
 
       showNotification({
         title: "Success",

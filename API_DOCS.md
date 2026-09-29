@@ -49,52 +49,84 @@
 
 ## 2. Authentication & Session Management
 
-### `POST /auth/login`
-Authenticates a user and initiates session or MFA challenge.
+### Client Firebase sign-in and `POST /auth/sync-user`
+The mobile client normally signs in directly with Firebase Authentication, obtains a Firebase ID token, and submits that token to `POST /auth/sync-user`. BrgyLink then applies the MongoDB account status, role, and MFA rules. A successful Firebase login never bypasses resident approval or backend RBAC.
 
-* **Request Body:**
+* **Headers:** `Authorization: Bearer <FIREBASE_ID_TOKEN>`
+* **Optional Request Body:**
 ```json
 {
-  "email": "kurt@example.com",
-  "password": "SecurePassword123!",
   "isAdminLogin": false
 }
 ```
-* **Success Response (`200 OK` - Direct Login):**
+* **Success Response (`200 OK`):**
 ```json
 {
-  "status": "success",
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user": {
-    "id": "66bc89f1d0a1b2c3d4e5f678",
+    "_id": "66bc89f1d0a1b2c3d4e5f678",
     "username": "kurtperez",
     "email": "kurt@example.com",
-    "role": "resident"
+    "role": "resident",
+    "accountStatus": "approved"
   }
 }
 ```
-* **MFA Challenge Response (`202 Accepted`):**
+* **MFA Challenge Response (`200 OK`):**
 ```json
 {
-  "status": "mfa_required",
   "mfaRequired": true,
-  "userId": "66bc89f1d0a1b2c3d4e5f678",
-  "message": "A 6-digit OTP has been sent to your registered email."
+  "tempUserId": "66bc89f1d0a1b2c3d4e5f678"
 }
 ```
 
 ---
 
-### `POST /auth/verify-otp`
-Validates the One-Time Password sent via Nodemailer.
+### `POST /auth/login-session`
+Fallback transport for Android devices that cannot reach Firebase Authentication directly. The backend submits the supplied credential to Firebase Identity Toolkit and returns standard Firebase session tokens. This does not create a separate password store and does not bypass `/auth/sync-user`, MFA, account approval, or RBAC.
 
 * **Request Body:**
 ```json
 {
-  "userId": "66bc89f1d0a1b2c3d4e5f678",
+  "email": "kurt@example.com",
+  "password": "SecurePassword123!"
+}
+```
+* **Success Response (`200 OK`):**
+```json
+{
+  "idToken": "firebase-id-token",
+  "refreshToken": "firebase-refresh-token",
+  "expiresIn": 3600
+}
+```
+* **Controls:** Limited to 10 attempts per 15 minutes per client IP. Invalid credentials return a generic `401` response. The backend requires `FIREBASE_WEB_API_KEY` (or `FIREBASE_API_KEY`) in its environment.
+
+---
+
+### `POST /auth/refresh-session`
+Refreshes a fallback Firebase session after its short-lived ID token expires.
+
+* **Request Body:**
+```json
+{
+  "refreshToken": "firebase-refresh-token"
+}
+```
+* **Success Response (`200 OK`):** Same fields as `/auth/login-session`.
+* **Controls:** Limited to 60 attempts per 15 minutes per client IP. Invalid or revoked refresh tokens return `401` and require the user to sign in again.
+
+---
+
+### `POST /auth/verify-otp`
+Validates the One-Time Password sent through the configured Gmail API mailer.
+
+* **Request Body:**
+```json
+{
   "otp": "849201"
 }
 ```
+* **Headers:** `Authorization: Bearer <FIREBASE_ID_TOKEN>`
 
 ---
 

@@ -3,12 +3,27 @@ import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TouchableOpacity, Vi
 import { BellRing, Clock3, ShieldCheck } from 'lucide-react-native';
 import { useRoute } from '@react-navigation/native';
 import { useNotification } from '../context/NotificationContext';
+import { GlobalState } from '../config/api';
+import { clearAuthData } from '../utils/storage';
 
 const PendingApprovalScreen = ({ navigation }: any) => {
   const route = useRoute<any>();
   const { registerPendingPushToken } = useNotification();
   const [notificationState, setNotificationState] = useState<'idle' | 'loading' | 'enabled' | 'denied' | 'unavailable' | 'error'>('idle');
   const firebaseToken = route.params?.firebaseToken;
+
+  const exitToSignIn = async () => {
+    await clearAuthData();
+    GlobalState.userId = null;
+    GlobalState.username = null;
+    GlobalState.role = null;
+    GlobalState.token = null;
+    GlobalState.auth = null;
+    GlobalState.tempToken = null;
+    GlobalState.fallbackSession = null;
+    GlobalState.tempFallbackSession = null;
+    navigation.replace('Login');
+  };
 
   const enableNotifications = async () => {
     if (!firebaseToken) {
@@ -61,7 +76,7 @@ const PendingApprovalScreen = ({ navigation }: any) => {
       {notificationState === 'denied' && <Text style={styles.statusText}>Notifications are off. You can enable them later in your phone settings.</Text>}
       {notificationState === 'unavailable' && <Text style={styles.statusText}>Notifications can be enabled after you install the app on your phone.</Text>}
       {notificationState === 'error' && <Text style={styles.statusText}>We could not save your preference. You can try again by signing in later.</Text>}
-      <TouchableOpacity style={styles.button} onPress={() => navigation.replace('Login')} accessibilityRole="button">
+      <TouchableOpacity style={styles.button} onPress={() => void exitToSignIn()} accessibilityRole="button">
         <Text style={styles.buttonText}>Exit to Sign In</Text>
       </TouchableOpacity>
       </View>

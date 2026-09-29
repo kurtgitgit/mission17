@@ -48,6 +48,7 @@ Create a `.env` file in this directory:
 PORT=5001
 MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/mission17
 JWT_SECRET=your_64_character_hex_secret
+FIREBASE_WEB_API_KEY=your_firebase_web_api_key
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_google_app_password
 GROQ_API_KEY=gsk_your_groq_api_key

@@ -2,6 +2,8 @@
 import { Platform } from 'react-native';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
+import { getAuthData, saveAuthData, type FallbackSession } from '../utils/storage';
+import { fetchWithTimeout } from '../utils/network';
 
 // 🏠 LOCALHOST / LAN IP
 // IMPORTANT: Change this to your laptop's current IPv4 address (from `ipconfig`)
@@ -47,18 +49,70 @@ export const GlobalState = {
   token: null as string | null,
   auth: null as { token: string } | null,
   tempToken: null as string | null,
+  fallbackSession: null as FallbackSession | null,
+  tempFallbackSession: null as FallbackSession | null,
+};
+
+let refreshPromise: Promise<string> | null = null;
+
+const refreshFallbackSession = async (refreshToken: string): Promise<string> => {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    const response = await fetchWithTimeout(`${API_URL}/auth/refresh-session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken })
+    }, 20_000);
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.idToken || !payload.refreshToken) {
+      throw new Error(payload.message || 'Your session expired. Please sign in again.');
+    }
+
+    const fallbackSession: FallbackSession = {
+      refreshToken: payload.refreshToken,
+      expiresAt: Date.now() + (Number(payload.expiresIn) || 3600) * 1000
+    };
+    const saved = await getAuthData();
+    if (!saved?.user) throw new Error('Your saved session is incomplete. Please sign in again.');
+
+    GlobalState.token = payload.idToken;
+    GlobalState.auth = { token: payload.idToken };
+    GlobalState.fallbackSession = fallbackSession;
+    await saveAuthData(payload.idToken, saved.user, fallbackSession);
+    return payload.idToken as string;
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
 };
 
 /** Returns a current Firebase ID token for authenticated backend requests. */
 export const getAuthHeaders = async (): Promise<Record<string, string>> => {
   const user = auth.currentUser;
-  if (!user) {
+  if (user) {
+    const token = await user.getIdToken();
+    GlobalState.token = token;
+    GlobalState.auth = { token };
+    return { Authorization: `Bearer ${token}` };
+  }
+
+  const saved = await getAuthData();
+  const token = GlobalState.token || saved?.token;
+  const fallbackSession = GlobalState.fallbackSession || saved?.fallbackSession;
+  if (!token || !fallbackSession?.refreshToken) {
     throw new Error('You must be signed in to perform this action.');
   }
 
-  const token = await user.getIdToken();
+  if (fallbackSession.expiresAt <= Date.now() + 60_000) {
+    const refreshedToken = await refreshFallbackSession(fallbackSession.refreshToken);
+    return { Authorization: `Bearer ${refreshedToken}` };
+  }
+
   GlobalState.token = token;
   GlobalState.auth = { token };
+  GlobalState.fallbackSession = fallbackSession;
   return { Authorization: `Bearer ${token}` };
 };
 
@@ -74,7 +128,9 @@ export const getAuthHeadersIfAvailable = async (): Promise<Record<string, string
     });
   }
 
-  return auth.currentUser ? getAuthHeaders() : null;
+  if (auth.currentUser) return getAuthHeaders();
+  const saved = await getAuthData();
+  return saved?.token && saved.fallbackSession ? getAuthHeaders() : null;
 };
 
 export const endpoints = {
@@ -95,6 +151,8 @@ export const endpoints = {
     startSignupVerification: `${API_URL}/auth/start-signup-verification`,
     verifySignupEmail: `${API_URL}/auth/verify-signup-email`,
     registerResident: `${API_URL}/auth/register-resident`,
+    loginSession: `${API_URL}/auth/login-session`,
+    refreshSession: `${API_URL}/auth/refresh-session`,
     registrationReview: `${API_URL}/auth/registration-review`,
     resubmitRegistration: `${API_URL}/auth/resubmit-registration`,
     savePendingPushToken: `${API_URL}/auth/save-pending-push-token`,

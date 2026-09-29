@@ -11,6 +11,7 @@ process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
 process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
 process.env.EMAIL_USER = 'test@example.com';
 process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL = 'recovery-admin@example.com';
+process.env.FIREBASE_WEB_API_KEY = 'test-firebase-web-api-key';
 
 const gmailSend = jest.fn();
 const firebaseAuth = {
@@ -18,6 +19,7 @@ const firebaseAuth = {
   createUser: jest.fn(),
   updateUser: jest.fn(),
   deleteUser: jest.fn(),
+  verifyIdToken: jest.fn(),
 };
 
 jest.unstable_mockModule('../utils/authMiddleware.js', () => ({
@@ -69,6 +71,7 @@ describe('early signup email verification', () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     gmailSend.mockClear();
     Object.values(firebaseAuth).forEach(mock => mock.mockReset());
     await SignupEmailVerification.deleteMany({});
@@ -323,5 +326,90 @@ describe('early signup email verification', () => {
     expect(registration.body.message).toMatch(/username is already in use/i);
     expect(firebaseAuth.deleteUser).toHaveBeenCalledWith('firebase-rollback-123');
     expect(await User.findOne({ email })).toBeNull();
+  });
+
+  it('returns a Firebase session for a registered BrgyLink account', async () => {
+    const email = 'fallback.login@example.com';
+    await User.create({
+      firebaseUid: 'firebase-fallback-123',
+      username: 'FallbackResident',
+      email,
+      firstName: 'Fallback',
+      lastName: 'Resident',
+      accountStatus: 'approved',
+      isVerified: true
+    });
+    firebaseAuth.verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-fallback-123', email });
+    jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        idToken: 'firebase-id-token',
+        refreshToken: 'firebase-refresh-token',
+        expiresIn: '3600'
+      })
+    });
+
+    const response = await request(app)
+      .post('/api/auth/login-session')
+      .send({ email, password: 'Secure!Pass123' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      idToken: 'firebase-id-token',
+      refreshToken: 'firebase-refresh-token',
+      expiresIn: 3600
+    });
+    expect(firebaseAuth.verifyIdToken).toHaveBeenCalledWith('firebase-id-token');
+  });
+
+  it('does not reveal whether the email or password was incorrect', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: { message: 'INVALID_LOGIN_CREDENTIALS' } })
+    });
+
+    const response = await request(app)
+      .post('/api/auth/login-session')
+      .send({ email: 'unknown@example.com', password: 'Wrong!Pass123' });
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBe('Invalid email or password.');
+    expect(firebaseAuth.verifyIdToken).not.toHaveBeenCalled();
+  });
+
+  it('refreshes fallback Firebase sessions without handling a password', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        id_token: 'refreshed-id-token',
+        refresh_token: 'rotated-refresh-token',
+        expires_in: '3600'
+      })
+    });
+
+    const response = await request(app)
+      .post('/api/auth/refresh-session')
+      .send({ refreshToken: 'firebase-refresh-token' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      idToken: 'refreshed-id-token',
+      refreshToken: 'rotated-refresh-token',
+      expiresIn: 3600
+    });
+  });
+
+  it('preserves a retryable error when Firebase session refresh is temporarily unavailable', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ error: { message: 'INTERNAL_ERROR' } })
+    });
+
+    const response = await request(app)
+      .post('/api/auth/refresh-session')
+      .send({ refreshToken: 'firebase-refresh-token' });
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toMatch(/temporarily unavailable/i);
   });
 });

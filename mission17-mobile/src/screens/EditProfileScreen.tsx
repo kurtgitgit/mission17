@@ -116,9 +116,10 @@ const EditProfileScreen = ({ navigation }: any) => {
       const target = registrationReview
         ? endpoints.auth.resubmitRegistration
         : `${endpoints.auth.backendBaseUrl}/api/auth/update-profile/${userId}`;
+      const authHeaders = await getAuthHeaders();
       const res = await fetchWithTimeout(target, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({
           ...userData,
           firstName,
@@ -134,8 +135,9 @@ const EditProfileScreen = ({ navigation }: any) => {
       if (res.ok) {
         if (registrationReview) {
           Alert.alert('Registration resubmitted', 'Your corrected details were sent back to the Barangay Captain for review.');
-          await signOut(auth);
-          navigation.replace('PendingApproval');
+          await signOut(auth).catch(() => undefined);
+          const firebaseToken = authHeaders.Authorization?.replace(/^Bearer\s+/i, '');
+          navigation.replace('PendingApproval', { firebaseToken });
         } else {
           Alert.alert("Success", "Profile updated successfully!");
           navigation.goBack();

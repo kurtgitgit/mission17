@@ -185,7 +185,12 @@ export default function App() {
               const response = await fetchWithTimeout(endpoints.auth.getUser(authData.user._id), { headers }, 7_000);
               if (response.ok) {
                 restoredUser = { ...authData.user, ...(await response.json()) };
-                await saveAuthData(authData.token, restoredUser);
+                const latestAuthData = await getAuthData();
+                await saveAuthData(
+                  latestAuthData?.token || authData.token,
+                  restoredUser,
+                  latestAuthData?.fallbackSession ?? authData.fallbackSession
+                );
               }
             }
           } catch {
@@ -195,8 +200,11 @@ export default function App() {
           GlobalState.userId = restoredUser._id;
           GlobalState.username = restoredUser.username || null;
           GlobalState.role = restoredUser.role || null;
-          GlobalState.token = authData.token;
-          GlobalState.auth = { token: authData.token };
+          const latestAuthData = await getAuthData();
+          const restoredToken = latestAuthData?.token || authData.token;
+          GlobalState.token = restoredToken;
+          GlobalState.auth = { token: restoredToken };
+          GlobalState.fallbackSession = latestAuthData?.fallbackSession || authData.fallbackSession || null;
           setInitialRoute('Home');
         }
       } catch (error) {
