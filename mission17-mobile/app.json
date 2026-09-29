@@ -13,7 +13,7 @@
       "checkAutomatically": "ON_LOAD"
     },
     "orientation": "portrait",
-    "icon": "./assets/app-icon.jpg",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "mission17",
     "newArchEnabled": true,
@@ -37,7 +37,7 @@
       "googleServicesFile": "./google-services.json"
     },
     "web": {
-      "favicon": "./assets/app-icon.jpg"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
