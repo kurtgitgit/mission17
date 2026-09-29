@@ -10,8 +10,15 @@ process.env.GOOGLE_CLIENT_ID = 'test-client-id';
 process.env.GOOGLE_CLIENT_SECRET = 'test-client-secret';
 process.env.GOOGLE_REFRESH_TOKEN = 'test-refresh-token';
 process.env.EMAIL_USER = 'test@example.com';
+process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL = 'recovery-admin@example.com';
 
 const gmailSend = jest.fn();
+const firebaseAuth = {
+  getUserByEmail: jest.fn(),
+  createUser: jest.fn(),
+  updateUser: jest.fn(),
+  deleteUser: jest.fn(),
+};
 
 jest.unstable_mockModule('../utils/authMiddleware.js', () => ({
   logAudit: jest.fn(),
@@ -21,7 +28,19 @@ jest.unstable_mockModule('../utils/authMiddleware.js', () => ({
 }));
 
 jest.unstable_mockModule('../utils/upload.js', () => ({
-  upload: { fields: () => (_req, _res, next) => next() }
+  upload: {
+    fields: () => (req, _res, next) => {
+      req.files = {
+        validIdFront: [{ path: 'https://res.cloudinary.com/test/id-front.jpg' }],
+        validIdBack: [{ path: 'https://res.cloudinary.com/test/id-back.jpg' }]
+      };
+      next();
+    }
+  }
+}));
+
+jest.unstable_mockModule('firebase-admin/auth', () => ({
+  getAuth: jest.fn(() => firebaseAuth)
 }));
 
 jest.unstable_mockModule('googleapis', () => ({
@@ -33,6 +52,7 @@ jest.unstable_mockModule('googleapis', () => ({
 
 const { default: authRouter } = await import('./auth.js');
 const { default: SignupEmailVerification } = await import('../models/SignupEmailVerification.js');
+const { default: User } = await import('../models/User.js');
 
 const app = express();
 app.use(express.json());
@@ -50,7 +70,9 @@ describe('early signup email verification', () => {
 
   afterEach(async () => {
     gmailSend.mockClear();
+    Object.values(firebaseAuth).forEach(mock => mock.mockReset());
     await SignupEmailVerification.deleteMany({});
+    await User.deleteMany({});
   });
 
   afterAll(async () => {
@@ -105,5 +127,201 @@ describe('early signup email verification', () => {
     expect(resend.body.retryAfterSeconds).toBeGreaterThan(0);
     const afterResend = await SignupEmailVerification.findOne({ email: 'cooldown@example.com' }).select('+otpHash');
     expect(afterResend.otpHash).toBe(stored.otpHash);
+  });
+
+  it('creates Firebase and MongoDB accounts on the backend and makes retries idempotent', async () => {
+    const email = 'resident@example.com';
+    const start = await request(app)
+      .post('/api/auth/start-signup-verification')
+      .send({ email, firstName: 'Juan' })
+      .expect(200);
+    expect(start.body.message).toMatch(/Verification code sent/i);
+
+    const sentMessage = decodeRawEmail(gmailSend.mock.calls[0][0].requestBody.raw);
+    const otp = sentMessage.match(/\b\d{6}\b/)?.[0];
+    const verify = await request(app)
+      .post('/api/auth/verify-signup-email')
+      .send({ email, otp })
+      .expect(200);
+
+    firebaseAuth.getUserByEmail.mockRejectedValueOnce({ code: 'auth/user-not-found' });
+    firebaseAuth.createUser.mockResolvedValueOnce({ uid: 'firebase-resident-123' });
+
+    const payload = {
+      email,
+      password: 'Secure!Pass123',
+      signupVerificationToken: verify.body.verificationToken,
+      privacyAccepted: 'true',
+      termsAccepted: 'true',
+      policyVersion: '2026-09-08-capstone-v1',
+      firstName: 'Juan',
+      middleName: '',
+      lastName: 'Dela Cruz',
+      birthDate: '01/01/2000',
+      age: '26',
+      gender: 'Male',
+      civilStatus: 'Single',
+      nationality: 'Filipino',
+      purok: 'Purok 1',
+      completeAddress: 'Bagong Pag-asa Road',
+      mobileNumber: '09123456789',
+      voterStatus: 'Registered',
+      employmentStatus: 'Employed',
+      idType: 'PhilSys National ID / ePhilID'
+    };
+
+    const registration = await request(app)
+      .post('/api/auth/register-resident')
+      .send(payload);
+
+    expect(registration.status).toBe(201);
+    expect(firebaseAuth.createUser).toHaveBeenCalledWith(expect.objectContaining({
+      email,
+      emailVerified: true,
+      disabled: false
+    }));
+    expect(await User.findOne({ email })).toMatchObject({
+      firebaseUid: 'firebase-resident-123',
+      role: 'resident',
+      accountStatus: 'pending',
+      isVerified: true
+    });
+
+    const retry = await request(app)
+      .post('/api/auth/register-resident')
+      .send(payload);
+
+    expect(retry.status).toBe(200);
+    expect(retry.body.alreadyRegistered).toBe(true);
+    expect(firebaseAuth.createUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('recovers an orphan Firebase identity after the resident proves email ownership', async () => {
+    const email = 'orphan@example.com';
+    await request(app)
+      .post('/api/auth/start-signup-verification')
+      .send({ email, firstName: 'Ana' })
+      .expect(200);
+    const sentMessage = decodeRawEmail(gmailSend.mock.calls[0][0].requestBody.raw);
+    const otp = sentMessage.match(/\b\d{6}\b/)?.[0];
+    const verify = await request(app)
+      .post('/api/auth/verify-signup-email')
+      .send({ email, otp })
+      .expect(200);
+
+    firebaseAuth.getUserByEmail.mockResolvedValueOnce({ uid: 'orphan-firebase-123', customClaims: {} });
+    firebaseAuth.updateUser.mockResolvedValueOnce({ uid: 'orphan-firebase-123' });
+
+    const registration = await request(app)
+      .post('/api/auth/register-resident')
+      .send({
+        email,
+        password: 'Secure!Pass123',
+        signupVerificationToken: verify.body.verificationToken,
+        privacyAccepted: 'true',
+        termsAccepted: 'true',
+        policyVersion: '2026-09-08-capstone-v1',
+        firstName: 'Ana',
+        lastName: 'Santos',
+        birthDate: '01/01/2000',
+        age: '26',
+        gender: 'Female',
+        civilStatus: 'Single',
+        nationality: 'Filipino',
+        purok: 'Purok 2',
+        completeAddress: 'Bagong Pag-asa Road',
+        mobileNumber: '09987654321',
+        voterStatus: 'Not Registered',
+        employmentStatus: 'Student',
+        idType: 'PhilSys National ID / ePhilID'
+      });
+
+    expect(registration.status).toBe(201);
+    expect(firebaseAuth.updateUser).toHaveBeenCalledWith('orphan-firebase-123', expect.objectContaining({
+      password: 'Secure!Pass123',
+      emailVerified: true,
+      disabled: false
+    }));
+    expect(firebaseAuth.createUser).not.toHaveBeenCalled();
+  });
+
+  it('blocks the protected recovery administrator email from public resident registration', async () => {
+    const registration = await request(app)
+      .post('/api/auth/register-resident')
+      .send({
+        email: process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL,
+        password: 'Secure!Pass123'
+      });
+
+    expect(registration.status).toBe(409);
+    expect(registration.body.message).toMatch(/protected recovery administrator/i);
+    expect(firebaseAuth.getUserByEmail).not.toHaveBeenCalled();
+    expect(firebaseAuth.createUser).not.toHaveBeenCalled();
+  });
+
+  it('rolls back a newly created Firebase identity when the MongoDB profile cannot be saved', async () => {
+    const email = 'rollback@example.com';
+    await User.create({
+      firebaseUid: 'existing-uid',
+      username: 'AlreadyUsed',
+      email: 'existing@example.com',
+      firstName: 'Existing',
+      lastName: 'Resident',
+      birthDate: '01/01/2000',
+      age: '26',
+      gender: 'Male',
+      civilStatus: 'Single',
+      nationality: 'Filipino',
+      purok: 'Purok 1',
+      completeAddress: 'Bagong Pag-asa Road',
+      mobileNumber: '09123456789',
+      voterStatus: 'Registered',
+      employmentStatus: 'Employed'
+    });
+
+    await request(app)
+      .post('/api/auth/start-signup-verification')
+      .send({ email, firstName: 'Retry' })
+      .expect(200);
+    const sentMessage = decodeRawEmail(gmailSend.mock.calls[0][0].requestBody.raw);
+    const otp = sentMessage.match(/\b\d{6}\b/)?.[0];
+    const verify = await request(app)
+      .post('/api/auth/verify-signup-email')
+      .send({ email, otp })
+      .expect(200);
+
+    firebaseAuth.getUserByEmail.mockRejectedValueOnce({ code: 'auth/user-not-found' });
+    firebaseAuth.createUser.mockResolvedValueOnce({ uid: 'firebase-rollback-123' });
+    firebaseAuth.deleteUser.mockResolvedValueOnce();
+
+    const registration = await request(app)
+      .post('/api/auth/register-resident')
+      .send({
+        email,
+        username: 'AlreadyUsed',
+        password: 'Secure!Pass123',
+        signupVerificationToken: verify.body.verificationToken,
+        privacyAccepted: 'true',
+        termsAccepted: 'true',
+        policyVersion: '2026-09-08-capstone-v1',
+        firstName: 'Retry',
+        lastName: 'Resident',
+        birthDate: '01/01/2000',
+        age: '26',
+        gender: 'Male',
+        civilStatus: 'Single',
+        nationality: 'Filipino',
+        purok: 'Purok 3',
+        completeAddress: 'Bagong Pag-asa Road',
+        mobileNumber: '09987654321',
+        voterStatus: 'Not Registered',
+        employmentStatus: 'Student',
+        idType: 'PhilSys National ID / ePhilID'
+      });
+
+    expect(registration.status).toBe(409);
+    expect(registration.body.message).toMatch(/username is already in use/i);
+    expect(firebaseAuth.deleteUser).toHaveBeenCalledWith('firebase-rollback-123');
+    expect(await User.findOne({ email })).toBeNull();
   });
 });

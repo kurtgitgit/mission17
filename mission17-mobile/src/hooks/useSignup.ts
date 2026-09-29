@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Keyboard, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api'; 
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { auth } from '../config/firebase';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { fetchWithTimeout, getFriendlyNetworkMessage, readApiJson } from '../utils/network';
 import { isDirectoryPurok } from '../config/addressDirectory';
 import {
   calculateAge,
@@ -51,6 +52,7 @@ export const useSignup = () => {
   const [emailVerificationPending, setEmailVerificationPending] = useState(false);
   const [signupVerificationToken, setSignupVerificationToken] = useState('');
   const [signupVerificationEmail, setSignupVerificationEmail] = useState('');
+  const signupInFlightRef = useRef(false);
 
   const handleInputChange = (field: string, value: string) => {
     if (field === 'email' && value.trim().toLowerCase() !== formData.email.trim().toLowerCase()) {
@@ -103,9 +105,26 @@ export const useSignup = () => {
     }
 
     if (!result.canceled) {
-      if (type === 'idFront') setValidIdFront(result.assets[0]);
-      if (type === 'idBack') setValidIdBack(result.assets[0]);
-      if (type === 'profile') setProfileImage(result.assets[0]);
+      try {
+        // Phone cameras commonly produce multi-megabyte files. Normalize every
+        // registration photo before upload so weak connections and the server's
+        // 5 MB file limit do not turn a valid signup into a network error.
+        const resizeActions = result.assets[0].width > 1600
+          ? [{ resize: { width: 1600 } }]
+          : [];
+        const prepared = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          resizeActions,
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        const asset = { ...result.assets[0], uri: prepared.uri, mimeType: 'image/jpeg' };
+        if (type === 'idFront') setValidIdFront(asset);
+        if (type === 'idBack') setValidIdBack(asset);
+        if (type === 'profile') setProfileImage(asset);
+      } catch (error) {
+        console.error('Registration photo preparation failed:', error);
+        showNotification('The photo could not be prepared. Please retake it and try again.', 'error');
+      }
     }
   };
 
@@ -117,7 +136,7 @@ export const useSignup = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email.trim(), firstName: formData.firstName.trim() }),
       });
-      const data = await response.json();
+      const data = await readApiJson<{ message?: string }>(response);
       if (!response.ok) throw new Error(data.message || 'Could not send the verification code.');
       setSignupVerificationEmail(formData.email.trim().toLowerCase());
       setEmailVerificationPending(true);
@@ -142,7 +161,7 @@ export const useSignup = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: formData.email.trim(), otp }),
       });
-      const data = await response.json();
+      const data = await readApiJson<{ message?: string; verificationToken?: string }>(response);
       if (!response.ok || !data.verificationToken) throw new Error(data.message || 'Could not verify your email.');
       setSignupVerificationToken(data.verificationToken);
       setEmailVerificationPending(false);
@@ -260,6 +279,10 @@ export const useSignup = () => {
   const handleSignup = async () => {
     Keyboard.dismiss();
 
+    // State-driven button disabling happens on the next render. This immediate
+    // guard also blocks rapid double taps from sending two registration calls.
+    if (signupInFlightRef.current) return;
+
     if (!privacyAccepted || !termsAccepted) {
       showNotification('Please accept both the Privacy Notice and Terms of Use to continue.', 'error');
       return;
@@ -290,24 +313,10 @@ export const useSignup = () => {
       return;
     }
 
+    signupInFlightRef.current = true;
     setLoading(true);
-    let signupStage: 'firebase-account' | 'registration-upload' = 'firebase-account';
-
     try {
-      // 1. Create the Firebase credential only after the email was verified.
-      // If a previous sync attempt timed out, reuse the same credential so a
-      // resident can safely retry instead of being told their email is taken.
       const cleanEmail = formData.email.trim();
-      let userCredential;
-      try {
-        userCredential = await createUserWithEmailAndPassword(auth, cleanEmail, formData.password);
-      } catch (firebaseError: any) {
-        if (firebaseError?.code !== 'auth/email-already-in-use') throw firebaseError;
-        userCredential = await signInWithEmailAndPassword(auth, cleanEmail, formData.password);
-      }
-      const firebaseToken = await userCredential.user.getIdToken();
-
-      // 2. Prepare Form Data for Sync
       const formPayload = new FormData();
       Object.keys(formData).forEach(key => {
         if (key !== 'confirmPassword' && key !== 'password') {
@@ -319,6 +328,7 @@ export const useSignup = () => {
         }
       });
       formPayload.append('signupVerificationToken', signupVerificationToken);
+      formPayload.append('password', formData.password);
       formPayload.append('privacyAccepted', 'true');
       formPayload.append('termsAccepted', 'true');
       formPayload.append('policyVersion', LEGAL_POLICY_VERSION);
@@ -349,44 +359,31 @@ export const useSignup = () => {
         } as any);
       }
 
-      // 3. Sync with Backend
-      signupStage = 'registration-upload';
-      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/sync-user`, {
+      // The backend owns Firebase + MongoDB creation and rollback. This avoids
+      // device-specific Firebase creation failures and makes retries idempotent.
+      const response = await fetchWithTimeout(endpoints.auth.registerResident, {
         method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${firebaseToken}` 
-        },
         body: formPayload
-      }, 60000);
-
-      // Handle HTML/Bad Gateway responses safely
-      const responseText = await response.text();
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Backend returned non-JSON response:", responseText);
-        throw new Error("Server returned an invalid response.");
-      }
+      }, 120000);
+      const data = await readApiJson<{ message?: string; alreadyRegistered?: boolean }>(response);
 
       if (response.ok) {
-        // Pending residents cannot sign in yet, so ask for notification permission
-        // here and bind the device token to their verified Firebase identity. This
-        // lets them receive an approval or rejection update from barangay staff.
+        // Notification enrollment is optional. A phone that cannot immediately
+        // sign in to Firebase must still see the successful registration result.
         try {
+          const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, formData.password);
+          const firebaseToken = await userCredential.user.getIdToken();
           const notificationStatus = await registerPendingPushToken(firebaseToken);
           if (notificationStatus === 'denied') {
             showNotification('Approval updates will not alert this device until notifications are enabled in your phone settings.', 'info');
           }
-        } catch (pushError) {
-          // A push-provider/device issue must never make a successfully submitted
-          // registration look like a failed registration.
-          console.warn('Could not register pending-account notifications:', pushError);
+        } catch (notificationSetupError) {
+          console.warn('Registration succeeded; notification setup was deferred:', notificationSetupError);
         }
         navigation.replace('SignupSuccess');
       } else {
-        const msg = data.message || 'Something went wrong';
-        if (/verify your email in step 1/i.test(msg)) {
+        const msg = data.message || 'Registration could not be completed.';
+        if (/verified-email session expired|verify your email in step 1/i.test(msg)) {
           setSignupVerificationToken('');
           setSignupVerificationEmail('');
           setEmailVerificationPending(false);
@@ -395,30 +392,15 @@ export const useSignup = () => {
         showNotification(msg, 'error');
       }
     } catch (error: any) {
-      const errorCode = typeof error?.code === 'string' ? error.code : '';
       console.error('Signup failed', {
-        stage: signupStage,
-        code: errorCode || undefined,
         message: error?.message || String(error)
       });
-
-      if (signupStage === 'firebase-account') {
-        if (errorCode === 'auth/email-already-in-use') {
-          showNotification('That email is already registered. Use Sign In instead.', 'error');
-        } else if (errorCode === 'auth/network-request-failed') {
-          showNotification('Firebase could not create the account. Check your internet connection and try again.', 'error');
-        } else if (errorCode === 'auth/operation-not-allowed') {
-          showNotification('Email sign-up is temporarily unavailable. Please contact the barangay administrator.', 'error');
-        } else {
-          showNotification('We could not create your Firebase account. Please try again.', 'error');
-        }
-      } else {
-        showNotification(
-          getFriendlyNetworkMessage(error, 'Your account was created, but we could not submit your registration details. Please try again.'),
-          'error'
-        );
-      }
+      showNotification(
+        getFriendlyNetworkMessage(error, 'Registration could not be completed. Please try again.'),
+        'error'
+      );
     } finally {
+      signupInFlightRef.current = false;
       setLoading(false);
     }
   };

@@ -49,31 +49,6 @@
 
 ## 2. Authentication & Session Management
 
-### `POST /auth/signup`
-Registers a new resident/citizen account.
-
-* **Request Body:**
-```json
-{
-  "username": "kurtperez",
-  "email": "kurt@example.com",
-  "password": "SecurePassword123!",
-  "fullName": "Kurt Perez",
-  "phoneNumber": "+639123456789",
-  "address": "Zone 4, Bagong Pag-asa"
-}
-```
-* **Success Response (`201 Created`):**
-```json
-{
-  "status": "success",
-  "message": "User registered successfully. Please verify your email.",
-  "userId": "66bc89f1d0a1b2c3d4e5f678"
-}
-```
-
----
-
 ### `POST /auth/login`
 Authenticates a user and initiates session or MFA challenge.
 
@@ -161,7 +136,26 @@ Verifies the Step 1 code and returns a short-lived token that must be included w
   "verificationToken": "short-lived-registration-token"
 }
 ```
-* **Controls:** The code is stored as a hash, allows at most 10 incorrect attempts, and the returned token is valid for 30 minutes. It must match the Firebase email supplied to `POST /auth/sync-user`.
+* **Controls:** The code is stored as a hash, allows at most 10 incorrect attempts, and the returned token is valid for 30 minutes. It must match the email supplied to `POST /auth/register-resident`.
+
+---
+
+### `POST /auth/register-resident`
+Completes a verified resident registration. The backend creates or recovers the Firebase identity and saves the pending MongoDB resident profile as one coordinated workflow.
+
+* **Content Type:** `multipart/form-data`
+* **Required fields:** `email`, `password`, `signupVerificationToken`, current legal-consent fields, required resident profile fields, `idType`, and ID image attachment(s).
+* **ID attachments:** `validIdFront` is required. `validIdBack` is also required unless `idType` is `Passport`. `profileImage` is optional.
+* **Success Response (`201 Created`):**
+```json
+{
+  "message": "Registration submitted for barangay review.",
+  "accountStatus": "pending"
+}
+```
+* **Safe retry (`200 OK`):** If the phone lost the original success response but the verified email already has a resident record, the endpoint returns `alreadyRegistered: true` instead of creating a duplicate.
+* **Recovery:** An unprivileged Firebase-only identity left by an interrupted older signup is reused after email ownership is proven. A newly created Firebase identity is deleted if the MongoDB profile cannot be saved.
+* **Protection:** Staff/custom-claim accounts and the configured bootstrap recovery-administrator email cannot register through this public resident route. Requests are limited to 10 per hour per client IP.
 
 ---
 

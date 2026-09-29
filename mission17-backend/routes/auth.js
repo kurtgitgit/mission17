@@ -22,6 +22,7 @@ import crypto from 'crypto';
 import { google } from 'googleapis';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import rateLimit from 'express-rate-limit';
+import { getAuth } from 'firebase-admin/auth';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import SignupEmailVerification from '../models/SignupEmailVerification.js';
@@ -294,6 +295,7 @@ const otpVerifyLimiter = rateLimit({
 const signupOtpRequestLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 3,
+  skip: req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || req.connection.remoteAddress),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many verification-code requests. Please wait before trying again.' }
@@ -302,9 +304,19 @@ const signupOtpRequestLimiter = rateLimit({
 const signupOtpVerifyLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 10,
+  skip: req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || req.connection.remoteAddress),
   standardHeaders: true,
   legacyHeaders: false,
   message: { message: 'Too many verification attempts. Please wait before trying again.' }
+});
+
+const signupRegistrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  skip: req => ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip || req.connection.remoteAddress),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many registration attempts. Please wait before trying again.' }
 });
 
 // ==========================================
@@ -406,6 +418,199 @@ router.post('/verify-signup-email', signupOtpVerifyLimiter, async (req, res) => 
   } catch (error) {
     console.error('Verify signup email error:', error?.message || error);
     return res.status(500).json({ message: 'Unable to verify your email right now. Please try again.' });
+  }
+});
+
+const getUploadedRegistrationFiles = (req) => Object.values(req.files || {}).flat();
+
+const removeUploadedRegistrationFiles = async (req) => {
+  const uploadedFiles = getUploadedRegistrationFiles(req);
+  await Promise.allSettled(uploadedFiles.map(file => (
+    file?.filename ? import('../utils/cloudinary.js').then(({ cloudinary }) => cloudinary.uploader.destroy(file.filename)) : null
+  )));
+};
+
+const isPrivilegedFirebaseAccount = (firebaseUser) => {
+  const role = firebaseUser?.customClaims?.role;
+  return firebaseUser?.customClaims?.admin === true || role === 'admin' || role === 'super_admin';
+};
+
+// New mobile clients complete resident registration here. Firebase account
+// creation is owned by the backend so a device-specific Firebase failure cannot
+// leave the resident stuck between Firebase and MongoDB. /sync-user remains for
+// login and backward compatibility with already-installed clients.
+router.post('/register-resident', signupRegistrationLimiter, cpUpload, async (req, res) => {
+  const email = normalizeEmail(req.body?.email);
+  const password = req.body?.password;
+  let firebaseUser = null;
+  let createdFirebaseAccount = false;
+  let residentSaved = false;
+
+  const rejectRegistration = async (status, message) => {
+    await removeUploadedRegistrationFiles(req);
+    return res.status(status).json({ message });
+  };
+
+  try {
+    if (!EMAIL_PATTERN.test(email)) return rejectRegistration(400, 'Please enter a valid email address.');
+    const bootstrapEmail = normalizeEmail(process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL);
+    if (bootstrapEmail && email === bootstrapEmail) {
+      return rejectRegistration(409, 'This email is reserved for the protected recovery administrator and cannot be registered as a resident.');
+    }
+    if (!isStrongPassword(password) || password.length > 4096) {
+      return rejectRegistration(400, 'Password must be 8+ characters with uppercase, lowercase, a number, and a special character.');
+    }
+    if (!hasCurrentLegalConsent(req.body)) {
+      return rejectRegistration(400, 'Please accept the current Privacy Notice and Terms of Use before creating an account.');
+    }
+
+    const residentProfile = normalizeResidentProfile(req.body);
+    const profileValidationError = validateResidentProfile(residentProfile, {
+      requireCore: true,
+      minimumAge: MINIMUM_RESIDENT_REGISTRATION_AGE
+    });
+    if (profileValidationError) return rejectRegistration(400, profileValidationError);
+
+    let verificationClaims;
+    try {
+      verificationClaims = verifySignupEmailToken(req.body?.signupVerificationToken, email);
+    } catch {
+      return rejectRegistration(403, 'Your verified-email session expired. Return to Step 1 and verify your email again.');
+    }
+
+    const verification = await SignupEmailVerification.findOne({
+      _id: verificationClaims.verificationId,
+      email
+    });
+    if (!verification?.verifiedAt) {
+      return rejectRegistration(403, 'Your verified-email session expired. Return to Step 1 and verify your email again.');
+    }
+
+    // A timeout may hide a successful response from the phone. Return success
+    // when the same verified email already has its resident record.
+    const existingResident = await User.findOne({ email: new RegExp(`^${escapeRegex(email)}$`, 'i') });
+    if (existingResident) {
+      if (existingResident.role !== 'resident') {
+        return rejectRegistration(409, 'This email belongs to a protected staff account and cannot be registered as a resident.');
+      }
+      await removeUploadedRegistrationFiles(req);
+      return res.status(200).json({
+        message: 'Your registration was already submitted and is awaiting barangay review.',
+        alreadyRegistered: true,
+        accountStatus: existingResident.accountStatus
+      });
+    }
+    if (verification.consumedAt) {
+      return rejectRegistration(409, 'This verified-email session has already been used. Please sign in or restart registration.');
+    }
+
+    const idType = typeof req.body.idType === 'string' ? req.body.idType.trim() : '';
+    if (!VALID_ID_TYPES.has(idType)) {
+      return rejectRegistration(400, 'Please select a valid government-issued ID type.');
+    }
+
+    const validIdFrontUrl = req.files?.validIdFront?.[0]?.path || null;
+    const validIdBackUrl = req.files?.validIdBack?.[0]?.path || null;
+    const profileImageUrl = req.files?.profileImage?.[0]?.path || null;
+    if (!validIdFrontUrl || (idType !== 'Passport' && !validIdBackUrl)) {
+      return rejectRegistration(
+        400,
+        idType === 'Passport'
+          ? 'A clear photo of the passport information page is required.'
+          : 'Clear photos of both the front and back of a valid ID are required.'
+      );
+    }
+
+    const firebaseAuth = getAuth();
+    try {
+      firebaseUser = await firebaseAuth.getUserByEmail(email);
+    } catch (error) {
+      if (error?.code !== 'auth/user-not-found') throw error;
+    }
+
+    if (firebaseUser) {
+      if (isPrivilegedFirebaseAccount(firebaseUser)) {
+        return rejectRegistration(409, 'This email belongs to a protected staff account and cannot be registered as a resident.');
+      }
+      // Recover an orphan identity left by a previously interrupted signup.
+      firebaseUser = await firebaseAuth.updateUser(firebaseUser.uid, {
+        password,
+        emailVerified: true,
+        disabled: false,
+        displayName: `${residentProfile.firstName} ${residentProfile.lastName}`.trim()
+      });
+    } else {
+      firebaseUser = await firebaseAuth.createUser({
+        email,
+        password,
+        emailVerified: true,
+        disabled: false,
+        displayName: `${residentProfile.firstName} ${residentProfile.lastName}`.trim()
+      });
+      createdFirebaseAccount = true;
+    }
+
+    const requestedUsername = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+    const generatedUsername = `${residentProfile.firstName}${residentProfile.lastName}`.replace(/\s+/g, '') + firebaseUser.uid.slice(-6);
+
+    const user = new User({
+      firebaseUid: firebaseUser.uid,
+      username: requestedUsername || generatedUsername,
+      email,
+      role: 'resident',
+      isVerified: true,
+      accountStatus: 'pending',
+      legalConsent: createLegalConsentRecord(),
+      ...residentProfile,
+      idType,
+      validIdFrontUrl,
+      validIdBackUrl,
+      profileImageUrl
+    });
+    await user.save();
+    residentSaved = true;
+
+    verification.consumedAt = new Date();
+    verification.firebaseUid = firebaseUser.uid;
+    // Keep a short retry receipt; the signed token itself still expires in 30m.
+    verification.expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await verification.save();
+
+    logAudit(user._id, user.username, 'SIGNUP_INITIATED', 'New resident registered through the verified backend workflow.', req);
+    return res.status(201).json({
+      message: 'Registration submitted for barangay review.',
+      accountStatus: user.accountStatus
+    });
+  } catch (error) {
+    console.error('Resident registration error:', {
+      code: error?.code,
+      message: error?.message || String(error),
+      email
+    });
+
+    if (!residentSaved) {
+      await removeUploadedRegistrationFiles(req);
+      if (createdFirebaseAccount && firebaseUser?.uid) {
+        await getAuth().deleteUser(firebaseUser.uid).catch(rollbackError => {
+          console.error('Firebase signup rollback failed:', rollbackError?.message || rollbackError);
+        });
+      }
+    }
+
+    if (error?.code === 11000 && error?.keyPattern?.username) {
+      return res.status(409).json({ message: 'That username is already in use. Please choose another one.' });
+    }
+    if (error?.code === 11000 || error?.code === 'auth/email-already-exists') {
+      return res.status(409).json({ message: 'That email is already registered. Please sign in instead.' });
+    }
+    if (error?.code === 'auth/invalid-password') {
+      return res.status(400).json({ message: 'The password does not meet the Firebase password policy.' });
+    }
+    if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
+    if (String(error?.code || '').startsWith('auth/')) {
+      return res.status(503).json({ message: 'The account service is temporarily unavailable. Please try again shortly.' });
+    }
+    return res.status(500).json({ message: 'Registration could not be completed. Your verified email remains valid; please try again.' });
   }
 });
 

@@ -8,7 +8,11 @@ const SignupEmailVerificationSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true, index: { expires: 0 } },
   lastSentAt: { type: Date, required: true },
   attempts: { type: Number, default: 0, min: 0 },
-  verifiedAt: { type: Date, default: null }
+  verifiedAt: { type: Date, default: null },
+  // Retain a short receipt after successful registration so a client that
+  // loses the HTTP response can retry without creating a duplicate account.
+  consumedAt: { type: Date, default: null },
+  firebaseUid: { type: String, default: null }
 }, { timestamps: true });
 
 export default mongoose.model('SignupEmailVerification', SignupEmailVerificationSchema);
