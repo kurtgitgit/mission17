@@ -291,6 +291,7 @@ export const useSignup = () => {
     }
 
     setLoading(true);
+    let signupStage: 'firebase-account' | 'registration-upload' = 'firebase-account';
 
     try {
       // 1. Create the Firebase credential only after the email was verified.
@@ -349,19 +350,14 @@ export const useSignup = () => {
       }
 
       // 3. Sync with Backend
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
-
-      const response = await fetch(`${endpoints.auth.baseUrl}/sync-user`, {
+      signupStage = 'registration-upload';
+      const response = await fetchWithTimeout(`${endpoints.auth.baseUrl}/sync-user`, {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${firebaseToken}` 
         },
-        body: formPayload,
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
+        body: formPayload
+      }, 60000);
 
       // Handle HTML/Bad Gateway responses safely
       const responseText = await response.text();
@@ -399,13 +395,28 @@ export const useSignup = () => {
         showNotification(msg, 'error');
       }
     } catch (error: any) {
-      console.error("Signup Catch Error:", error);
-      if (error.name === 'AbortError') {
-         showNotification('Request timed out. The server might be waking up or your internet is slow. Please try again.', 'error');
-      } else if (error.code === 'auth/email-already-in-use') {
-         showNotification('That email is already registered.', 'error');
+      const errorCode = typeof error?.code === 'string' ? error.code : '';
+      console.error('Signup failed', {
+        stage: signupStage,
+        code: errorCode || undefined,
+        message: error?.message || String(error)
+      });
+
+      if (signupStage === 'firebase-account') {
+        if (errorCode === 'auth/email-already-in-use') {
+          showNotification('That email is already registered. Use Sign In instead.', 'error');
+        } else if (errorCode === 'auth/network-request-failed') {
+          showNotification('Firebase could not create the account. Check your internet connection and try again.', 'error');
+        } else if (errorCode === 'auth/operation-not-allowed') {
+          showNotification('Email sign-up is temporarily unavailable. Please contact the barangay administrator.', 'error');
+        } else {
+          showNotification('We could not create your Firebase account. Please try again.', 'error');
+        }
       } else {
-         showNotification('Connection Error or Server Error. Please try again.', 'error');
+        showNotification(
+          getFriendlyNetworkMessage(error, 'Your account was created, but we could not submit your registration details. Please try again.'),
+          'error'
+        );
       }
     } finally {
       setLoading(false);
