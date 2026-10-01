@@ -3,6 +3,7 @@ dataset/
 venv/
 .venv_image/
 __pycache__/
+mission17-ai/chatbot_runtime/*.pkl
 *.pyc
 
 # We are un-ignoring .h5 so the AI model can be deployed

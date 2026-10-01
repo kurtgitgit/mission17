@@ -13,6 +13,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from utils.anticheat import AntiCheatEngine, AntiCheatIndeterminate, AntiCheatUnavailable
 from utils.predictor import Predictor, PredictorUnavailable
 from utils.verdict import get_verdict
+from chatbot_runtime.service import ChatService
 
 
 load_dotenv()
@@ -28,6 +29,7 @@ AI_SERVICE_TOKEN = os.getenv('AI_SERVICE_TOKEN', '')
 logger.info('Loading the Mission17 TensorFlow CNN verification service.')
 anticheat = AntiCheatEngine()
 predictor = Predictor()
+chatbot = ChatService()
 
 
 def allowed_file(filename):
@@ -164,6 +166,22 @@ def predict():
     except Exception:
         logger.exception('Processing error')
         return jsonify({'error': 'Processing failed'}), 500
+
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """Server-to-server BrgyLink AI chatbot endpoint.
+
+    It deliberately accepts only a short message and an optional opaque session
+    identifier. The mobile client never calls this Space directly and resident
+    history or account data is not sent to Hugging Face.
+    """
+    auth_error = require_backend_service_token()
+    if auth_error:
+        return auth_error
+
+    status_code, payload = chatbot.respond(request.get_json(silent=True))
+    return jsonify(payload), status_code
 
 
 if __name__ == '__main__':

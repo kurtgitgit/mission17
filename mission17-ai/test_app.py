@@ -71,6 +71,7 @@ class AIServerTests(unittest.TestCase):
         service.app.config['TESTING'] = True
         service.anticheat = ReadyAntiCheat()
         service.predictor = ReadyPredictor()
+        service.chatbot.clear_sessions()
         self.client = service.app.test_client()
         self.headers = {'Authorization': 'Bearer test-service-token'}
 
@@ -159,6 +160,27 @@ class AIServerTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(service.anticheat.register_calls, 0)
+
+    def test_chat_requires_service_token_and_preserves_safety_overrides(self):
+        self.assertEqual(self.client.post('/chat', json={'message': 'hello'}).status_code, 401)
+        response = self.client.post(
+            '/chat',
+            headers=self.headers,
+            json={'message': 'Speak English, my baby cannot breathe'},
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload['intent'], 'emergency')
+        self.assertEqual(payload['language'], 'english')
+        self.assertNotIn('details', payload)
+
+    def test_chat_rejects_invalid_payloads_without_affecting_predict(self):
+        self.assertEqual(self.client.post('/chat', headers=self.headers, json={}).status_code, 400)
+        self.assertEqual(
+            self.client.post('/chat', headers=self.headers, json={'message': 'x' * 2001}).status_code,
+            400,
+        )
+        self.assertEqual(self.post_image().status_code, 200)
 
 
 if __name__ == '__main__':

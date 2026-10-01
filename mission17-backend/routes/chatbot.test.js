@@ -1,5 +1,5 @@
-import { describe, expect, it } from '@jest/globals';
-import { detectLanguage, getControlledFaq, getMockReply, guardModelReply, isInScope, outOfScopeReply } from './chatbot.js';
+import { describe, expect, it, jest } from '@jest/globals';
+import { detectLanguage, getChatbotAiUrl, getControlledFaq, getMockReply, guardModelReply, isInScope, outOfScopeReply, requestChatbotAi } from './chatbot.js';
 
 describe('chatbot multilingual routing and fallback', () => {
   it('returns a controlled Pangasinan reply for language-capability questions', () => {
@@ -35,5 +35,31 @@ describe('chatbot multilingual routing and fallback', () => {
   it('replaces unverified model timelines and download claims with a safe referral', () => {
     const reply = 'Processing takes 1–3 days and you can download a PDF with a QR code.';
     expect(guardModelReply('Paano ako hihingi ng barangay clearance?', reply)).toContain('opisyal na barangay office');
+  });
+
+  it('derives the chatbot route from the protected image-verification service URL', () => {
+    expect(getChatbotAiUrl('', 'https://kurtgitgit-mission17-ai.hf.space/predict')).toBe('https://kurtgitgit-mission17-ai.hf.space/chat');
+    expect(getChatbotAiUrl('', 'https://kurtgitgit-mission17-ai.hf.space/')).toBe('https://kurtgitgit-mission17-ai.hf.space/chat');
+    expect(getChatbotAiUrl('https://chat.example.test/chat', 'https://unused.example/predict')).toBe('https://chat.example.test/chat');
+  });
+
+  it('forwards only a message and the server service token to the AI gateway', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ response: 'Safe chatbot response.' }),
+    });
+    const payload = await requestChatbotAi('hello', {
+      fetchImpl,
+      url: 'https://ai.example.test/chat',
+      serviceToken: 'test-service-token',
+      timeoutMs: 1000,
+    });
+    expect(payload.response).toBe('Safe chatbot response.');
+    expect(fetchImpl).toHaveBeenCalledWith('https://ai.example.test/chat', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer test-service-token' }),
+      body: JSON.stringify({ message: 'hello' }),
+    }));
   });
 });

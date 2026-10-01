@@ -1,0 +1,891 @@
+{
+  "metadata": {
+    "barangay_name": "Barangay Bagong Pag-asa, San Jacinto",
+    "status": "prototype_draft",
+    "last_updated": "2026-09-21",
+    "important": "Do not publish entries marked needs_staff_verification until an authorized barangay representative has confirmed them.",
+    "languages": [
+      "English",
+      "Tagalog",
+      "Ilocano",
+      "Pangasinan"
+    ],
+    "municipality": "San Jacinto, Pangasinan"
+  },
+  "services": [
+    {
+      "intent": "clearance",
+      "title": "Barangay Clearance",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID"
+      ],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "To request a Barangay Clearance, open Document Requests in BrgyLink, select Barangay Clearance, enter your purpose, attach a clear photo of your valid ID, and submit. You can track progress in the app. For fees and pickup details, please inquire at the barangay office.",
+        "tagalog": "Para humiling ng Barangay Clearance, buksan ang Document Requests sa BrgyLink, piliin ang Barangay Clearance, ilagay ang layunin, mag-attach ng malinaw na photo ng valid ID, at i-submit. Masusubaybayan ang progreso sa app. Para sa mga bayarin at pickup, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno agkiddaw iti Barangay Clearance, lukatan ti Document Requests iti BrgyLink, piliem ti Barangay Clearance, ikabil ti panggep, i-attach ti nalawag a ladawan ti valid ID, ken i-submit. Masubaybayam ti progreso iti app. Para kadagiti bayad ken pickup, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian mangala na Barangay Clearance, lukatan so Document Requests ed BrgyLink, piliyen so Barangay Clearance, ilagay so gagala, i-attach so malinew ya photo na valid ID, tan i-submit. Nayarin bantayan so progreso ed app. Para ed saray bayar tan pickup, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "indigency",
+      "title": "Certificate of Indigency",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID"
+      ],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "To request a Certificate of Indigency, open Document Requests in BrgyLink, choose Certificate of Indigency, state your purpose (e.g., medical or scholarship assistance), attach a valid ID, and submit. For eligibility requirements and processing details, please inquire at the barangay office.",
+        "tagalog": "Para humiling ng Certificate of Indigency, buksan ang Document Requests sa BrgyLink, piliin ang Certificate of Indigency, ilagay ang layunin (hal., medikal o scholarship), mag-attach ng valid ID, at i-submit. Para sa mga kinakailangan at detalye ng proseso, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno agkiddaw iti Certificate of Indigency, lukatan ti Document Requests iti BrgyLink, piliem ti Certificate of Indigency, ibaga ti panggep (kas pagarigan, medikal wenno scholarship), i-attach ti valid ID, ken i-submit. Para kadagiti kasapulan ken detalye ti proseso, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian mangala na Certificate of Indigency, lukatan so Document Requests ed BrgyLink, piliyen so Certificate of Indigency, ilagay so gagala (singa medikal odino scholarship), i-attach so valid ID, tan i-submit. Para ed saray kailangan tan detalye na proseso, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "residency",
+      "title": "Certificate of Residency",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID"
+      ],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "To request a Certificate of Residency, open Document Requests in BrgyLink, select Certificate of Residency, specify your purpose, attach a valid ID, and submit. For requirements and processing details, please inquire at the barangay office.",
+        "tagalog": "Para humiling ng Certificate of Residency, buksan ang Document Requests sa BrgyLink, piliin ang Certificate of Residency, ilagay ang layunin, mag-attach ng valid ID, at i-submit. Para sa mga kinakailangan at detalye ng proseso, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno agkiddaw iti Certificate of Residency, lukatan ti Document Requests iti BrgyLink, piliem ti Certificate of Residency, ibaga ti panggep, i-attach ti valid ID, ken i-submit. Para kadagiti kasapulan ken detalye ti proseso, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian mangala na Certificate of Residency, lukatan so Document Requests ed BrgyLink, piliyen so Certificate of Residency, ilagay so gagala, i-attach so valid ID, tan i-submit. Para ed saray kailangan tan detalye na proseso, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "business_permit",
+      "title": "Barangay Business Clearance",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID"
+      ],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "To apply for a Barangay Business Clearance, open Document Requests in BrgyLink, select Business Clearance, and submit your application. For specific requirements, fees, and processing details, please inquire at the barangay office.",
+        "tagalog": "Para mag-apply ng Barangay Business Clearance, buksan ang Document Requests sa BrgyLink, piliin ang Business Clearance, at i-submit ang application. Para sa mga kinakailangan, bayarin, at detalye ng proseso, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno ag-apply iti Barangay Business Clearance, lukatan ti Document Requests iti BrgyLink, piliem ti Business Clearance, ken i-submit ti aplikasion. Para kadagiti kasapulan, bayad, ken detalye ti proseso, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian man-apply na Barangay Business Clearance, lukatan so Document Requests ed BrgyLink, piliyen so Business Clearance, tan i-submit so aplikasyon. Para ed saray kailangan, bayar, tan detalye na proseso, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "office_hours",
+      "title": "Office Hours and Location",
+      "needs_staff_verification": true,
+      "office_hours": null,
+      "office_address": null,
+      "contact": null,
+      "answer": {
+        "english": "I cannot confirm a physical address or live office schedule. For the location of Barangay Bagong Pag-asa, please check official BrgyLink Announcements or inquire directly with the barangay office. Use the same channels to confirm office hours before visiting.",
+        "tagalog": "Hindi ko makukumpirma ang pisikal na address o kasalukuyang office schedule. Para sa lokasyon ng Barangay Bagong Pag-asa, tingnan ang official Announcements sa BrgyLink o magtanong mismo sa opisina ng barangay. Doon din kumpirmahin ang oras ng opisina bago bumisita.",
+        "ilocano": "Saan a makumpirma ti chatbot ti pisikal a address wenno agdama nga iskediul ti opisina. Para iti lokasion ti Barangay Bagong Pag-asa, kitaem ti opisial nga Announcements iti BrgyLink wenno saludsodem mismo iti opisina ti barangay. Ikumpirmam met ti oras ti opisina sakbay a bumisita.",
+        "pangasinan": "Ag na-confirm na chatbot so pisikal ya address odino kasalukuyan ya schedule na opisina. Para ed lokasyon na Barangay Bagong Pag-asa, nengnengen so opisyal ya Announcements ed BrgyLink odino mantepet mismo ed opisina na barangay. I-confirm met so oras na opisina antes bumisita."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "fees",
+      "title": "Service Fees",
+      "needs_staff_verification": true,
+      "answer": {
+        "english": "Service fees for barangay certificates and clearances vary. For the current fee schedule, please inquire at the barangay office or check the Announcements section in BrgyLink.",
+        "tagalog": "Ang mga bayarin sa sertipiko at clearance ng barangay ay iba-iba. Para sa kasalukuyang listahan ng bayarin, magtanong sa opisina ng barangay o tingnan ang Announcements sa BrgyLink.",
+        "ilocano": "Dagiti bayad kadagiti sertipiko ken clearance ti barangay ket agduduma. Para iti agdama a listaan dagiti bayad, saludsoden iti opisina ti barangay wenno kitaen ti Announcements iti BrgyLink.",
+        "pangasinan": "Saray bayar ed sertipiko tan clearance na barangay et nanduruma. Para ed listaan na saray bayar natan, mantepet ed opisina na barangay odino nengnengen so Announcements ed BrgyLink."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "report_incident",
+      "title": "Complaint or Blotter",
+      "needs_staff_verification": true,
+      "answer": {
+        "english": "To file an incident report, open Blotter Reports in BrgyLink, choose File New Report, select the incident category, enter the details and location, and submit. You can track your report status in the app. For emergencies, call 911.",
+        "tagalog": "Para mag-file ng incident report, buksan ang Blotter Reports sa BrgyLink, piliin ang File New Report, piliin ang kategorya, ilagay ang mga detalye at lokasyon, at i-submit. Masusubaybayan ang status ng report sa app. Para sa emergency, tumawag sa 911.",
+        "ilocano": "Tapno ag-file iti incident report, lukatan ti Blotter Reports iti BrgyLink, piliem ti File New Report, piliem ti kategorya, ikabil dagiti detalye ken lokasion, ken i-submit. Masubaybayam ti status ti report iti app. Para iti emergency, umawag iti 911.",
+        "pangasinan": "Pian man-file na incident report, lukatan so Blotter Reports ed BrgyLink, piliyen so File New Report, piliyen so kategorya, ilagay so saray detalye tan lokasyon, tan i-submit. Nayarin bantayan so status na report ed app. Para ed emergency, tawagan so 911."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "emergency",
+      "title": "Emergency",
+      "needs_staff_verification": true,
+      "emergency_contacts": {
+        "national_emergency": "911",
+        "barangay_tanod": null,
+        "fire": null,
+        "ambulance": null
+      },
+      "answer": {
+        "english": "If there is immediate danger to life or property, call 911 immediately. Do not wait for a chatbot reply. The chatbot cannot dispatch help or contact emergency services for you.",
+        "tagalog": "Kung may agarang panganib sa buhay o ari-arian, tumawag agad sa 911. Huwag maghintay ng sagot ng chatbot. Hindi kayang magpadala ng tulong o tumawag sa emergency services para sa iyo ang chatbot.",
+        "ilocano": "No adda dagus a peggad iti biag wenno sanikua, umawag a dagus iti 911. Saan nga urayen ti sungbat ti chatbot. Saan a makapatulod ti chatbot iti tulong wenno umawag kadagiti emergency services para kenka.",
+        "pangasinan": "No walay tampol ya peligro ed bilay odino kayarian, tawagan ya tampol so 911. Ag-antayan so ebat na chatbot. Ag makapatulod na tulong so chatbot odino ontawag ed emergency services para ed sika."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "garbage",
+      "title": "Garbage Collection",
+      "needs_staff_verification": true,
+      "schedule": null,
+      "answer": {
+        "english": "Garbage collection in Barangay Bagong Pag-asa follows a designated schedule per purok. For your collection day and segregation guidelines, please inquire at the barangay office or check the Announcements section in BrgyLink.",
+        "tagalog": "Ang hakot ng basura sa Barangay Bagong Pag-asa ay may takdang schedule bawat purok. Para sa araw ng koleksyon at mga panuntunan sa segregasyon, magtanong sa opisina ng barangay o tingnan ang Announcements sa BrgyLink.",
+        "ilocano": "Ti panagala ti basura iti Barangay Bagong Pag-asa ket addaan iti naikeddeng nga iskediul tunggal purok. Para iti aldaw ti koleksion ken paglintegan ti segregasion, saludsoden iti opisina ti barangay wenno kitaen ti Announcements iti BrgyLink.",
+        "pangasinan": "Say panangala na basura ed Barangay Bagong Pag-asa et walay niganan ya schedule ed balang purok. Para ed agew na koleksyon tan saray totontonen ed segregasyon, mantepet ed opisina na barangay odino nengnengen so Announcements ed BrgyLink."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "good_moral",
+      "title": "Certificate of Good Moral Character",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID"
+      ],
+      "answer": {
+        "english": "To request a Certificate of Good Moral Character, open Document Requests in BrgyLink, select Good Moral Character, state your purpose, attach a valid ID, and submit. For requirements and processing details, please inquire at the barangay office.",
+        "tagalog": "Para humiling ng Certificate of Good Moral Character, buksan ang Document Requests sa BrgyLink, piliin ang Good Moral Character, ilagay ang layunin, mag-attach ng valid ID, at i-submit. Para sa mga kinakailangan at detalye ng proseso, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno agkiddaw iti Certificate of Good Moral Character, lukatan ti Document Requests iti BrgyLink, piliem ti Good Moral Character, ibaga ti panggep, i-attach ti valid ID, ken i-submit. Para kadagiti kasapulan ken detalye ti proseso, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian mangala na Certificate of Good Moral Character, lukatan so Document Requests ed BrgyLink, piliyen so Good Moral Character, ilagay so gagala, i-attach so valid ID, tan i-submit. Para ed saray kailangan tan detalye na proseso, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "barangay_id",
+      "title": "Barangay ID",
+      "needs_staff_verification": true,
+      "requirements": [
+        "Submit through BrgyLink Document Requests",
+        "Enter the request purpose",
+        "Attach a photo of a valid ID when requested"
+      ],
+      "answer": {
+        "english": "To apply for a Barangay ID, open Document Requests in BrgyLink, select Barangay ID, provide your resident details, and submit. For specific requirements and processing time, please inquire at the barangay office.",
+        "tagalog": "Para mag-apply ng Barangay ID, buksan ang Document Requests sa BrgyLink, piliin ang Barangay ID, ilagay ang iyong mga detalye bilang residente, at i-submit. Para sa mga kinakailangan at oras ng proseso, magtanong sa opisina ng barangay.",
+        "ilocano": "Tapno ag-apply iti Barangay ID, lukatan ti Document Requests iti BrgyLink, piliem ti Barangay ID, ikabil dagiti detalye a kas residente, ken i-submit. Para kadagiti kasapulan ken oras ti proseso, saludsoden iti opisina ti barangay.",
+        "pangasinan": "Pian man-apply na Barangay ID, lukatan so Document Requests ed BrgyLink, piliyen so Barangay ID, ilagay so saray detalye bilang residente, tan i-submit. Para ed saray kailangan tan oras na proseso, mantepet ed opisina na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "document_status",
+      "title": "Document Request Status",
+      "needs_staff_verification": false,
+      "statuses": [
+        "Pending",
+        "Processing",
+        "Ready for Pickup",
+        "Completed",
+        "Rejected"
+      ],
+      "answer": {
+        "english": "To check the status of your document request, open Document Requests in BrgyLink. Your request will show as Pending, Processing, Ready for Pickup (available at the barangay hall), Completed, or Rejected with reason noted.",
+        "tagalog": "Upang suriin ang status ng iyong hiniling na dokumento, buksan ang 'Document Requests' sa BrgyLink. Dito makikita kung ito ay: Pending (nakabinbin), Processing (inaasikaso), Ready for Pickup (maaari nang kunin sa barangay hall), Completed, o Rejected. May kaukulang dahilan din kung sakaling ma-reject ang request.",
+        "ilocano": "Tapno makita ti kasasaad ti kineddawmo a dokumento, lukatan ti 'Document Requests' iti BrgyLink. Dita makitam no: Pending, Processing, Ready for Pickup (mabalinen nga alaen iti barangay hall), Completed, wenno Rejected.",
+        "pangasinan": "Pian nengnengen so status na kineddeng mon dokumento, lukatan so 'Document Requests' diad BrgyLink. Ditan nanengneng no: Pending, Processing, Ready for Pickup (nayari lay alaen ed barangay hall), Completed, odino Rejected."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "registration",
+      "title": "Resident Registration",
+      "needs_staff_verification": false,
+      "steps": [
+        "Tap Create Account",
+        "Enter full name, email, username, phone number, and home address",
+        "Complete email verification"
+      ],
+      "answer": {
+        "english": "To register, begin with your email in Step 1. Enter the six-digit code sent to that email before continuing. Then complete your resident details, upload clear photos of the required government-issued ID, create your password in the final step, accept the Privacy Notice and Terms of Use, and submit the registration for barangay review. Residents must be at least 15 years old. Never share your verification code.",
+        "tagalog": "Para mag-register, magsimula sa email sa Step 1. Ilagay ang anim na digit na code na ipinadala sa email bago magpatuloy. Kumpletuhin ang resident details, mag-upload ng malinaw na larawan ng hinihinging government-issued ID, gumawa ng password sa huling step, tanggapin ang Privacy Notice at Terms of Use, at isumite ang registration para sa barangay review. Kailangan ay hindi bababa sa 15 taong gulang. Huwag ibahagi ang verification code.",
+        "ilocano": "Tapno agparehistro, mangrugi iti email iti Step 1 ken ikabil ti innem a digit a code sakbay a mangtuloy. Kumpletoem dagiti resident details ken mang-upload iti nalawag a ladawan ti government-issued ID. Aramidem ti password iti maudi a step, awatem ti Privacy Notice ken Terms of Use, ken isumitem para iti barangay review. Masapul nga agtawen iti 15 wenno nangatngato. Saan nga ibagbaga ti verification code.",
+        "pangasinan": "Pian mag-register, manggapo ed email ed Step 1 tan isulat so anem ya digit a code antes ontuloy. Kumpletoen so resident details tan mang-upload na malinew ya litrato na government-issued ID. Gawaen so password ed unor ya step, awaten so Privacy Notice tan Terms of Use, tan isumite para ed barangay review. Kasapulan ya 15 taon odino mas matanda. Agmon iter so verification code."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true,
+      "answer_variants": {
+        "id": {
+          "english": "Residents must be at least 15 to register. In the final signup step, select your ID type and take a clear photo: all details must be readable, with no glare, blur, or cut-off edges. Upload the front and back when requested; Passport uses the information page. If you do not have an accepted ID, ask the barangay office what to do. The chatbot cannot approve an ID or bypass the requirement.",
+          "tagalog": "Kailangan ay hindi bababa sa 15 taong gulang para mag-register. Sa huling signup step, piliin ang ID type at kumuha ng malinaw na larawan: nababasa ang detalye, walang glare o blur, at hindi putol ang gilid. I-upload ang front at back kung hinihingi; para sa Passport, information page ang kailangan. Kung walang tinatanggap na ID, magtanong sa opisina ng barangay. Hindi kayang mag-approve ng ID o lumampas sa requirement ang chatbot.",
+          "ilocano": "Masapul nga agtawen iti 15 wenno nangatngato tapno agparehistro. Iti maudi a signup step, piliem ti ID type ken alaem ti nalawag a ladawan: mabasa amin a detalye, awan glare wenno blur, ken saan a naputed ti igid. I-upload ti front ken back no kasapulan; ti Passport ket information page. No awan ti maawat nga ID, agsaludsod iti opisina ti barangay. Saan a maka-approve ti chatbot iti ID wenno makalabsing iti requirement.",
+          "pangasinan": "Kasapulan ya 15 taon odino mas matanda pian mag-register. Ed unor ya signup step, piliyen so ID type tan alaen so malinew ya litrato: nabasa so amin ya detalye, anggapo so glare odino blur, tan agputol so gilid. I-upload so front tan back no kasapulan; say Passport et information page. No anggapoy tinatanggap ya ID, mantepet ed opisina na barangay. Ag maka-approve na ID so chatbot odino makalampas ed requirement."
+        }
+      }
+    },
+    {
+      "intent": "account_help",
+      "title": "Login and Email OTP",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "For a registration code, check Inbox, Spam, and Junk and make sure the email was entered correctly. Wait for the resend timer in the app before requesting another code; an expired code needs a new request. Do not share the code. If your registration was submitted, wait for barangay review before signing in. For a forgotten password, use Forgot Password on the sign-in screen.",
+        "tagalog": "Para sa registration code, tingnan ang Inbox, Spam, at Junk at tiyaking tama ang email na inilagay. Hintayin ang resend timer sa app bago humiling ulit ng code; kung expired na ang code, humiling ng bago. Huwag ibahagi ang code. Kung naisumite na ang registration, hintayin muna ang barangay review bago mag-sign in. Para sa nakalimutang password, gamitin ang Forgot Password sa sign-in screen.",
+        "ilocano": "No awan ti registration code, kitaem ti Inbox, Spam, ken Junk ken siguraduem a husto ti email. Urayem ti resend timer iti app sakbay a mangkiddaw manen iti code. Saan nga ibagbaga ti code. No naipasa ti registration, urayem ti barangay review sakbay a sumrek.",
+        "pangasinan": "No anggapo so registration code, nengnengen so Inbox, Spam, tan Junk tan seguroen ya duga so email. Antayan so resend timer ed app antes mangikeddeng lamet na code. Agmon iter so code. No naisumite lay registration, antayan so barangay review antes sumrek."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true,
+      "answer_variants": {
+        "password": {
+          "english": "On the sign-in screen, tap Forgot Password, enter the email for your account, and follow the reset instructions sent to it. Check Inbox, Spam, and Junk. Use a newly requested reset link if the old one is invalid or expired. Never send your password or reset link to the chatbot. The chatbot cannot reset your password for you.",
+          "tagalog": "Sa sign-in screen, i-tap ang Forgot Password, ilagay ang email ng account, at sundin ang reset instructions na ipinadala rito. Tingnan ang Inbox, Spam, at Junk. Humiling ng bagong reset link kung invalid o expired na ang luma. Huwag ipadala sa chatbot ang password o reset link. Hindi kayang i-reset ng chatbot ang password para sa iyo.",
+          "ilocano": "Iti sign-in screen, i-tap ti Forgot Password, ikabil ti email ti account, ken surotem ti reset instructions iti email. Kitaem ti Inbox, Spam, ken Junk. Mangikiddaw iti baro a reset link no invalid wenno expired ti daan. Saan nga ipatulod iti chatbot ti password wenno reset link. Saan a ma-reset ti chatbot ti password mo.",
+          "pangasinan": "Ed sign-in screen, i-tap so Forgot Password, isulat so email na account, tan suroten so reset instructions ed email. Nengnengen so Inbox, Spam, tan Junk. Mangikeddeng na balon reset link no invalid odino expired lay daan. Agmon ipatulod ed chatbot so password odino reset link. Ag na-reset na chatbot so password mo."
+        },
+        "otp": {
+          "english": "Check that the signup email is correct and look in Inbox, Spam, and Junk. If the code has not arrived, wait for the app's resend timer, then request a new code. Enter the latest six-digit code; request another if it is expired or invalid. You can edit an incorrect email on the verification screen. Never share your OTP. The chatbot cannot see your code or confirm delivery.",
+          "tagalog": "Tiyaking tama ang signup email at tingnan ang Inbox, Spam, at Junk. Kung wala pa ang code, hintayin ang resend timer sa app at humiling ng bagong code. Ilagay ang pinakabagong anim na digit na code; humiling ulit kung expired o invalid. Maaari mong itama ang email sa verification screen. Huwag ibahagi ang OTP. Hindi nakikita ng chatbot ang code at hindi nito makukumpirma ang delivery.",
+          "ilocano": "Siguraduem a husto ti signup email ken kitaem ti Inbox, Spam, ken Junk. No awan pay ti code, urayem ti resend timer iti app ken mangkiddaw iti baro a code. Ikabil ti kabaruan nga innem a digit a code; mangkiddaw manen no expired wenno invalid. Mabalin a baliwan ti email iti verification screen. Saan nga ibagbaga ti OTP. Saan a makita ti chatbot ti code wenno makumpirma ti delivery.",
+          "pangasinan": "Seguroen ya duga so signup email tan nengnengen so Inbox, Spam, tan Junk. No anggapo ni so code, antayan so resend timer ed app tan mangikeddeng na balon code. Isulat so pinakabalo ya anem ya digit a code; mangikeddeng lamet no expired odino invalid. Nayari ya ontan so email ed verification screen. Agmon iter so OTP. Ag nanengneng na chatbot so code odino nakumpirma so delivery."
+        },
+        "review": {
+          "english": "Email verification does not mean the resident account has been approved. Submitted registrations still need barangay review. If the account is rejected, read any rejection reason shown and contact the barangay office about corrections. If it is approved but you still cannot sign in, check the email and password and report the exact error without sharing credentials. The chatbot cannot see or change your approval status.",
+          "tagalog": "Ang email verification ay hindi pa approval ng resident account. Kailangan pa rin ng barangay review ang naisumiteng registration. Kung rejected, basahin ang ipinakitang rejection reason at magtanong sa opisina ng barangay tungkol sa pagwawasto. Kung approved pero hindi makapasok, tiyaking tama ang email at password at i-report ang eksaktong error nang hindi ibinabahagi ang credentials. Hindi nakikita o nababago ng chatbot ang approval status.",
+          "ilocano": "Ti email verification ket saan pay nga approval ti resident account. Kasapulan pay ti barangay review ti naipasa a registration. No rejected, basaem ti rejection reason a naipakita ken makiuman iti opisina ti barangay maipapan iti panagkorehir. No approved ngem saan a makasrek, kitaem ti email ken password ken i-report ti error nga awan ibagbaga a credentials. Saan a makita wenno baliwan ti chatbot ti approval status.",
+          "pangasinan": "Say email verification et agni approval na resident account. Kasapulan ni so barangay review na naisumiten registration. No rejected, basaen so rejection reason ya nanengneng tan mantepet ed opisina na barangay nipaakar ed panangkorehir. No approved balet agmakasumrek, nengnengen so email tan password tan i-report so error ya agiter na credentials. Ag nanengneng odino nabago na chatbot so approval status."
+        }
+      }
+    },
+    {
+      "intent": "announcements",
+      "title": "Barangay Announcements",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "For the latest community bulletins, typhoon advisories, health mission schedules, financial aid releases, and public hearings, open the Announcements screen in BrgyLink.",
+        "tagalog": "Para sa pinakabagong balita, bagyo o kalamidad alerts, health center schedules, pamamahagi ng ayuda, at public hearings, buksan ang 'Announcements' screen sa BrgyLink. Regular itong ina-update ng pamahalaang barangay.",
+        "ilocano": "Para kadagiti kabaroan a damag, pakaammo iti bagyo ken kalamidad, iskedyul ti health center, panagiwaras ti ayuda, ken public hearings, lukatan ti 'Announcements' screen iti BrgyLink. Kanayon a mapabaro daytoy ti barangay.",
+        "pangasinan": "Para ed saray balon balita, pakaammo ed bagyo tan kalamidad, iskedyul na health center, panagiwaras na ayuda, tan public hearings, lukatan so 'Announcements' screen diad BrgyLink. Regular yan ina-update na barangay."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "sdg_mission",
+      "title": "Community Initiatives and SDG Missions",
+      "needs_staff_verification": false,
+      "steps": [
+        "Open Community Initiatives",
+        "Select an active program",
+        "Tap Upload Proof",
+        "Capture live photo evidence",
+        "Tap Analyze & Submit"
+      ],
+      "answer": {
+        "english": "Open Civic Tasks & Community Events, choose an active civic task, and use Capture Live Photo to show your participation clearly. Retake unclear photos, then tap Submit Task Proof. Open Profile and Community Mission Submissions to see your own submission status and any rejection reason. Pending is not approval; the chatbot cannot see or change your result. Civic participation does not earn reward points in the current app. Follow the task instructions and do not use unrelated or reused photos.",
+        "tagalog": "Buksan ang Civic Tasks & Community Events, pumili ng aktibong civic task, at gamitin ang Capture Live Photo para malinaw na ipakita ang pakikilahok. Mag-retake kung malabo at i-tap ang Submit Task Proof. Sa Profile, tingnan ang Community Mission Submissions para sa sariling submission status at rejection reason kung mayroon. Hindi pa approval ang Pending; hindi nakikita o nababago ng chatbot ang resulta. Walang reward points ang civic participation sa kasalukuyang app. Sundin ang task instructions at huwag gumamit ng hindi kaugnay o lumang larawan.",
+        "ilocano": "Lukatan ti Civic Tasks & Community Events, piliem ti aktibo a civic task, ken usarem ti Capture Live Photo tapno nalawag ti panagpasetmo. I-retake no saan a nalawag ken i-tap ti Submit Task Proof. Iti Profile, kitaem ti Community Mission Submissions para iti bukodmo a submission status ken rejection reason no adda. Saan pay nga approval ti Pending; saan a makita wenno baliwan ti chatbot ti resulta. Awan ti reward points iti agdama nga app. Surotem dagiti task instructions ken saan nga usaren ti saan a kaugnay wenno daan a ladawan.",
+        "pangasinan": "Lukatan so Civic Tasks & Community Events, piliyen so aktibon civic task, tan usaren so Capture Live Photo pian malinew so pakikiba mo. I-retake no agmalinew tan i-tap so Submit Task Proof. Ed Profile, nengnengen so Community Mission Submissions para ed bukod mon submission status tan rejection reason no wala. Agni approval so Pending; ag nanengneng odino nabago na chatbot so resulta. Anggapoy reward points ed kasalukuyan ya app. Suroten so task instructions tan ag-usar na agkaugnay odino daan ya litrato."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "suggestion",
+      "title": "Suggestions and Feedback",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "Do you have ideas or feedback to improve our barangay? Use the 'Feedback / Suggestions' feature in BrgyLink to send your thoughts directly to the barangay council. For formal disputes, please file a Blotter Report instead.",
+        "tagalog": "Mayroon ka bang mungkahi o puna para mapabuti ang ating barangay? Gamitin ang feature na 'Feedback / Suggestions' sa BrgyLink upang direktang maipadala ang iyong mensahe sa pamunuan. Para naman sa pormal na reklamo o insidente, gamitin ang 'Blotter Reports'.",
+        "ilocano": "Adda kadi singasingmo wenno feedback tapno mapasayaat ti barangaytayo? Usaren ti 'Feedback / Suggestions' iti BrgyLink tapno maipatulod a direkta kadagiti opisial. Para iti pormal a reklamo, usaren ti 'Blotter Reports'.",
+        "pangasinan": "Wala kasi suhestiyon mo odino feedback pian mas omparakep so barangay tayo? Usaren so 'Feedback / Suggestions' diad BrgyLink pian direktan nipawit ed saray opisyales. Para ed pormal ya reklamo, usaren so 'Blotter Reports'."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "blotter_status",
+      "title": "Blotter Report Tracking",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "To track the status of your blotter complaint, open 'My Blotter Reports' in BrgyLink to see whether it is Under Review, Scheduled for Mediation, or Resolved. The chatbot cannot access or alter private case records.",
+        "tagalog": "Upang malaman ang estado ng iyong inihain na blotter, buksan ang 'My Blotter Reports' sa BrgyLink app. Dito makikita kung ang ulat ay Under Review, Scheduled for Mediation/Lupon, o Resolved na. Hindi maaaring baguhin o direktang basahin ng chatbot ang lihim na detalye ng iyong blotter.",
+        "ilocano": "Tapno maammuan ti kasasaad ti blottermo, lukatan ti 'My Blotter Reports' iti BrgyLink app. Makitam no daytoy ket Under Review, Para iti Lupon Hearing, wenno Naresolba. Saan a mabalin nga i-display wenno bagian ti chatbot ti personal a detalye ti kasom.",
+        "pangasinan": "Pian naamtaan so estado na blotter mo, lukatan so 'My Blotter Reports' diad BrgyLink app. Ditan nanengneng no say ulat et Under Review, Iskediyul parad Lupon Hearing, odino Na-ayos la. Ag nayarin direkta ya basaen na chatbot so personal ya detalye na blotter mo."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "notifications",
+      "title": "BrgyLink Notifications",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "BrgyLink sends notifications for updates on your document requests, blotter reports, and urgent community advisories. Ensure notification permissions are enabled for BrgyLink in your phone settings.",
+        "tagalog": "Nagpapadala ang BrgyLink ng in-app at push notifications para sa updates sa iyong document request, status ng blotter, at mahahalagang anunsyo. Siguraduhing pinayagan (Enabled) ang notifications para sa BrgyLink sa settings ng iyong telepono.",
+        "ilocano": "Mangipatulod ti BrgyLink kadagiti notifications para kadagiti update iti document requests, blotter reports, ken anunsio. Siguraduem a naka-Enable ti notifications ti BrgyLink iti settings ti selponmo.",
+        "pangasinan": "Mangi-iiter so BrgyLink na notifications para ed updates ed document requests, blotter reports, tan anunsyo. Seguroen ya aka-Enable so notifications parad BrgyLink diad settings na telepono mo."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "officials",
+      "title": "Barangay Officials",
+      "needs_staff_verification": true,
+      "answer": {
+        "english": "The chatbot does not have a confirmed roster of barangay officials. Please check the barangay office or the Announcements section in BrgyLink for the list of current officials.",
+        "tagalog": "Ang chatbot ay walang kumpirmadong roster ng mga opisyal ng barangay. Tingnan po ang opisina ng barangay o ang Announcements sa BrgyLink para sa listahan ng kasalukuyang mga opisyal.",
+        "ilocano": "Ti chatbot ket awan ti nakumpirma a roster dagiti opisyal ti barangay. Kitaen ti opisina ti barangay wenno ti Announcements iti BrgyLink para iti listaan dagiti agdama nga opisyal.",
+        "pangasinan": "Say chatbot et anggapoy nakumpirman roster na saray opisyal na barangay. Nengnengen so opisina na barangay odino so Announcements ed BrgyLink para ed listaan na saray opisyal natan."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "greeting",
+      "title": "Greeting",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "Hello! I am BrgyLink AI, the virtual assistant for Barangay Bagong Pag-asa, San Jacinto. How can I help you with document requests, blotter reports, announcements, or barangay services today?",
+        "tagalog": "Magandang araw! Ako ang BrgyLink AI, ang virtual assistant ng Barangay Bagong Pag-asa, San Jacinto. Paano kita matutulungan sa mga dokumento, blotter, anunsyo, o serbisyo ng barangay ngayon?",
+        "ilocano": "Naimbag nga aldaw! Siak ni BrgyLink AI, ti virtual assistant ti Barangay Bagong Pag-asa, San Jacinto. Kasano a makatulongak kadagiti dokumento, blotter, anunsio, wenno serbisyo ti barangay tatta?",
+        "pangasinan": "Maabig ya agew! Siak si BrgyLink AI, so virtual assistant na Barangay Bagong Pag-asa, San Jacinto. Panon ta kan natulongan ed saray dokumento, blotter, anunsyo, odino serbisyo na barangay natan?"
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "goodbye",
+      "title": "Goodbye",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "Thank you for using BrgyLink AI! If you need anything else, I am always here to assist. Stay safe and have a wonderful day!",
+        "tagalog": "Maraming salamat sa paggamit ng BrgyLink AI! Kung may iba ka pang katanungan, narito lamang ako handang tumulong. Mag-ingat ka palagi at magandang araw!",
+        "ilocano": "Agyamanak unay iti panagusar iti BrgyLink AI! No adda pay masapulmo, situtulokak a tumulong. Agannadka kanayon ken naimbag nga aldaw!",
+        "pangasinan": "Balbaleg ya salamat ed panangusar mo ed BrgyLink AI! No wala ni ray tepet mo diad ontumbok, wadya ak labat ya ontulong. Man-ingat ka lanang tan maabig ya agew!"
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "thanks",
+      "title": "Thanks",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "You're very welcome! Glad to assist you as a resident of Barangay Bagong Pag-asa. Feel free to ask if you need further guidance.",
+        "tagalog": "Walang anuman! Ikinagagalak kong makatulong sa iyo bilang residente ng Barangay Bagong Pag-asa. Huwag mag-atubiling magtanong kung may kailangan ka pa.",
+        "ilocano": "Awan aniamanna kabsat! Naragsakak a makatulong kenka kas kailian iti Barangay Bagong Pag-asa. Agsaludsodka laeng no adda pay masapulmo.",
+        "pangasinan": "Anggapoy kabaliksan kabaleyan! Maliket ak ya makatulong ed sika bilang residente na Barangay Bagong Pag-asa. Tepet ka labat no wala ni nakaukol mo."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "solo_parent",
+      "title": "Solo Parent",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For information about Solo Parent ID and welfare benefits in Barangay Bagong Pag-asa, please visit the barangay office or check the Announcements section in BrgyLink.",
+        "tagalog": "Para sa impormasyon tungkol sa Solo Parent ID at mga benepisyo sa Barangay Bagong Pag-asa, bumisita sa opisina ng barangay o tingnan ang Announcements sa BrgyLink.",
+        "ilocano": "Para iti impormasion maipapan iti Solo Parent ID ken dagiti benepisio iti Barangay Bagong Pag-asa, bisitaen ti opisina ti barangay wenno kitaen ti Announcements iti BrgyLink.",
+        "pangasinan": "Para ed impormasyon nipaakar ed Solo Parent ID tan saray benepisyo ed Barangay Bagong Pag-asa, bisitaen so opisina na barangay odino nengnengen so Announcements ed BrgyLink."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "senior_citizen",
+      "title": "Senior Citizen",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For information about Senior Citizen ID and OSCA services in Barangay Bagong Pag-asa, please visit the barangay office or check the Announcements section in BrgyLink.",
+        "tagalog": "Para sa impormasyon tungkol sa Senior Citizen ID at mga serbisyo ng OSCA sa Barangay Bagong Pag-asa, bumisita sa opisina ng barangay o tingnan ang Announcements sa BrgyLink.",
+        "ilocano": "Para iti impormasion maipapan iti Senior Citizen ID ken serbisio ti OSCA iti Barangay Bagong Pag-asa, bisitaen ti opisina ti barangay wenno kitaen ti Announcements iti BrgyLink.",
+        "pangasinan": "Para ed impormasyon nipaakar ed Senior Citizen ID tan saray serbisyo na OSCA ed Barangay Bagong Pag-asa, bisitaen so opisina na barangay odino nengnengen so Announcements ed BrgyLink."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "lupon",
+      "title": "Lupon",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For disputes that may be resolved at the barangay level, the Lupon Tagapamayapa handles conciliation and mediation. Please visit the barangay office to file a complaint or inquire about the process.",
+        "tagalog": "Para sa mga alitang maaaring resolbahin sa antas ng barangay, ang Lupon Tagapamayapa ang nag-aasikaso ng conciliation at mediation. Bumisita sa opisina ng barangay para mag-file ng reklamo o magtanong tungkol sa proseso.",
+        "ilocano": "Para kadagiti kolkol a mabalin a marisut iti lebel ti barangay, ti Lupon Tagapamayapa ti mangasikaso iti conciliation ken mediation. Bisitaen ti opisina ti barangay tapno ag-file iti reklamo wenno saludsoden ti proseso.",
+        "pangasinan": "Para ed saray alitan ya nayarin resolbien ed lebel na barangay, say Lupon Tagapamayapa so mangaasikaso na conciliation tan mediation. Bisitaen so opisina na barangay pian man-file na reklamo odino mantepet nipaakar ed proseso."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "aics_assistance",
+      "title": "Aics Assistance",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For financial assistance, medical or burial aid (AICS), relief, or social welfare programs, please visit the Barangay Bagong Pag-asa office to inquire about available services and requirements.",
+        "tagalog": "Para sa tulong pinansyal, medikal o burial aid (AICS), relief, o mga programa ng social welfare, bumisita po sa opisina ng Barangay Bagong Pag-asa para magtanong tungkol sa mga available na serbisyo at kinakailangan.",
+        "ilocano": "Para iti tulong-pinansyal, medikal wenno burial aid (AICS), relief, wenno programa ti social welfare, bisitaen ti opisina ti Barangay Bagong Pag-asa tapno saludsoden dagiti magun-od a serbisio ken kasapulan.",
+        "pangasinan": "Para ed tulong-pinansyal, medikal odino burial aid (AICS), relief, odino saray programa na social welfare, bisitaen so opisina na Barangay Bagong Pag-asa pian mantepet nipaakar ed saray serbisyo tan kailangan."
+      },
+      "verified": false,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "document_request",
+      "title": "Document Request",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "Which document do you need? You can request a Barangay Clearance, Certificate of Indigency, Certificate of Residency, Business Clearance, Certificate of Good Moral Character, or Barangay ID through Document Requests in BrgyLink.",
+        "tagalog": "Anong dokumento po ang kailangan ninyo? Maaari kayong humiling ng Barangay Clearance, Certificate of Indigency, Certificate of Residency, Business Clearance, Certificate of Good Moral Character, o Barangay ID sa pamamagitan ng Document Requests sa BrgyLink.",
+        "ilocano": "Ania a dokumento ti kasapulam? Mabalin ti agkiddaw iti Barangay Clearance, Certificate of Indigency, Certificate of Residency, Business Clearance, Certificate of Good Moral Character, wenno Barangay ID babaen ti Document Requests iti BrgyLink.",
+        "pangasinan": "Antoy dokumento ya kailangan mo? Nayari kayon mangala na Barangay Clearance, Certificate of Indigency, Certificate of Residency, Business Clearance, Certificate of Good Moral Character, odino Barangay ID diad Document Requests ed BrgyLink."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "language_support",
+      "title": "Language Support",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "Yes! I can understand and respond in Pangasinan, Ilocano, and Tagalog (as well as English). Feel free to ask your question in any of these languages!",
+        "tagalog": "Opo! Nakakaintindi at nakakasagot ako sa tatlong pangunahing wika: Tagalog, Ilocano, at Pangasinan (at pati na rin sa English). Maaari kang magtanong sa alinman sa mga wikang ito anumang oras!",
+        "ilocano": "Wen! Makaawat ken makasungbatak iti tallo a kangrunaan a pagsasao: Ilocano, Tagalog, ken Pangasinan (ken kasta met iti English). Mabalinmo ti agsaludsod iti aniaman kadagitoy a wika!",
+        "pangasinan": "On! Makatalos tan makasungbat ak ed taloran manunan salita: Pangasinan, Tagalog, tan Ilocano (tan pati met ed English). Nayari kayon mantepet ed dinanman ed sarayan salita ed anggan anton oras!"
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "about_app",
+      "title": "About App",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "BrgyLink AI can guide you through BrgyLink topics: registration and email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, and where to check officials information. You may ask in English, Tagalog, Ilocano, or Pangasinan. I cannot access accounts, passwords, OTPs, IDs, personal submissions, live schedules, or emergency services.",
+        "tagalog": "Makakatulong ang BrgyLink AI sa mga paksa sa BrgyLink: registration at email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, at kung saan titingnan ang impormasyon tungkol sa officials. Maaari kang magtanong sa English, Tagalog, Ilocano, o Pangasinan. Hindi ko naa-access ang accounts, passwords, OTPs, IDs, personal submissions, live schedules, o emergency services.",
+        "ilocano": "Makatulong ti BrgyLink AI kadagiti paksa iti BrgyLink: registration ken email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, ken sadino a kitaen ti impormasyon maipapan kadagiti officials. Mabalin a mangsaludsod iti English, Tagalog, Ilocano, wenno Pangasinan. Saan a ma-access ti chatbot dagiti account, password, OTP, ID, personal submission, live schedule, wenno emergency services.",
+        "pangasinan": "Nayarin makatulong so BrgyLink AI ed saray paksa ed BrgyLink: registration tan email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, tan iner ya nengnengen so impormasyon nipaakar ed officials. Nayarin magtanong ed English, Tagalog, Ilocano, odino Pangasinan. Ag na-access na chatbot so accounts, passwords, OTPs, IDs, personal submissions, live schedules, odino emergency services."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "voter_registration",
+      "title": "Voter Registration",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For voter registration information, please visit the barangay office or COMELEC. Check the Announcements section in BrgyLink for any posted registration schedules.",
+        "tagalog": "Para sa impormasyon tungkol sa voter registration, bumisita sa opisina ng barangay o COMELEC. Tingnan ang Announcements sa BrgyLink para sa mga naka-post na schedule ng registration.",
+        "ilocano": "Para iti impormasion maipapan iti voter registration, bisitaen ti opisina ti barangay wenno COMELEC. Kitaen ti Announcements iti BrgyLink para kadagiti naipablaak nga iskedyul ti registration.",
+        "pangasinan": "Para ed impormasyon nipaakar ed voter registration, bisitaen so opisina na barangay odino COMELEC. Nengnengen so Announcements ed BrgyLink para ed saray aka-post ya schedule na registration."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "health_services",
+      "title": "Health Services",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "For information about health services at the Barangay Health Center, including available programs and schedules, please visit the health center or check the Announcements section in BrgyLink.",
+        "tagalog": "Para sa impormasyon tungkol sa mga serbisyong pangkalusugan sa Barangay Health Center, kasama ang mga programa at schedule, bumisita sa health center o tingnan ang Announcements sa BrgyLink.",
+        "ilocano": "Para iti impormasion maipapan kadagiti serbisio ti salun-at iti Barangay Health Center, agraman dagiti programa ken iskediul, bisitaen ti health center wenno kitaen ti Announcements iti BrgyLink.",
+        "pangasinan": "Para ed impormasyon nipaakar ed saray serbisyo na salud ed Barangay Health Center, kaibay saray programa tan schedule, bisitaen so health center odino nengnengen so Announcements ed BrgyLink."
+      },
+      "verified": false,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "events",
+      "title": "Community Events",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "Open the Events tab under Civic Tasks & Community Events, choose an active event, and read its date, time, location, and instructions. If proof is requested, take a clear participation photo and tap Submit Participation Proof. Submitted is not the same as Approved. Check the app's displayed status or ask the barangay office if no review status is shown. The chatbot cannot see live event details or your personal approval result.",
+        "tagalog": "Buksan ang Events tab sa Civic Tasks & Community Events, pumili ng aktibong event, at basahin ang petsa, oras, lugar, at tagubilin. Kung kailangan ng proof, kumuha ng malinaw na larawan ng pakikilahok at i-tap ang Submit Participation Proof. Hindi pareho ang Submitted at Approved. Tingnan ang status na ipinapakita ng app o magtanong sa opisina ng barangay kung walang review status. Hindi nakikita ng chatbot ang live event details o personal na approval result.",
+        "ilocano": "Lukatan ti Events tab iti Civic Tasks & Community Events, piliem ti aktibo nga event, ken basaem ti petsa, oras, lugar, ken tagubilin. No kasapulan ti proof, alaem ti nalawag a ladawan ti panagpaset ken i-tap ti Submit Participation Proof. Saan nga agpada ti Submitted ken Approved. Kitaem ti status iti app wenno agsaludsod iti opisina ti barangay no awan ti review status. Saan a makita ti chatbot ti live event details wenno personal a approval result.",
+        "pangasinan": "Lukatan so Events tab ed Civic Tasks & Community Events, piliyen so aktibon event, tan basaen so petsa, oras, lugar, tan tagubilin. No kasapulan so proof, alaen so malinew ya litrato na pakikiba tan i-tap so Submit Participation Proof. Agpareho so Submitted tan Approved. Nengnengen so status ed app odino mantepet ed opisina na barangay no anggapo so review status. Ag nanengneng na chatbot so live event details odino personal ya approval result."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "App navigation copy only; event details remain in the live Events screen.",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "fallback",
+      "title": "Fallback",
+      "needs_staff_verification": false,
+      "requirements": [],
+      "fee_php": null,
+      "processing_time": null,
+      "answer": {
+        "english": "I specialize in Barangay Bagong Pag-asa services including Document Requests (Clearance, Indigency, Residency, ID), Blotter Reports, AICS Assistance, Lupon mediation, and Office details. Could you please rephrase or ask about barangay services?",
+        "tagalog": "Ipagpaumanhin mo, hindi ko lubos na naintindihan ang iyong tanong. Makakatulong ako sa mga serbisyo ng Barangay Bagong Pag-asa tulad ng Document Requests (Clearance, Indigency, Residency, ID), Blotter Reports, Ayuda/AICS, Lupon, at Opisina. Maaari mo bang linawin o itanong ang tungkol sa serbisyo ng barangay?",
+        "ilocano": "Dispensaren, saanko unay a naawatan ti saludsodmo. Makatulongak kadagiti serbisyo ti Barangay Bagong Pag-asa kas iti Document Requests (Clearance, Indigency, Residency, ID), Blotter Reports, Ayuda/AICS, Lupon, ken Opisina. Mabalinmo kadi a palawagen wenno agsaludsod maipapan kadagiti serbisyo ti barangay?",
+        "pangasinan": "Pasensya la kabaleyan, agko unay atalosan so tepet mo. Makatulong ak ed saray serbisyo na Barangay Bagong Pag-asa singa Document Requests (Clearance, Indigency, Residency, ID), Blotter Reports, Ayuda/AICS, Lupon, tan Opisina. Nayarim kasi ya ipalinew odino mantepet nipaakar ed serbisyo na barangay?"
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": "2026-09-29T00:00:00Z",
+      "review_notes": "Imported non-service intent",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "out_of_scope",
+      "title": "Out Of Scope",
+      "answer": {
+        "english": "I'm a barangay assistant. I don't know about that.",
+        "tagalog": "Ako ay isang barangay assistant. Hindi ko alam ang tungkol diyan.",
+        "ilocano": "Siak ket barangay assistant. Saanko nga ammo dayta.",
+        "pangasinan": "Siak et barangay assistant. Agko amta itan."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "safety_threat",
+      "title": "Safety Threat",
+      "answer": {
+        "english": "Please contact emergency services (911) immediately.",
+        "tagalog": "Mangyaring tumawag sa emergency services (911) kaagad.",
+        "ilocano": "Pangngaasi nga umawag ti emergency services (911) a dagus.",
+        "pangasinan": "Tawagan so emergency services (911) a tampol."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    },
+    {
+      "intent": "medical_non_emergency",
+      "title": "Medical Non Emergency",
+      "answer": {
+        "english": "Please visit the barangay health center during operating hours.",
+        "tagalog": "Mangyaring pumunta sa health center ng barangay habang bukas.",
+        "ilocano": "Pangngaasi nga mapan iti health center ti barangay kabayatan nga lukat.",
+        "pangasinan": "Umapay ed health center na barangay legan na pakanengnengan."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": null,
+      "last_reviewed_at": null,
+      "review_notes": "",
+      "content_type": "barangay_fact",
+      "requires_verification": true
+    }
+  ]
+}
