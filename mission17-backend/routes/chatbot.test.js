@@ -39,6 +39,7 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('derives the chatbot route from the protected image-verification service URL', () => {
     expect(getChatbotAiUrl('', 'https://kurtgitgit-mission17-ai.hf.space/predict')).toBe('https://kurtgitgit-mission17-ai.hf.space/chat');
+    expect(getChatbotAiUrl('', 'https://kurtgitgit-mission17-ai.hf.space/predict\n\n')).toBe('https://kurtgitgit-mission17-ai.hf.space/chat');
     expect(getChatbotAiUrl('', 'https://kurtgitgit-mission17-ai.hf.space/')).toBe('https://kurtgitgit-mission17-ai.hf.space/chat');
     expect(getChatbotAiUrl('https://chat.example.test/chat', 'https://unused.example/predict')).toBe('https://chat.example.test/chat');
   });

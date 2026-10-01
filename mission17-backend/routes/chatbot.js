@@ -86,7 +86,7 @@ export const getChatbotAiUrl = (
   verificationUrl = process.env.AI_SERVER_URL || 'https://kurtgitgit-mission17-ai.hf.space/predict',
 ) => {
   if (typeof configuredChatbotUrl === 'string' && configuredChatbotUrl.trim()) return configuredChatbotUrl.trim();
-  const normalizedVerificationUrl = verificationUrl.replace(/\/+$/, '');
+  const normalizedVerificationUrl = verificationUrl.trim().replace(/\/+$/, '');
   return /\/predict$/i.test(normalizedVerificationUrl)
     ? normalizedVerificationUrl.replace(/\/predict$/i, '/chat')
     : `${normalizedVerificationUrl}/chat`;
