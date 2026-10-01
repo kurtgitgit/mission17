@@ -1,5 +1,6 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { detectLanguage, getChatbotAiUrl, getControlledFaq, getMockReply, guardModelReply, isInScope, outOfScopeReply, requestChatbotAi } from './chatbot.js';
+import { getLiveChatReply } from './chatbotLiveData.js';
 
 describe('chatbot multilingual routing and fallback', () => {
   it('returns a controlled Pangasinan reply for language-capability questions', () => {
@@ -62,5 +63,43 @@ describe('chatbot multilingual routing and fallback', () => {
       headers: expect.objectContaining({ Authorization: 'Bearer test-service-token' }),
       body: JSON.stringify({ message: 'hello' }),
     }));
+  });
+
+  it('returns a public, active official roster from live BrgyLink data', async () => {
+    const findOfficials = jest.fn().mockResolvedValue([
+      { name: 'Ana Resident', position: 'Punong Barangay' },
+      { name: 'Ben Councilor', position: 'Kagawad' },
+    ]);
+    const reply = await getLiveChatReply('Sino ang kapitan ng barangay?', {
+      findOfficials,
+      findAnnouncements: jest.fn(),
+      findMissions: jest.fn(),
+      findEvents: jest.fn(),
+    });
+    expect(reply).toContain('Ana Resident');
+    expect(reply).toContain('Punong Barangay');
+    expect(findOfficials).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns active announcements and civic tasks without sending them to the AI service', async () => {
+    const dependencies = {
+      findOfficials: jest.fn(),
+      findAnnouncements: jest.fn().mockResolvedValue([{ title: 'Clean-up Drive', category: 'environment', isUrgent: false }]),
+      findMissions: jest.fn().mockResolvedValue([{ title: 'Care for a Plant', sdgNumber: 15 }]),
+      findEvents: jest.fn(),
+    };
+    await expect(getLiveChatReply('May latest announcement ba?', dependencies)).resolves.toContain('Clean-up Drive');
+    await expect(getLiveChatReply('Ano ang civic tasks?', dependencies)).resolves.toContain('Care for a Plant');
+  });
+
+  it('does not let live-data answers override an emergency request', async () => {
+    const findOfficials = jest.fn();
+    await expect(getLiveChatReply('Kapitan, may sunog at kailangan ng ambulance!', {
+      findOfficials,
+      findAnnouncements: jest.fn(),
+      findMissions: jest.fn(),
+      findEvents: jest.fn(),
+    })).resolves.toBeNull();
+    expect(findOfficials).not.toHaveBeenCalled();
   });
 });

@@ -182,6 +182,25 @@ class AIServerTests(unittest.TestCase):
         )
         self.assertEqual(self.post_image().status_code, 200)
 
+    def test_chat_handles_location_and_natural_acknowledgements(self):
+        location = self.client.post(
+            '/chat',
+            headers=self.headers,
+            json={'message': 'Saan ang brgy bagong pag asa?'},
+        )
+        self.assertEqual(location.status_code, 200)
+        self.assertEqual(location.get_json()['intent'], 'office_hours')
+        self.assertIn('opisina ng barangay', location.get_json()['response'])
+
+        acknowledgement = self.client.post(
+            '/chat',
+            headers=self.headers,
+            json={'message': 'Sige'},
+        )
+        self.assertEqual(acknowledgement.status_code, 200)
+        self.assertEqual(acknowledgement.get_json()['intent'], 'acknowledgement')
+        self.assertIn('Walang anuman', acknowledgement.get_json()['response'])
+
 
 if __name__ == '__main__':
     unittest.main()
