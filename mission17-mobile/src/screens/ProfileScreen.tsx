@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
   SafeAreaView, ActivityIndicator, Linking, Alert, Modal, FlatList, RefreshControl, StatusBar
@@ -10,12 +10,12 @@ import {
 } from 'lucide-react-native'; 
 import { useIsFocused, CommonActions } from '@react-navigation/native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
-import { clearAuthData, getAuthData } from '../utils/storage';
+import { clearAuthData, getAuthData, saveAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateCollection, fetchPrivateJson, getFriendlyNetworkMessage } from '../utils/network';
 import { BARANGAY_INFO } from '../config/barangayInfo';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -35,6 +35,8 @@ const ProfileScreen = ({ navigation }: any) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [infoModal, setInfoModal] = useState<string | null>(null);
+  const userDataRef = useRef<any>(null);
+  const [savedProfileHydrated, setSavedProfileHydrated] = useState(false);
   
   const isFocused = useIsFocused();
   const userId = GlobalState.userId;
@@ -44,7 +46,12 @@ const ProfileScreen = ({ navigation }: any) => {
   useEffect(() => {
     const hydrateSavedProfile = async () => {
       const savedAuth = await getAuthData();
-      if (savedAuth?.user) setUserData(savedAuth.user);
+      if (savedAuth?.user) {
+        userDataRef.current = savedAuth.user;
+        setUserData(savedAuth.user);
+        setLoading(false);
+      }
+      setSavedProfileHydrated(true);
     };
 
     hydrateSavedProfile();
@@ -54,18 +61,25 @@ const ProfileScreen = ({ navigation }: any) => {
     try {
       setLoadError(null);
       const authHeaders = await getAuthHeaders();
-      const userRes = await fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders });
-      const userJson = await userRes.json();
-      
-      const histRes = await fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders });
-      const histJson = await histRes.json();
-
-      if (!userRes.ok || !histRes.ok) throw new Error('Profile request failed');
+      const userJson = await fetchPrivateJson<any>(endpoints.auth.getUser(userId), authHeaders);
+      userDataRef.current = userJson;
       setUserData(userJson);
-      setHistory(Array.isArray(histJson) ? histJson : []);
+      const savedAuth = await getAuthData();
+      if (savedAuth) {
+        await saveAuthData(savedAuth.token, userJson, savedAuth.fallbackSession);
+      }
+
+      try {
+        const histJson = await fetchPrivateCollection<any>(endpoints.auth.getUserSubmissions(userId), authHeaders);
+        setHistory(histJson);
+      } catch (historyError) {
+        console.warn('Could not refresh profile submission history:', historyError);
+      }
     } catch (error) {
       console.error(error);
-      setLoadError(getFriendlyNetworkMessage(error, 'Your profile is unavailable right now. Please try again.'));
+      if (!userDataRef.current) {
+        setLoadError(getFriendlyNetworkMessage(error, 'Your profile is unavailable right now. Please try again.'));
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -73,8 +87,8 @@ const ProfileScreen = ({ navigation }: any) => {
   }, [userId]);
 
   useEffect(() => {
-    if (userId && isFocused) fetchProfileData();
-  }, [userId, isFocused, fetchProfileData]);
+    if (savedProfileHydrated && userId && isFocused) fetchProfileData();
+  }, [userId, isFocused, fetchProfileData, savedProfileHydrated]);
 
   const approvedCount = history.filter((h: any) => h.status === 'Approved').length;
   const pendingCount = history.filter((h: any) => h.status === 'Pending').length;

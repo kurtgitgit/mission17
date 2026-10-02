@@ -35,12 +35,33 @@ jest.unstable_mockModule('firebase-admin/auth', () => ({
 }));
 
 const usersRouter = (await import('./users.js')).default;
+const User = (await import('../models/User.js')).default;
 
 const app = express();
 app.use(express.json());
 app.use('/api/auth', usersRouter);
 
 describe('resident edit-profile validation', () => {
+  it('returns the resident profile as a private non-cacheable response', async () => {
+    const profile = {
+      _id: residentId,
+      email: 'resident@example.com',
+      firstName: 'Test',
+      lastName: 'Resident',
+    };
+    const findByIdSpy = jest.spyOn(User, 'findById').mockReturnValue({
+      select: jest.fn().mockResolvedValue(profile),
+    });
+
+    const response = await request(app).get(`/api/auth/user/${residentId}`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toMatch(/private/i);
+    expect(response.headers['cache-control']).toMatch(/no-store/i);
+    expect(response.body.email).toBe(profile.email);
+    findByIdSpy.mockRestore();
+  });
+
   it('rejects numeric names in edit profile', async () => {
     const response = await request(app)
       .put(`/api/auth/update-profile/${residentId}`)

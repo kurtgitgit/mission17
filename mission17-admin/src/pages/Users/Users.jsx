@@ -8,10 +8,15 @@ import { endpoints } from '../../config/api';
 
 const Users = () => {
   const { showNotification } = useNotification();
+  const portalUser = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); }
+    catch { return null; }
+  })();
+  const isSuperAdmin = portalUser?.role === 'super_admin';
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterTab, setFilterTab] = useState('all');
+  const [filterTab, setFilterTab] = useState(isSuperAdmin ? 'all' : 'unverified');
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -266,13 +271,13 @@ const Users = () => {
   };
 
   return (
-    <Layout title="User Management">
+    <Layout title={isSuperAdmin ? 'User Management' : 'Resident Approvals'}>
       <div className="users-container">
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>User Management</h1>
-            <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>Manage Residents, LGUs, and Admins.</p>
+            <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>{isSuperAdmin ? 'User Management' : 'Resident Approvals'}</h1>
+            <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>{isSuperAdmin ? 'Manage residents, LGU accounts, and staff administrators.' : 'Review verified resident registrations and return incomplete applications for correction.'}</p>
           </div>
 
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
@@ -280,21 +285,23 @@ const Users = () => {
               <Search size={18} color="#94a3b8" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
               <input
                 type="text"
-                placeholder="Search name, email, or role..."
+                placeholder={isSuperAdmin ? 'Search name, email, or role...' : 'Search resident name or email...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.searchInput}
               />
             </div>
 
-            <button onClick={openAddModal} style={styles.addBtn}>
-              <Plus size={18} /> Add User
-            </button>
+            {isSuperAdmin && (
+              <button onClick={openAddModal} style={styles.addBtn}>
+                <Plus size={18} /> Add User
+              </button>
+            )}
           </div>
         </div>
 
         {/* MODAL */}
-        {showModal && (
+        {showModal && isSuperAdmin && (
           <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
@@ -345,7 +352,7 @@ const Users = () => {
           <button 
             onClick={() => setFilterTab('all')} 
             style={{ ...styles.tabBtn, borderBottom: filterTab === 'all' ? '2px solid #3b82f6' : 'none', color: filterTab === 'all' ? '#3b82f6' : '#64748b' }}
-          >All Users</button>
+          >{isSuperAdmin ? 'All Users' : 'All Residents'}</button>
           <button 
             onClick={() => setFilterTab('verified')} 
             style={{ ...styles.tabBtn, borderBottom: filterTab === 'verified' ? '2px solid #16a34a' : 'none', color: filterTab === 'verified' ? '#16a34a' : '#64748b' }}
@@ -437,12 +444,16 @@ const Users = () => {
                               </button>
                             </>
                           )}
-                          <button onClick={() => openEditModal(user)} style={styles.actionBtn('#64748b')} title="Edit">
-                            <Edit size={18} />
-                          </button>
-                          <button onClick={() => handleDelete(user._id)} style={styles.actionBtn('#ef4444')} title="Delete">
-                            <Trash2 size={18} />
-                          </button>
+                          {isSuperAdmin && (
+                            <>
+                              <button onClick={() => openEditModal(user)} style={styles.actionBtn('#64748b')} title="Edit">
+                                <Edit size={18} />
+                              </button>
+                              <button onClick={() => handleDelete(user._id)} style={styles.actionBtn('#ef4444')} title="Delete">
+                                <Trash2 size={18} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -1,4 +1,5 @@
 export const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+export const PROOF_SUBMISSION_TIMEOUT_MS = 120_000;
 
 export class RequestTimeoutError extends Error {
   constructor() {
@@ -64,13 +65,79 @@ export async function readApiJson<T extends Record<string, unknown> = Record<str
   }
 }
 
+/**
+ * Fetches a private history collection without allowing a stale HTTP cache to
+ * turn an empty list into a misleading 304/error screen. A conditional 304 is
+ * safe to retry because this helper is restricted to read-only GET requests.
+ */
+async function fetchPrivateResponse(
+  url: string,
+  authHeaders: Record<string, string>,
+): Promise<Response> {
+  const headers = {
+    ...authHeaders,
+    'Cache-Control': 'no-cache',
+    Pragma: 'no-cache',
+  };
+
+  let response = await fetchWithTimeout(url, { headers, cache: 'no-store' });
+  if (response.status === 304) {
+    const separator = url.includes('?') ? '&' : '?';
+    response = await fetchWithTimeout(`${url}${separator}refresh=${Date.now()}`, {
+      headers,
+      cache: 'no-store',
+    });
+  }
+
+  return response;
+}
+
+/** Fetches one private JSON resource without reusing a conditional HTTP cache. */
+export async function fetchPrivateJson<T>(
+  url: string,
+  authHeaders: Record<string, string>,
+): Promise<T> {
+  const response = await fetchPrivateResponse(url, authHeaders);
+  const data = await readApiJson<any>(response);
+
+  if (!response.ok) {
+    throw new ApiResponseError(data?.message || `The request failed (HTTP ${response.status}).`);
+  }
+
+  return data as T;
+}
+
+export async function fetchPrivateCollection<T>(
+  url: string,
+  authHeaders: Record<string, string>,
+): Promise<T[]> {
+  const response = await fetchPrivateResponse(url, authHeaders);
+
+  if (response.status === 204) return [];
+
+  const data = await readApiJson<any>(response);
+  if (!response.ok) {
+    throw new ApiResponseError(data?.message || `The history request failed (HTTP ${response.status}).`);
+  }
+  if (!Array.isArray(data)) {
+    throw new ApiResponseError('The server returned an invalid history response. Please try again.');
+  }
+
+  return data as T[];
+}
+
 export function getFriendlyNetworkMessage(error: unknown, fallback = 'Could not connect. Please check your internet connection and try again.') {
   if (error instanceof RequestTimeoutError) return error.message;
   if (error instanceof ApiResponseError || (error instanceof Error && error.name === 'ProofImageError')) {
     return error.message;
   }
-  if (error instanceof Error && /network request failed|failed to fetch|network/i.test(error.message)) {
-    return 'No internet connection. Please check your connection and try again.';
+  if (error instanceof Error) {
+    if (/must be signed in|session expired|auth\/user-token-expired|auth\/invalid-user-token/i.test(error.message)) {
+      return 'Your session expired. Please sign in again, then resubmit your proof.';
+    }
+    if (/network request failed|failed to fetch|auth\/network-request-failed|network/i.test(error.message)) {
+      return 'No internet connection. Please check your connection and try again.';
+    }
   }
   return fallback;
 }

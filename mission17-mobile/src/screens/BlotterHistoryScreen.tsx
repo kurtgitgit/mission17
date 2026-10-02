@@ -11,7 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateCollection, getFriendlyNetworkMessage } from '../utils/network';
 
 const STATUS_FILTERS = ['All', 'Pending', 'In Progress', 'Resolved'];
 
@@ -34,12 +34,11 @@ const BlotterHistoryScreen = () => {
   const fetchHistory = useCallback(async () => {
     try {
       setLoadError(null);
-      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`, {
-        headers: await getAuthHeaders()
-      });
-      if (!res.ok) throw new Error(`Blotter history request failed (${res.status})`);
-      const data = await res.json();
-      setReports(Array.isArray(data) ? data : []);
+      const data = await fetchPrivateCollection<any>(
+        `${endpoints.auth.backendBaseUrl}/api/blotter-reports/my/${GlobalState.userId}`,
+        await getAuthHeaders(),
+      );
+      setReports(data);
     } catch (e) {
       console.error('BlotterHistory fetch error:', e);
       setLoadError(getFriendlyNetworkMessage(e, 'Your blotter records are unavailable right now. Please try again.'));

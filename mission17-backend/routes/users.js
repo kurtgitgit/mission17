@@ -34,7 +34,7 @@ const isStrongPassword = (password) => typeof password === 'string'
   && /\d/.test(password)
   && /[^A-Za-z0-9]/.test(password);
 
-// 1. GET ALL USERS (Admin) - With Pagination & Search
+// 1. GET USERS - Staff see residents; Captain sees the full directory.
 router.get('/users', verifyAdmin, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -43,7 +43,9 @@ router.get('/users', verifyAdmin, async (req, res) => {
     const search = req.query.search || '';
     const status = req.query.status;
 
-    const query = {};
+    // Staff reviewers only need resident records. The Captain retains the
+    // complete directory for staff and role management.
+    const query = req.user.role === 'super_admin' ? {} : { role: 'resident' };
     if (search) {
       query.$or = [
         { username: { $regex: search, $options: 'i' } },
@@ -210,10 +212,10 @@ router.put('/admin-update-user/:id', verifySuperAdmin, async (req, res) => {
   }
 });
 
-// 3b. ADMIN APPROVE OR REJECT ACCOUNT
+// 3b. STAFF OR CAPTAIN APPROVE/REJECT A PENDING RESIDENT ACCOUNT
 // Account approval is deliberately separate from general profile editing so it
 // remains auditable and an unverified email can never be approved.
-router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => {
+router.patch('/users/:id/account-status', verifyAdmin, async (req, res) => {
   try {
     const { accountStatus } = req.body;
     const rejectionReason = typeof req.body.rejectionReason === 'string' ? req.body.rejectionReason.trim() : '';
@@ -227,8 +229,11 @@ router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => 
 
     const userToReview = await User.findById(req.params.id);
     if (!userToReview) return res.status(404).json({ message: 'User not found.' });
-    if (userToReview.role === 'super_admin') {
-      return res.status(403).json({ message: 'The Barangay Captain account status cannot be changed from the portal.' });
+    if (userToReview.role !== 'resident') {
+      return res.status(403).json({ message: 'This review action is limited to resident registrations.' });
+    }
+    if (userToReview.accountStatus !== 'pending') {
+      return res.status(409).json({ message: 'Only pending resident registrations can be approved or rejected.' });
     }
     if (!userToReview.isVerified) {
       return res.status(409).json({ message: 'Verify the resident email before approving this account.' });
@@ -270,7 +275,7 @@ router.patch('/users/:id/account-status', verifySuperAdmin, async (req, res) => 
       });
     }
 
-    await logAudit(req.user._id, req.user.username, action, `Admin ${accountStatus} user ID: ${userToReview._id}${accountStatus === 'rejected' ? `. Reason: ${rejectionReason}` : ''}`, req);
+    await logAudit(req.user._id, req.user.username, action, `Reviewer ${accountStatus} resident ID: ${userToReview._id}${accountStatus === 'rejected' ? `. Reason: ${rejectionReason}` : ''}`, req);
     res.json({ message: `Account ${accountStatus}.`, user: userToReview });
   } catch (error) {
     console.error('Account-status update failed:', error);
@@ -315,6 +320,7 @@ router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
 
     const user = await User.findById(req.params.id).select('-password -points');
     if (!user) return res.status(404).json({ message: 'User not found' });
+    res.set('Cache-Control', 'private, no-store, max-age=0');
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server Error' });
@@ -324,8 +330,11 @@ router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
 // 5b. GET USER IDS (Admin)
 router.get('/user-ids/:id', verifyAdmin, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('idType validIdFrontUrl validIdBackUrl');
+    const user = await User.findById(req.params.id).select('role idType validIdFrontUrl validIdBackUrl');
     if (!user) return res.status(404).json({ message: 'User not found' });
+    if (req.user.role !== 'super_admin' && user.role !== 'resident') {
+      return res.status(403).json({ message: 'Staff reviewers can only inspect resident identification.' });
+    }
 
     const formatUrl = (uri) => {
       if (!uri) return null;
@@ -386,6 +395,7 @@ router.put('/update-profile/:id', verifyAuthenticatedUser, async (req, res) => {
 // receiving access to ordinary resident routes. A successful submission moves
 // the account back to the same pending-review queue.
 router.get('/registration-review', verifyRegistrationReviewUser, async (req, res) => {
+  res.set('Cache-Control', 'private, no-store, max-age=0');
   return res.json(req.user.toObject({ versionKey: false }));
 });
 

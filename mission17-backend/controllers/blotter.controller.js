@@ -118,6 +118,7 @@ export const getMyReports = asyncHandler(async (req, res) => {
   }
 
   const reports = await BlotterReport.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  res.set('Cache-Control', 'private, no-store, max-age=0');
   res.json(reports);
 });
 

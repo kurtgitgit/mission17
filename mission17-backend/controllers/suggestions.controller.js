@@ -118,6 +118,7 @@ export const getMySuggestions = asyncHandler(async (req, res) => {
   }
 
   const suggestions = await Suggestion.find({ userId: req.user._id }).sort({ createdAt: -1 });
+  res.set('Cache-Control', 'private, no-store, max-age=0');
   res.json(suggestions);
 });
 

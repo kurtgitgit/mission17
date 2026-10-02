@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, 
   SafeAreaView, Platform, ActivityIndicator, ScrollView, TextInput, Alert 
@@ -11,7 +11,8 @@ import { signOut } from 'firebase/auth';
 import { colors, spacing, radius, typography } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import CustomDropdown from '../components/CustomDropdown';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateJson, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { getAuthData, saveAuthData } from '../utils/storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { FIXED_BARANGAY_ADDRESS, isDirectoryPurok, PUROK_OPTIONS } from '../config/addressDirectory';
 import {
@@ -34,31 +35,62 @@ const EditProfileScreen = ({ navigation }: any) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [nationalitySelection, setNationalitySelection] = useState('');
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
+  const userDataRef = useRef<any>(null);
   
   const userId = GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
+  const applyProfileData = useCallback((data: any) => {
+    userDataRef.current = data;
+    setUserData(data);
+    setNationalitySelection(!data?.nationality ? '' : data.nationality === 'Filipino' ? 'Filipino' : 'Other');
+  }, []);
+
   const fetchCurrentData = useCallback(async () => {
       try {
-        setInitialLoading(true);
+        if (!userDataRef.current) setInitialLoading(true);
         setLoadError(null);
         const target = registrationReview ? endpoints.auth.registrationReview : endpoints.auth.getUser(userId);
-        const res = await fetchWithTimeout(target, { headers: await getAuthHeaders() });
-        if (!res.ok) throw new Error(`Profile request failed (${res.status})`);
-        const data = await res.json();
-        setUserData(data);
-        setNationalitySelection(!data?.nationality ? '' : data.nationality === 'Filipino' ? 'Filipino' : 'Other');
+        const data = await fetchPrivateJson<any>(target, await getAuthHeaders());
+        applyProfileData(data);
+
+        if (!registrationReview) {
+          const savedAuth = await getAuthData();
+          if (savedAuth) {
+            await saveAuthData(savedAuth.token, data, savedAuth.fallbackSession);
+          }
+        }
       } catch (error) {
         console.error("Error loading profile:", error);
-        setLoadError(getFriendlyNetworkMessage(error, 'Your profile details are unavailable right now. Please try again.'));
+        if (!userDataRef.current) {
+          setLoadError(getFriendlyNetworkMessage(error, 'Your profile details are unavailable right now. Please try again.'));
+        }
       } finally {
         setInitialLoading(false);
       }
-    }, [registrationReview, userId]);
+    }, [applyProfileData, registrationReview, userId]);
 
   useEffect(() => {
-    fetchCurrentData();
-  }, [fetchCurrentData]);
+    let active = true;
+
+    const initializeProfile = async () => {
+      if (!registrationReview) {
+        const savedAuth = await getAuthData();
+        if (!active) return;
+        if (savedAuth?.user) {
+          applyProfileData(savedAuth.user);
+          setInitialLoading(false);
+        }
+      }
+
+      if (active) await fetchCurrentData();
+    };
+
+    void initializeProfile();
+    return () => {
+      active = false;
+    };
+  }, [applyProfileData, fetchCurrentData, registrationReview]);
 
   const handleSave = async () => {
     if (saving) return;
@@ -133,12 +165,20 @@ const EditProfileScreen = ({ navigation }: any) => {
         })
       });
       if (res.ok) {
+        const responseData = await res.json().catch(() => null);
         if (registrationReview) {
           Alert.alert('Registration resubmitted', 'Your corrected details were sent back to the Barangay Captain for review.');
           await signOut(auth).catch(() => undefined);
           const firebaseToken = authHeaders.Authorization?.replace(/^Bearer\s+/i, '');
           navigation.replace('PendingApproval', { firebaseToken });
         } else {
+          if (responseData) {
+            applyProfileData(responseData);
+            const savedAuth = await getAuthData();
+            if (savedAuth) {
+              await saveAuthData(savedAuth.token, responseData, savedAuth.fallbackSession);
+            }
+          }
           Alert.alert("Success", "Profile updated successfully!");
           navigation.goBack();
         }
@@ -154,7 +194,8 @@ const EditProfileScreen = ({ navigation }: any) => {
   };
 
   if (initialLoading) return <View style={styles.centered}><ActivityIndicator size="large" color={colors.primary} /></View>;
-  if (loadError || !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError || 'Please try again.'} onRetry={fetchCurrentData} />;
+  if (loadError && !userData) return <ScreenErrorState title="Profile details are unavailable" message={loadError} onRetry={fetchCurrentData} />;
+  if (!userData) return <ScreenErrorState title="Profile details are unavailable" message="Please try again." onRetry={fetchCurrentData} />;
 
   const EditableRow = ({ icon, label, value, onChangeText, keyboardType = 'default', placeholder = '', editable = true, maxLength, hint = '' }: any) => (
     <View style={styles.infoRow}>

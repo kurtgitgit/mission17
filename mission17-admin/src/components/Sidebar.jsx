@@ -132,7 +132,7 @@ const Sidebar = () => {
       {/* Navigation Menu (Interactive Collapsible Groups) */}
       <div className="nav-accordion-container">
         {MENU_GROUPS.map(group => {
-          const visibleItems = group.items.filter(item => item.to !== '/users' || isSuperAdmin);
+          const visibleItems = group.items;
           if (!visibleItems.length) return null;
           const GroupIcon = group.icon;
           const isOpen = openGroups[group.id];
@@ -172,7 +172,7 @@ const Sidebar = () => {
                           className={({ isActive }) => isActive ? "nav-sub-link active" : "nav-sub-link"}
                         >
                           <ItemIcon size={16} />
-                          <span>{item.label}</span>
+                          <span>{item.to === '/users' && !isSuperAdmin ? 'Resident Approvals' : item.label}</span>
                         </NavLink>
                       </li>
                     );

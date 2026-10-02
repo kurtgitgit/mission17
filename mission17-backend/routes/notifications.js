@@ -18,6 +18,7 @@ router.get('/notifications/:userId', verifyAuthenticatedUser, async (req, res) =
       .sort({ createdAt: -1 })
       .limit(50); // limit to most recent 50
 
+    res.set('Cache-Control', 'private, no-store, max-age=0');
     res.json(notifications);
   } catch (error) {
     console.error('Error fetching notifications:', error);
@@ -45,6 +46,23 @@ router.put('/notifications/:id/read', verifyAuthenticatedUser, async (req, res) 
     res.json(notification);
   } catch (error) {
     console.error('Error updating notification:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+// DELETE all notifications for one resident. This never affects document,
+// blotter, or other service records - only the resident's notification history.
+router.delete('/notifications/:userId', verifyAuthenticatedUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (req.user._id.toString() !== userId && !['admin', 'super_admin'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Unauthorized to clear these notifications' });
+    }
+
+    const result = await Notification.deleteMany({ userId });
+    res.json({ message: 'Notifications cleared.', deletedCount: result.deletedCount || 0 });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
     res.status(500).json({ message: 'Server Error' });
   }
 });

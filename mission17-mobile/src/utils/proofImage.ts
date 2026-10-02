@@ -3,7 +3,10 @@ import * as ImageManipulator from 'expo-image-manipulator';
 
 const MAX_PROOF_WIDTH = 720;
 const FALLBACK_PROOF_WIDTH = 540;
-const MAX_ENCODED_PROOF_LENGTH = 4_500_000;
+// Keep the complete JSON request comfortably below a default 1 MB reverse-
+// proxy body limit. Base64 is larger than the original JPEG, so checking the
+// encoded string is more reliable than checking the camera file size.
+const MAX_ENCODED_PROOF_LENGTH = 850_000;
 
 export class ProofImageError extends Error {
   constructor(message: string) {

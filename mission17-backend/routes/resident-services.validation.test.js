@@ -74,6 +74,21 @@ describe('resident service validation and duplicate protection', () => {
     expect((await request(app).post('/api/suggestions').send(payload)).status).toBe(409);
   });
 
+  it('returns empty resident histories as successful non-cacheable arrays', async () => {
+    const endpoints = [
+      `/api/suggestions/my/${residentId}`,
+      `/api/document-requests/my/${residentId}`,
+      `/api/blotter-reports/my/${residentId}`,
+    ];
+
+    for (const endpoint of endpoints) {
+      const response = await request(app).get(endpoint);
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+      expect(response.headers['cache-control']).toContain('no-store');
+    }
+  });
+
   it('allows feedback to move between terminal and active statuses', async () => {
     const created = await request(app).post('/api/suggestions').send({
       title: 'Damaged drainage cover',

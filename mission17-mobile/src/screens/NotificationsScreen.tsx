@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator,
-  RefreshControl, StatusBar
+  RefreshControl, StatusBar, Alert
 } from 'react-native';
 import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 export default function NotificationsScreen({ navigation, route }: any) {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
   
   const userId = route.params?.userId || GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
@@ -26,12 +27,11 @@ export default function NotificationsScreen({ navigation, route }: any) {
     }
     try {
       setLoadError(null);
-      const res = await fetchWithTimeout(endpoints.auth.getNotifications(userId), {
-        headers: await getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error(`Notifications request failed (${res.status})`);
-      const data = await res.json();
-      setNotifications(Array.isArray(data) ? data : []);
+      const data = await fetchPrivateCollection<any>(
+        endpoints.auth.getNotifications(userId),
+        await getAuthHeaders(),
+      );
+      setNotifications(data);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
       setLoadError(getFriendlyNetworkMessage(error, 'Your alerts are unavailable right now. Please try again.'));
@@ -76,8 +76,35 @@ export default function NotificationsScreen({ navigation, route }: any) {
     }
   };
 
+  const clearAllNotifications = async () => {
+    if (!userId || clearing) return;
+    setClearing(true);
+    try {
+      const response = await fetchWithTimeout(endpoints.auth.clearNotifications(userId), {
+        method: 'DELETE',
+        headers: await getAuthHeaders(),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload.message || `Notification clearing failed (${response.status})`);
+      setNotifications([]);
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+      Alert.alert('Could not clear alerts', getFriendlyNetworkMessage(error, 'Please try again.'));
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const handleClearAll = () => {
-    setNotifications([]);
+    if (!notifications.length || clearing) return;
+    Alert.alert(
+      'Clear all alerts?',
+      'This permanently removes your notification history. It will not delete your document requests, blotter reports, or account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear All', style: 'destructive', onPress: () => { void clearAllNotifications(); } },
+      ],
+    );
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -102,8 +129,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
     }
 
     const dateObj = new Date(item.createdAt);
-    const timeStr = dateObj.toDateString() + ' • ' +
-                    dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeStr = Number.isNaN(dateObj.getTime()) ? '' : `${dateObj.toLocaleDateString([], { month: 'short', day: 'numeric' })} · ${dateObj.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 
     return (
       <TouchableOpacity 
@@ -117,10 +143,10 @@ export default function NotificationsScreen({ navigation, route }: any) {
         </View>
         <View style={styles.content}>
           <View style={styles.row}>
-            <Text style={[styles.title, !item.read && styles.unreadTitle]}>{item.title}</Text>
-            <Text style={styles.time}>{timeStr}</Text>
+            <Text numberOfLines={2} style={[styles.title, !item.read && styles.unreadTitle]}>{item.title}</Text>
           </View>
           <Text style={styles.message}>{item.message}</Text>
+          {timeStr ? <Text style={styles.time}>{timeStr}</Text> : null}
         </View>
         {!item.read ? <View style={styles.dot} /> : null}
       </TouchableOpacity>
@@ -156,11 +182,11 @@ export default function NotificationsScreen({ navigation, route }: any) {
           <TouchableOpacity 
             style={styles.headerBtn} 
             onPress={handleClearAll}
-            disabled={notifications.length === 0}
+            disabled={notifications.length === 0 || clearing}
             accessibilityRole="button"
             accessibilityLabel="Clear notifications list"
           >
-            <Trash2 size={19} color={notifications.length === 0 ? 'rgba(255,255,255,0.4)' : 'white'} />
+            <Trash2 size={19} color={notifications.length === 0 || clearing ? 'rgba(255,255,255,0.4)' : 'white'} />
           </TouchableOpacity>
         </View>
       </View>
@@ -234,10 +260,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   content: { flex: 1 },
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  title: { fontSize: 14.5, fontWeight: '700', color: '#1e293b' },
+  row: { marginBottom: 4 },
+  title: { fontSize: 14.5, fontWeight: '700', color: '#1e293b', flexShrink: 1 },
   unreadTitle: { fontWeight: '800', color: '#0f172a' },
-  time: { fontSize: 11, color: '#64748b', fontWeight: '500' },
+  time: { fontSize: 11, color: '#64748b', fontWeight: '500', marginTop: 8, alignSelf: 'flex-end' },
   message: { fontSize: 13, color: '#475569', lineHeight: 18 },
   
   dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#0038A8', marginLeft: 8 },

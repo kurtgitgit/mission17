@@ -7,7 +7,7 @@ import { Camera, ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react-nativ
 import * as ImagePicker from 'expo-image-picker';
 import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
-import { fetchWithTimeout, getFriendlyNetworkMessage, readApiJson } from '../utils/network';
+import { fetchWithTimeout, getFriendlyNetworkMessage, PROOF_SUBMISSION_TIMEOUT_MS, readApiJson } from '../utils/network';
 import { createProofImagePayload } from '../utils/proofImage';
 
 // --- BLOCKCHAIN MOVED TO BLOTTER REPORT ---
@@ -82,7 +82,7 @@ const EventDetailScreen = ({ route, navigation }: any) => {
           image: imagePayload,
           type: 'Event'
         }),
-      });
+      }, PROOF_SUBMISSION_TIMEOUT_MS);
 
       const data = await readApiJson<{ message?: string }>(response);
 

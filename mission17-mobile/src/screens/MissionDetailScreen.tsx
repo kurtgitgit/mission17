@@ -11,7 +11,7 @@ import { endpoints, formatImageUri, getAuthHeaders } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import { SDG_HERO_IMAGES } from '../data/SDGData';
 import { sharedStyles } from '../config/theme';
-import { fetchWithTimeout, getFriendlyNetworkMessage, readApiJson } from '../utils/network';
+import { fetchWithTimeout, getFriendlyNetworkMessage, PROOF_SUBMISSION_TIMEOUT_MS, readApiJson } from '../utils/network';
 import { createProofImagePayload } from '../utils/proofImage';
 
 const { width: SCREEN_W } = Dimensions.get('window');
@@ -109,7 +109,7 @@ const MissionDetailScreen = ({ route, navigation }: any) => {
           missionId: mission._id,
           image: imagePayload
         }),
-      });
+      }, PROOF_SUBMISSION_TIMEOUT_MS);
 
       const data = await readApiJson<{ message?: string }>(response);
 

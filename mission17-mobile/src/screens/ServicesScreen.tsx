@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
   Platform, SafeAreaView, StatusBar, Alert, ActivityIndicator, Modal,
-  RefreshControl
+  RefreshControl, KeyboardAvoidingView
 } from 'react-native';
 import { 
   FileText, ChevronDown, CheckCircle, Clock, AlertCircle, XCircle, 
@@ -12,7 +12,7 @@ import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
   { id: 'Barangay Clearance', label: 'Barangay Clearance', fee: 'Confirm', time: 'Confirm', desc: 'For employment, business, or general legal verification' },
@@ -67,10 +67,11 @@ const ServicesScreen: React.FC = () => {
     if (!userId) return;
     try {
       setStatusError(null);
-      const res = await fetchWithTimeout(endpoints.documentRequests.my(userId), { headers: await getAuthHeaders() });
-      if (!res.ok) throw new Error(`Document history request failed (${res.status})`);
-      const data = await res.json();
-      setMyRequests(Array.isArray(data) ? data : []);
+      const data = await fetchPrivateCollection<any>(
+        endpoints.documentRequests.my(userId),
+        await getAuthHeaders(),
+      );
+      setMyRequests(data);
     } catch (err) {
       console.error('Failed to fetch requests:', err);
       setStatusError(getFriendlyNetworkMessage(err, 'Your document-request status is unavailable right now. Please try again.'));
@@ -242,8 +243,18 @@ const ServicesScreen: React.FC = () => {
         </View>
       </View>
 
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       {tab === 'request' ? (
-        <ScrollView contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.formContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+        >
           
           {/* SUCCESS CONFIRMATION BANNER */}
           {successRef && (
@@ -468,6 +479,7 @@ const ServicesScreen: React.FC = () => {
           )}
         </ScrollView>
       )}
+      </KeyboardAvoidingView>
 
       {/* DOCUMENT TYPE PICKER MODAL */}
       <Modal visible={showPicker} transparent animationType="slide">
@@ -504,6 +516,7 @@ const ServicesScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
+  keyboardArea: { flex: 1 },
 
   // SEGMENT STRIP
   segmentStrip: {
@@ -543,7 +556,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  formContent: { padding: 14, paddingBottom: 60 },
+  formContent: { padding: 14, paddingBottom: 160 },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 16,

@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
 
@@ -30,26 +30,19 @@ const SuggestionScreen = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const formScrollRef = useRef<ScrollView>(null);
   const descriptionInputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
-
-  const revealDetailedConcern = () => {
-    // Wait for the keyboard animation and resized viewport before scrolling.
-    setTimeout(() => formScrollRef.current?.scrollToEnd({ animated: true }), Platform.OS === 'android' ? 250 : 100);
-  };
 
   const fetchHistory = useCallback(async () => {
     if (!GlobalState.userId) return;
     setLoadingHistory(true);
     try {
       setHistoryError(null);
-      const res = await fetchWithTimeout(`${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`, {
-        headers: await getAuthHeaders()
-      });
-      if (!res.ok) throw new Error(`Feedback history request failed (${res.status})`);
-      const data = await res.json();
-      setHistory(Array.isArray(data) ? data : []);
+      const data = await fetchPrivateCollection<any>(
+        `${endpoints.auth.backendBaseUrl}/api/suggestions/my/${GlobalState.userId}`,
+        await getAuthHeaders(),
+      );
+      setHistory(data);
     } catch (e) {
       console.error('Failed to fetch feedback history:', e);
       setHistoryError(getFriendlyNetworkMessage(e, 'Your feedback history is unavailable right now. Please try again.'));
@@ -176,7 +169,6 @@ const SuggestionScreen = () => {
       >
       {activeTab === 'submit' ? (
         <ScrollView
-          ref={formScrollRef}
           contentContainerStyle={[styles.container, styles.formContainer]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -305,7 +297,6 @@ const SuggestionScreen = () => {
                 maxLength={500}
                 value={description}
                 onChangeText={(t) => { setDescription(t); setErrors(e => ({ ...e, description: '' })); }}
-                onFocus={revealDetailedConcern}
                 textAlignVertical="top"
                 accessibilityLabel="Detailed Suggestion description"
               />

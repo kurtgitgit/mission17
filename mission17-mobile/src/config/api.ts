@@ -158,6 +158,7 @@ export const endpoints = {
     savePendingPushToken: `${API_URL}/auth/save-pending-push-token`,
     getNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
     markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
+    clearNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
   },
   // Updated to match your backend route (/auth/all-missions)
   missions: `${API_URL}/auth/all-missions`,

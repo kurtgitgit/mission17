@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Platform,
-  Alert, Modal
+  Alert, Modal, KeyboardAvoidingView
 } from 'react-native';
 import { 
   ArrowLeft, Camera, ShieldCheck, CheckCircle, 
@@ -399,7 +399,17 @@ const BlotterReportScreen = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        style={styles.keyboardArea}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+      <ScrollView
+        contentContainerStyle={styles.container}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets={Platform.OS === 'ios'}
+      >
 
         {/* ── TRACK HISTORY DIRECT SHORTCUT ── */}
         <TouchableOpacity 
@@ -764,13 +774,15 @@ const BlotterReportScreen = () => {
           }
         </TouchableOpacity>
       </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#f1f5f9' },
-  container: { padding: 14, paddingBottom: 30 },
+  keyboardArea: { flex: 1 },
+  container: { padding: 14, paddingBottom: 140 },
   headerDraftBtn: { padding: 6 },
 
   // Notice Banner

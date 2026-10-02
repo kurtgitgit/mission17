@@ -54,9 +54,14 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
   const { missionId, image, type } = req.body;
   try {
     const user = req.user;
+    const submissionType = type || 'Mission';
 
     if (!mongoose.Types.ObjectId.isValid(missionId)) {
       return res.status(400).json({ message: 'Invalid mission ID format.' });
+    }
+
+    if (!['Mission', 'Event'].includes(submissionType)) {
+      return res.status(400).json({ message: 'Submission type must be Mission or Event.' });
     }
 
     // Prevent duplicate submissions
@@ -74,18 +79,8 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
       return res.status(400).json({ message: 'A valid JPEG, PNG, GIF, or WebP proof image is required.' });
     }
 
-    let finalImageUri = null;
-    
-    // Save base64 images to Cloudinary to prevent DB bloat and support ephemeral disk
-    if (image && image.startsWith('data:image')) {
-      const uploadResult = await cloudinary.uploader.upload(image, { folder: 'mission17-uploads' });
-      finalImageUri = uploadResult.secure_url;
-    } else {
-        finalImageUri = image;
-    }
-
     let missionTitle = '';
-    if (type === 'Event') {
+    if (submissionType === 'Event') {
       const Event = mongoose.model('Event');
       const event = await Event.findById(missionId);
       if (!event) return res.status(404).json({ message: 'Event not found.' });
@@ -96,12 +91,41 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
       missionTitle = mission.title;
     }
 
+    let finalImageUri = image;
+
+    // Save base64 images to Cloudinary to prevent DB bloat and support ephemeral disk.
+    // Resolve the target above first so invalid/stale tasks never create orphan uploads.
+    if (image.startsWith('data:image')) {
+      try {
+        const uploadResult = await cloudinary.uploader.upload(image, {
+          folder: 'mission17-uploads',
+          resource_type: 'image',
+        });
+        if (!uploadResult?.secure_url) {
+          throw new Error('Cloudinary did not return a secure image URL.');
+        }
+        finalImageUri = uploadResult.secure_url;
+      } catch (uploadError) {
+        console.error('[POST /api/auth/submit-mission] Proof storage failed:', {
+          userId: user._id.toString(),
+          missionId,
+          type: submissionType,
+          name: uploadError?.name,
+          code: uploadError?.http_code || uploadError?.code,
+          message: uploadError?.message || String(uploadError),
+        });
+        return res.status(502).json({
+          message: 'The proof photo could not be stored right now. Please wait a moment and try again.',
+        });
+      }
+    }
+
     const newSubmission = new Submission({
       userId: user._id,
       username: user.username,
       missionId,
       missionTitle,
-      type: type || 'Mission',
+      type: submissionType,
       imageUri: finalImageUri,
       status: req.missionStatus || 'Pending',
     });
@@ -115,7 +139,13 @@ router.post('/submit-mission', verifyAuthenticatedUser, spotCheckMiddleware, asy
       submission: newSubmission,
     });
   } catch (error) {
-    console.error('[POST /api/auth/submit-mission] Submission failed:', error);
+    console.error('[POST /api/auth/submit-mission] Submission failed:', {
+      missionId,
+      type: type || 'Mission',
+      name: error?.name,
+      code: error?.code,
+      message: error?.message || String(error),
+    });
     res.status(500).json({ message: 'Unable to save the proof image. Please try again later.' });
   }
 });
@@ -140,6 +170,7 @@ router.get('/user-submissions/:userId', verifyAuthenticatedUser, async (req, res
       .sort({ createdAt: -1 })
       .limit(50);
 
+    res.set('Cache-Control', 'private, no-store, max-age=0');
     res.json(submissions);
   } catch (error) {
     console.error('Error fetching user submissions:', error);
