@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowRight,
-  ClipboardCheck,
   FileText,
   Mail,
   MapPin,
@@ -43,11 +42,6 @@ const SERVICES = [
     icon: <MessageCircle aria-hidden="true" />,
     title: 'Citizen feedback',
     description: 'Send concerns, inquiries, or suggestions directly to the barangay for review and response.',
-  },
-  {
-    icon: <ClipboardCheck aria-hidden="true" />,
-    title: 'Civic participation',
-    description: 'Find community activities and submit participation proof for barangay review.',
   },
 ];
 
@@ -108,6 +102,7 @@ function App() {
           <a href="#services">Services</a>
           <a href="#officials">Officials</a>
           <a href="#contact">Contact</a>
+          <a href="/infographic-manual.html?v=white" target="_blank" rel="noopener noreferrer">User Manual</a>
         </div>
 
         <a className="nav-download" href="/BrgyLink.apk" download="BrgyLink.apk">
@@ -130,6 +125,7 @@ function App() {
             <a href="#services" onClick={closeMenu}>Services</a>
             <a href="#officials" onClick={closeMenu}>Officials</a>
             <a href="#contact" onClick={closeMenu}>Contact</a>
+            <a href="/infographic-manual.html?v=white" target="_blank" rel="noopener noreferrer" onClick={closeMenu}>User Manual</a>
             <a className="mobile-download" href="/BrgyLink.apk" download="BrgyLink.apk" onClick={closeMenu}>
               <Smartphone size={18} aria-hidden="true" /> Download BrgyLink
             </a>

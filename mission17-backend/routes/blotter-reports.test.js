@@ -35,7 +35,7 @@ jest.unstable_mockModule('../models/BlotterReport.js', () => ({
 }));
 jest.unstable_mockModule('../models/User.js', () => ({ default: { findById: jest.fn() } }));
 jest.unstable_mockModule('../models/Notification.js', () => ({ default: { create: jest.fn() } }));
-jest.unstable_mockModule('../utils/blockchain.js', () => ({ awardSdgPoints: jest.fn() }));
+jest.unstable_mockModule('../utils/blockchain.js', () => ({ createResolvedBlotterAuditTransaction: jest.fn() }));
 jest.unstable_mockModule('../utils/pushNotifier.js', () => ({ sendPushNotification: jest.fn() }));
 
 const fsMock = {

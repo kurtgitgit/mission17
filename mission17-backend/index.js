@@ -36,7 +36,7 @@ for (const v of requiredEnvVars) {
 }
 
 if (!process.env.AI_SERVICE_TOKEN) {
-    console.warn('WARNING: AI_SERVICE_TOKEN is missing. Authentication and other API routes can start, but AI proof verification will require configuration.');
+    console.warn('WARNING: AI_SERVICE_TOKEN is missing. Authentication and other API routes can start, but remote BrgyLink AI guidance will require configuration.');
 }
 
 const app = express();

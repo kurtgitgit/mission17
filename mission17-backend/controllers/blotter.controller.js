@@ -5,7 +5,7 @@ import BlotterReport from '../models/BlotterReport.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { logAudit } from '../utils/authMiddleware.js';
-import { awardSdgPoints } from '../utils/blockchain.js';
+import { createResolvedBlotterAuditTransaction } from '../utils/blockchain.js';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import fs from 'fs';
@@ -283,7 +283,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
       const ADMIN_WALLET = '0x7db79ec78e6e345fe23cf7fb790846365d107ffb';
       
       console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter?.username || 'Unknown'} (Using Admin Wallet)...`);
-      const txHash = await awardSdgPoints(ADMIN_WALLET, 1);
+      const txHash = await createResolvedBlotterAuditTransaction(ADMIN_WALLET, 1);
       report.blockchainTxHash = txHash;
       console.log(`✅ Blotter blockchain TX: ${txHash}`);
       

@@ -1,24 +1,54 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View, Text, StyleSheet, SafeAreaView, TextInput,
+  View, Text, StyleSheet, SafeAreaView, Image, TextInput,
   TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator
 } from 'react-native';
-import { ArrowLeft, Send, Bot, User } from 'lucide-react-native';
+import { ArrowLeft, Send, Bot, User, MessageCircleQuestion } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { endpoints } from '../config/api';
-import { colors, spacing, radius, shadow, sharedStyles, typography } from '../config/theme';
+import { colors, spacing, radius, shadow, sharedStyles } from '../config/theme';
 import { ChatMessage, useChat } from '../context/ChatContext';
+
+const missionLogo = require('../../assets/logo.png');
+
+const FAQ_SECTIONS = [
+  {
+    title: 'Get started',
+    questions: [
+      'What can BrgyLink help me do?',
+      'How do I request a Barangay Clearance?',
+      'How do I file a blotter report?',
+    ],
+  },
+  {
+    title: 'Account & app help',
+    questions: [
+      'How do I check my document request status?',
+      'I forgot my password. What should I do?',
+      'I did not receive my verification code.',
+    ],
+  },
+  {
+    title: 'Barangay information',
+    questions: [
+      'Who are the current barangay officials?',
+      'Where can I find barangay announcements?',
+    ],
+  },
+];
 
 const ChatBotScreen = () => {
   const navigation = useNavigation<any>();
   const { messages, setMessages } = useChat();
-  const [input, setInput]       = useState('');
+  const [input, setInput] = useState('');
   const [loading, setLoading]   = useState(false);
   const listRef = useRef<FlatList>(null);
+  const isStarter = messages.length <= 1;
+  const visibleMessages = messages.slice(1);
 
-  const sendMessage = async () => {
-    const text = input.trim();
-    if (!text) return;
+  const sendMessage = async (question = input) => {
+    const text = question.trim();
+    if (!text || loading) return;
 
     const userMsg: ChatMessage = { id: Date.now().toString(), text, isBot: false };
 
@@ -70,6 +100,31 @@ const ChatBotScreen = () => {
     </View>
   );
 
+  const renderSuggestions = () => (
+    <View style={styles.suggestions}>
+      {FAQ_SECTIONS.map(section => (
+        <View key={section.title} style={styles.faqSection}>
+          <Text style={styles.sectionTitle}>{section.title}</Text>
+          <View style={styles.faqList}>
+            {section.questions.map(question => (
+              <TouchableOpacity
+                key={question}
+                style={[styles.faqButton, loading && styles.faqButtonDisabled]}
+                onPress={() => sendMessage(question)}
+                disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={question}
+              >
+                <View style={styles.faqIcon}><MessageCircleQuestion size={18} color={colors.primary} /></View>
+                <Text style={styles.faqButtonText}>{question}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.root}>
       {/* HEADER */}
@@ -83,16 +138,25 @@ const ChatBotScreen = () => {
         </View>
       </View>
 
-      {/* CHAT */}
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+      <KeyboardAvoidingView style={styles.chatArea} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           ref={listRef}
-          data={messages}
+          data={visibleMessages}
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+          onContentSizeChange={() => !isStarter && listRef.current?.scrollToEnd({ animated: true })}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={isStarter ? (
+            <View style={styles.landing}>
+              <View style={styles.logoHalo}>
+                <Image source={missionLogo} style={styles.logo} resizeMode="contain" />
+              </View>
+              <Text style={styles.landingTitle}>BrgyLink AI</Text>
+              <Text style={styles.landingCopy}>Your Barangay Bagong Pag-asa assistant. Tap a question below or ask about BrgyLink anytime.</Text>
+              {renderSuggestions()}
+            </View>
+          ) : null}
           ListFooterComponent={loading ? (
             <View style={styles.typingRow}>
               <View style={styles.avatar}><Bot size={16} color="white" /></View>
@@ -103,21 +167,24 @@ const ChatBotScreen = () => {
           ) : null}
         />
 
-        {/* INPUT BAR */}
         <View style={styles.inputBar}>
           <TextInput
             style={styles.textInput}
-            placeholder="Type a message..."
+            placeholder="Ask about BrgyLink..."
             placeholderTextColor={colors.textMuted}
             value={input}
             onChangeText={setInput}
-            onSubmitEditing={sendMessage}
+            onSubmitEditing={() => sendMessage()}
             returnKeyType="send"
+            editable={!loading}
+            accessibilityLabel="Ask BrgyLink AI a question"
           />
           <TouchableOpacity
             style={[styles.sendBtn, (!input.trim() || loading) && styles.sendBtnDisabled]}
-            onPress={sendMessage}
+            onPress={() => sendMessage()}
             disabled={!input.trim() || loading}
+            accessibilityRole="button"
+            accessibilityLabel="Send message"
           >
             <Send size={18} color="white" />
           </TouchableOpacity>
@@ -129,7 +196,8 @@ const ChatBotScreen = () => {
 
 const styles = StyleSheet.create({
   root:         { flex: 1, backgroundColor: colors.background },
-  list:         { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.md },
+  chatArea:     { flex: 1 },
+  list:         { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.md, flexGrow: 1 },
   headerInfo:   { flex: 1 },
   headerSub:    { fontSize: 11, color: '#86efac', fontWeight: '600', marginTop: 1 },
 
@@ -156,6 +224,34 @@ const styles = StyleSheet.create({
 
   typingRow:    { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, maxWidth: '90%' },
   typingBubble: { paddingVertical: 12, paddingHorizontal: 16 },
+
+  landing:      { alignItems: 'center', paddingTop: spacing.xl, paddingBottom: spacing.md },
+  logoHalo: {
+    width: 98, height: 98, borderRadius: 49, backgroundColor: colors.primaryLight,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md,
+    borderWidth: 1, borderColor: '#BFDBFE',
+  },
+  logo:         { width: 76, height: 76 },
+  landingTitle: { color: colors.textPrimary, fontSize: 25, fontWeight: '800', letterSpacing: -0.5 },
+  landingCopy: {
+    color: colors.textSecondary, fontSize: 14, lineHeight: 20, textAlign: 'center',
+    marginTop: spacing.sm, maxWidth: 340,
+  },
+  suggestions:  { width: '100%', marginTop: spacing.xl, gap: spacing.lg },
+  faqSection:   { gap: spacing.sm },
+  sectionTitle: { color: colors.textSecondary, fontSize: 14, fontWeight: '700', paddingLeft: 2 },
+  faqList:      { gap: spacing.sm },
+  faqButton: {
+    minHeight: 62, paddingHorizontal: spacing.md, paddingVertical: 12, borderRadius: radius.lg,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', gap: spacing.md, ...shadow.sm,
+  },
+  faqIcon: {
+    width: 34, height: 34, borderRadius: 17, backgroundColor: colors.primaryLight,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  faqButtonDisabled: { opacity: 0.55 },
+  faqButtonText: { color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1, lineHeight: 19 },
 
   inputBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

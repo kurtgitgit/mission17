@@ -10,7 +10,7 @@ import { sendPushNotifications } from '../utils/pushNotifier.js';
 
 const router = express.Router();
 
-const BASE_CATEGORIES = ['general', 'health', 'safety', 'environment', 'events', 'services'];
+const BASE_CATEGORIES = ['general', 'health', 'safety', 'environment', 'services'];
 
 const normalizeAnnouncementData = (body = {}) => {
   const data = {};
@@ -20,8 +20,6 @@ const normalizeAnnouncementData = (body = {}) => {
   if (body.image !== undefined) data.image = body.image || null;
   if (body.isPinned !== undefined) data.isPinned = body.isPinned;
   if (body.isUrgent !== undefined) data.isUrgent = body.isUrgent;
-  if (body.relatedSdg !== undefined) data.relatedSdg = body.relatedSdg === null || body.relatedSdg === '' ? null : Number(body.relatedSdg);
-  if (body.sdgActionTitle !== undefined) data.sdgActionTitle = typeof body.sdgActionTitle === 'string' ? body.sdgActionTitle.trim() : body.sdgActionTitle;
   if (body.isActive !== undefined) data.isActive = body.isActive;
   return data;
 };
@@ -35,8 +33,6 @@ const validateAnnouncement = (data, { partial = false } = {}) => {
   }
   if (data.category !== undefined && (typeof data.category !== 'string' || data.category.length < 2 || data.category.length > 50)) return 'Category must be between 2 and 50 characters.';
   if (data.image !== undefined && data.image !== null && (typeof data.image !== 'string' || data.image.length > 2048)) return 'Cover image URL is invalid or too long.';
-  if (data.relatedSdg !== undefined && data.relatedSdg !== null && (!Number.isInteger(data.relatedSdg) || data.relatedSdg < 1 || data.relatedSdg > 17)) return 'Related SDG must be a whole number from 1 to 17.';
-  if (data.sdgActionTitle !== undefined && (typeof data.sdgActionTitle !== 'string' || data.sdgActionTitle.length > 160)) return 'SDG action title cannot exceed 160 characters.';
   for (const field of ['isPinned', 'isUrgent', 'isActive']) {
     if (data[field] !== undefined && typeof data[field] !== 'boolean') return `${field} must be true or false.`;
   }
@@ -81,7 +77,7 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
     ...data,
     postedBy: req.user?.username || 'Admin',
   });
-  const { title, body, isUrgent, relatedSdg } = announcement;
+  const { title, body, isUrgent } = announcement;
   const cleanedCat = announcement.category;
 
   // 🚀 SEND REAL-TIME PUSH NOTIFICATIONS TO ALL REGISTERED RESIDENTS
@@ -90,9 +86,9 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
       expoPushToken: { $exists: true, $ne: '' },
       pushNotificationsEnabled: { $ne: false }
     }).select('expoPushToken');
-    const notifTitle = isUrgent 
-      ? `🚨 EMERGENCY ALERT: ${title}` 
-      : (relatedSdg ? `🌱 Green Initiative (SDG ${relatedSdg}): ${title}` : `📢 Barangay Announcement: ${title}`);
+    const notifTitle = isUrgent
+      ? `🚨 EMERGENCY ALERT: ${title}`
+      : `📢 Barangay Announcement: ${title}`;
     const notifBody = isUrgent
       ? `URGENT ADVISORY: ${body.slice(0, 120)}${body.length > 120 ? '…' : ''}`
       : body.slice(0, 100);
@@ -107,8 +103,7 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
           screen: 'Announcements',
           announcementId: announcement._id.toString(),
           category: cleanedCat,
-          isUrgent: announcement.isUrgent,
-          relatedSdg: announcement.relatedSdg
+          isUrgent: announcement.isUrgent
         },
       })));
     console.log(`📲 ${result.acceptedCount} announcement notifications accepted by Expo for processing.`);
@@ -116,7 +111,7 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
     console.error("Push Notification Error:", error);
   }
 
-  logAudit(req.user._id || req.user.id, req.user.username, 'ANNOUNCEMENT_POST', `Posted: ${title} (${cleanedCat}${isUrgent ? ', URGENT' : ''}${relatedSdg ? `, SDG ${relatedSdg}` : ''})`, req);
+  logAudit(req.user._id || req.user.id, req.user.username, 'ANNOUNCEMENT_POST', `Posted: ${title} (${cleanedCat}${isUrgent ? ', URGENT' : ''})`, req);
   res.status(201).json({ message: isUrgent ? '🚨 Urgent emergency alert posted and queued for notification processing.' : 'Announcement posted successfully.', announcement });
 }));
 

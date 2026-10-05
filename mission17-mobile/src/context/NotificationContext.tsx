@@ -152,12 +152,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       newUnread.forEach((n) => {
         seenIds.current.add(n._id);
 
-        // Map backend type to toast type
-        let tType: NotificationType = 'info';
-        if (n.type === 'Mission_Approved') tType = 'success';
-        if (n.type === 'Mission_Rejected') tType = 'error';
-
-        showNotification(n.title, n.message, tType);
+        showNotification(n.title, n.message, 'info');
       });
     } catch (e) {
       // Silently fail polling

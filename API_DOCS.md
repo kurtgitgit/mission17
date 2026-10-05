@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Specification Version:** `2.0.0` • **Base URL:** `http://localhost:5001/api` • **Format:** `JSON / UTF-8`
+**Specification Version:** `2.1.0` • **Base URL:** `http://localhost:5001/api` (local) or the configured production `/api` endpoint • **Format:** `JSON / UTF-8`
 
 </div>
 
@@ -12,8 +12,6 @@
 1. [Global Conventions & Headers](#1-global-conventions--headers)
 2. [Authentication & Session Management](#2-authentication--session-management)
 3. [User & Role Administration](#3-user--role-administration)
-4. [Community Civic Programs (SDGs)](#4-community-civic-programs-sdgs)
-5. [Proof Submissions & AI Verification](#5-proof-submissions--ai-verification)
 6. [Blotter & Incident Reports (Blockchain Linked)](#6-blotter--incident-reports-blockchain-linked)
 7. [Digital Document Requests](#7-digital-document-requests)
 8. [Blockchain Sponsor Gateway](#8-blockchain-sponsor-gateway)
@@ -21,7 +19,6 @@
 10. [Announcements & Bulletin](#10-announcements--bulletin)
 11. [Community Suggestions](#11-community-suggestions)
 12. [Barangay Officials & Directory](#12-barangay-officials--directory)
-13. [Events & Civic Gatherings](#13-events--civic-gatherings)
 14. [Notifications & Broadcasts](#14-notifications--broadcasts)
 15. [File Uploads & System Health](#15-file-uploads--system-health)
 16. [Standard Error Codes](#16-standard-error-codes)
@@ -34,7 +31,7 @@
 | Header | Type | Description |
 | :--- | :--- | :--- |
 | `Content-Type` | `string` | `application/json` (or `multipart/form-data` for file uploads) |
-| `Authorization` | `string` | `Bearer <JWT_TOKEN>` (for protected citizen/admin routes) |
+| `Authorization` | `string` | `Bearer <FIREBASE_ID_TOKEN>` for protected citizen/admin routes; the backend validates the token and applies BrgyLink role/account-status authorization. |
 
 ### Standard Response Envelope
 ```json
@@ -220,72 +217,16 @@ Retrieves chronological tamper-evident security audit logs.
 
 ## 3. User & Role Administration
 
-* `GET /auth/users`: List registered citizens (Admin only).
-* `PATCH /auth/users/role/:id`: Update role (`resident`, `official`, `admin`) (SuperAdmin only).
+* `GET /auth/users`: Staff admins receive resident accounts only; the Barangay Captain (`super_admin`) receives the complete user directory.
+* `GET /auth/user-ids/:id`: Staff admins may inspect resident registration IDs; the Captain may inspect any selected account record.
+* `PATCH /auth/users/:id/account-status`: Staff admins and the Captain may approve or reject only verified, pending resident registrations. Rejections require a reason between 5 and 500 characters.
+* `POST /auth/add-user`: Captain only. Creates a resident, LGU, or staff-admin account; it cannot create another Captain.
+* `PUT /auth/admin-update-user/:id`: Captain only. Updates permitted account fields or assigns a non-Captain role.
+* `DELETE /auth/delete-user/:id`: Captain only. The Captain account and the currently signed-in Captain cannot be deleted through this route.
 
 ---
 
-## 4. Community Civic Programs (SDGs)
-
-### `GET /auth/missions`
-Retrieves all active community civic initiatives.
-
-* **Headers:** `Authorization: Bearer <TOKEN>`
-* **Success Response (`200 OK`):**
-```json
-[
-  {
-    "_id": "66bc9a00b1c2d3e4f5a6b7c8",
-    "title": "Community Tree Planting Drive",
-    "description": "Plant a native tree in designated green zones and submit photo evidence.",
-    "sdgNumber": 15,
-    "sdgCategory": "Life on Land",
-    "targetClass": "tree",
-    "deadline": "2026-12-31T23:59:59.000Z"
-  }
-]
-```
-
----
-
-## 5. Proof Submissions & AI Verification
-
-### `POST /auth/submit-mission`
-Submits photo evidence for automated AI verification.
-
-* **Request Body:**
-```json
-{
-  "userId": "66bc89f1d0a1b2c3d4e5f678",
-  "missionId": "66bc9a00b1c2d3e4f5a6b7c8",
-  "missionTitle": "Community Tree Planting Drive",
-  "image": "https://res.cloudinary.com/mission17/image/upload/v12345/proof.jpg"
-}
-```
-* **Success Response (`201 Created`):**
-```json
-{
-  "status": "success",
-  "submission": {
-    "_id": "66bc9b11c2d3e4f5a6b7c8d9",
-    "status": "pending",
-    "aiVerdict": "valid",
-    "aiConfidence": 0.942,
-    "perceptualHash": "d8e3f01b92a4c567"
-  }
-}
-```
-
----
-
-### `POST /auth/approve-mission` *(Admin Only)*
-Formally verifies a submission.
-
-* **Request Body:** `{ "submissionId": "66bc9b11c2d3e4f5a6b7c8d9" }`
-
----
-
-## 6. Blotter & Incident Reports (Blockchain Linked)
+## 4. Blotter & Incident Reports (Blockchain Linked)
 
 ### `POST /blotter-reports/submit`
 Submits an official incident/blotter report.
@@ -365,7 +306,7 @@ Backend proxy that executes a gasless smart contract transaction on behalf of an
 ## 9. Multilingual AI Chatbot
 
 ### `POST /chatbot/message`
-Sends a user query to the Groq-accelerated LLaMA 3 engine.
+Sends a resident question to the BrgyLink AI guidance service.
 
 * **Request Body:**
 ```json
@@ -398,12 +339,7 @@ Sends a user query to the Groq-accelerated LLaMA 3 engine.
 
 ---
 
-## 13. Events & Calendar
-* `GET /auth/events`: List community assemblies and cleanup schedules.
-
----
-
-## 14. Notifications & Broadcasts
+## 12. Notifications & Broadcasts
 * `GET /auth/notifications`: Fetch user-specific alerts.
 * `PATCH /auth/notifications/:id/read`: Mark alert as read.
 

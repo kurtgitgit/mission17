@@ -3,9 +3,8 @@ import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Image, ScrollView, Platform, SafeAreaView, StatusBar, Linking
 } from 'react-native';
-import { BookOpen, MapPin, Phone, Clock, ChevronRight, Leaf, Globe } from 'lucide-react-native';
+import { BookOpen, MapPin, Phone, Clock, ChevronRight, Globe } from 'lucide-react-native';
 import { SDG_IMAGES, SDG_DATA } from '../data/SDGData';
-import { useNavigation } from '@react-navigation/native';
 import { useTheme } from '../context/ThemeContext';
 
 const BARANGAY_PROGRAMS = [
@@ -22,7 +21,6 @@ const LearningScreen: React.FC = () => {
   const styles = getStyles(theme);
   const [activeTab, setActiveTab] = useState<'sdg' | 'about'>('sdg');
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const navigation = useNavigation<any>();
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
@@ -60,19 +58,6 @@ const LearningScreen: React.FC = () => {
                 <Text style={styles.sdgHelpText}>{h}</Text>
               </View>
             ))}
-            <TouchableOpacity
-              style={[styles.joinBtn, { backgroundColor: item.color }]}
-              onPress={() => {
-                navigation.navigate('MissionsTab', {
-                  screen: 'Missions',
-                  params: { selectedSDG: item.id }
-                });
-              }}
-            >
-              <Leaf size={14} color="white" />
-              <Text style={styles.joinBtnText}>📸 Log an SDG {item.id} Action →</Text>
-            </TouchableOpacity>
-
           </View>
         )}
       </TouchableOpacity>

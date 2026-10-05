@@ -4,7 +4,6 @@ import {
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
   RefreshControl, Image, Dimensions
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { Megaphone, Pin, Calendar, Building, Globe, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { endpoints } from '../config/api';
 import { useTheme } from '../context/ThemeContext';
@@ -14,14 +13,13 @@ import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
-const BASE_CATS = ['general', 'health', 'safety', 'environment', 'events', 'services'];
+const BASE_CATS = ['general', 'health', 'safety', 'environment', 'services'];
 
 const CAT_LABELS: Record<string, string> = {
   general: 'General',
   health: 'Health & Wellness',
   safety: 'Public Safety',
   environment: 'Environment',
-  events: 'Community Events',
   services: 'Public Services',
   urgent: 'Emergency Alert',
 };
@@ -31,7 +29,6 @@ const CAT_COLORS: Record<string, string> = {
   health: '#0891B2',
   safety: '#DC2626',
   environment: '#16A34A',
-  events: '#7C3AED',
   services: '#B45309',
   urgent: '#DC2626',
 };
@@ -61,7 +58,6 @@ const timeAgo = (dateStr: string) => {
 
 const PostCard = React.memo(({ item }: { item: any }) => {
   const [expanded, setExpanded] = useState(false);
-  const navigation = useNavigation<any>();
   const catColor = getCategoryColor(item.category);
   const catLabel = getCategoryLabel(item.category);
 
@@ -100,18 +96,12 @@ const PostCard = React.memo(({ item }: { item: any }) => {
         )}
       </View>
 
-      {/* CATEGORY PILL & SDG BADGE */}
+      {/* CATEGORY PILL */}
       <View style={styles.catTagRow}>
         <View style={[styles.catTag, { backgroundColor: item.isUrgent ? '#FEE2E2' : '#F1F5F9', borderColor: item.isUrgent ? '#FCA5A5' : '#E2E8F0' }]}>
           <View style={[styles.catDot, { backgroundColor: item.isUrgent ? '#DC2626' : catColor }]} />
           <Text style={[styles.catTagText, { color: item.isUrgent ? '#991B1B' : '#334155' }]}>{catLabel}</Text>
         </View>
-        {item.relatedSdg ? (
-          <View style={[styles.catTag, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC' }]}>
-            <Text style={{ fontSize: 11 }}>🌱</Text>
-            <Text style={[styles.catTagText, { color: '#166534', fontWeight: '800' }]}>SDG {item.relatedSdg} Initiative</Text>
-          </View>
-        ) : null}
       </View>
 
       {/* BODY */}
@@ -122,42 +112,6 @@ const PostCard = React.memo(({ item }: { item: any }) => {
           <Text style={styles.seeMoreText}>{expanded ? 'Show less' : 'Read full announcement →'}</Text>
         </TouchableOpacity>
       )}
-
-      {/* 🌿 LINKED SDG ACTION INVITATION CARD */}
-      {item.relatedSdg ? (
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#F0FDF4',
-            borderRadius: 12,
-            padding: 12,
-            marginTop: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderWidth: 1.5,
-            borderColor: '#86EFAC'
-          }}
-          onPress={() => navigation.navigate('Missions', { selectedSDG: item.relatedSdg })}
-          activeOpacity={0.8}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: '#DCFCE7', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 18 }}>🌱</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>
-                Join Green Action (SDG {item.relatedSdg})
-              </Text>
-              <Text style={{ fontSize: 11, color: '#15803D', marginTop: 1 }}>
-                Participate in this community program.
-              </Text>
-            </View>
-          </View>
-          <View style={{ backgroundColor: '#16a34a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: '#ffffff' }}>Log Proof →</Text>
-          </View>
-        </TouchableOpacity>
-      ) : null}
 
       {/* IMAGE (IF PRESENT) */}
       {item.image ? (

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Document Version:** `2.0.0` • **Target Environments:** Cloud PaaS, Docker, Mobile EAS, Ethereum Sepolia
+**Document Version:** `2.1.0` • **Target Environments:** Linux VPS, Vercel, Expo EAS, Hugging Face
 
 </div>
 
@@ -12,7 +12,7 @@
 
 - [x] All `.env` production secrets generated (JWT secret $\ge 64$ characters, strong MongoDB passwords).
 - [x] MongoDB Atlas Network Access configured (IP Whitelisting or VPC Peering).
-- [x] Nodemailer Google App Password tested for MFA OTP delivery.
+- [x] Gmail API OAuth credentials configured for signup email verification (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`, `EMAIL_USER`).
 - [x] AI Microservice container running on Hugging Face Spaces with active HTTPS endpoint.
 - [x] Ethereum Sepolia Sponsor Wallet funded with testnet ETH and smart contract deployed.
 - [x] Expo EAS Application Service configured with production OTA update channels.
@@ -33,9 +33,13 @@
    PORT=5001
    MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/mission17?retryWrites=true&w=majority
    JWT_SECRET=your_production_64_char_hex_secret
-   EMAIL_USER=mission17.security@gmail.com
-   EMAIL_PASS=your_16_char_google_app_password
-   GROQ_API_KEY=gsk_your_groq_api_key
+   FIREBASE_WEB_API_KEY=your_firebase_web_api_key
+   EMAIL_USER=your_gmail_sender@gmail.com
+   GOOGLE_CLIENT_ID=your_google_oauth_client_id
+   GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+   GOOGLE_REFRESH_TOKEN=your_google_oauth_refresh_token
+   AI_SERVER_URL=https://<your-hugging-face-space>.hf.space/predict
+   AI_SERVICE_TOKEN=<shared-ai-service-token>
    SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your_key
    ADMIN_PRIVATE_KEY=0x_your_sponsor_wallet_private_key
    CONTRACT_ADDRESS=0x_deployed_contract_address
@@ -47,14 +51,18 @@
 
 ### Option B: Linux VPS with PM2 Process Manager
 ```bash
-cd /var/www/mission17/mission17-backend
+cd ~/mission17/mission17-backend
 npm install --production
-# Run security audit
 npm audit --production
-# Launch via PM2 clustering
-pm2 start index.js --name "mission17-api" -i max
+# Restart the existing production process; do not create a duplicate process.
+pm2 restart brgylink-backend --update-env
 pm2 save
-pm2 startup
+```
+
+Verify both health checks after PM2 has finished starting:
+```bash
+curl -fsS http://127.0.0.1:5001/api/health
+curl -fsS https://brgylink-api.duckdns.org/api/health
 ```
 
 ---
@@ -70,7 +78,7 @@ pm2 startup
 
 ## 🤖 3. AI Service Deployment (Hugging Face Spaces)
 
-The Python/TensorFlow computer vision engine is containerized for zero-maintenance cloud hosting:
+The Python BrgyLink AI chatbot service is containerized for zero-maintenance cloud hosting:
 
 1. Create a new Space on [Hugging Face](https://huggingface.co/spaces) with SDK: **Docker**.
 2. Push the contents of `mission17-ai/` to the Space repository.
@@ -106,20 +114,20 @@ The Python/TensorFlow computer vision engine is containerized for zero-maintenan
 
 ## 📱 5. Mobile App Deployment (Expo EAS & OTA Updates)
 
-### A. Over-The-Air (OTA) Instant Updates (Recommended)
-As per project rules, publish code changes immediately without requiring residents to reinstall the APK:
+### A. Over-The-Air (OTA) JavaScript Updates
+Use OTA only for JavaScript/assets compatible with the installed runtime version. Deploy dependent backend routes before publishing an OTA that calls them:
 ```bash
 cd mission17-mobile
 npx eas update --branch production --message "feat: Update UI styling and notifications"
 ```
 
-### B. Building Standalone Android APK
+### B. Building a Direct-Install Android APK
 ```bash
 cd mission17-mobile
-# Build preview/standalone APK via Expo Cloud
-npx eas build --platform android --profile preview
+# Build the direct-install artifact using the configured APK profile.
+npx eas build --platform android --profile apk
 ```
-Download the resulting `.apk` artifact and place it into `mission17-website/public/BrgyLink.apk` for permanent public hosting.
+The currently hosted artifact is **BrgyLink 1.0.3 (Android versionCode 5)**. For each native build, replace `mission17-website/public/BrgyLink.apk`, commit the artifact, and deploy the public website. An OTA does not replace the downloadable APK.
 
 ---
 
@@ -140,6 +148,6 @@ node initialize-proxy.js
 | :--- | :--- | :--- |
 | **Backend API** | `GET https://your-api.com/api/health` | `{"status": "OK"}` |
 | **AI Engine** | `GET https://your-space.hf.space/` | `{"status": "AI Server Online"}` |
-| **Admin Portal** | Navigate to `https://admin.brgylink.gov.ph` | Loads login with MFA modal |
-| **Public Website** | Navigate to `https://brgylink.gov.ph` | Loads homepage with direct APK download |
+| **Admin Portal** | Open the configured production admin URL | Loads the authorized staff login flow |
+| **Public Website** | Open the configured production public-website URL | Loads homepage with direct APK download |
 | **Blockchain** | Query contract address on `sepolia.etherscan.io` | Verified proxy contract state |

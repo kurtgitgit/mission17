@@ -2,7 +2,7 @@
 
 <div align="center">
 
-**Document Version:** `2.0.0` • **Coverage:** Mobile, Web Admin, Public Portal, Node API, AI Service, Blockchain, SMTP
+**Document Version:** `2.1.0` • **Coverage:** Mobile, Web Admin, Public Portal, Node API, AI Service, Blockchain, Gmail API
 
 </div>
 
@@ -13,7 +13,7 @@
 | Symptom / Error | Probable Root Cause | Step-by-Step Resolution |
 | :--- | :--- | :--- |
 | **"Network Error" or `ECONNREFUSED` on mobile** | Mobile app is pointing to `localhost` instead of local IP address on LAN. | 1. Run `node check-ips.js` or `ipconfig` to find your machine's Wi-Fi IP.<br/>2. Run `node sync-ip.js` to update API endpoints across mobile services.<br/>3. Ensure phone and computer are on the same Wi-Fi network. |
-| **"EAS Update failed to load"** | Mismatched runtime version or offline device. | 1. Verify `runtimeVersion` in `app.json`.<br/>2. Run `npx eas update --branch production` to publish fresh assets. |
+| **"EAS Update failed to load"** | Mismatched runtime version or offline device. | 1. Verify `runtimeVersion` in `app.json`.<br/>2. Publish only a runtime-compatible update to the production channel.<br/>3. For native dependency/configuration changes, build and install a new APK instead. |
 | **Camera / Photo Picker Crashing** | Missing Android permissions. | 1. Verify `CAMERA` and `READ_MEDIA_IMAGES` permissions in `app.json`.<br/>2. In mobile Settings, grant storage/camera permissions to Expo Go. |
 
 ---
@@ -46,12 +46,12 @@
 
 ---
 
-## 🤖 5. AI Proof Verification Server (Python / TensorFlow)
+## 🤖 5. BrgyLink AI Chatbot Service (Python / Hugging Face)
 
 | Symptom / Error | Probable Root Cause | Step-by-Step Resolution |
 | :--- | :--- | :--- |
-| **`503 Service Unavailable` on Hugging Face** | Space entered sleep state due to inactivity. | 1. Send a warmup `GET` request to wake the container.<br/>2. Check container build logs on Hugging Face Spaces dashboard. |
-| **`TypeError: cannot unpack non-iterable NoneType object`** | Corrupted or unsupported image file uploaded. | 1. Validate image format (`.jpg`, `.png`, `.webp`).<br/>2. Ensure file size does not exceed 5MB. |
+| **`503 Service Unavailable` on Hugging Face** | Space entered sleep state due to inactivity. | 1. Retry after a short wait to wake the Space.<br/>2. Check the Hugging Face Space build logs and the backend `CHATBOT_AI_URL` / `AI_SERVER_URL` setting. |
+| **Chatbot returns its safe fallback reply** | The AI service URL is unavailable, returns an error, or the question is outside the verified knowledge base. | 1. Check the backend PM2 logs for `Chatbot AI gateway error`.<br/>2. Confirm the Space endpoint and service token.<br/>3. Keep official details in the approved knowledge base or direct the resident to the barangay office. |
 
 ---
 
@@ -64,9 +64,10 @@
 
 ---
 
-## 📧 7. Email & MFA OTP Dispatch (Nodemailer)
+## 📧 7. Signup Email Verification (Gmail API OAuth)
 
 | Symptom / Error | Probable Root Cause | Step-by-Step Resolution |
 | :--- | :--- | :--- |
-| **`Invalid login: 535-5.7.8 Username and Password not accepted`** | Incorrect Google App Password or 2FA not enabled on Gmail. | 1. Generate a new 16-character **App Password** in Google Account security settings.<br/>2. Paste into `EMAIL_PASS` in `.env` without spaces. |
-| **OTP not arriving in inbox** | Spam filter delay or SMTP throttling. | 1. Check Spam/Junk folder.<br/>2. For local testing, check backend console logs for the `🔐 DEBUG OTP: xxxxxx` output. |
+| **Gmail API authorization fails** | OAuth consent or refresh token is invalid, expired, or revoked. | 1. Verify `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REFRESH_TOKEN` in the backend `.env`.<br/>2. Re-authorize the sender account to obtain a replacement refresh token when required.<br/>3. Restart `brgylink-backend` with `--update-env`. |
+| **Verification code not arriving** | Recipient delay, recipient filtering, or Spam/Junk classification. | 1. Ask the resident to check Inbox, Spam, Junk, Promotions, and search for `BrgyLink`.<br/>2. Use the resend timer; do not repeatedly request codes.<br/>3. Inspect `pm2 logs brgylink-backend --lines 100 --nostream` for the send result. |
+| **Code rejected** | Code expired, was replaced by a newer resend, or was entered incorrectly. | Return to the verification screen, request one new code after the timer, then enter only the latest 6-digit code. |

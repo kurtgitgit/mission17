@@ -9,14 +9,20 @@
 ---
 
 ## 📌 Overview
-The `mission17-mobile` client is a cross-platform (Android & iOS) mobile application designed for the residents of Barangay Bagong Pag-asa. It delivers instant mobile access to local government e-services (Blotter incident reports, Document clearances, Announcements, Suggestion box) and enables residents to submit verified proof for community environmental programs.
+The `mission17-mobile` client is a cross-platform (Android & iOS) mobile application designed for the residents of Barangay Bagong Pag-asa. It delivers mobile access to document requests, blotter incident reports, announcements, citizen feedback, and BrgyLink AI guidance.
+
+## Current onboarding and release
+
+Signup sends a 6-digit Gmail API verification code immediately after Step 1. Step 2 collects the resident profile (including age 15+, Purok 1–7, and street/address); Step 3 collects the preferred ID type, clear front/back ID images, password, and legal consent. Firebase Authentication retains password credentials while the BrgyLink API retains the resident profile and approval status.
+
+The current direct-install Android release is **1.0.3 (versionCode 5)**. OTA updates only apply to runtime-compatible JavaScript/assets; use a new APK for native configuration or dependency changes.
 
 ---
 
 ## ✨ Features
 * **🏛️ Digital Clearances**: Request Barangay Clearances and Certificates of Indigency with live status updates.
 * **📝 Incident Blotter**: File geotagged blotter reports with photo evidence.
-* **📸 AI Proof Camera**: Capture and submit photo proof for community programs (Tree planting, waste segregation) for instant AI validation.
+* **🤖 BrgyLink AI**: Suggested FAQ prompts and typed guidance for resident services, account recovery, and announcements.
 * **🤖 Multilingual Assistant**: 24/7 AI chatbot fluent in English, Tagalog, Pangasinan, and Ilocano.
 * **📢 Community Announcements**: Receive real-time push advisories and community bulletin updates.
 

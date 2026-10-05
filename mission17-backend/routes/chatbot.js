@@ -64,7 +64,7 @@ export const guardModelReply = (message, reply) => (
 );
 
 export const isInScope = (message) => (
-  /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|mission\s*17|brgylink|document|clearance|certificate|request|blotter|report|complaint|announcement|official|civic|service|permit|resident|verification|otp|profile|account|notification|sdg|mission|event|government|public\s+service|pamahalaan|gobyerno|serbisyo|tulong|kasapulan|dokument|agkiddaw)\b/i.test(message)
+  /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|brgylink|document|clearance|certificate|request|blotter|report|complaint|announcement|official|service|permit|resident|verification|otp|profile|account|notification|government|public\s+service|pamahalaan|gobyerno|serbisyo|tulong|kasapulan|dokument|agkiddaw)\b/i.test(message)
   || /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)\b/i.test(message)
   || LANGUAGE_TOPIC_PATTERN.test(message)
 );

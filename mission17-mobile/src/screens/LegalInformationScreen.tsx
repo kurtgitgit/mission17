@@ -16,7 +16,7 @@ const LegalInformationScreen = ({ navigation, route }: any) => {
   const openTermsFirst = route?.params?.section === 'terms';
   const privacySection = (
     <Section icon={ShieldCheck} title="Privacy Notice">
-      <Text style={styles.body}>BrgyLink may process your account and profile details, valid-ID uploads, document requests, reports, mission proof, feedback, notification token, and security records to operate requested services and allow authorized review.</Text>
+      <Text style={styles.body}>BrgyLink may process your account and profile details, valid-ID uploads, document requests, reports, feedback, notification token, and security records to operate requested services and allow authorized review.</Text>
       <Text style={styles.filipino}>Filipino: Ginagamit ang iyong impormasyon para sa account, serbisyo, pagsusuri ng request, at seguridad. Ang opisyal na privacy contact at retention period ay kailangan pang italaga.</Text>
     </Section>
   );
@@ -38,7 +38,7 @@ const LegalInformationScreen = ({ navigation, route }: any) => {
         {openTermsFirst ? termsSection : privacySection}
         {openTermsFirst ? privacySection : termsSection}
         <Section icon={Bot} title="AI disclosure">
-          <Text style={styles.body}>The chatbot and image verification are advisory tools only. They do not automatically approve or reject an account, mission proof, document, or report. Ask the Barangay Bagong Pag-asa Office when verified details are needed.</Text>
+          <Text style={styles.body}>The chatbot is an advisory tool only. It does not automatically approve or reject an account, document, or report. Ask the Barangay Bagong Pag-asa Office when verified details are needed.</Text>
           <Text style={styles.filipino}>Filipino: Pantulong lamang ang AI; hindi ito ang gumagawa ng huling desisyon.</Text>
         </Section>
         <Section icon={Camera} title="Camera permission">

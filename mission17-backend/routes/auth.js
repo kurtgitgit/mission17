@@ -11,7 +11,7 @@
  *  PUT  /change-password — Change own password
  *  GET  /audit-logs      — Admin: view audit trail
  *
- * All other domains (submissions, missions, events, users)
+ * All other domains (documents, blotter reports, feedback, users)
  * are handled in their own route files.
  */
 

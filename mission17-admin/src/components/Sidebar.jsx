@@ -14,7 +14,6 @@ import {
   ShieldAlert, 
   ChevronDown,
   Layers,
-  Folder,
   Briefcase
 } from 'lucide-react';
 import '../styles/Sidebar.css';
@@ -46,8 +45,8 @@ const MENU_GROUPS = [
   },
   {
     id: 'community',
-    label: 'Community & Civic',
-    icon: Folder,
+    label: 'Barangay Directory',
+    icon: UserCheck,
     items: [
       { to: '/officials', label: 'Barangay Council', icon: UserCheck },
     ]

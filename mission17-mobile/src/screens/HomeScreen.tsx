@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import {
   Bell, CheckCircle, Clock, FileText,
-  Phone, MapPin, ChevronRight, Megaphone,
+  Phone, ChevronRight, Megaphone,
   UserCheck, Shield, MessageSquare, Bot, Users, Lightbulb,
   ShieldAlert, Flame, PhoneCall, ArrowRight, HeartPulse, Building2
 } from 'lucide-react-native';
@@ -114,8 +114,6 @@ const HomeScreen: React.FC = () => {
   const [fullName, setFullName]           = useState('Resident');
   const [refreshing, setRefreshing]       = useState(false);
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  // Events are retired; retain no event data or network request in the home screen.
-  const events: any[] = [];
   const [hasUnread, setHasUnread]         = useState(false);
   const [loadError, setLoadError]         = useState<string | null>(null);
 
@@ -233,6 +231,10 @@ const HomeScreen: React.FC = () => {
             <View style={{ flex: 1 }}>
               <Text style={styles.welcomeGreet}>{getGreeting()},</Text>
               <Text style={styles.welcomeName} numberOfLines={1}>{fullName}</Text>
+              <View style={styles.homeVerifiedBadge}>
+                <CheckCircle size={12} color="#BBF7D0" />
+                <Text style={styles.homeVerifiedText}>Verified citizen</Text>
+              </View>
             </View>
           </View>
         </LinearGradient>
@@ -245,33 +247,6 @@ const HomeScreen: React.FC = () => {
             onRetry={fetchAll}
           />
         ) : null}
-
-        {/* ══════════ CITIZEN ID & STATS CARD ══════════ */}
-        <View style={styles.statsStrip}>
-          <View style={styles.idHeader}>
-            <View style={styles.verifiedBadge}>
-              <CheckCircle size={13} color="#047857" />
-              <Text style={styles.verifiedBadgeText}>VERIFIED CITIZEN</Text>
-            </View>
-            <Text style={styles.idHeaderText}>CITIZEN SERVICES</Text>
-          </View>
-          <View style={styles.idBody}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNum}>24/7</Text>
-              <Text style={styles.statLbl}>Online Access</Text>
-            </View>
-            <View style={styles.statDiv} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#047857' }]}>Secure</Text>
-              <Text style={styles.statLbl}>Requests</Text>
-            </View>
-            <View style={styles.statDiv} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#B45309' }]}>Live</Text>
-              <Text style={styles.statLbl}>Updates</Text>
-            </View>
-          </View>
-        </View>
 
         {GlobalState.role === 'super_admin' && (
           <View style={styles.section}>
@@ -371,54 +346,6 @@ const HomeScreen: React.FC = () => {
             ))
           )}
         </View>
-
-        {/* ══════════ UPCOMING EVENTS ══════════ */}
-        {events.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>Upcoming Activities</Text>
-                <Text style={styles.sectionSub}>Community events schedule</Text>
-              </View>
-              <TouchableOpacity 
-                onPress={() => navigation.navigate('MissionsTab', { initialTab: 'events' })}
-                accessibilityRole="button"
-                accessibilityLabel="See all events"
-              >
-                <Text style={styles.seeAll}>See all →</Text>
-              </TouchableOpacity>
-            </View>
-
-            {events.map(ev => {
-              const d = new Date(ev.date);
-              const mon = d.toLocaleString('en-PH', { month: 'short' });
-              const day = d.getDate();
-              return (
-                <TouchableOpacity
-                  key={ev._id}
-                  style={styles.evtRow}
-                  onPress={() => navigation.navigate('EventDetail', { event: ev, userId })}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Event: ${ev.title}`}
-                >
-                  <View style={[styles.evtDate, { backgroundColor: ev.color || '#0F2942' }]}>
-                    <Text style={styles.evtMon}>{mon}</Text>
-                    <Text style={styles.evtDay}>{day}</Text>
-                  </View>
-                  <View style={styles.evtInfo}>
-                    <Text style={styles.evtTitle} numberOfLines={1}>{ev.title}</Text>
-                    <View style={styles.evtLocRow}>
-                      <MapPin size={12} color="#64748B" />
-                      <Text style={styles.evtLoc} numberOfLines={1}>{ev.location || 'Barangay Hall'}</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={16} color="#94A3B8" />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        )}
 
         {/* ══════════ EMERGENCY HOTLINES ══════════ */}
         <View style={styles.section}>
@@ -539,48 +466,12 @@ const getStyles = (theme: any) => StyleSheet.create({
   avatarInitial: { fontSize: 20, fontWeight: '900', color: '#FFFFFF' },
   welcomeGreet:  { fontSize: 13, color: '#93C5FD', fontWeight: '600' },
   welcomeName:   { fontSize: 19, fontWeight: '800', color: '#FFFFFF', marginTop: 1, letterSpacing: -0.2 },
-
-  // STATS STRIP
-  statsStrip: {
-    marginHorizontal: 16,
-    marginTop: -16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  homeVerifiedBadge: {
+    alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 4,
+    marginTop: 5, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 999,
+    backgroundColor: 'rgba(22, 163, 74, 0.22)', borderWidth: 1, borderColor: 'rgba(187, 247, 208, 0.5)',
   },
-  idHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 14, 
-    paddingVertical: 10, 
-    alignItems: 'center', 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#F1F5F9' 
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#ECFDF5',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  verifiedBadgeText: { fontSize: 10, fontWeight: '800', color: '#047857', letterSpacing: 0.5 },
-  idHeaderText: { fontSize: 10, fontWeight: '800', color: '#64748B', letterSpacing: 0.8 },
-  idBody: { flexDirection: 'row', paddingVertical: 12 },
-  statItem: { flex: 1, alignItems: 'center', gap: 2 },
-  statNum:  { fontSize: 19, fontWeight: '800', color: '#0F172A' },
-  statLbl:  { fontSize: 11, color: '#64748B', fontWeight: '600' },
-  statDiv:  { width: 1, backgroundColor: '#E2E8F0', alignSelf: 'stretch', marginVertical: 2 },
+  homeVerifiedText: { color: '#DCFCE7', fontSize: 10.5, fontWeight: '800', letterSpacing: 0.2 },
 
   // SECTIONS
   section: { paddingHorizontal: 16, marginTop: 20 },

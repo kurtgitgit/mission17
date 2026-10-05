@@ -16,7 +16,6 @@ const DashboardHome = () => {
     newFeedback: 0,
     activeAlerts: 0,
     totalResidents: 0,
-    pendingMissions: 0,
   });
 
   const [pendingDocsList, setPendingDocsList] = useState([]);
@@ -56,7 +55,6 @@ const DashboardHome = () => {
         newFeedback: feedbackStats.pending || feedbackStats.total || 0,
         activeAlerts: urgentAlerts.length,
         totalResidents: Array.isArray(users) ? users.length : (summary.stats?.volunteers || 0),
-        pendingMissions: 0
       });
 
 
@@ -70,15 +68,6 @@ const DashboardHome = () => {
       setLoading(false);
     }
   };
-
-  const [sdgSummary, setSdgSummary] = useState({
-    totalVerifiedActions: 0,
-    activeParticipants: 0,
-    treePlantingCount: 0,
-    wasteRecyclingCount: 0,
-    cleanUpCount: 0,
-    topSdgBreakdown: []
-  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -200,53 +189,6 @@ const DashboardHome = () => {
           </Link>
 
         </div>
-
-        {/* ── 🌿 HIGH-LEVEL SDG COMMUNITY IMPACT COUNTER ── */}
-        <div hidden style={{ background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', borderRadius: 16, padding: '20px 24px', color: '#ffffff', marginBottom: '24px', boxShadow: '0 4px 12px rgba(6, 78, 59, 0.15)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 20 }}>🌿</span>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900, color: '#ffffff' }}>
-                  Community SDG & Sustainability Impact Counter
-                </h3>
-              </div>
-              <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#a7f3d0' }}>
-                Real-time tracking of resident-led green initiatives & United Nations Sustainable Development Goals.
-              </p>
-            </div>
-            <Link to="/analytics" style={{ background: 'rgba(255, 255, 255, 0.18)', color: '#ffffff', textDecoration: 'none', padding: '6px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 800, border: '1px solid rgba(255,255,255,0.3)' }}>
-              View SDG Analytics →
-            </Link>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: 12, padding: '12px 16px', backdropFilter: 'blur(4px)' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Verified Eco Actions</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{sdgSummary.totalVerifiedActions}</div>
-              <div style={{ fontSize: 11.5, color: '#d1fae5', marginTop: 2 }}>Resident submissions</div>
-            </div>
-
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: 12, padding: '12px 16px', backdropFilter: 'blur(4px)' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trees Planted / Greens</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{sdgSummary.treePlantingCount} 🌲</div>
-              <div style={{ fontSize: 11.5, color: '#d1fae5', marginTop: 2 }}>SDG 15 Life on Land</div>
-            </div>
-
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: 12, padding: '12px 16px', backdropFilter: 'blur(4px)' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Waste & Recycling</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{sdgSummary.wasteRecyclingCount} ♻️</div>
-              <div style={{ fontSize: 11.5, color: '#d1fae5', marginTop: 2 }}>SDG 12 Responsible Consumption</div>
-            </div>
-
-            <div style={{ background: 'rgba(255, 255, 255, 0.12)', borderRadius: 12, padding: '12px 16px', backdropFilter: 'blur(4px)' }}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#6ee7b7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Eco-Volunteers</div>
-              <div style={{ fontSize: 24, fontWeight: 900, marginTop: 4 }}>{sdgSummary.activeParticipants} 👥</div>
-              <div style={{ fontSize: 11.5, color: '#d1fae5', marginTop: 2 }}>Registered resident champions</div>
-            </div>
-          </div>
-        </div>
-
 
         {/* ── DAILY ACTION QUEUE (SPLIT VIEW) ── */}
         <div className="daily-action-grid">

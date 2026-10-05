@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="tl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="BrgyLink resident quick guide for Barangay Bagong Pag-asa.">
+  <title>BrgyLink Resident Quick Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --ink:#10234d; --blue:#0c4db5; --blue-dark:#073986; --sky:#edf5ff; --line:#dce5f2; --muted:#5c6b82; --paper:#fff; --green:#13735a; --amber:#a45a00; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; overflow-x:hidden; color:var(--ink); background:#f5f8fc; font-family:"DM Sans",Arial,sans-serif; line-height:1.55; }
+    a { color:inherit; }
+    .wrap { width:min(1120px,calc(100% - 40px)); margin:0 auto; }
+    .topbar { background:var(--paper); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:5; }
+    .nav { height:72px; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+    .brand { display:flex; align-items:center; gap:11px; font-weight:800; text-decoration:none; }
+    .brand img { width:38px; height:38px; border-radius:10px; object-fit:contain; }
+    .nav-links { display:flex; gap:21px; align-items:center; font-size:14px; font-weight:600; color:#4b5c74; }
+    .nav-links a { text-decoration:none; }
+    .nav-links a:hover { color:var(--blue); }
+    .hero { background:linear-gradient(118deg,#092961 0%,#0b4daf 58%,#0a66d0 100%); color:#fff; overflow:hidden; }
+    .hero-grid { min-height:392px; display:grid; grid-template-columns:1.2fr .8fr; align-items:center; gap:48px; padding:56px 0; }
+    .eyebrow { display:flex; gap:8px; align-items:center; letter-spacing:.08em; text-transform:uppercase; font-size:12px; font-weight:700; color:#bcd9ff; }
+    .eyebrow::before { content:""; width:28px; height:2px; background:#74b8ff; }
+    h1,h2,h3 { font-family:Manrope,Arial,sans-serif; margin:0; letter-spacing:-.035em; }
+    h1 { font-size:clamp(36px,5vw,58px); line-height:1.03; margin:14px 0 18px; max-width:650px; }
+    .hero p { max-width:600px; margin:0; color:#d9e9ff; font-size:18px; }
+    .hero-note { margin-top:27px; font-size:14px; color:#bcd9ff; }
+    .hero-visual { position:relative; min-height:250px; display:grid; place-items:center; }
+    .hero-visual::before { content:""; position:absolute; width:280px; height:280px; border:1px solid rgba(255,255,255,.21); border-radius:50%; }
+    .hero-visual::after { content:""; position:absolute; width:182px; height:182px; background:rgba(255,255,255,.08); border-radius:50%; }
+    .hero-logo { position:relative; z-index:1; width:152px; height:152px; padding:20px; border-radius:32px; background:#fff; box-shadow:0 18px 45px rgba(0,0,0,.25); object-fit:contain; }
+    main { padding:72px 0 90px; }
+    section { scroll-margin-top:92px; margin-bottom:84px; }
+    .section-head { display:grid; grid-template-columns:180px 1fr; gap:32px; align-items:start; margin-bottom:28px; }
+    .section-kicker { color:var(--blue); letter-spacing:.09em; text-transform:uppercase; font-size:12px; font-weight:800; padding-top:7px; }
+    h2 { font-size:clamp(28px,4vw,42px); line-height:1.12; }
+    .lead { margin:12px 0 0; color:var(--muted); max-width:685px; font-size:17px; }
+    .steps { display:grid; grid-template-columns:repeat(4,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .step { min-height:190px; padding:24px 22px; border-left:1px solid var(--line); background:#fff; }
+    .step:last-child { border-right:1px solid var(--line); }
+    .step-no { font:700 13px Manrope,sans-serif; color:var(--blue); }
+    .step h3 { font-size:18px; margin:36px 0 8px; }
+    .step p { margin:0; color:var(--muted); font-size:14px; }
+    .cards { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; }
+    .card { background:var(--paper); border:1px solid var(--line); border-radius:16px; padding:28px; }
+    .card-number { color:var(--blue); font-size:13px; letter-spacing:.08em; font-weight:800; }
+    .card h3 { font-size:25px; margin:10px 0 11px; }
+    .card p { color:var(--muted); margin:0 0 17px; }
+    .card ol { margin:0; padding-left:20px; color:#30415f; }
+    .card li { margin:8px 0; padding-left:3px; }
+    .workflow { display:grid; grid-template-columns:1fr auto 1fr auto 1fr auto 1fr; align-items:center; gap:12px; }
+    .status { background:var(--paper); border:1px solid var(--line); border-radius:13px; padding:20px 14px; text-align:center; font-weight:700; font-size:14px; }
+    .status small { display:block; margin-top:4px; font-size:12px; color:var(--muted); font-weight:500; }
+    .arrow { color:#8ba2c5; font-size:24px; }
+    .status.ready { border-color:#a8ddcd; background:#f1fcf7; color:var(--green); }
+    .status.done { border-color:#cbd5e1; background:#f8fafc; }
+    .split { display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:center; }
+    .phone-shot { overflow:hidden; border-radius:23px; border:1px solid var(--line); box-shadow:0 15px 35px rgba(18,45,90,.12); background:#fff; }
+    .phone-shot img { width:100%; max-height:520px; display:block; object-fit:cover; object-position:top; }
+    .caption { color:var(--muted); font-size:13px; margin-top:9px; }
+    .checklist { list-style:none; padding:0; margin:0; display:grid; gap:13px; }
+    .checklist li { display:grid; grid-template-columns:24px minmax(0,1fr); gap:10px; align-items:start; color:#30415f; }
+    .checklist li::before { content:""; width:17px; height:17px; margin-top:3px; border:2px solid #4b8fe9; border-radius:50%; box-shadow:inset 0 0 0 3px #fff; background:#4b8fe9; }
+    .assistant-panel { background:#eef5ff; border:1px solid #cedff8; border-radius:20px; padding:34px; }
+    .assistant-panel h3 { font-size:28px; margin:8px 0 10px; }
+    .assistant-panel p { color:var(--muted); max-width:700px; margin:0; }
+    .faq-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:24px; }
+    .faq { border:1px solid #c7dbfa; background:#fff; padding:15px 16px; border-radius:10px; color:#24457c; font-size:14px; font-weight:600; }
+    .notice { margin-top:22px; padding:15px 16px; border-left:3px solid var(--amber); background:#fffaf2; color:#78500d; font-size:14px; }
+    .help-grid { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; }
+    .help-card { padding:28px; border-radius:16px; background:#fff; border:1px solid var(--line); }
+    .help-card h3 { font-size:22px; margin-bottom:9px; }
+    .help-card p { color:var(--muted); margin:0; }
+    .emergency { background:#fff5f5; border-color:#f3cbcb; }
+    .emergency strong { color:#a52828; font-size:20px; }
+    footer { background:#092961; color:#d8e8ff; padding:35px 0; }
+    footer .wrap { display:flex; justify-content:space-between; gap:20px; align-items:center; font-size:14px; }
+    footer strong { color:#fff; }
+    @media (max-width:780px) { .wrap { width:calc(100% - 32px); } .nav { height:62px; } .nav-links { display:none; } .hero-grid { grid-template-columns:1fr; gap:22px; padding:48px 0; } .hero-visual { display:none; } .section-head { grid-template-columns:1fr; gap:7px; } .steps,.cards,.split,.help-grid { grid-template-columns:1fr; } .step { min-height:auto; border-right:1px solid var(--line); border-bottom:1px solid var(--line); } .step:last-child { border-bottom:0; } .step h3 { margin-top:18px; } .workflow { grid-template-columns:1fr; gap:7px; } .arrow { transform:rotate(90deg); text-align:center; } .faq-grid { grid-template-columns:1fr; } main { padding-top:48px; } section { margin-bottom:58px; } footer .wrap { display:block; } footer p { margin:8px 0 0; } h1,h2,h3,p,.faq { overflow-wrap:anywhere; } }
+    @media print { .topbar { position:static; } body { background:#fff; } .hero { background:#092961 !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } section { break-inside:avoid; margin-bottom:38px; } main { padding:42px 0; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <nav class="wrap nav" aria-label="Manual navigation">
+      <a class="brand" href="#top"><img src="logo.png" alt="BrgyLink logo"> BrgyLink</a>
+      <div class="nav-links"><a href="#start">Start</a><a href="#documents">Documents</a><a href="#blotter">Blotter</a><a href="#assistant">Assistant</a><a href="#help">Help</a></div>
+    </nav>
+  </header>
+
+  <section class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">Barangay Bagong Pag-asa</div>
+        <h1>Your resident guide to BrgyLink.</h1>
+        <p>Use BrgyLink to request documents, file and follow blotter reports, read official announcements, and get safe app guidance.</p>
+        <div class="hero-note">Resident Quick Guide &nbsp; | &nbsp; Version 2.2.0 &nbsp; | &nbsp; Updated October 2026</div>
+      </div>
+      <div class="hero-visual" aria-hidden="true"><img class="hero-logo" src="logo.png" alt=""></div>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <section id="start">
+      <div class="section-head"><div class="section-kicker">01 / Start here</div><div><h2>Create an account before using resident services.</h2><p class="lead">Have an active email address and clear photos of your valid ID ready before you register.</p></div></div>
+      <div class="steps">
+        <article class="step"><div class="step-no">STEP 01</div><h3>Create account</h3><p>Enter your real name, username, email address, and password.</p></article>
+        <article class="step"><div class="step-no">STEP 02</div><h3>Verify email</h3><p>Enter the six-digit code sent to your email. Check Spam and Junk too.</p></article>
+        <article class="step"><div class="step-no">STEP 03</div><h3>Complete profile</h3><p>Provide your contact and address details, then choose the correct Purok.</p></article>
+        <article class="step"><div class="step-no">STEP 04</div><h3>Submit valid ID</h3><p>Upload clear front and back ID photos. Wait for barangay approval.</p></article>
+      </div>
+    </section>
+
+    <section id="documents">
+      <div class="section-head"><div class="section-kicker">02 / Documents</div><div><h2>Request documents in the app, then check the status before visiting.</h2><p class="lead">Choose the document, state its purpose, attach the requested valid ID, and submit.</p></div></div>
+      <div class="cards">
+        <article class="card"><div class="card-number">AVAILABLE REQUESTS</div><h3>Choose one document</h3><ol><li>Barangay Clearance</li><li>Certificate of Indigency</li><li>Certificate of Residency</li></ol></article>
+        <article class="card"><div class="card-number">SUBMIT WITH CARE</div><h3>Review before sending</h3><ol><li>Write the purpose of your request.</li><li>Attach a clear, valid ID.</li><li>Tap Submit Request.</li></ol></article>
+      </div>
+      <div class="workflow" aria-label="Document request statuses" style="margin-top:20px"><div class="status">Pending<small>Your request was received.</small></div><div class="arrow">→</div><div class="status">Processing<small>The barangay is reviewing it.</small></div><div class="arrow">→</div><div class="status ready">Ready for Pickup<small>Go to the barangay office with your ID.</small></div><div class="arrow">→</div><div class="status done">Completed<small>The request was released or finished.</small></div></div>
+    </section>
+
+    <section id="blotter">
+      <div class="section-head"><div class="section-kicker">03 / Blotter</div><div><h2>File a factual report with the details officials need.</h2><p class="lead">Use the in-app report for non-emergency incidents. For an emergency, call 911 instead of waiting for an app response.</p></div></div>
+      <div class="split">
+        <div><ul class="checklist"><li><span>Open <strong>Blotter Reports</strong> and tap <strong>File New Report</strong>.</span></li><li><span>Select the incident type and write a specific location: purok, street, landmark, or house number.</span></li><li><span>Use the date and time when the incident happened, not when you are filing the report.</span></li><li><span>Write a clear factual narrative and attach available photo evidence.</span></li><li><span>Check <strong>My Blotter Reports</strong> for updates and Lupon hearing details when scheduled.</span></li></ul></div>
+        <figure style="margin:0"><div class="phone-shot"><img src="manual-assets/blotter.png" onerror="this.src='assets/blotter.png'" alt="BrgyLink blotter report screen"></div><figcaption class="caption">Example BrgyLink blotter reporting screen.</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="assistant">
+      <div class="section-head"><div class="section-kicker">04 / Assistant</div><div><h2>Ask BrgyLink AI for guidance, not for confidential information.</h2><p class="lead">The assistant can answer supported questions in English, Tagalog, Pangasinan, and Ilocano.</p></div></div>
+      <div class="assistant-panel"><div class="card-number">BRGYLINK AI</div><h3>Start with a suggested question or type your own.</h3><p>It can help with document requests, blotter reports, registration, OTP, password reset, app notifications, and official announcement guidance.</p><div class="faq-grid"><div class="faq">How do I request a Barangay Clearance?</div><div class="faq">How do I file a blotter report?</div><div class="faq">I did not receive my OTP. What should I do?</div><div class="faq">I forgot my password. What should I do?</div></div><div class="notice"><strong>Protect your account.</strong> Never send your password, OTP, reset link, or sensitive ID information to the assistant. Confirm changing details, fees, schedules, and officials with official announcements or the barangay office.</div></div>
+    </section>
+
+    <section id="help">
+      <div class="section-head"><div class="section-kicker">05 / Need help</div><div><h2>Use these checks when something does not work.</h2><p class="lead">Most account and submission issues can be resolved by checking the required details, attachment, and connection first.</p></div></div>
+      <div class="help-grid"><article class="help-card"><h3>Account or form issue</h3><p><strong>Missing or expired OTP:</strong> Check Inbox, Spam, and Junk, wait for the resend timer, then request a new code. <br><br><strong>Cannot sign in after registration:</strong> Confirm that the account has been approved by the barangay. <br><br><strong>Form will not submit:</strong> Check the internet connection, required fields, and attachments, then try again.</p></article><article class="help-card emergency"><h3>Emergency</h3><p><strong>Call 911</strong><br>Do not wait for a chatbot answer, app notification, or online report when immediate help is needed.</p></article></div>
+    </section>
+  </main>
+
+  <footer><div class="wrap"><div><strong>BrgyLink</strong><p>Barangay Bagong Pag-asa E-Services</p></div><div>For current announcements and changing details, use official BrgyLink channels.</div></div></footer>
+</body>
+</html>

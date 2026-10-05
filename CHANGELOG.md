@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [2.1.0] - 2026-09-30
+
+### Added
+* **Verified resident onboarding**: Signup now verifies the email immediately after Step 1 through a Gmail API OAuth delivery flow, before personal profile and ID submission.
+* **Resident profile controls**: Age 15+, confirmed Purok 1–7 selection, street/address capture, preferred ID type, and clear front/back ID review fields.
+* **Operational case detail**: Blotter filing captures incident date/time and free-text location; Lupon hearings retain stage, schedule, officer, and remarks for resident updates and summons preparation.
+* **Release distribution**: Hosted direct-install BrgyLink Android APK 1.0.3 (versionCode 5).
+
+### Changed
+* **Authentication resilience**: Added a Firebase Identity Toolkit session fallback for compatible Android devices and coordinated registration recovery for interrupted signup attempts.
+* **Documentation**: Updated runtime, onboarding, deployment, troubleshooting, API, schema, and evidence-language documentation to reflect the implemented system and distinguish verified behavior from future evaluation claims.
+
+---
+
 ## [2.0.0] - 2026-08-28
 
 ### 🚀 Added

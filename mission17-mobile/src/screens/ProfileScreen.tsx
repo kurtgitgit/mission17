@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
-  SafeAreaView, ActivityIndicator, Linking, Alert, Modal, FlatList, RefreshControl, StatusBar
+  SafeAreaView, ActivityIndicator, Linking, Alert, Modal, RefreshControl, StatusBar
 } from 'react-native';
 import { 
-  User, Settings, ShieldCheck, Clock, XCircle, CheckCircle, 
+  User, Settings, ShieldCheck,
   ChevronRight, HelpCircle, Info, ShieldAlert, PhoneCall, ThumbsUp, LogOut, X,
   Building, Lock, FileText, ChevronDown, Check
 } from 'lucide-react-native'; 
@@ -15,7 +15,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useNotification } from '../context/NotificationContext';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchPrivateCollection, fetchPrivateJson, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchPrivateJson, getFriendlyNetworkMessage } from '../utils/network';
 import { BARANGAY_INFO } from '../config/barangayInfo';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -29,7 +29,6 @@ const ProfileScreen = ({ navigation }: any) => {
   const styles = getStyles(theme);
 
   const [userData, setUserData] = useState<any>(null);
-  const history: any[] = [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -244,24 +243,6 @@ const ProfileScreen = ({ navigation }: any) => {
         </Text>
       </View>
 
-      {/* ── STATS SECTION ── */}
-      <View style={styles.statsCard}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>Secure</Text>
-          <Text style={styles.statLabel}>Account</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: '#15803d' }]}>Ready</Text>
-          <Text style={styles.statLabel}>Services</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: '#b45309' }]}>Live</Text>
-          <Text style={styles.statLabel}>Updates</Text>
-        </View>
-      </View>
-
       {/* ── SECTION 1: CITIZEN ACCOUNT & PREFERENCES ── */}
       <Text style={styles.menuGroupHeader}>Account & Preferences</Text>
       <View style={styles.menuGroupCard}>
@@ -279,8 +260,8 @@ const ProfileScreen = ({ navigation }: any) => {
         />
         <MenuItem 
           icon={<ShieldCheck size={20} color="#0038A8" />} 
-          title="Blockchain Verification" 
-          subtitle="Verify tamper-proof community records"
+          title="Blockchain Record Verification"
+          subtitle="View tamper-evident official record references"
           onPress={openBlockchainHistory} 
           isLast={true}
         />
@@ -298,7 +279,7 @@ const ProfileScreen = ({ navigation }: any) => {
         <MenuItem 
           icon={<Building size={20} color="#0038A8" />} 
           title="About Barangay Bagong Pag-asa" 
-          subtitle="Mission 17 civic governance portal"
+          subtitle="BrgyLink resident services portal"
           onPress={() => setInfoModal('About Mission 17')} 
         />
         <MenuItem 
@@ -330,41 +311,7 @@ const ProfileScreen = ({ navigation }: any) => {
       </View>
 
       {/* ── CIVIC TASK HISTORY HEADER ── */}
-      <View style={styles.historyHeader}>
-        <Text style={styles.sectionTitle}>Resident Services</Text>
-      </View>
     </>
-  );
-
-  const renderEmpty = () => (
-    <View style={styles.emptyState}>
-      <Clock size={36} color="#94a3b8" />
-      <Text style={styles.emptyText}>No community task submissions yet.</Text>
-    </View>
-  );
-
-  const renderHistoryItem = ({ item }: any) => (
-    <View style={styles.historyCard}>
-      <View style={styles.historyInfo}>
-        <Text style={styles.missionTitle}>{item.missionTitle}</Text>
-        <View style={styles.historyMeta}>
-          <Text style={styles.date}>{item.createdAt ? new Date(item.createdAt).toDateString() : 'No Date'}</Text>
-        </View>
-        {item.status === 'Rejected' && <Text style={styles.reasonText}>Reason: {item.rejectionReason}</Text>}
-      </View>
-      
-      <View style={[
-        styles.statusBadge, 
-        item.status === 'Approved' ? styles.bgSuccess : 
-        item.status === 'Rejected' ? styles.bgDanger : 
-        styles.bgWarning
-      ]}>
-        {item.status === 'Approved' ? <CheckCircle size={13} color="white" /> : 
-         item.status === 'Rejected' ? <XCircle size={13} color="white" /> : 
-         <Clock size={13} color="white" />}
-        <Text style={styles.statusText}>{item.status}</Text>
-      </View>
-    </View>
   );
 
   return (
@@ -376,18 +323,15 @@ const ProfileScreen = ({ navigation }: any) => {
         <Text style={sharedStyles.headerTitle}>Citizen Profile & Account</Text>
       </View>
 
-      <FlatList
-        data={history}
-        keyExtractor={(item: any) => item._id || Math.random().toString()}
-        ListHeaderComponent={renderHeader}
-        ListEmptyComponent={null}
-        renderItem={renderHistoryItem}
+      <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchProfileData(); }} tintColor="#0038A8" />
         }
-      />
+      >
+        {renderHeader()}
+      </ScrollView>
 
       {/* --- INFO MODALS --- */}
       <Modal visible={infoModal !== null} animationType="slide" transparent>
@@ -520,26 +464,6 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderColor: '#bfdbfe',
   },
   noticeText: { flex: 1, fontSize: 12, color: '#1e3a8a', lineHeight: 17, fontWeight: '500' },
-
-  // STATS
-  statsCard: {
-    flexDirection: 'row',
-    backgroundColor: '#ffffff',
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statItem: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 18, fontWeight: '900', color: '#0038A8' },
-  statLabel: { fontSize: 11.5, color: '#64748b', marginTop: 2, fontWeight: '600' },
-  statDivider: { width: 1, height: '70%', backgroundColor: '#e2e8f0', alignSelf: 'center' },
 
   // GROUPED MENUS
   menuGroupHeader: {

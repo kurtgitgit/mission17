@@ -8,14 +8,14 @@ const contractABI = [
 ];
 
 /**
- * Awards SDG points by sending a transaction to the smart contract.
- * This function dynamically fetches gas prices to ensure transaction reliability.
+ * Creates the existing smart-contract transaction used as an audit reference
+ * when an authorized officer resolves a blotter report.
  *
- * @param {string} recipientAddress The user's wallet address to receive points.
- * @param {number} points The number of points to award.
+ * @param {string} recipientAddress The official barangay audit wallet.
+ * @param {number} auditUnits Legacy contract amount required for the audit transaction.
  * @returns {Promise<string>} The transaction hash of the confirmed transaction.
  */
-export async function awardSdgPoints(recipientAddress, points) {
+export async function createResolvedBlotterAuditTransaction(recipientAddress, auditUnits) {
     // NOTE: Access process.env inside the function to ensure dotenv has loaded
     const RPC_URL = process.env.SEPOLIA_RPC_URL;
     const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY; 
@@ -45,9 +45,9 @@ export async function awardSdgPoints(recipientAddress, points) {
         console.log(`   - Max Priority Fee: ${ethers.formatUnits(feeData.maxPriorityFeePerGas, "gwei")} Gwei`);
 
         // 4. Prepare and send the transaction with dynamic fees
-        console.log(`✍️ Sending transaction to award ${points} points to ${recipientAddress}...`);
+        console.log(`Creating resolved-blotter audit transaction for ${recipientAddress}...`);
         
-        const tx = await contract.awardPoints(recipientAddress, points, {
+        const tx = await contract.awardPoints(recipientAddress, auditUnits, {
             maxFeePerGas: feeData.maxFeePerGas,
             maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
             // 🛠️ OPTIMIZED: Removed artificial 500,000 gasLimit

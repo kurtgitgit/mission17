@@ -7,14 +7,13 @@
 ![React Native](https://img.shields.io/badge/React%20Native-Expo%20SDK%2054-000000.svg)
 ![React](https://img.shields.io/badge/React-Vite%20SPA-61DAFB.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg)
-![TensorFlow](https://img.shields.io/badge/TensorFlow-CNN%20Model-FF6F00.svg)
-![Groq](https://img.shields.io/badge/LLM-Groq%20LLaMA%203-F55036.svg)
+![AI](https://img.shields.io/badge/AI-BrgyLink%20Guidance%20Service-2563EB.svg)
 ![Blockchain](https://img.shields.io/badge/Ethereum-Sepolia%20Testnet-3C3C3D.svg)
 ![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248.svg)
 
 **A Smart Governance & Community Management Platform for Philippine Local Government Units (LGUs)**
 
-[API Docs](./API_DOCS.md) • [Database Schema](./DATABASE_SCHEMA.md) • [User Manual](./USER_MANUAL.md) • [Test Suite](./TESTING.md) • [Smart Contracts](./SMART_CONTRACT.md) • [Capstone Guide](./CAPSTONE_GUIDE.md) • [Defense Rubric](./DEFENSE_RUBRIC_GUIDE.md) • [Security](./SECURITY.md) • [Deployment](./DEPLOYMENT.md)
+[Developer Manual](./DEVELOPER_MANUAL.md) • [API Docs](./API_DOCS.md) • [Database Schema](./DATABASE_SCHEMA.md) • [User Manual](./USER_MANUAL.md) • [Infographic Manual](./INFOGRAPHIC_USER_MANUAL.md) • [Test Suite](./TESTING.md) • [Smart Contracts](./SMART_CONTRACT.md) • [Capstone Guide](./CAPSTONE_GUIDE.md) • [Security](./SECURITY.md) • [Deployment](./DEPLOYMENT.md)
 
 </div>
 
@@ -26,9 +25,8 @@
 
 The system features:
 1. **Digital Document Issuance & Verification**: Streamlined request and tracking for Barangay Clearances, Certificates of Indigency, and Residency Certificates.
-2. **Blockchain-Backed Blotter Immutability**: Incident reporting and mediation workflow where finalized resolutions are permanently recorded on the **Ethereum Sepolia Blockchain** via a Gasless Sponsor Gateway.
-3. **AI-Powered Civic Proof Verification**: A Computer Vision (CNN) and perceptual hashing pipeline hosted on Hugging Face that automatically validates photographic evidence of community programs (e.g., Tree Planting under SDG 13/15, Waste Segregation under SDG 12) while filtering duplicate uploads.
-4. **Multilingual AI Assistant**: Groq-powered LLaMA 3 chatbot offering instant civic guidance in **English, Tagalog, Pangasinan, and Ilocano**.
+2. **Blockchain Blotter Audit Reference**: Resolved blotter reports may retain a Sepolia transaction hash as a tamper-evident reference. The current legacy contract implementation is not presented as a resident reward or as a cryptographic record hash.
+3. **Multilingual BrgyLink AI**: A safe guidance assistant for supported resident services in **English, Tagalog, Pangasinan, and Ilocano**.
 5. **Integrated Multi-Platform Suite**: Resident Mobile App (Expo/React Native), Official Admin Dashboard (React/Vite), and Public Barangay Web Portal (React/Vite).
 
 ---
@@ -48,12 +46,10 @@ graph TD
     end
 
     subgraph Service & Processing Layer
-        AuthSvc["🔐 Auth & 2FA Service<br/>(Bcrypt, Nodemailer OTP)"]
+        AuthSvc["🔐 Identity & Email Verification<br/>(Firebase Auth, Gmail API OAuth)"]
         BlotterSvc["📋 Blotter & Mediation Engine"]
         DocSvc["📄 Document Request Engine"]
-        CivicSvc["🌱 Civic Initiatives & Verification"]
-        AIServer["🤖 AI Vision Server<br/>(Flask / TensorFlow CNN / Hugging Face)"]
-        LLM["💬 Multilingual Chatbot<br/>(Groq LLaMA 3 API)"]
+        ChatbotSvc["🤖 BrgyLink AI Guidance Service<br/>(Flask / Hugging Face)"]
     end
 
     subgraph Data & Consensus Layer
@@ -68,15 +64,12 @@ graph TD
     Gateway --> AuthSvc
     Gateway --> BlotterSvc
     Gateway --> DocSvc
-    Gateway --> CivicSvc
-    Gateway --> AIServer
-    Gateway --> LLM
+    Gateway --> ChatbotSvc
 
     AuthSvc --> MongoDB
     BlotterSvc --> MongoDB
     DocSvc --> MongoDB
-    CivicSvc --> MongoDB
-    BlotterSvc -->|Gasless Sponsor TX| Blockchain
+    BlotterSvc -->|Resolved-report audit reference| Blockchain
 ```
 
 ---
@@ -84,20 +77,15 @@ graph TD
 ## ✨ Key Features & Capabilities
 
 ### 1. 🏛️ Digital Barangay Services
-* **📝 Tamper-Proof Blotter Resolution**: Residents submit incident reports with location tagging and evidence. Upon resolution by officials, an immutable SHA-256 event hash is minted to the Ethereum Sepolia blockchain.
+* **📝 Blotter Resolution Audit Reference**: Residents submit incident reports with location tagging and evidence. A resolved report may save a Sepolia transaction hash as an audit reference.
 * **📄 Digital Document Requests**: Streamlined requesting for Barangay Clearances, Certificates of Indigency, and Residency IDs with real-time status tracking.
 * **💡 Transparent Community Suggestions**: Public or anonymous suggestion box for civic infrastructure and safety improvements.
 * **📢 Community Bulletin & Alerts**: Broadcast announcements, emergency advisories, and localized push notifications.
 * **👥 Barangay Officials Directory**: Public hierarchy and contact matrix of Punong Barangay, Sangguniang Barangay Kagawads, and SK Officials.
 
-### 2. 🌱 Community Civic Programs (SDGs) & AI Verification
-* **📸 Automated AI Proof Verification**: Custom Convolutional Neural Network (CNN) hosted on Hugging Face Spaces analyzes uploaded photo evidence for community initiatives like Tree Planting (SDG 13/15) and Waste Management (SDG 12).
-* **🛡️ Perceptual Anti-Cheat Hashing**: Prevents image spoofing, recycled photos, and duplicate claims by cross-referencing visual fingerprints against historic submissions.
-* **📊 Community Impact Tracking**: Real-time administrative tracking of verified environmental and community program participations.
-
-### 3. 🤖 Multilingual Smart Chatbot
-* **Real-Time Civic Navigation**: Instant answers to common barangay inquiries, ordinance questions, and clearance guidelines.
-* **4 Supported Languages**: English, Tagalog, Pangasinan, and Ilocano powered by Groq LLaMA 3.
+### 2. 🤖 Multilingual BrgyLink AI
+* **Resident guidance**: Suggested FAQ prompts and typed questions for documents, blotters, account recovery, announcements, and supported app features.
+* **4 Supported Languages**: English, Tagalog, Pangasinan, and Ilocano through the BrgyLink guidance service.
 
 ---
 
@@ -110,10 +98,9 @@ graph TD
 | **Public Portal** | React 18, Vite, Lucide Icons | Responsive public landing and information portal |
 | **Backend Runtime** | Node.js (v18+), Express.js | Modular MVC REST API with centralized error handling |
 | **Database** | MongoDB Atlas, Mongoose ODM | Clustered NoSQL document store with compound indexing |
-| **Computer Vision** | Python 3.10, Flask, TensorFlow, Docker | Dedicated AI service hosted on Hugging Face Spaces |
-| **LLM Engine** | Groq Cloud API, LLaMA 3 70B/8B | Low-latency inference for multilingual chatbot queries |
-| **Blockchain** | Solidity (v0.8+), UUPS Proxy, Ethers.js | Immutable audit trail on Ethereum Sepolia Testnet |
-| **Authentication** | JWT, Bcrypt (Salt Factor 10), Nodemailer MFA | Multi-factor authentication with 6-digit email OTP |
+| **Chatbot Service** | Python, Flask, curated knowledge base | Safe resident guidance hosted on Hugging Face Spaces |
+| **Blockchain** | Solidity (v0.8+), Ethers.js | Resolved-blotter audit transaction reference on Ethereum Sepolia Testnet |
+| **Authentication** | Firebase Authentication, Firebase ID tokens, Gmail API OAuth | Email/password credentials are held by Firebase; BrgyLink verifies signup email with a 6-digit Gmail API code |
 | **Security Suite** | Helmet, Mongo-Sanitize, XSS-Clean, Express-Rate-Limit | Hardened API gateway adhering to OWASP Top 10 |
 
 ---
@@ -139,11 +126,11 @@ mission17/
 ├── mission17-backend/         # Express.js REST API Server
 │   ├── routes/               # 13 Modular REST API route handlers
 │   ├── controllers/          # Business logic and request orchestrators
-│   ├── models/               # Mongoose Schemas (User, Submission, Blotter, AuditLog)
+│   ├── models/               # Mongoose Schemas (User, DocumentRequest, Blotter, AuditLog)
 │   ├── contracts/            # Solidity smart contracts & UUPS upgradeable proxies
-│   └── config/               # Database, nodemailer, and security configurations
+│   └── config/               # Database, barangay roster, and security configurations
 │
-├── mission17-ai/              # Python Flask Computer Vision Server
+├── mission17-ai/              # Python Flask BrgyLink AI Chatbot Runtime
 │   ├── app.py                # Flask REST endpoints for /predict and anti-cheat
 │   ├── evaluate_model.py     # Evaluation scripts, confusion matrix, F1-score
 │   └── Dockerfile            # Container deployment for Hugging Face Spaces
@@ -184,9 +171,12 @@ PORT=5001
 MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/mission17
 JWT_SECRET=your_super_secret_64_character_hex_string
 FIREBASE_WEB_API_KEY=your_firebase_web_api_key
-EMAIL_USER=your_smtp_email@gmail.com
-EMAIL_PASS=your_google_app_password
-GROQ_API_KEY=gsk_your_groq_api_key
+EMAIL_USER=your_gmail_sender@gmail.com
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+GOOGLE_REFRESH_TOKEN=your_google_oauth_refresh_token
+AI_SERVER_URL=https://<your-hugging-face-space>.hf.space/predict
+AI_SERVICE_TOKEN=<shared-ai-service-token>
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your_alchemy_key
 ADMIN_PRIVATE_KEY=0x_your_sponsor_wallet_private_key
 CONTRACT_ADDRESS=0x_your_deployed_contract_address
@@ -205,7 +195,7 @@ npm run dev
 # Running on http://localhost:5001
 ```
 
-#### B. AI Computer Vision Server
+#### B. BrgyLink AI Service
 ```bash
 cd mission17-ai
 python -m venv venv
@@ -251,9 +241,9 @@ npx expo start
 cd mission17-backend
 npm test
 
-# Run AI adversarial file upload and robustness suite
+# Run BrgyLink AI chatbot tests
 cd mission17-ai
-python -m unittest test_cases/ai_file_upload_security_test.py
+python -m unittest test_app.py
 
 # Verify smart contract gas and functionality
 cd mission17-backend

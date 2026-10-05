@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '../components/Layout';
-import { Plus, Pin, Trash2, Edit3, X, Link as LinkIcon, Upload, Loader, AlertTriangle, Flame, BellRing, Tag, Leaf } from 'lucide-react';
+import { Plus, Pin, Trash2, Edit3, X, Link as LinkIcon, Upload, Loader, AlertTriangle, Flame, BellRing } from 'lucide-react';
 import { endpoints } from '../config/api';
 
 import { useNotification } from '../context/NotificationContext';
 import '../styles/PortalAdmin.css';
 
-const DEFAULT_CATEGORIES = ['general', 'health', 'safety', 'environment', 'events', 'services'];
+const DEFAULT_CATEGORIES = ['general', 'health', 'safety', 'environment', 'services'];
 const CAT_LABELS = {
   general: 'General', health: 'Health', safety: 'Safety & Security',
-  environment: 'Environment', events: 'Events', services: 'Services',
+  environment: 'Environment', services: 'Services',
   urgent: 'Emergency / Urgent'
 };
 const CAT_COLORS = {
@@ -17,7 +17,6 @@ const CAT_COLORS = {
   health:  { bg: '#e0f2fe', text: '#0891b2' },
   safety:  { bg: '#fee2e2', text: '#dc2626' },
   environment: { bg: '#dcfce7', text: '#15803d' },
-  events:  { bg: '#ede9fe', text: '#7c3aed' },
   services:{ bg: '#fef3c7', text: '#b45309' },
 };
 
@@ -85,7 +84,7 @@ const Announcements = () => {
   }, [showForm]);
 
   const resetForm = () => {
-    setForm({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, relatedSdg: null, image: '' });
+    setForm({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, image: '' });
     setEditItem(null);
     setShowForm(false);
     setIsCustomCat(false);
@@ -186,7 +185,6 @@ const Announcements = () => {
       category: item.category,
       isPinned: item.isPinned,
       isUrgent: item.isUrgent || false,
-      relatedSdg: item.relatedSdg || null,
       image: item.image || ''
     });
     setShowForm(true);
@@ -325,50 +323,6 @@ const Announcements = () => {
                         {form.isUrgent ? 'URGENT ENABLED' : 'Enable Alert'}
                       </span>
                     </label>
-                  </div>
-                </div>
-
-                {/* ── SDG GOAL LINKAGE ── */}
-                <div className="pa-form-group full" style={{
-                  padding: '14px 16px',
-                  backgroundColor: form.relatedSdg ? '#f0fdf4' : '#f8fafc',
-                  borderRadius: 12,
-                  border: form.relatedSdg ? '1.5px solid #22c55e' : '1px solid #e2e8f0',
-                  marginTop: 4
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 36, height: 36, borderRadius: 8,
-                        backgroundColor: form.relatedSdg ? '#dcfce7' : '#e2e8f0',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                      }}>
-                        <Tag size={18} color={form.relatedSdg ? '#15803d' : '#64748b'} />
-                      </div>
-                      <div>
-                        <strong style={{ fontSize: 14, color: form.relatedSdg ? '#166534' : '#334155' }}>
-                          🌱 Link to Green Initiative / SDG Action Program
-                        </strong>
-                        <p style={{ margin: 0, fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                          Connect this bulletin to an SDG so residents can tap to join and submit proof.
-                        </p>
-                      </div>
-                    </div>
-                    <select
-                      className="pa-input"
-                      style={{ width: 'auto', minWidth: 220, fontWeight: 700, borderColor: form.relatedSdg ? '#22c55e' : '#cbd5e1' }}
-                      value={form.relatedSdg || ''}
-                      onChange={e => setForm({ ...form, relatedSdg: e.target.value ? Number(e.target.value) : null })}
-                    >
-                      <option value="">No SDG Linked</option>
-                      <option value="13">SDG 13: Climate Action (Clean-up, Tree Planting)</option>
-                      <option value="15">SDG 15: Life on Land (Reforestation, Greenery)</option>
-                      <option value="12">SDG 12: Responsible Consumption (Recycling, Waste)</option>
-                      <option value="3">SDG 3: Good Health & Well-being (Medical, Blood Drive)</option>
-                      <option value="6">SDG 6: Clean Water & Sanitation</option>
-                      <option value="11">SDG 11: Sustainable Cities & Communities</option>
-                      <option value="4">SDG 4: Quality Education (Youth & Tutorials)</option>
-                    </select>
                   </div>
                 </div>
 
@@ -523,11 +477,6 @@ const Announcements = () => {
                         {ann.isPinned && (
                           <span style={{ fontSize: 11, fontWeight: 800, color: '#b45309', backgroundColor: '#fef3c7', padding: '3px 8px', borderRadius: 6 }}>
                             📌 PINNED
-                          </span>
-                        )}
-                        {ann.relatedSdg && (
-                          <span style={{ fontSize: 11, fontWeight: 800, backgroundColor: '#dcfce7', color: '#15803d', padding: '3px 8px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                            🌱 SDG {ann.relatedSdg} Action
                           </span>
                         )}
                         <span className="pa-badge" style={{ backgroundColor: cat.bg, color: cat.text }}>{catLbl}</span>

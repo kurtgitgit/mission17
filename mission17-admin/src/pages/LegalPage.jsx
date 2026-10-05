@@ -11,7 +11,7 @@ const pages = {
     filipino: 'Ang BrgyLink ay capstone prototype. Kinokolekta lamang nito ang impormasyong kailangan para sa account, mga kahilingan, ulat, at iba pang serbisyong ginagamit sa app. Ang opisyal na contact at retention period ay kailangan pang italaga at aprubahan ng Barangay Bagong Pag-asa.',
     sections: [
       ['Purpose and status', 'BrgyLink is a capstone prototype for Barangay Bagong Pag-asa services. This notice describes the current prototype and is not a statement that the system has been formally adopted or is fully legally compliant.'],
-      ['Information processed', 'The system may process account and profile details, contact details, valid-ID uploads, document requests, blotter reports and related evidence, civic-mission proof, suggestions or feedback, notification tokens, and security or audit records. Camera or location data are used only when a resident chooses a feature that requests them.'],
+      ['Information processed', 'The system may process account and profile details, contact details, valid-ID uploads, document requests, blotter reports and related evidence, suggestions or feedback, notification tokens, and security or audit records. Camera or location data are used only when a resident chooses a feature that requests them.'],
       ['Why information is used', 'Information is used to create and verify accounts, process resident requests, allow authorized staff to review submissions, send service updates, secure the system, and operate the AI advisory features described in the AI Disclosure.'],
       ['Service providers and access', 'Current prototype services may include Firebase Authentication, a MongoDB database deployment, Cloudinary for uploads, AWS Lightsail for backend hosting, Expo for push-notification delivery, Ollama Cloud for the chatbot, and a configured AI image-verification service. Access should be limited to authorized users and service operations.'],
       ['Retention, contact, and changes', 'A final retention/deletion schedule and official privacy contact or Data Protection Officer have not yet been designated. For this prototype, contact the Barangay Bagong Pag-asa Office; official privacy contact pending designation. Material policy changes should be versioned and announced before official deployment.']
@@ -23,7 +23,7 @@ const pages = {
     filipino: 'Gamitin ang BrgyLink nang tapat at may paggalang. Huwag magsumite ng maling ulat o pekeng ebidensiya, manggulo, magbahagi ng account, o subukang lampasan ang pagsusuri. Ang barangay administrator ang may huling pasya sa mga request at proof.',
     sections: [
       ['Using BrgyLink', 'Residents may use BrgyLink to access available prototype services. Services, forms, and availability may change while the project is under review.'],
-      ['Resident responsibilities', 'Do not submit false reports, fraudulent mission proof, abusive or harassing content, or another person’s information without authority. Do not share accounts or attempt to bypass account, document, or administrator review.'],
+      ['Resident responsibilities', 'Do not submit false reports, abusive or harassing content, or another person’s information without authority. Do not share accounts or attempt to bypass account, document, or administrator review.'],
       ['Review and decisions', 'Authorized administrators review accounts, reports, requests, and proof. System messages and AI results are advisory only and do not replace an administrator’s final decision.'],
       ['Availability and appropriate use', 'The prototype may be unavailable, incomplete, or changed without notice during testing. Do not rely on BrgyLink for emergency response; use official emergency channels for urgent concerns.'],
       ['Consequences', 'The Barangay Bagong Pag-asa Office may reject, suspend, or refer misuse for review when appropriate, subject to the office’s future approved procedures.']
@@ -42,10 +42,10 @@ const pages = {
   ai: {
     title: 'AI Disclosure',
     filipinoTitle: 'Buod sa Filipino',
-    filipino: 'Ang chatbot at image verification ay pantulong lamang. Hindi nito awtomatikong inaaprubahan o tinatanggihan ang resident account, mission proof, o iba pang request. Ang awtorisadong administrator ang gumagawa ng huling desisyon.',
+    filipino: 'Ang chatbot ay pantulong lamang. Hindi nito awtomatikong inaaprubahan o tinatanggihan ang resident account o iba pang request. Ang awtorisadong administrator ang gumagawa ng huling desisyon.',
     sections: [
       ['How AI is used', 'BrgyLink may use a chatbot to provide general navigation and public-service guidance, and an image-verification service to provide an advisory verdict about submitted proof.'],
-      ['Human decision required', 'AI does not automatically approve or reject accounts, documents, blotter reports, mission proof, or benefits. An authorized administrator must make the final decision.'],
+      ['Human decision required', 'AI does not automatically approve or reject accounts, documents, blotter reports, or benefits. An authorized administrator must make the final decision.'],
       ['Limitations', 'AI can be inaccurate, incomplete, biased, unavailable, or unable to understand a message. It must not be treated as truth detection, legal advice, an emergency service, or a source of unverified fees, schedules, requirements, or eligibility decisions.'],
       ['Safe use', 'If the system lacks verified details, residents should contact the Barangay Bagong Pag-asa Office. Administrators should review context and source records before acting on an AI advisory result.']
     ]
