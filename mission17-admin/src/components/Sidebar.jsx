@@ -2,12 +2,9 @@ import React, { useState } from 'react';
 import { NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Target, 
   Users, 
-  BarChart3, 
   LogOut, 
   Settings, 
-  Calendar, 
   Shield, 
   Megaphone, 
   FileText, 
@@ -15,7 +12,6 @@ import {
   Lightbulb, 
   UserCheck, 
   ShieldAlert, 
-  FileCheck,
   ChevronDown,
   Layers,
   Folder,
@@ -34,7 +30,6 @@ const MENU_GROUPS = [
     icon: Layers,
     items: [
       { to: '/dashboard', label: 'Operations Dashboard', icon: LayoutDashboard },
-      { to: '/analytics', label: 'Civic Analytics', icon: BarChart3 },
       { to: '/report-generation', label: 'Report Generation', icon: Printer },
     ]
   },
@@ -55,9 +50,6 @@ const MENU_GROUPS = [
     icon: Folder,
     items: [
       { to: '/officials', label: 'Barangay Council', icon: UserCheck },
-      { to: '/events', label: 'Barangay Events', icon: Calendar },
-      { to: '/missions', label: 'Civic Tasks & Programs', icon: Target },
-      { to: '/verify', label: 'Proof Verifications', icon: FileCheck },
     ]
   },
   {

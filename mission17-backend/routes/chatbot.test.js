@@ -81,7 +81,7 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(findOfficials).toHaveBeenCalledTimes(1);
   });
 
-  it('returns active announcements and civic tasks without sending them to the AI service', async () => {
+  it('returns active announcements without sending them to the AI service', async () => {
     const dependencies = {
       findOfficials: jest.fn(),
       findAnnouncements: jest.fn().mockResolvedValue([{ title: 'Clean-up Drive', category: 'environment', isUrgent: false }]),
@@ -89,7 +89,7 @@ describe('chatbot multilingual routing and fallback', () => {
       findEvents: jest.fn(),
     };
     await expect(getLiveChatReply('May latest announcement ba?', dependencies)).resolves.toContain('Clean-up Drive');
-    await expect(getLiveChatReply('Ano ang civic tasks?', dependencies)).resolves.toContain('Care for a Plant');
+    await expect(getLiveChatReply('Ano ang retired feature?', dependencies)).resolves.toBeNull();
   });
 
   it('does not let live-data answers override an emergency request', async () => {

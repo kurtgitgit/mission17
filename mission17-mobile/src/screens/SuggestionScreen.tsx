@@ -11,7 +11,7 @@ import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
-const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
+const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Other Concern'];
 
 const SuggestionScreen = () => {
   const navigation = useNavigation<any>();

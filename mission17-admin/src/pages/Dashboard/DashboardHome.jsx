@@ -30,14 +30,13 @@ const DashboardHome = () => {
     const baseUrl = endpoints.auth.backendBaseUrl;
 
     try {
-      const [docRes, blotterRes, feedbackRes, annRes, userRes, sumRes, sdgRes] = await Promise.all([
+      const [docRes, blotterRes, feedbackRes, annRes, userRes, sumRes] = await Promise.all([
         fetch(`${baseUrl}/api/document-requests`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/blotter-reports`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/suggestions/stats`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/announcements`).catch(() => null),
         fetch(`${endpoints.auth.baseUrl}/users`, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(endpoints.dashboard.summary, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(`${endpoints.auth.baseUrl}/sdg-impact-counter`).catch(() => null)
+        fetch(endpoints.dashboard.summary, { headers: { 'auth-token': token } }).catch(() => null)
       ]);
 
       const docs = docRes && docRes.ok ? await docRes.json() : [];
@@ -46,7 +45,6 @@ const DashboardHome = () => {
       const anns = annRes && annRes.ok ? await annRes.json() : [];
       const users = userRes && userRes.ok ? await userRes.json() : [];
       const summary = sumRes && sumRes.ok ? await sumRes.json() : {};
-      const sdgData = sdgRes && sdgRes.ok ? await sdgRes.json() : null;
 
       const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Processing');
       const activeBlotters = blotters.filter(b => b.status === 'Pending' || b.status === 'Under Investigation');
@@ -58,12 +56,9 @@ const DashboardHome = () => {
         newFeedback: feedbackStats.pending || feedbackStats.total || 0,
         activeAlerts: urgentAlerts.length,
         totalResidents: Array.isArray(users) ? users.length : (summary.stats?.volunteers || 0),
-        pendingMissions: summary.stats?.pending || 0
+        pendingMissions: 0
       });
 
-      if (sdgData) {
-        setSdgSummary(sdgData);
-      }
 
       setPendingDocsList(pendingDocs.slice(0, 5));
       setActiveBlottersList(activeBlotters.slice(0, 5));
@@ -207,7 +202,7 @@ const DashboardHome = () => {
         </div>
 
         {/* ── 🌿 HIGH-LEVEL SDG COMMUNITY IMPACT COUNTER ── */}
-        <div style={{ background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', borderRadius: 16, padding: '20px 24px', color: '#ffffff', marginBottom: '24px', boxShadow: '0 4px 12px rgba(6, 78, 59, 0.15)' }}>
+        <div hidden style={{ background: 'linear-gradient(135deg, #064e3b 0%, #047857 100%)', borderRadius: 16, padding: '20px 24px', color: '#ffffff', marginBottom: '24px', boxShadow: '0 4px 12px rgba(6, 78, 59, 0.15)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

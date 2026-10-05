@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Target, BookOpen, Megaphone, ShieldCheck, User } from 'lucide-react-native';
+import { Home, BookOpen, Megaphone, ShieldCheck, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -15,9 +15,6 @@ import SignupSuccessScreen from './src/screens/SignupSuccessScreen';
 import PendingApprovalScreen from './src/screens/PendingApprovalScreen';
 import RegistrationReviewScreen from './src/screens/RegistrationReviewScreen';
 import HomeScreen        from './src/screens/HomeScreen';
-import MissionsScreen    from './src/screens/MissionsScreen';
-import MissionDetailScreen from './src/screens/MissionDetailScreen';
-import EventDetailScreen from './src/screens/EventDetailScreen';
 import ProfileScreen     from './src/screens/ProfileScreen';
 import LearningScreen    from './src/screens/LearningScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
@@ -85,14 +82,6 @@ function MainTabs() {
         options={{
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, size }: any) => <Home size={22} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="MissionsTab"
-        component={MissionsScreen}
-        options={{
-          tabBarLabel: 'Civic Tasks',
-          tabBarIcon: ({ color }: any) => <Target size={22} color={color} />,
         }}
       />
       <Tab.Screen
@@ -272,8 +261,6 @@ export default function App() {
               <Stack.Screen name="Home"          component={MainTabs} />
 
               {/* Detail Screens */}
-              <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
-              <Stack.Screen name="EventDetail"   component={EventDetailScreen} />
               <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
               <Stack.Screen name="Settings"      component={SettingsScreen} />
               <Stack.Screen name="SDGDetail"     component={SDGDetailScreen} />

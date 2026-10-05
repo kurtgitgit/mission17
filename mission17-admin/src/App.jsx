@@ -5,12 +5,8 @@ import { auth } from './config/firebase';
 import Login from './pages/Login';
 import PublicVerify from './pages/PublicVerify';
 import DashboardHome from './pages/Dashboard/DashboardHome';
-import Missions from './pages/Missions/Missions';
-import Events from './pages/Events';
 import Users from './pages/Users/Users';
-import Analytics from './pages/Analytics/Analytics';
 import Settings from './pages/Settings/Settings';
-import Verify from './pages/Verify/Verify';
 import AuditLogs from './pages/AuditLogs/AuditLogs';
 import LegalPage from './pages/LegalPage';
 import EssentialStorageNotice from './components/EssentialStorageNotice';
@@ -93,12 +89,8 @@ function App() {
           
           {/* Protected Admin Routes */}
           <Route path="/dashboard" element={protectedRoute(<DashboardHome />)} />
-          <Route path="/missions" element={protectedRoute(<Missions />)} />
-          <Route path="/events" element={protectedRoute(<Events />)} />
           <Route path="/users" element={protectedRoute(<Users />)} />
-          <Route path="/analytics" element={protectedRoute(<Analytics />)} />
           <Route path="/settings" element={protectedRoute(<Settings />)} />
-          <Route path="/verify" element={protectedRoute(<Verify />)} />
           <Route path="/audit-logs" element={protectedRoute(<AuditLogs />)} />
 
           {/* 🏛️ Barangay Portal Routes */}

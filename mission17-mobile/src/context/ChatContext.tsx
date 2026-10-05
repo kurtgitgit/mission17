@@ -9,7 +9,7 @@ export type ChatMessage = {
 const INITIAL_MESSAGES: ChatMessage[] = [
   {
     id: '0',
-    text: 'Mabuhay! I am your Barangay Bagong Pag-asa digital assistant. I can help you with Blotter Reports, document requests, barangay services, and civic tasks. How can I assist you today?',
+    text: 'Mabuhay! I am your Barangay Bagong Pag-asa digital assistant. I can help you with Blotter Reports, document requests, barangay services, and announcements. How can I assist you today?',
     isBot: true,
   },
 ];

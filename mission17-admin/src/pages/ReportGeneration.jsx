@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Printer, FileText, Calendar, Filter, FileBarChart, Users, Target, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
+import { Printer, FileText, Calendar, Filter, FileBarChart, Users, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';
@@ -39,16 +39,11 @@ const ReportGeneration = () => {
       const token = localStorage.getItem('token');
       if (reportType === 'analytics') {
         const headers = { Authorization: `Bearer ${token}`, 'auth-token': token };
-        const [submRes, userRes, docRes, blotterRes] = await Promise.all([
-          axios.get(endpoints.submissions.stats, { headers }),
+        const [userRes, docRes, blotterRes] = await Promise.all([
           axios.get(endpoints.users.getAll, { headers }),
           axios.get(`${endpoints.auth.backendBaseUrl}/api/document-requests`, { headers }),
           axios.get(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, { headers })
         ]);
-        
-        const rawSubs = Array.isArray(submRes.data) ? submRes.data : (submRes.data.submissions || []);
-        const subs = filterByDate(rawSubs);
-        const approvedSubs = subs.filter(s => s.status === 'Approved').length;
         
         let usersArr = userRes.data.data || userRes.data;
         if (!Array.isArray(usersArr)) usersArr = [];
@@ -61,16 +56,13 @@ const ReportGeneration = () => {
         setData({
           users: filteredUsers.length || 0,
           documents: docs.length || 0,
-          blotters: blotters.length || 0,
-          submissions: subs.length || 0,
-          approvedSubmissions: approvedSubs || 0
+          blotters: blotters.length || 0
         });
       } else {
         let url = '';
         if (reportType === 'blotter') url = `${endpoints.auth.backendBaseUrl}/api/blotter-reports`;
         else if (reportType === 'documents') url = `${endpoints.auth.backendBaseUrl}/api/document-requests`;
         else if (reportType === 'users') url = endpoints.users.getAll;
-        else if (reportType === 'missions') url = `${endpoints.missions.adminList}?status=active&limit=100`;
 
         const res = await axios.get(url, {
           headers: { Authorization: `Bearer ${token}`, 'auth-token': token }
@@ -106,7 +98,7 @@ const ReportGeneration = () => {
       case 'blotter': return 'OFFICIAL BLOTTER INCIDENT REPORT';
       case 'documents': return 'BARANGAY DOCUMENT ISSUANCE LOG';
       case 'users': return 'REGISTERED RESIDENTS DIRECTORY';
-      case 'missions': return 'CIVIC TASKS AND SDG CONTRIBUTIONS';
+      case 'missions': return 'RETIRED REPORT TYPE';
       case 'analytics': return 'BARANGAY ANALYTICS SUMMARY';
       default: return 'OFFICIAL BARANGAY REPORT';
     }
@@ -209,12 +201,12 @@ const ReportGeneration = () => {
           <td>Total accounts in the system</td>
         </tr>
         <tr>
-          <td style={{ fontWeight: 'bold' }}>Civic Task Submissions</td>
+          <td style={{ fontWeight: 'bold' }}>Retired-feature submissions</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.submissions}</td>
           <td>Total tasks submitted by residents</td>
         </tr>
         <tr>
-          <td style={{ fontWeight: 'bold' }}>Approved Civic Tasks</td>
+          <td style={{ fontWeight: 'bold' }}>Approved retired-feature submissions</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold', color: '#16a34a' }}>{data.approvedSubmissions}</td>
           <td>Approved after authorized review</td>
         </tr>
@@ -272,8 +264,8 @@ const ReportGeneration = () => {
                 <button className={`report-type-btn ${reportType === 'users' ? 'active' : ''}`} onClick={() => setReportType('users')}>
                   <Users size={16} /> Registered Residents
                 </button>
-                <button className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
-                  <Target size={16} /> Civic Tasks / SDGs
+                <button hidden className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
+                  <FileBarChart size={16} /> Retired report type
                 </button>
                 <button className={`report-type-btn ${reportType === 'analytics' ? 'active' : ''}`} onClick={() => setReportType('analytics')}>
                   <TrendingUp size={16} /> Analytics Summary

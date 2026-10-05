@@ -7,7 +7,7 @@ import {
 import {
   Bell, CheckCircle, Clock, FileText,
   Phone, MapPin, ChevronRight, Megaphone,
-  UserCheck, Shield, Calendar, MessageSquare, Bot, Users, Lightbulb,
+  UserCheck, Shield, MessageSquare, Bot, Users, Lightbulb,
   ShieldAlert, Flame, PhoneCall, ArrowRight, HeartPulse, Building2
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
@@ -113,9 +113,9 @@ const HomeScreen: React.FC = () => {
   const [username, setUsername]           = useState('Resident');
   const [fullName, setFullName]           = useState('Resident');
   const [refreshing, setRefreshing]       = useState(false);
-  const [stats, setStats]                 = useState({ approved: 0, pending: 0, total: 0 });
   const [announcements, setAnnouncements] = useState<any[]>([]);
-  const [events, setEvents]               = useState<any[]>([]);
+  // Events are retired; retain no event data or network request in the home screen.
+  const events: any[] = [];
   const [hasUnread, setHasUnread]         = useState(false);
   const [loadError, setLoadError]         = useState<string | null>(null);
 
@@ -140,48 +140,32 @@ const HomeScreen: React.FC = () => {
     try {
       setLoadError(null);
       // public endpoints
-      const [annRes, evtRes] = await Promise.all([
-        fetchWithTimeout(endpoints.announcements),
-        fetchWithTimeout(endpoints.events),
-      ]);
-      if (!annRes.ok || !evtRes.ok) throw new Error('Could not load community updates.');
+      const annRes = await fetchWithTimeout(endpoints.announcements);
+      if (!annRes.ok) throw new Error('Could not load community updates.');
       if (annRes.ok) { 
         const d = await annRes.json(); 
         const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
         setAnnouncements(dArr.slice(0, 3)); 
       }
-      if (evtRes.ok) { 
-        const d = await evtRes.json(); 
-        const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
-        setEvents(dArr.slice(0, 4)); 
-      }
-
       if (userId) {
         try {
           const authHeaders = await getAuthHeadersIfAvailable();
           if (!authHeaders) return;
 
-          const [userRes, subRes, notificationRes] = await Promise.all([
+          const [userRes, notificationRes] = await Promise.all([
             fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders }),
-            fetchWithTimeout(endpoints.auth.getUserSubmissions(userId), { headers: authHeaders }),
             fetchWithTimeout(endpoints.auth.getNotifications(userId), { headers: authHeaders }),
           ]);
-          if (!userRes.ok || !subRes.ok || !notificationRes.ok) {
+          if (!userRes.ok || !notificationRes.ok) {
             throw new Error('Could not load personal dashboard information.');
           }
 
-          const [user, submissions, notifications] = await Promise.all([
-            userRes.json(), subRes.json(), notificationRes.json(),
+          const [user, notifications] = await Promise.all([
+            userRes.json(), notificationRes.json(),
           ]);
           setUsername(user.username || user.firstName || 'Resident');
           setFullName(user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.username || user.firstName || 'Resident'));
 
-          const submissionArray = Array.isArray(submissions) ? submissions : [];
-          setStats({
-            total: submissionArray.length,
-            approved: submissionArray.filter((x: any) => x.status === 'Approved').length,
-            pending: submissionArray.filter((x: any) => x.status === 'Pending').length,
-          });
           setHasUnread(Array.isArray(notifications) ? notifications.some((n: any) => !n.read) : false);
         } catch (error) {
           // Public services must remain usable while a personal session restores.
@@ -269,22 +253,22 @@ const HomeScreen: React.FC = () => {
               <CheckCircle size={13} color="#047857" />
               <Text style={styles.verifiedBadgeText}>VERIFIED CITIZEN</Text>
             </View>
-            <Text style={styles.idHeaderText}>PORTAL ACTIVITY</Text>
+            <Text style={styles.idHeaderText}>CITIZEN SERVICES</Text>
           </View>
           <View style={styles.idBody}>
             <View style={styles.statItem}>
-              <Text style={styles.statNum}>{stats.total}</Text>
-              <Text style={styles.statLbl}>Submitted</Text>
+              <Text style={styles.statNum}>24/7</Text>
+              <Text style={styles.statLbl}>Online Access</Text>
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#047857' }]}>{stats.approved}</Text>
-              <Text style={styles.statLbl}>Approved</Text>
+              <Text style={[styles.statNum, { color: '#047857' }]}>Secure</Text>
+              <Text style={styles.statLbl}>Requests</Text>
             </View>
             <View style={styles.statDiv} />
             <View style={styles.statItem}>
-              <Text style={[styles.statNum, { color: '#B45309' }]}>{stats.pending}</Text>
-              <Text style={styles.statLbl}>In Progress</Text>
+              <Text style={[styles.statNum, { color: '#B45309' }]}>Live</Text>
+              <Text style={styles.statLbl}>Updates</Text>
             </View>
           </View>
         </View>

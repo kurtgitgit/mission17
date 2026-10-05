@@ -19,7 +19,7 @@ const suggestionSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'],
+    enum: ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Other Concern'],
     default: 'General'
   },
   description: {

@@ -142,8 +142,6 @@ export const endpoints = {
     login: `${API_URL}/auth/login`,
     signup: `${API_URL}/auth/signup`,
     getUser: (id: string) => `${API_URL}/auth/user/${id}`,
-    submitMission: `${API_URL}/auth/submit-mission`,
-    getUserSubmissions: (id: string) => `${API_URL}/auth/user-submissions/${id}`,
     changePassword: `${API_URL}/auth/change-password`,
     forgotPassword: `${API_URL}/auth/forgot-password`,
     resetPassword: `${API_URL}/auth/reset-password`,
@@ -160,9 +158,6 @@ export const endpoints = {
     markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
     clearNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
   },
-  // Updated to match your backend route (/auth/all-missions)
-  missions: `${API_URL}/auth/all-missions`,
-  events: `${API_URL}/auth/events`,
   // 🏛️ Barangay Portal Endpoints
   announcements: `${BACKEND_BASE_URL}/api/announcements`,
   officials: `${BACKEND_BASE_URL}/api/officials`,

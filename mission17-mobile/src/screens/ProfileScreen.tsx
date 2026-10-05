@@ -29,7 +29,7 @@ const ProfileScreen = ({ navigation }: any) => {
   const styles = getStyles(theme);
 
   const [userData, setUserData] = useState<any>(null);
-  const [history, setHistory] = useState([]);
+  const history: any[] = [];
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -69,12 +69,6 @@ const ProfileScreen = ({ navigation }: any) => {
         await saveAuthData(savedAuth.token, userJson, savedAuth.fallbackSession);
       }
 
-      try {
-        const histJson = await fetchPrivateCollection<any>(endpoints.auth.getUserSubmissions(userId), authHeaders);
-        setHistory(histJson);
-      } catch (historyError) {
-        console.warn('Could not refresh profile submission history:', historyError);
-      }
     } catch (error) {
       console.error(error);
       if (!userDataRef.current) {
@@ -90,8 +84,6 @@ const ProfileScreen = ({ navigation }: any) => {
     if (savedProfileHydrated && userId && isFocused) fetchProfileData();
   }, [userId, isFocused, fetchProfileData, savedProfileHydrated]);
 
-  const approvedCount = history.filter((h: any) => h.status === 'Approved').length;
-  const pendingCount = history.filter((h: any) => h.status === 'Pending').length;
 
   const openBlockchainHistory = () => {
     const url = `https://sepolia.etherscan.io/address/${WALLET_ADDRESS}`;
@@ -175,7 +167,7 @@ const ProfileScreen = ({ navigation }: any) => {
               Mission 17 (BrgyLink) is the official digital governance and community portal for Barangay Bagong Pag-asa, San Jacinto, Pangasinan.
             </Text>
             <Text style={styles.infoModalText}>
-              It empowers residents to request official documents, file incident blotters, track civic tasks, and stay updated on community bulletins with transparency and security.
+              It empowers residents to request official documents, file incident blotters, and stay updated on community bulletins with transparency and security.
             </Text>
           </View>
         );
@@ -255,18 +247,18 @@ const ProfileScreen = ({ navigation }: any) => {
       {/* ── STATS SECTION ── */}
       <View style={styles.statsCard}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{history.length}</Text>
-          <Text style={styles.statLabel}>Total Tasks</Text>
+          <Text style={styles.statValue}>Secure</Text>
+          <Text style={styles.statLabel}>Account</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: '#15803d' }]}>{approvedCount}</Text>
-          <Text style={styles.statLabel}>Approved</Text>
+          <Text style={[styles.statValue, { color: '#15803d' }]}>Ready</Text>
+          <Text style={styles.statLabel}>Services</Text>
         </View>
         <View style={styles.statDivider} />
         <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: '#b45309' }]}>{pendingCount}</Text>
-          <Text style={styles.statLabel}>In Review</Text>
+          <Text style={[styles.statValue, { color: '#b45309' }]}>Live</Text>
+          <Text style={styles.statLabel}>Updates</Text>
         </View>
       </View>
 
@@ -339,7 +331,7 @@ const ProfileScreen = ({ navigation }: any) => {
 
       {/* ── CIVIC TASK HISTORY HEADER ── */}
       <View style={styles.historyHeader}>
-        <Text style={styles.sectionTitle}>Community Mission Submissions</Text>
+        <Text style={styles.sectionTitle}>Resident Services</Text>
       </View>
     </>
   );
@@ -388,7 +380,7 @@ const ProfileScreen = ({ navigation }: any) => {
         data={history}
         keyExtractor={(item: any) => item._id || Math.random().toString()}
         ListHeaderComponent={renderHeader}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={null}
         renderItem={renderHistoryItem}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}

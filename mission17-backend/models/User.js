@@ -81,7 +81,6 @@ const UserSchema = new mongoose.Schema({
   lastResubmittedAt: { type: Date },
   // Legacy field retained so existing accounts require no destructive migration.
   points: { type: Number, select: false },
-  completedMissions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Mission' }],
 
   // ==================================================
   // ⛓️ NEW FIELD FOR BLOCKCHAIN INTEGRATION

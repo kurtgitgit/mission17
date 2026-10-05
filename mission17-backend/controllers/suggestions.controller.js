@@ -9,7 +9,7 @@ import { analyzeSentiment } from '../utils/sentimentAnalyzer.js';
 import asyncHandler from '../utils/asyncHandler.js';
 
 const ALLOWED_STATUSES = ['New', 'Under Review', 'Resolved', 'Dismissed'];
-const ALLOWED_CATEGORIES = ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Community Events', 'Other Concern'];
+const ALLOWED_CATEGORIES = ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Other Concern'];
 const hasMeaningfulText = (value) => {
   const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
   return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);

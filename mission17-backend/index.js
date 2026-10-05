@@ -12,9 +12,6 @@ import compression from 'compression';
 
 // IMPORTS
 import authRoutes           from './routes/auth.js';              // signup, login, otp, mfa, password, audit-logs
-import submissionRoutes     from './routes/submissions.js';       // submit, pending, approve, reject, analyze-proof
-import missionRoutes        from './routes/missions.js';          // civic task CRUD
-import eventRoutes          from './routes/events.js';            // event CRUD
 import userRoutes           from './routes/users.js';             // user management
 import notificationRoutes   from './routes/notifications.js';    // user notifications
 import blockchainRoutes     from './routes/blockchain.js';       // on-chain record endpoint
@@ -153,9 +150,6 @@ app.post('/api/auth/upload', verifyAdmin, upload.single('image'), (req, res) => 
 
 // All route files share the /api/auth prefix — zero breaking changes for existing clients.
 app.use('/api/auth', authRoutes);           // Auth & security
-app.use('/api/auth', submissionRoutes);     // Submissions (incl. pending-submissions, analyze-proof)
-app.use('/api/auth', missionRoutes);        // Civic Tasks
-app.use('/api/auth', eventRoutes);          // Events
 app.use('/api/auth', userRoutes);           // Users
 app.use('/api/auth', notificationRoutes);   // Notifications
 app.use('/api/blockchain', blockchainRoutes); // Blockchain proxy

@@ -2,8 +2,6 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { BARANGAY_INFO } from '../config/barangayInfo.js';
 import Announcement from '../models/Announcement.js';
-import Event from '../models/Event.js';
-import Mission from '../models/Mission.js';
 import Official from '../models/Official.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
 
@@ -140,16 +138,6 @@ export const requestLiveChatReply = (message) => getLiveChatReply(message, {
   findAnnouncements: () => Announcement.find({ isActive: true })
     .sort({ isUrgent: -1, isPinned: -1, createdAt: -1 })
     .select('title category isUrgent')
-    .limit(3)
-    .lean(),
-  findMissions: () => Mission.find({ isActive: { $ne: false } })
-    .sort({ sdgNumber: 1, createdAt: -1 })
-    .select('title sdgNumber')
-    .limit(3)
-    .lean(),
-  findEvents: () => Event.find({})
-    .sort({ date: 1, createdAt: -1 })
-    .select('title date time location')
     .limit(3)
     .lean(),
 });
