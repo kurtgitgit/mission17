@@ -9,14 +9,13 @@
 ---
 
 ## 📌 Overview
-The `mission17-admin` portal provides barangay officials, mediators, and administrators with a centralized web dashboard to manage citizen document requests, mediate blotter incident reports, sign resolution proofs to the Ethereum Sepolia blockchain, and moderate AI-evaluated civic submissions.
+The `mission17-admin` portal provides barangay officials, mediators, and administrators with a centralized web dashboard to manage citizen document requests, mediate blotter incident reports, record privacy-safe resolution integrity proofs to Ethereum Sepolia when the ledger is configured, and publish community announcements.
 
 ---
 
 ## ✨ Features
-* **📋 Blotter Mediation & Blockchain Event**: Review incident reports, conduct hearings, and record a resolution-related gamification transaction on the Ethereum Sepolia ledger. The current implementation does not anchor the blotter report hash itself.
+* **📋 Blotter Mediation & Resolution Ledger**: Review incident reports, conduct hearings, and, after an official resolution, anchor a cryptographic digest of non-sensitive case metadata on Ethereum Sepolia. Resident data, narratives, locations, and evidence are never written on-chain.
 * **📄 Document Request Processing**: Review valid IDs, issue electronic barangay clearances, and trigger resident notifications.
-* **AI Submission Moderation**: Review AI-analyzed SDG task proofs, inspect advisory verdicts, and make the final approval decision.
 * **📢 Community Announcements**: Publish pinned bulletins and localized push advisories.
 * **🛡️ Security Audit Logs**: Inspect chronological logs of logins, administrative overrides, and system events.
 

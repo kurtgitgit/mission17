@@ -5,7 +5,7 @@ import BlotterReport from '../models/BlotterReport.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import { logAudit } from '../utils/authMiddleware.js';
-import { createResolvedBlotterAuditTransaction } from '../utils/blockchain.js';
+import { isResolutionLedgerConfigured, recordResolvedBlotterLedgerEntry } from '../utils/blockchain.js';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import fs from 'fs';
@@ -275,22 +275,28 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (hearingStage !== undefined) report.hearingStage = hearingStage;
   if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge.trim();
 
-  // ⛓️ Record on blockchain when a blotter is Resolved
-  if (status === 'Resolved' && !report.blockchainTxHash) {
-    try {
-      const reporter = await User.findById(report.userId);
-      // ALWAYS use the Barangay's official admin wallet for the transaction (lowercase to avoid checksum errors)
-      const ADMIN_WALLET = '0x7db79ec78e6e345fe23cf7fb790846365d107ffb';
-      
-      console.log(`⛓️ Recording blotter resolution on blockchain for ${reporter?.username || 'Unknown'} (Using Admin Wallet)...`);
-      const txHash = await createResolvedBlotterAuditTransaction(ADMIN_WALLET, 1);
-      report.blockchainTxHash = txHash;
-      console.log(`✅ Blotter blockchain TX: ${txHash}`);
-      
-    } catch (blockchainError) {
-      // Non-blocking: log the error but still resolve the report
-      console.error('❌ Blockchain record failed for blotter:', blockchainError.message);
-      report.blockchainTxHash = 'TX_FAILED';
+  // Anchor only a privacy-safe resolution digest. The removed points contract
+  // must never be used as evidence that a case was recorded.
+  if (status === 'Resolved' && report.blockchainRecordStatus !== 'Recorded') {
+    if (!isResolutionLedgerConfigured()) {
+      report.blockchainRecordStatus = 'Not Configured';
+    } else {
+      try {
+        const ledgerRecord = await recordResolvedBlotterLedgerEntry(report);
+        report.blockchainTxHash = ledgerRecord.txHash;
+        report.blockchainRecordHash = ledgerRecord.integrityHash;
+        report.blockchainRecordedAt = new Date();
+        report.blockchainRecordStatus = 'Recorded';
+        console.log(`Resolution ledger entry recorded for ${ledgerRecord.referenceNumber}: ${ledgerRecord.txHash}`);
+      } catch (blockchainError) {
+        // Non-blocking: the Captain's resolution is still saved, but the UI will
+        // accurately report that an integrity entry was not created.
+        console.error('Resolution ledger record failed for blotter:', blockchainError.message);
+        report.blockchainTxHash = null;
+        report.blockchainRecordHash = null;
+        report.blockchainRecordedAt = null;
+        report.blockchainRecordStatus = 'Failed';
+      }
     }
   }
 
@@ -327,7 +333,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
 });
 
 
-// GET /public/:referenceNumber — Public: Verify a report's blockchain status
+// GET /public/:referenceNumber — Public: verify a report's resolution-ledger status
 export const getPublicReport = asyncHandler(async (req, res) => {
   const { referenceNumber } = req.params;
   const report = await BlotterReport.findOne({ referenceNumber });
@@ -336,11 +342,19 @@ export const getPublicReport = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: 'Report not found.' });
   }
 
+  const hasVerifiedLedgerRecord = report.blockchainRecordStatus === 'Recorded'
+    && Boolean(report.blockchainTxHash)
+    && Boolean(report.blockchainRecordHash);
+
   // Return only safe, public verification data
   res.json({
     referenceNumber: report.referenceNumber,
     status: report.status,
-    blockchainTxHash: report.blockchainTxHash,
+    // Old points-contract transaction hashes do not qualify as a case record.
+    blockchainTxHash: hasVerifiedLedgerRecord ? report.blockchainTxHash : null,
+    blockchainRecordHash: hasVerifiedLedgerRecord ? report.blockchainRecordHash : null,
+    blockchainRecordedAt: hasVerifiedLedgerRecord ? report.blockchainRecordedAt : null,
+    blockchainRecordStatus: hasVerifiedLedgerRecord ? 'Recorded' : (report.blockchainRecordStatus || 'Not Configured'),
     incidentType: report.incidentType,
     dateOfIncident: report.dateOfIncident,
     // explicitly NOT returning description, location, or user details for privacy

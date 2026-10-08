@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Printer, FileText, Calendar, Filter, FileBarChart, Users, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
+import { Printer, FileText, Calendar, Filter, Users, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';
 import { endpoints } from '../config/api';
 
 const ReportGeneration = () => {
-  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, missions, analytics
+  const [reportType, setReportType] = useState('blotter'); // blotter, documents, users, analytics
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState('');
@@ -69,7 +69,7 @@ const ReportGeneration = () => {
         });
         
         // Handle paginated endpoints (like users) or standard arrays
-        let rawArr = res.data.data || res.data.users || res.data.missions || res.data;
+        let rawArr = res.data.data || res.data.users || res.data;
         if (!Array.isArray(rawArr)) rawArr = [];
         
         if (requestId !== latestRequestId.current) return;
@@ -98,7 +98,6 @@ const ReportGeneration = () => {
       case 'blotter': return 'OFFICIAL BLOTTER INCIDENT REPORT';
       case 'documents': return 'BARANGAY DOCUMENT ISSUANCE LOG';
       case 'users': return 'REGISTERED RESIDENTS DIRECTORY';
-      case 'missions': return 'RETIRED REPORT TYPE';
       case 'analytics': return 'BARANGAY ANALYTICS SUMMARY';
       default: return 'OFFICIAL BARANGAY REPORT';
     }
@@ -130,13 +129,6 @@ const ReportGeneration = () => {
           <th>Email</th>
           <th>Role</th>
           <th>Joined</th>
-        </tr>
-      );
-      case 'missions': return (
-        <tr>
-          <th>Title</th>
-          <th>SDG</th>
-          <th>Status</th>
         </tr>
       );
       case 'analytics': return (
@@ -180,13 +172,6 @@ const ReportGeneration = () => {
             <td>{new Date(item.createdAt).toLocaleDateString()}</td>
           </tr>
         );
-        case 'missions': return (
-          <tr key={index}>
-            <td>{item.title}</td>
-            <td>SDG {item.sdgNumber}</td>
-            <td>{item.status || 'Active'}</td>
-          </tr>
-        );
         default: return null;
       }
     });
@@ -199,16 +184,6 @@ const ReportGeneration = () => {
           <td style={{ fontWeight: 'bold' }}>Registered Residents</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.users}</td>
           <td>Total accounts in the system</td>
-        </tr>
-        <tr>
-          <td style={{ fontWeight: 'bold' }}>Retired-feature submissions</td>
-          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.submissions}</td>
-          <td>Total tasks submitted by residents</td>
-        </tr>
-        <tr>
-          <td style={{ fontWeight: 'bold' }}>Approved retired-feature submissions</td>
-          <td style={{ fontSize: '18px', fontWeight: 'bold', color: '#16a34a' }}>{data.approvedSubmissions}</td>
-          <td>Approved after authorized review</td>
         </tr>
         <tr>
           <td style={{ fontWeight: 'bold' }}>Document Requests</td>
@@ -263,9 +238,6 @@ const ReportGeneration = () => {
                 </button>
                 <button className={`report-type-btn ${reportType === 'users' ? 'active' : ''}`} onClick={() => setReportType('users')}>
                   <Users size={16} /> Registered Residents
-                </button>
-                <button hidden className={`report-type-btn ${reportType === 'missions' ? 'active' : ''}`} onClick={() => setReportType('missions')}>
-                  <FileBarChart size={16} /> Retired report type
                 </button>
                 <button className={`report-type-btn ${reportType === 'analytics' ? 'active' : ''}`} onClick={() => setReportType('analytics')}>
                   <TrendingUp size={16} /> Analytics Summary

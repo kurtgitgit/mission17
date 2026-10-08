@@ -8,6 +8,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 uploads/
-contracts/
+# Ignore generated contract artefacts, but keep the reviewed source ledger contract.
+contracts/*
+!contracts/BrgyLinkResolutionLedger.sol
 .DS_Store
 firebase-service-account.json

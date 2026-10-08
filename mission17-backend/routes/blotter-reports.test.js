@@ -31,11 +31,15 @@ jest.unstable_mockModule('../models/BlotterReport.js', () => ({
   default: {
     find: jest.fn(),
     findById: jest.fn(),
+    findOne: jest.fn(),
   }
 }));
 jest.unstable_mockModule('../models/User.js', () => ({ default: { findById: jest.fn() } }));
 jest.unstable_mockModule('../models/Notification.js', () => ({ default: { create: jest.fn() } }));
-jest.unstable_mockModule('../utils/blockchain.js', () => ({ createResolvedBlotterAuditTransaction: jest.fn() }));
+jest.unstable_mockModule('../utils/blockchain.js', () => ({
+  isResolutionLedgerConfigured: jest.fn(() => false),
+  recordResolvedBlotterLedgerEntry: jest.fn(),
+}));
 jest.unstable_mockModule('../utils/pushNotifier.js', () => ({ sendPushNotification: jest.fn() }));
 
 const fsMock = {
@@ -192,6 +196,45 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
 
       expect(res.status).toBe(404);
       expect(global.fetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('GET /api/blotter-reports/public/:referenceNumber', () => {
+    it('does not present a legacy points transaction as a resolution record', async () => {
+      BlotterReport.findOne.mockResolvedValue({
+        referenceNumber: 'BLOTTER-2026-12345',
+        status: 'Resolved',
+        incidentType: 'Disturbance',
+        dateOfIncident: new Date('2026-10-07T00:00:00.000Z'),
+        blockchainTxHash: '0xlegacy-points-transaction',
+      });
+
+      const res = await request(app).get('/api/blotter-reports/public/BLOTTER-2026-12345');
+
+      expect(res.status).toBe(200);
+      expect(res.body.blockchainTxHash).toBeNull();
+      expect(res.body.blockchainRecordHash).toBeNull();
+      expect(res.body.blockchainRecordStatus).toBe('Not Configured');
+    });
+
+    it('returns a recorded privacy-safe resolution ledger entry', async () => {
+      BlotterReport.findOne.mockResolvedValue({
+        referenceNumber: 'BLOTTER-2026-12345',
+        status: 'Resolved',
+        incidentType: 'Disturbance',
+        dateOfIncident: new Date('2026-10-07T00:00:00.000Z'),
+        blockchainTxHash: '0xabc123',
+        blockchainRecordHash: `0x${'a'.repeat(64)}`,
+        blockchainRecordedAt: new Date('2026-10-07T01:00:00.000Z'),
+        blockchainRecordStatus: 'Recorded',
+      });
+
+      const res = await request(app).get('/api/blotter-reports/public/BLOTTER-2026-12345');
+
+      expect(res.status).toBe(200);
+      expect(res.body.blockchainTxHash).toBe('0xabc123');
+      expect(res.body.blockchainRecordHash).toBe(`0x${'a'.repeat(64)}`);
+      expect(res.body.blockchainRecordStatus).toBe('Recorded');
     });
   });
 

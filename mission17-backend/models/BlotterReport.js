@@ -29,7 +29,16 @@ const BlotterReportSchema = new mongoose.Schema({
   },
   luponOfficerInCharge: { type: String, trim: true, maxlength: 160, default: 'Punong Barangay / Lupon Tagapamayapa' },
   referenceNumber: { type: String, unique: true },
-  blockchainTxHash: { type: String, default: null }, // Set when status → Resolved
+  // A privacy-safe integrity digest is anchored only after an official resolution.
+  // No narrative, resident identity, contact information, location, or evidence is written on-chain.
+  blockchainTxHash: { type: String, default: null },
+  blockchainRecordHash: { type: String, default: null },
+  blockchainRecordedAt: { type: Date, default: null },
+  blockchainRecordStatus: {
+    type: String,
+    enum: ['Not Configured', 'Recorded', 'Failed'],
+    default: 'Not Configured'
+  },
 }, { timestamps: true });
 
 

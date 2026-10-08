@@ -44,7 +44,7 @@ const PublicVerify = () => {
         <h1 style={{ color: '#0f172a', fontSize: '28px', marginBottom: '8px' }}>Public Transparency Portal</h1>
         <p style={{ color: '#64748b', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
           Verify the authenticity and resolution status of Barangay Bagong Pag-asa Blotter Reports. 
-          Resolved cases are immutably recorded on the Ethereum Blockchain.
+          When enabled, an official resolution is anchored as a privacy-safe integrity record on Ethereum Sepolia.
         </p>
       </div>
 
@@ -105,13 +105,16 @@ const PublicVerify = () => {
 
           <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileSearch size={16} /> Blockchain Verification
+              <FileSearch size={16} /> Resolution Ledger
             </h3>
             
-            {result.blockchainTxHash && result.blockchainTxHash.startsWith('0x') ? (
+            {result.blockchainRecordStatus === 'Recorded' && result.blockchainTxHash && result.blockchainRecordHash ? (
               <div>
                 <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>
-                  ✓ Immutable record found on Ethereum Sepolia Testnet
+                  ✓ Resolution integrity record found on Ethereum Sepolia
+                </p>
+                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
+                  This record contains a cryptographic digest only—not resident information, narratives, locations, or evidence.
                 </p>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <input 
@@ -127,10 +130,21 @@ const PublicVerify = () => {
                     View Ledger
                   </button>
                 </div>
+                <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#64748b', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
+                  Integrity digest: {result.blockchainRecordHash}
+                </p>
               </div>
+            ) : result.blockchainRecordStatus === 'Failed' ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#b45309' }}>
+                This case is resolved, but its resolution-ledger record could not be created. Please contact Barangay Hall for verification.
+              </p>
+            ) : result.blockchainRecordStatus === 'Not Configured' ? (
+              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
+                The resolution ledger is not configured yet. The case status above remains the official Barangay record.
+              </p>
             ) : (
               <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                No blockchain record exists for this case yet. Cases are only recorded upon official resolution.
+                A resolution-ledger entry is created only after an official case resolution.
               </p>
             )}
           </div>

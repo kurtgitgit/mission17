@@ -21,15 +21,15 @@ Signup email verification is delivered through Gmail API OAuth (`EMAIL_USER`, `G
 mission17-backend/
 ├── routes/               # 13 REST API Endpoint Handlers
 │   ├── auth.js           # Authentication, MFA OTP, password recovery
-│   ├── blotter-reports.js# Incident filing & blockchain resolution
+│   ├── blotter-reports.js# Incident filing & privacy-safe resolution ledger
 │   ├── document-requests.js # Clearance & certificate workflows
-│   ├── blockchain.js     # Gasless sponsor transaction gateway
+│   ├── blockchain.js     # Retired direct-write route (server workflow only)
 │   ├── chatbot.js        # BrgyLink multilingual guidance proxy and safe fallback
 │   └── ...               # Announcements, Officials, Notifications
 │
 ├── controllers/          # Business logic and database operations
 ├── models/               # Mongoose Schemas with compound indexing
-├── contracts/            # Solidity smart contracts (UUPS proxy pattern)
+├── contracts/            # Solidity contracts (resolution integrity ledger)
 ├── config/               # Security, nodemailer, and database configuration
 └── utils/                # Auth middleware, multer upload, audit logging
 ```
@@ -57,8 +57,8 @@ GOOGLE_REFRESH_TOKEN=your_google_oauth_refresh_token
 AI_SERVER_URL=https://<your-hugging-face-space>.hf.space/predict
 AI_SERVICE_TOKEN=<shared-ai-service-token>
 SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/your_alchemy_key
-ADMIN_PRIVATE_KEY=0x_your_sponsor_wallet_private_key
-CONTRACT_ADDRESS=0x_deployed_contract_address
+ADMIN_PRIVATE_KEY=0x_authorized_resolution_ledger_wallet_private_key
+BRGYLINK_RESOLUTION_LEDGER_ADDRESS=0x_deployed_resolution_ledger_address
 AI_SERVER_URL=http://localhost:7860
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
@@ -78,6 +78,6 @@ npm run dev
 # Run test suite
 npm test
 
-# Benchmark smart contract gas costs
-node gas-perf-test.js
+# Resolution-ledger payload and privacy tests
+npm test -- --runInBand utils/blockchain.test.js
 ```

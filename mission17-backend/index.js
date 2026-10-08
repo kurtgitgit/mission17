@@ -14,7 +14,7 @@ import compression from 'compression';
 import authRoutes           from './routes/auth.js';              // signup, login, otp, mfa, password, audit-logs
 import userRoutes           from './routes/users.js';             // user management
 import notificationRoutes   from './routes/notifications.js';    // user notifications
-import blockchainRoutes     from './routes/blockchain.js';       // on-chain record endpoint
+import blockchainRoutes     from './routes/blockchain.js';       // retired direct-ledger endpoint
 import announcementRoutes   from './routes/announcements.js';   // barangay announcements
 import officialsRoutes      from './routes/officials.js';        // barangay officials
 import docRequestRoutes     from './routes/document-requests.js'; // document requests
@@ -26,7 +26,7 @@ import { verifyAdmin } from './utils/authMiddleware.js';
 import { processPendingPushReceipts } from './utils/pushNotifier.js';
 
 // ✅ NEW: Check for required environment variables on startup
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SEPOLIA_RPC_URL', 'ADMIN_PRIVATE_KEY', 'CONTRACT_ADDRESS', 'VERIFY_CONTRACT_ADDRESS', 'AI_SERVER_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'AI_SERVER_URL', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
 for (const v of requiredEnvVars) {
     if (!process.env[v]) {
         console.error(`\n❌ FATAL ERROR: Environment variable ${v} is missing in .env file.`);

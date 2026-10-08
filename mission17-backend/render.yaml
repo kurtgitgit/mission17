@@ -11,13 +11,12 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      # Optional: configure all three only after deploying BrgyLinkResolutionLedger.
       - key: SEPOLIA_RPC_URL
         sync: false
       - key: ADMIN_PRIVATE_KEY
         sync: false
-      - key: CONTRACT_ADDRESS
-        sync: false
-      - key: VERIFY_CONTRACT_ADDRESS
+      - key: BRGYLINK_RESOLUTION_LEDGER_ADDRESS
         sync: false
       - key: AI_SERVER_URL
         sync: false

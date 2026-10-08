@@ -10,7 +10,7 @@ const router = express.Router();
  */
 router.post('/record', (_req, res) => {
   res.status(410).json({
-    message: 'Direct blockchain recording is retired. Use an authorized business workflow instead.'
+    message: 'Direct ledger recording is retired. Use the authorized blotter-resolution workflow instead.'
   });
 });
 

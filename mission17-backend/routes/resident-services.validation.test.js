@@ -27,7 +27,8 @@ jest.unstable_mockModule('../utils/pushNotifier.js', () => ({
 }));
 
 jest.unstable_mockModule('../utils/blockchain.js', () => ({
-  createResolvedBlotterAuditTransaction: jest.fn(async () => 'test-transaction')
+  isResolutionLedgerConfigured: jest.fn(() => false),
+  recordResolvedBlotterLedgerEntry: jest.fn(),
 }));
 
 const suggestionsRouter = (await import('./suggestions.js')).default;

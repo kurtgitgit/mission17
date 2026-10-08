@@ -1,76 +1,79 @@
 import { ethers } from 'ethers';
 
-// A minimal ABI for the function you want to call.
-// Replace with your actual contract's ABI.
-const contractABI = [
-    "function awardPoints(address recipient, uint256 amount)",
-    "function burnPoints(address user, uint256 amount)" // Added V2 capability
+const resolutionLedgerAbi = [
+  'function recordResolution(bytes32 caseKey, bytes32 integrityHash)',
 ];
 
+const LEDGER_ENVIRONMENT = [
+  'SEPOLIA_RPC_URL',
+  'ADMIN_PRIVATE_KEY',
+  'BRGYLINK_RESOLUTION_LEDGER_ADDRESS',
+];
+
+const normalizeDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+};
+
 /**
- * Creates the existing smart-contract transaction used as an audit reference
- * when an authorized officer resolves a blotter report.
- *
- * @param {string} recipientAddress The official barangay audit wallet.
- * @param {number} auditUnits Legacy contract amount required for the audit transaction.
- * @returns {Promise<string>} The transaction hash of the confirmed transaction.
+ * Returns a deterministic, privacy-safe description of a resolved blotter case.
+ * Do not add resident identity, contact information, narratives, locations, or evidence.
  */
-export async function createResolvedBlotterAuditTransaction(recipientAddress, auditUnits) {
-    // NOTE: Access process.env inside the function to ensure dotenv has loaded
-    const RPC_URL = process.env.SEPOLIA_RPC_URL;
-    const ADMIN_PRIVATE_KEY = process.env.ADMIN_PRIVATE_KEY; 
-    const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS; 
+export function buildResolvedBlotterLedgerPayload(report) {
+  const referenceNumber = String(report?.referenceNumber || '').trim();
+  if (!referenceNumber) {
+    throw new Error('A resolved blotter report must have a reference number before it can be recorded.');
+  }
 
-    if (!RPC_URL || !ADMIN_PRIVATE_KEY || !CONTRACT_ADDRESS) {
-        console.error("🔥 Blockchain environment variables (SEPOLIA_RPC_URL, ADMIN_PRIVATE_KEY, CONTRACT_ADDRESS) are missing.");
-        throw new Error("Server configuration error: Missing blockchain credentials.");
-    }
+  const canonicalRecord = JSON.stringify({
+    schema: 'brgylink.blotter-resolution.v1',
+    referenceNumber,
+    status: 'Resolved',
+    incidentType: String(report?.incidentType || '').trim(),
+    dateOfIncident: normalizeDate(report?.dateOfIncident),
+  });
 
-    // 1. Set up provider (connection to the blockchain) and signer (your admin wallet)
-    const provider = new ethers.JsonRpcProvider(RPC_URL);
-    const signer = new ethers.Wallet(ADMIN_PRIVATE_KEY, provider);
+  return {
+    referenceNumber,
+    caseKey: ethers.keccak256(ethers.toUtf8Bytes(`brgylink:blotter:${referenceNumber}`)),
+    integrityHash: ethers.keccak256(ethers.toUtf8Bytes(canonicalRecord)),
+  };
+}
 
-    // 2. Create an instance of your smart contract
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+export function isResolutionLedgerConfigured() {
+  return LEDGER_ENVIRONMENT.every((name) => Boolean(process.env[name]?.trim()));
+}
 
-    try {
-        // 3. DYNAMICALLY FETCH GAS FEES (EIP-1559)
-        console.log("⛽ Fetching current gas prices from Sepolia...");
-        // 🛡️ SECURE CODE: Dynamic Gas Estimation (EIP-1559).
-        // Prevents transactions from getting stuck by fetching real-time network fees.
-        // 🛡️ SECURE CODE: DYNAMIC GAS PRICING
-        const feeData = await provider.getFeeData();
+/**
+ * Records a privacy-safe integrity digest only after a Captain has resolved a blotter case.
+ * This function is intentionally unavailable until the dedicated ledger contract is deployed.
+ */
+export async function recordResolvedBlotterLedgerEntry(report) {
+  if (!isResolutionLedgerConfigured()) {
+    const error = new Error('Resolution ledger is not configured. Deploy the dedicated contract and set its address first.');
+    error.code = 'LEDGER_NOT_CONFIGURED';
+    throw error;
+  }
 
-        console.log(`   - Max Fee Per Gas: ${ethers.formatUnits(feeData.maxFeePerGas, "gwei")} Gwei`);
-        console.log(`   - Max Priority Fee: ${ethers.formatUnits(feeData.maxPriorityFeePerGas, "gwei")} Gwei`);
+  const { referenceNumber, caseKey, integrityHash } = buildResolvedBlotterLedgerPayload(report);
+  const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+  const signer = new ethers.Wallet(process.env.ADMIN_PRIVATE_KEY, provider);
+  const contract = new ethers.Contract(
+    process.env.BRGYLINK_RESOLUTION_LEDGER_ADDRESS,
+    resolutionLedgerAbi,
+    signer,
+  );
 
-        // 4. Prepare and send the transaction with dynamic fees
-        console.log(`Creating resolved-blotter audit transaction for ${recipientAddress}...`);
-        
-        const tx = await contract.awardPoints(recipientAddress, auditUnits, {
-            maxFeePerGas: feeData.maxFeePerGas,
-            maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
-            // 🛠️ OPTIMIZED: Removed artificial 500,000 gasLimit
-        });
+  const transaction = await contract.recordResolution(caseKey, integrityHash);
+  const receipt = await transaction.wait(1);
+  if (!receipt || receipt.status !== 1) {
+    throw new Error('Resolution ledger transaction was not confirmed.');
+  }
 
-        console.log(`⏳ Transaction sent! Hash: ${tx.hash}. Waiting for confirmation...`);
-
-        // 5. Wait for the transaction to be mined
-        const receipt = await tx.wait(1);
-        
-        console.log(`✅ Transaction confirmed in block: ${receipt.blockNumber}`);
-        return receipt.hash;
-
-    } catch (error) {
-        console.error("❌ Blockchain transaction failed:", error);
-
-        // 🔍 HELPFUL HINT FOR REVERTS
-        if (error.code === 'CALL_EXCEPTION') {
-            console.error("\n⚠️  POSSIBLE CAUSE: The Admin Wallet is not the 'Owner' of the Smart Contract.");
-            console.error("   Only the wallet that deployed the contract can usually call this function.");
-            console.error(`   Contract Address: ${CONTRACT_ADDRESS}\n`);
-        }
-
-        throw new Error(`Blockchain Error: ${error.reason || error.message}`);
-    }
+  return {
+    txHash: receipt.hash,
+    integrityHash,
+    referenceNumber,
+  };
 }

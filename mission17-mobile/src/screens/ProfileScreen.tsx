@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, 
-  SafeAreaView, ActivityIndicator, Linking, Alert, Modal, RefreshControl, StatusBar
+  SafeAreaView, ActivityIndicator, Alert, Modal, RefreshControl, StatusBar
 } from 'react-native';
 import { 
   User, Settings, ShieldCheck,
@@ -19,9 +19,6 @@ import { fetchPrivateJson, getFriendlyNetworkMessage } from '../utils/network';
 import { BARANGAY_INFO } from '../config/barangayInfo';
 import { signOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
-
-// YOUR SYSTEM RELAYER ADDRESS
-const WALLET_ADDRESS = "0x7dB79ec78E6e345fE23cf7fB790846365D107FFB";
 
 const ProfileScreen = ({ navigation }: any) => { 
   const { theme } = useTheme();
@@ -83,11 +80,6 @@ const ProfileScreen = ({ navigation }: any) => {
     if (savedProfileHydrated && userId && isFocused) fetchProfileData();
   }, [userId, isFocused, fetchProfileData, savedProfileHydrated]);
 
-
-  const openBlockchainHistory = () => {
-    const url = `https://sepolia.etherscan.io/address/${WALLET_ADDRESS}`;
-    Linking.openURL(url);
-  };
 
   const performLogout = async () => {
     try {
@@ -183,6 +175,20 @@ const ProfileScreen = ({ navigation }: any) => {
             <Text style={styles.faqAnswer}>A: Because records are verified against official government IDs, please present your proof of billing or updated ID at the Barangay Hall.</Text>
           </View>
         );
+      case 'Resolved Case Ledger':
+        return (
+          <View style={{ gap: 10 }}>
+            <Text style={styles.infoModalText}>
+              When the Barangay Captain officially resolves a blotter case, BrgyLink can create a privacy-safe integrity record on the resolution ledger.
+            </Text>
+            <Text style={styles.infoModalText}>
+              The ledger contains only a cryptographic digest. It never publishes resident names, contact details, incident narratives, locations, or evidence.
+            </Text>
+            <Text style={styles.infoModalText}>
+              Use the public verification page with a blotter reference number to check a recorded resolution.
+            </Text>
+          </View>
+        );
       case 'Privacy Notice':
         return (
           <Text style={styles.infoModalText}>
@@ -260,9 +266,9 @@ const ProfileScreen = ({ navigation }: any) => {
         />
         <MenuItem 
           icon={<ShieldCheck size={20} color="#0038A8" />} 
-          title="Blockchain Record Verification"
-          subtitle="View tamper-evident official record references"
-          onPress={openBlockchainHistory} 
+          title="Resolved Case Ledger"
+          subtitle="Learn how official case resolutions are verified"
+          onPress={() => setInfoModal('Resolved Case Ledger')}
           isLast={true}
         />
       </View>
