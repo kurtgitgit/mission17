@@ -15,8 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, GlobalState, getAuthHeadersIfAvailable } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { useTheme } from '../context/ThemeContext';
-import ScreenErrorState from '../components/ScreenErrorState';
-import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { fetchWithTimeout } from '../utils/network';
 import { BARANGAY_CONTACTS } from '../config/barangayInfo';
 
 const SERVICES = [
@@ -115,7 +114,7 @@ const HomeScreen: React.FC = () => {
   const [refreshing, setRefreshing]       = useState(false);
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [hasUnread, setHasUnread]         = useState(false);
-  const [loadError, setLoadError]         = useState<string | null>(null);
+  const [bulletinsUnavailable, setBulletinsUnavailable] = useState(false);
 
   useEffect(() => {
     const hydrateSavedUser = async () => {
@@ -135,21 +134,33 @@ const HomeScreen: React.FC = () => {
   }, []);
 
   const fetchAll = useCallback(async () => {
-    try {
-      setLoadError(null);
-      // public endpoints
-      const annRes = await fetchWithTimeout(endpoints.announcements);
-      if (!annRes.ok) throw new Error('Could not load community updates.');
-      if (annRes.ok) { 
-        const d = await annRes.json(); 
-        const dArr = Array.isArray(d) ? d : (Array.isArray(d.data) ? d.data : []);
-        setAnnouncements(dArr.slice(0, 3)); 
-      }
-      if (userId) {
-        try {
-          const authHeaders = await getAuthHeadersIfAvailable();
-          if (!authHeaders) return;
+    // Bulletin availability must never make the whole resident dashboard look offline.
+    // A short retry absorbs intermittent mobile-network and DNS failures.
+    let bulletinRequestSucceeded = false;
+    for (let attempt = 0; attempt < 2 && !bulletinRequestSucceeded; attempt += 1) {
+      try {
+        const annRes = await fetchWithTimeout(endpoints.announcements);
+        if (!annRes.ok) throw new Error('Could not load community updates.');
 
+        const data = await annRes.json();
+        const bulletinList = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
+        setAnnouncements(bulletinList.slice(0, 3));
+        setBulletinsUnavailable(false);
+        bulletinRequestSucceeded = true;
+      } catch (error) {
+        if (attempt === 0) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 750));
+        } else {
+          console.warn('Could not load community updates:', error);
+          setBulletinsUnavailable(true);
+        }
+      }
+    }
+
+    if (userId) {
+      try {
+        const authHeaders = await getAuthHeadersIfAvailable();
+        if (authHeaders) {
           const [userRes, notificationRes] = await Promise.all([
             fetchWithTimeout(endpoints.auth.getUser(userId), { headers: authHeaders }),
             fetchWithTimeout(endpoints.auth.getNotifications(userId), { headers: authHeaders }),
@@ -165,17 +176,14 @@ const HomeScreen: React.FC = () => {
           setFullName(user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : (user.username || user.firstName || 'Resident'));
 
           setHasUnread(Array.isArray(notifications) ? notifications.some((n: any) => !n.read) : false);
-        } catch (error) {
-          // Public services must remain usable while a personal session restores.
-          console.warn('Could not load personal dashboard information:', error);
         }
+      } catch (error) {
+        // Public services must remain usable while a personal session restores.
+        console.warn('Could not load personal dashboard information:', error);
       }
-    } catch (e) {
-      console.error('Home fetch error:', e);
-      setLoadError(getFriendlyNetworkMessage(e, 'Some dashboard information could not be updated. Your services are still available below.'));
-    } finally {
-      setRefreshing(false);
     }
+
+    setRefreshing(false);
   }, [userId]);
 
   useEffect(() => {
@@ -238,15 +246,6 @@ const HomeScreen: React.FC = () => {
             </View>
           </View>
         </LinearGradient>
-
-        {loadError ? (
-          <ScreenErrorState
-            compact
-            title="Some information is unavailable"
-            message={loadError}
-            onRetry={fetchAll}
-          />
-        ) : null}
 
         {GlobalState.role === 'super_admin' && (
           <View style={styles.section}>
@@ -314,7 +313,22 @@ const HomeScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {announcements.length === 0 ? (
+          {bulletinsUnavailable ? (
+            <View style={styles.bulletinsUnavailable}>
+              <Megaphone size={20} color="#B45309" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.bulletinsUnavailableTitle}>Bulletins temporarily unavailable</Text>
+                <Text style={styles.bulletinsUnavailableText}>Your barangay services are still available.</Text>
+              </View>
+              <TouchableOpacity
+                onPress={fetchAll}
+                accessibilityRole="button"
+                accessibilityLabel="Retry loading bulletins"
+              >
+                <Text style={styles.bulletinsRetry}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : announcements.length === 0 ? (
             <View style={styles.emptyState}>
               <Megaphone size={24} color="#94A3B8" />
               <Text style={styles.emptyText}>No bulletins posted at this time.</Text>
@@ -548,6 +562,19 @@ const getStyles = (theme: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
+  bulletinsUnavailable: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  bulletinsUnavailableTitle: { color: '#92400E', fontSize: 13, fontWeight: '800' },
+  bulletinsUnavailableText: { color: '#A16207', fontSize: 11.5, lineHeight: 16, marginTop: 2 },
+  bulletinsRetry: { color: '#1D4ED8', fontSize: 12, fontWeight: '800', padding: 5 },
   pinTag:   { fontSize: 9.5, fontWeight: '800', color: '#B45309', letterSpacing: 0.5 },
   annTitle: { fontSize: 14.5, fontWeight: '800', color: '#0F172A', marginBottom: 4, lineHeight: 20 },
   annBody:  { fontSize: 12.5, color: '#475569', lineHeight: 18, marginBottom: 8 },
