@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Platform } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, BookOpen, Megaphone, ShieldCheck, User } from 'lucide-react-native';
+import { Home, Landmark, Megaphone, ShieldCheck, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -19,7 +19,6 @@ import ProfileScreen     from './src/screens/ProfileScreen';
 import LearningScreen    from './src/screens/LearningScreen';
 import EditProfileScreen from './src/screens/EditProfileScreen';
 import SettingsScreen    from './src/screens/SettingsScreen';
-import SDGDetailScreen   from './src/screens/SDGDetailScreen';
 import AuditLogScreen    from './src/screens/AuditLogScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
@@ -106,8 +105,8 @@ function MainTabs() {
           name="LearnTab"
           component={LearningScreen}
           options={{
-            tabBarLabel: 'Learn',
-            tabBarIcon: ({ color }: any) => <BookOpen size={22} color={color} />,
+            tabBarLabel: 'About',
+            tabBarIcon: ({ color }: any) => <Landmark size={22} color={color} />,
           }}
         />
       )}
@@ -263,7 +262,6 @@ export default function App() {
               {/* Detail Screens */}
               <Stack.Screen name="EditProfile"   component={EditProfileScreen} />
               <Stack.Screen name="Settings"      component={SettingsScreen} />
-              <Stack.Screen name="SDGDetail"     component={SDGDetailScreen} />
               <Stack.Screen name="AuditLogs"     component={AuditLogScreen} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
 

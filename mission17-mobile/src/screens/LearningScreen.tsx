@@ -1,284 +1,140 @@
-import React, { useState } from 'react';
-import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Image, ScrollView, Platform, SafeAreaView, StatusBar, Linking
-} from 'react-native';
-import { BookOpen, MapPin, Phone, Clock, ChevronRight, Globe } from 'lucide-react-native';
-import { SDG_IMAGES, SDG_DATA } from '../data/SDGData';
+import React from 'react';
+import { Linking, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Building2, Clock3, FileText, Info, Landmark, Mail, MapPin, Megaphone, Phone, ShieldCheck, Users } from 'lucide-react-native';
+import { BARANGAY_INFO } from '../config/barangayInfo';
 import { useTheme } from '../context/ThemeContext';
 
-const BARANGAY_PROGRAMS = [
-  { sdgs: [13, 15], icon: '🌿', title: 'Tree Planting', desc: 'Coastal & public space reforestation drives.' },
-  { sdgs: [12],     icon: '♻️', title: 'Waste Segregation', desc: 'Proper biodegradable, recyclable & residual waste sorting.' },
-  { sdgs: [3],      icon: '🏥', title: 'Health & Wellness', desc: 'Free medical missions & vaccination in partnership with CHO.' },
-  { sdgs: [6],      icon: '💧', title: 'Clean Water Access', desc: 'Safe drinking water advocacy for all households.' },
-  { sdgs: [16],     icon: '🛡️', title: 'Peace & Order', desc: '24/7 Barangay Tanod & CCTV security monitoring.' },
-  { sdgs: [4],      icon: '📚', title: 'Scholarships', desc: 'Educational assistance for qualified student residents.' },
-];
+type DetailCardProps = { icon: React.ReactNode; label: string; value: string; };
+
+const DetailCard: React.FC<DetailCardProps> = ({ icon, label, value }) => (
+  <View style={styles.detailCard}>
+    <View style={styles.detailIcon}>{icon}</View>
+    <View style={styles.detailText}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  </View>
+);
 
 const LearningScreen: React.FC = () => {
   const { theme, isDarkMode } = useTheme();
-  const styles = getStyles(theme);
-  const [activeTab, setActiveTab] = useState<'sdg' | 'about'>('sdg');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
-
-  const renderSDGCard = ({ item }: { item: typeof SDG_DATA[0] }) => {
-    const isExpanded = expandedId === item.id;
-    return (
-      <TouchableOpacity
-        style={[styles.sdgCard, isExpanded && styles.sdgCardExpanded]}
-        onPress={() => setExpandedId(isExpanded ? null : item.id)}
-        activeOpacity={0.85}
-      >
-        <View style={styles.sdgCardRow}>
-          <Image source={SDG_IMAGES[item.id]} style={styles.sdgIcon} />
-          <View style={styles.sdgMeta}>
-            <Text style={styles.sdgNum}>SDG {item.id}</Text>
-            <Text style={styles.sdgTitle}>{item.title}</Text>
-          </View>
-          <View style={[styles.sdgArrow, isExpanded && styles.sdgArrowRotated]}>
-            <ChevronRight size={18} color={theme.textTertiary} />
-          </View>
-        </View>
-
-        {isExpanded && (
-          <View style={styles.sdgExpanded}>
-            <View style={[styles.sdgColorBar, { backgroundColor: item.color }]} />
-            <Text style={styles.sdgDesc}>{item.description}</Text>
-            <View style={[styles.sdgWhy, { backgroundColor: theme.isDark ? theme.surfaceSecondary : item.color + '12' }]}>
-              <Text style={[styles.sdgWhyLabel, { color: theme.isDark ? theme.text : item.color }]}>💡 Why it matters</Text>
-              <Text style={styles.sdgWhyText}>{item.whyItMatters}</Text>
-            </View>
-            <Text style={styles.sdgHelpLabel}>🌿 How you can help:</Text>
-            {item.help.map((h, i) => (
-              <View key={i} style={styles.sdgHelpRow}>
-                <View style={[styles.sdgHelpDot, { backgroundColor: item.color }]} />
-                <Text style={styles.sdgHelpText}>{h}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </TouchableOpacity>
-    );
-  };
+  const openDialer = () => Linking.openURL(`tel:${BARANGAY_INFO.mobileNumber}`);
+  const openEmail = () => Linking.openURL(`mailto:${BARANGAY_INFO.email}`);
 
   return (
-    <RootComponent style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? "light-content" : "light-content"} backgroundColor={theme.primary} />
-
-      {/* ─── HEADER ─── */}
-      <View style={styles.header}>
+    <RootComponent style={[styles.container, { backgroundColor: theme.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
+      <View style={[styles.header, { backgroundColor: theme.primary }]}>
         <View style={styles.headerRow}>
-          <BookOpen size={22} color="white" />
-          <Text style={styles.headerTitle}>Learning Hub</Text>
+          <Landmark size={24} color="#fff" />
+          <Text style={styles.headerTitle}>About Barangay</Text>
         </View>
-        <Text style={styles.headerSub}>SDGs & Barangay Bagong Pag-asa</Text>
-
-        {/* TAB BAR */}
-        <View style={styles.tabBar}>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'sdg' && styles.tabActive]}
-            onPress={() => setActiveTab('sdg')}
-          >
-            <Globe size={14} color={activeTab === 'sdg' ? theme.primary : 'rgba(255,255,255,0.7)'} />
-            <Text style={[styles.tabText, activeTab === 'sdg' && styles.tabTextActive]}>SDG Hub</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeTab === 'about' && styles.tabActive]}
-            onPress={() => setActiveTab('about')}
-          >
-            <MapPin size={14} color={activeTab === 'about' ? theme.primary : 'rgba(255,255,255,0.7)'} />
-            <Text style={[styles.tabText, activeTab === 'about' && styles.tabTextActive]}>About Brgy</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.headerSubtitle}>{BARANGAY_INFO.name}</Text>
+        <Text style={styles.headerLocation}>{BARANGAY_INFO.municipality}</Text>
       </View>
 
-      {/* ─── SDG TAB ─── */}
-      {activeTab === 'sdg' && (
-        <FlatList
-          data={SDG_DATA}
-          renderItem={renderSDGCard}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={styles.sdgIntro}>
-              <Text style={styles.sdgIntroTitle}>17 Sustainable Development Goals</Text>
-              <Text style={styles.sdgIntroText}>
-                Learn about the UN's 2030 agenda for people and the planet. Tap any goal to explore it and find out how Barangay Bagong Pag-asa is taking action.
-              </Text>
-            </View>
-          }
-        />
-      )}
-
-      {/* ─── ABOUT BRGY TAB ─── */}
-      {activeTab === 'about' && (
-        <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {/* Brgy Overview */}
-          <View style={styles.aboutCard}>
-            <Text style={styles.aboutEmoji}>🏛️</Text>
-            <Text style={styles.aboutName}>Barangay Bagong Pag-asa</Text>
-            <Text style={styles.aboutCity}>San Jacinto, Pangasinan</Text>
-            <Text style={styles.aboutBody}>
-              Barangay Bagong Pag-asa is a vibrant urban barangay known for its rich fishing heritage, active community programs, and commitment to sustainable development aligned with the UN Sustainable Development Goals.
-            </Text>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={[styles.heroCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <View style={[styles.heroIcon, { backgroundColor: `${theme.primary}14` }]}>
+            <Building2 size={30} color={theme.primary} />
           </View>
+          <Text style={[styles.heroTitle, { color: theme.text }]}>{BARANGAY_INFO.name}</Text>
+          <Text style={[styles.heroLocation, { color: theme.textSecondary }]}>{BARANGAY_INFO.municipality}</Text>
+          <Text style={[styles.heroBody, { color: theme.textSecondary }]}>
+            BrgyLink is the digital service portal for residents of Barangay Bagong Pag-asa. Use it to access barangay services, receive official announcements, and find verified community information.
+          </Text>
+        </View>
 
-          {/* Info Grid */}
-          <View style={styles.infoGrid}>
-            {[
-              { icon: '📍', label: 'Location', value: 'San Jacinto, Pangasinan' },
-              { icon: '📞', label: 'Emergency contacts', value: 'See the Home tab' },
-              { icon: '🏘️', label: 'Type', value: 'Urban Barangay' },
-              { icon: '🐟', label: 'Heritage', value: 'Fisherfolk Community' },
-            ].map(item => (
-              <View key={item.label} style={styles.infoBox}>
-                <Text style={styles.infoBoxIcon}>{item.icon}</Text>
-                <Text style={styles.infoBoxLabel}>{item.label}</Text>
-                <Text style={styles.infoBoxValue}>{item.value}</Text>
-              </View>
-            ))}
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Community profile</Text>
+        <View style={styles.detailGrid}>
+          <DetailCard icon={<MapPin size={20} color={theme.primary} />} label="Location" value={BARANGAY_INFO.address} />
+          <DetailCard icon={<Users size={20} color={theme.primary} />} label="2024 population" value="1,358 residents (2024 POPCEN)" />
+          <DetailCard icon={<Building2 size={20} color={theme.primary} />} label="PSA classification" value="Rural barangay" />
+          <DetailCard icon={<Info size={20} color={theme.primary} />} label="PSGC code" value="0105534013" />
+          <DetailCard icon={<Clock3 size={20} color={theme.primary} />} label="Office hours" value={`${BARANGAY_INFO.officeDays}, ${BARANGAY_INFO.officeHours}`} />
+          <DetailCard icon={<ShieldCheck size={20} color={theme.primary} />} label="Resident services" value="Documents, blotter reports, feedback, and announcements" />
+        </View>
+
+        <View style={[styles.historyCard, { backgroundColor: isDarkMode ? 'rgba(30, 64, 175, 0.16)' : '#eff6ff', borderColor: isDarkMode ? 'rgba(96, 165, 250, 0.24)' : '#bfdbfe' }]}>
+          <View style={styles.historyHeading}>
+            <Info size={20} color={theme.primary} />
+            <Text style={[styles.historyTitle, { color: theme.text }]}>History & heritage</Text>
           </View>
+          <Text style={[styles.historyBody, { color: theme.textSecondary }]}>
+            Earlier Philippine census records identify the community as Bagong Pag-asa (Poblacion East). The 2010 Census recorded 1,253 residents; the Philippine Statistics Authority's 2024 POPCEN listing records 1,358 residents and classifies the barangay as rural.
+          </Text>
+          <Text style={[styles.historySource, { color: theme.textTertiary }]}>Source: Philippine Statistics Authority, San Jacinto barangay listing and census records.</Text>
+        </View>
 
-          {/* Office Hours */}
-          <View style={styles.officeCard}>
-            <View style={styles.officeHeader}>
-              <Clock size={16} color={theme.isDark ? theme.warning : "#b45309"} />
-              <Text style={styles.officeTitle}>Office Hours</Text>
-            </View>
-            {[
-              { day: 'Monday – Saturday', time: '8:00 AM – 5:00 PM' },
-              { day: 'Sunday / Holidays', time: 'Closed', closed: true },
-            ].map(item => (
-              <View key={item.day} style={styles.officeRow}>
-                <Text style={styles.officeDay}>{item.day}</Text>
-                <Text style={[styles.officeTime, item.closed && { color: theme.danger }]}>{item.time}</Text>
-              </View>
-            ))}
-          </View>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>What residents can do with BrgyLink</Text>
+        <View style={[styles.servicesCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <DetailCard icon={<FileText size={20} color={theme.primary} />} label="Request documents" value="Submit clearance, certificate, and resident ID requests." />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <DetailCard icon={<ShieldCheck size={20} color={theme.primary} />} label="Report and track incidents" value="File blotter reports and follow their official status." />
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <DetailCard icon={<Megaphone size={20} color={theme.primary} />} label="Stay informed" value="Read official announcements and service updates." />
+        </View>
 
-          {/* Programs linked to SDGs */}
-          <Text style={styles.sectionTitle}>🌱 Active SDG Programs</Text>
-          {BARANGAY_PROGRAMS.map((prog) => (
-            <View key={prog.title} style={styles.programCard}>
-              <Text style={styles.programIcon}>{prog.icon}</Text>
-              <View style={styles.programInfo}>
-                <View style={styles.programTitleRow}>
-                  <Text style={styles.programTitle}>{prog.title}</Text>
-                  <View style={styles.sdgTags}>
-                    {prog.sdgs.map(s => (
-                      <View key={s} style={styles.sdgTag}>
-                        <Text style={styles.sdgTagText}>SDG {s}</Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-                <Text style={styles.programDesc}>{prog.desc}</Text>
-              </View>
+        <Text style={[styles.sectionTitle, { color: theme.text }]}>Contact the Barangay Office</Text>
+        <View style={[styles.contactCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+          <TouchableOpacity style={styles.contactRow} onPress={openDialer} accessibilityRole="button" accessibilityLabel="Call Barangay Hall">
+            <View style={[styles.contactIcon, { backgroundColor: `${theme.primary}14` }]}><Phone size={19} color={theme.primary} /></View>
+            <View style={styles.contactContent}>
+              <Text style={[styles.contactLabel, { color: theme.text }]}>Barangay Hall</Text>
+              <Text style={[styles.contactValue, { color: theme.primary }]}>{BARANGAY_INFO.mobileDisplay}</Text>
             </View>
-          ))}
-          <View style={{ height: 60 }} />
-        </ScrollView>
-      )}
+          </TouchableOpacity>
+          <View style={[styles.divider, { backgroundColor: theme.border }]} />
+          <TouchableOpacity style={styles.contactRow} onPress={openEmail} accessibilityRole="button" accessibilityLabel="Email Barangay Hall">
+            <View style={[styles.contactIcon, { backgroundColor: `${theme.primary}14` }]}><Mail size={19} color={theme.primary} /></View>
+            <View style={styles.contactContent}>
+              <Text style={[styles.contactLabel, { color: theme.text }]}>Email</Text>
+              <Text style={[styles.contactValue, { color: theme.primary }]}>{BARANGAY_INFO.email}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={[styles.note, { color: theme.textTertiary }]}>For changing schedules, contacts, and official notices, always check BrgyLink Announcements or contact the Barangay Office.</Text>
+      </ScrollView>
     </RootComponent>
   );
 };
 
-const getStyles = (theme: any) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.background },
-
-  header: {
-    backgroundColor: '#0038A8',
-    paddingTop: Platform.OS === 'android' ? 45 : 20,
-    paddingHorizontal: 20,
-    paddingBottom: 0,
-  },
-  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 2 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: 'white' },
-  headerSub: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 16 },
-
-  tabBar: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: 4 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 10, borderRadius: 9 },
-  tabActive: { backgroundColor: theme.surface },
-  tabText: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.75)' },
-  tabTextActive: { color: theme.primary },
-
-  // The app-level bottom tabs overlay screen content on Android. Reserve enough
-  // space for the last SDG/program card to scroll completely above the bar.
-  listContent: { padding: 16, paddingBottom: 148 },
-
-  // SDG HUB
-  sdgIntro: { backgroundColor: theme.surface, borderRadius: 16, padding: 18, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: theme.primary, borderWidth: 1, borderColor: theme.border },
-  sdgIntroTitle: { fontSize: 16, fontWeight: '800', color: theme.text, marginBottom: 6 },
-  sdgIntroText: { fontSize: 13, color: theme.textSecondary, lineHeight: 20 },
-
-  sdgCard: {
-    backgroundColor: theme.surface, borderRadius: 14, marginBottom: 10,
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2,
-    overflow: 'hidden', borderWidth: 1, borderColor: theme.border
-  },
-  sdgCardExpanded: { shadowOpacity: theme.isDark ? 0.3 : 0.1, shadowRadius: 12, elevation: 5 },
-  sdgCardRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
-  sdgIcon: { width: 48, height: 48, borderRadius: 10, marginRight: 14 },
-  sdgMeta: { flex: 1 },
-  sdgNum: { fontSize: 11, fontWeight: '700', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5 },
-  sdgTitle: { fontSize: 16, fontWeight: '800', color: theme.text, marginTop: 2 },
-  sdgArrow: { transform: [{ rotate: '0deg' }] },
-  sdgArrowRotated: { transform: [{ rotate: '90deg' }] },
-
-  sdgExpanded: { paddingHorizontal: 16, paddingBottom: 18 },
-  sdgColorBar: { height: 3, borderRadius: 3, marginBottom: 14 },
-  sdgDesc: { fontSize: 13, color: theme.textSecondary, lineHeight: 21, marginBottom: 14 },
-  sdgWhy: { borderRadius: 12, padding: 14, marginBottom: 14 },
-  sdgWhyLabel: { fontSize: 13, fontWeight: '800', marginBottom: 6 },
-  sdgWhyText: { fontSize: 13, color: theme.text, lineHeight: 20 },
-  sdgHelpLabel: { fontSize: 13, fontWeight: '700', color: theme.text, marginBottom: 8 },
-  sdgHelpRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 6 },
-  sdgHelpDot: { width: 7, height: 7, borderRadius: 4, marginTop: 6, flexShrink: 0 },
-  sdgHelpText: { fontSize: 13, color: theme.textSecondary, flex: 1, lineHeight: 20 },
-  joinBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 16, paddingVertical: 12, borderRadius: 12 },
-  joinBtnText: { color: 'white', fontWeight: '700', fontSize: 14 },
-
-  // ABOUT BRGY TAB
-  aboutCard: {
-    backgroundColor: '#0038A8', borderRadius: 18, padding: 24,
-    alignItems: 'center', marginBottom: 16,
-  },
-  aboutEmoji: { fontSize: 44, marginBottom: 10 },
-  aboutName: { fontSize: 22, fontWeight: '900', color: 'white', marginBottom: 2 },
-  aboutCity: { fontSize: 13, color: 'rgba(255,255,255,0.75)', marginBottom: 14 },
-  aboutBody: { fontSize: 14, color: 'rgba(255,255,255,0.9)', textAlign: 'center', lineHeight: 22 },
-
-  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  infoBox: { width: '47.5%', backgroundColor: theme.surface, borderRadius: 14, padding: 16, alignItems: 'center', shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: theme.border },
-  infoBoxIcon: { fontSize: 24, marginBottom: 8 },
-  infoBoxLabel: { fontSize: 11, fontWeight: '700', color: theme.textTertiary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
-  infoBoxValue: { fontSize: 12, fontWeight: '600', color: theme.text, textAlign: 'center' },
-
-  officeCard: { backgroundColor: theme.isDark ? 'rgba(254, 252, 232, 0.1)' : '#fefce8', borderRadius: 14, padding: 16, borderWidth: 1.5, borderColor: theme.isDark ? 'rgba(254, 240, 138, 0.2)' : '#fef08a', marginBottom: 20 },
-  officeHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  officeTitle: { fontSize: 15, fontWeight: '800', color: theme.isDark ? theme.warning : '#854d0e' },
-  officeRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderTopWidth: 1, borderTopColor: theme.isDark ? 'rgba(254, 240, 138, 0.1)' : '#fef08a20' },
-  officeDay: { fontSize: 13, color: theme.text, fontWeight: '600' },
-  officeTime: { fontSize: 13, color: theme.primary, fontWeight: '700' },
-
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: theme.text, marginBottom: 12 },
-  programCard: {
-    backgroundColor: theme.surface, borderRadius: 14, padding: 16, marginBottom: 10,
-    flexDirection: 'row', alignItems: 'flex-start',
-    shadowColor: '#000', shadowOpacity: theme.isDark ? 0.2 : 0.04, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: theme.border
-  },
-  programIcon: { fontSize: 28, marginRight: 14, marginTop: 2 },
-  programInfo: { flex: 1 },
-  programTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 4 },
-  programTitle: { fontSize: 14, fontWeight: '800', color: theme.text },
-  sdgTags: { flexDirection: 'row', gap: 4 },
-  sdgTag: { backgroundColor: theme.isDark ? 'rgba(22, 163, 74, 0.2)' : '#dcfce7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  sdgTagText: { fontSize: 10, fontWeight: '800', color: theme.success },
-  programDesc: { fontSize: 12, color: theme.textSecondary, lineHeight: 18 },
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: { paddingTop: Platform.OS === 'android' ? 46 : 20, paddingHorizontal: 20, paddingBottom: 22 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerTitle: { color: '#fff', fontSize: 24, fontWeight: '900' },
+  headerSubtitle: { color: 'rgba(255,255,255,0.88)', fontSize: 15, fontWeight: '700', marginTop: 14 },
+  headerLocation: { color: 'rgba(255,255,255,0.7)', fontSize: 13, marginTop: 2 },
+  content: { padding: 16, paddingBottom: 148 },
+  heroCard: { borderWidth: 1, borderRadius: 20, padding: 22, alignItems: 'center', marginBottom: 24, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8 },
+  heroIcon: { width: 58, height: 58, borderRadius: 29, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  heroTitle: { fontSize: 21, fontWeight: '900', textAlign: 'center' },
+  heroLocation: { fontSize: 14, marginTop: 4, fontWeight: '600' },
+  heroBody: { fontSize: 14, lineHeight: 22, textAlign: 'center', marginTop: 14 },
+  sectionTitle: { fontSize: 17, fontWeight: '900', marginBottom: 11 },
+  detailGrid: { gap: 10, marginBottom: 20 },
+  detailCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 2 },
+  detailIcon: { width: 28, alignItems: 'center', paddingTop: 1 },
+  detailText: { flex: 1 },
+  detailLabel: { color: '#64748b', fontSize: 11, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', marginBottom: 3 },
+  detailValue: { color: '#0f172a', fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  historyCard: { borderWidth: 1, borderRadius: 16, padding: 17, marginBottom: 24 },
+  historyHeading: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  historyTitle: { fontSize: 16, fontWeight: '900' },
+  historyBody: { fontSize: 13, lineHeight: 21 },
+  historySource: { fontSize: 11, lineHeight: 16, marginTop: 10, fontWeight: '600' },
+  servicesCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 24 },
+  divider: { height: StyleSheet.hairlineWidth, marginVertical: 14 },
+  contactCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  contactIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  contactContent: { flex: 1 },
+  contactLabel: { fontSize: 14, fontWeight: '800', marginBottom: 3 },
+  contactValue: { fontSize: 14, fontWeight: '700' },
+  note: { fontSize: 12, lineHeight: 18, textAlign: 'center', paddingHorizontal: 14 },
 });
 
 export default LearningScreen;
