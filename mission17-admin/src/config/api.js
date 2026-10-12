@@ -6,9 +6,6 @@ const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
 
 export const endpoints = {
-  dashboard: {
-    summary: `${API_URL}/auth/dashboard-summary`,
-  },
   auth: {
     baseUrl: `${API_URL}/auth`,
     backendBaseUrl: BACKEND_BASE_URL,

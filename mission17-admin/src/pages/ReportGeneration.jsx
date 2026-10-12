@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
-import { Printer, FileText, Calendar, Filter, Users, AlertTriangle, TrendingUp, Download, Briefcase, FileSignature, ChevronDown } from 'lucide-react';
+import { Printer, FileText, FileBarChart, Filter, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import '../styles/DashboardHome.css';
 import '../styles/Print.css';

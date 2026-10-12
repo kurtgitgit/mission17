@@ -29,13 +29,12 @@ const DashboardHome = () => {
     const baseUrl = endpoints.auth.backendBaseUrl;
 
     try {
-      const [docRes, blotterRes, feedbackRes, annRes, userRes, sumRes] = await Promise.all([
+      const [docRes, blotterRes, feedbackRes, annRes, userRes] = await Promise.all([
         fetch(`${baseUrl}/api/document-requests`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/blotter-reports`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/suggestions/stats`, { headers: { 'auth-token': token } }).catch(() => null),
         fetch(`${baseUrl}/api/announcements`).catch(() => null),
-        fetch(`${endpoints.auth.baseUrl}/users`, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(endpoints.dashboard.summary, { headers: { 'auth-token': token } }).catch(() => null)
+        fetch(`${endpoints.auth.baseUrl}/users`, { headers: { 'auth-token': token } }).catch(() => null)
       ]);
 
       const docs = docRes && docRes.ok ? await docRes.json() : [];
@@ -43,7 +42,6 @@ const DashboardHome = () => {
       const feedbackStats = feedbackRes && feedbackRes.ok ? await feedbackRes.json() : {};
       const anns = annRes && annRes.ok ? await annRes.json() : [];
       const users = userRes && userRes.ok ? await userRes.json() : [];
-      const summary = sumRes && sumRes.ok ? await sumRes.json() : {};
 
       const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Processing');
       const activeBlotters = blotters.filter(b => b.status === 'Pending' || b.status === 'Under Investigation');
@@ -54,7 +52,7 @@ const DashboardHome = () => {
         activeBlotters: activeBlotters.length,
         newFeedback: feedbackStats.pending || feedbackStats.total || 0,
         activeAlerts: urgentAlerts.length,
-        totalResidents: Array.isArray(users) ? users.length : (summary.stats?.volunteers || 0),
+        totalResidents: Array.isArray(users) ? users.length : (users.total || 0),
       });
 
 
