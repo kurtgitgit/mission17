@@ -5,6 +5,7 @@ import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/AdminWorkspace.css';
 import '../styles/DashboardHome.css';
+import '../styles/ActivityConsole.css';
 
 const LUPON_STAGES = [
   'None',
@@ -419,7 +420,7 @@ const BlotterManagement = () => {
           {/* LEFT: CASE LIST (MASTER) */}
           <div className="no-print admin-workspace-panel">
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div className="search-box" style={{ margin: 0, width: '100%' }}>
+              <div className="search-box search-box--light" style={{ margin: 0, width: '100%' }}>
                 <Search size={18} color="#64748b" />
                 <input 
                   type="text" 

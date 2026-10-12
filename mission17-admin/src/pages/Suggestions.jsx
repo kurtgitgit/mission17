@@ -4,6 +4,7 @@ import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/DashboardHome.css';
+import '../styles/ActivityConsole.css';
 import '../styles/AdminWorkspace.css';
 
 const QUICK_REPLIES = [
@@ -275,7 +276,7 @@ const Suggestions = () => {
             
             {/* SEARCH & FILTERS */}
             <div style={{ padding: '14px 16px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div className="search-box" style={{ margin: '0 0 10px 0', width: '100%' }}>
+              <div className="search-box search-box--light" style={{ margin: '0 0 10px 0', width: '100%' }}>
                 <Search size={16} color="#64748b" />
                 <input 
                   type="text" 
