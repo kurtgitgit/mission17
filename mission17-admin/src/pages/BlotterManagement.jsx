@@ -6,6 +6,7 @@ import { useNotification } from '../context/NotificationContext';
 import '../styles/AdminWorkspace.css';
 import '../styles/DashboardHome.css';
 import '../styles/ActivityConsole.css';
+import '../styles/BlotterManagement.css';
 
 const LUPON_STAGES = [
   'None',
@@ -56,7 +57,7 @@ const formatIncidentDateTime = (value) => {
   return date.toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 
-// ─── OFFICIAL KP FORM NO. 9 PRINTABLE SUMMONS (PATAWAG) MODAL ───────────────
+// ─── KP FORM NO. 9 RESPONDENT SUMMONS DRAFT ────────────────────────────────
 const KPForm9Modal = ({ report, complainantName, onClose }) => {
   useEffect(() => {
     if (!report) return undefined;
@@ -84,102 +85,261 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
 
   return (
     <div className="kp-form-modal" role="dialog" aria-modal="true" aria-labelledby="kp-form-modal-title" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)' }}>
-      <div className="kp-form-dialog" style={{ backgroundColor: 'white', width: '100%', maxWidth: '800px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-        
-        {/* MODAL CONTROLS */}
-        <div className="no-print" style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="kp-form-dialog" style={{ backgroundColor: 'white', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+        <div className="no-print kp9-modal-toolbar">
+          <div className="kp9-modal-title">
             <Scale size={20} color="#0038A8" />
-            <strong id="kp-form-modal-title" style={{ fontSize: 16, color: '#0f172a' }}>Generic Lupon Summons Draft</strong>
+            <div>
+              <strong id="kp-form-modal-title">KP Form No. 9 — Respondent Summons</strong>
+              <span>Draft preview · confirm with your Lupon Secretary before official use</span>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={handlePrint}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#0038A8', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}
-            >
-              <Printer size={15} /> Print Generic Draft
-            </button>
-            <button
-              onClick={onClose}
-              style={{ background: 'white', border: '1px solid #cbd5e1', padding: '8px 14px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13, color: '#475569' }}
-            >
-              Close
-            </button>
+          <div className="kp9-toolbar-actions">
+            <button type="button" onClick={handlePrint} className="kp9-print-button"><Printer size={15} /> Print draft</button>
+            <button type="button" onClick={onClose} className="kp9-close-button">Close</button>
           </div>
         </div>
 
-        {/* PRINTABLE DOCUMENT CONTENT */}
-        <div id="printable-kp-form" style={{ padding: '40px 50px', overflowY: 'auto', color: '#111827', fontFamily: 'Georgia, serif', lineHeight: 1.6, backgroundColor: 'white' }}>
-          <div style={{ marginBottom: '18px', padding: '11px 14px', borderRadius: '8px', border: '1px solid #f59e0b', background: '#fffbeb', color: '#92400e', fontFamily: 'Arial, sans-serif', fontSize: '12px', lineHeight: 1.45 }}>
-            Temporary generic template only. It is not an official prescribed KP Form No. 9 and must be replaced with the Barangay/Lupon-approved form before official issuance.
-          </div>
-          
-          {/* HEADER */}
-          <div style={{ textAlign: 'center', borderBottom: '2px solid #000', paddingBottom: '16px', marginBottom: '24px' }}>
-            <div style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '1px' }}>Republika ng Pilipinas</div>
-            <div style={{ fontSize: '13px' }}>Lalawigan ng Pangasinan</div>
-            <div style={{ fontSize: '13px' }}>Bayan ng San Jacinto</div>
-            <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: '4px' }}>BARANGAY BAGONG PAG-ASA</div>
-            <div style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.5px', marginTop: '4px' }}>TANGGAPAN NG LUPONG TAGAPAMAYAPA</div>
+        <div id="printable-kp-form" className="kp9-document">
+          <div className="kp9-review-notice no-print">
+            <strong>Review before issuance</strong>
+            <span>This follows the DILG KP Form No. 9 summons structure. BrgyLink does not store the official barangay case number or proof/method of service. Attach the complaint copy and complete the Officer’s Return after service.</span>
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-            <div style={{ fontSize: '13px' }}>
-              <div><strong>Nagsusumbong (Complainant):</strong></div>
-              <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: 2 }}>{complainantName}</div>
-              <div style={{ color: '#4b5563', fontSize: '12.5px' }}>{report.location}</div>
+          <section className="kp9-page kp9-summons-page" aria-label="KP Form No. 9 summons">
+            <div className="kp9-draft-mark">DRAFT — FOR LOCAL LUPON REVIEW</div>
+            <header className="kp9-letterhead">
+              <div>Republic of the Philippines</div>
+              <div>Province of Pangasinan</div>
+              <div>Municipality of San Jacinto</div>
+              <strong>Barangay Bagong Pag-asa</strong>
+              <strong>OFFICE OF THE LUPONG TAGAPAMAYAPA</strong>
+            </header>
 
-              <div style={{ margin: '12px 0 4px 0', fontStyle: 'italic' }}>— laban kay —</div>
-
-              <div><strong>Ipinagsumbong (Respondent):</strong></div>
-              <div style={{ fontSize: '15px', fontWeight: 'bold', marginTop: 2 }}>{report.respondentName || '[ Pangalan ng Ipinagsusumbong ]'}</div>
+            <div className="kp9-case-meta">
+              <div><span>Barangay Case No.</span><strong className="kp9-blank-line" /></div>
+              <div><span>For</span><strong>{report.incidentType || '____________________________'}</strong></div>
+              <div><span>BrgyLink Reference</span><strong>{report.referenceNumber || '—'}</strong></div>
             </div>
 
-            <div style={{ textAlign: 'right', fontSize: '13px' }}>
-              <div><strong>Usaping Barangay Blg.:</strong></div>
-              <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '14px' }}>{report.referenceNumber}</div>
-              <div style={{ marginTop: '8px' }}><strong>Ukol sa:</strong></div>
-              <div style={{ fontWeight: 'bold', color: '#dc2626' }}>{report.incidentType}</div>
+            <div className="kp9-parties">
+              <div className="kp9-party"><strong>{complainantName || '____________________________'}</strong><span>Complainant/s</span></div>
+              <div className="kp9-against">— against —</div>
+              <div className="kp9-party"><strong>{report.respondentName || '____________________________'}</strong><span>Respondent/s</span></div>
             </div>
-          </div>
 
-          <div style={{ textAlign: 'center', margin: '24px 0' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '2px', textDecoration: 'underline', margin: 0 }}>
-              PATAWAG (GENERIC SUMMONS DRAFT)
-            </h2>
-          </div>
+            <h1 className="kp9-form-title">SUMMONS</h1>
+            <div className="kp9-to-line"><strong>TO:</strong><span>{report.respondentName || '_______________________________________________'}</span><small>Respondent/s</small></div>
+            <div className="kp9-body-copy">
+              <p>You are hereby summoned to appear before me in person, together with your witnesses, on the <strong>{hearingDay}</strong> day of <strong>{hearingMonth}</strong>, <strong>{hearingYear}</strong>, at <strong>{hearingTime}</strong>, then and there to answer to a complaint made before me, copy of which is attached hereto, for mediation/conciliation of your dispute with complainant/s.</p>
+              <p>You are hereby warned that if you refuse or willfully fail to appear in obedience to this summons, you may be barred from filing any counterclaim arising from said complaint.</p>
+              <p className="kp9-fail-not">FAIL NOT or else face punishment as for contempt of court.</p>
+            </div>
 
-          <div style={{ fontSize: '14.5px', textAlign: 'justify', marginBottom: '20px' }}>
-            <p>
-              <strong>KAY:</strong> <u>{report.respondentName || '________________________'}</u> (Ipinagsumbong)
-            </p>
-            <p style={{ textIndent: '40px' }}>
-              Kayo ay tinatawagan at inaatasan upang humarap sa akin nang personal, kasama ang inyong mga saksi at kaukulang ebidensya, sa Tanggapan ng Lupong Tagapamayapa, Barangay Hall ng Bagong Pag-asa, San Jacinto, Pangasinan sa ika-<strong>{hearingDay}</strong> ng <strong>{hearingMonth} {hearingYear}</strong>, sa ganap na ika-<strong>{hearingTime}</strong> ng umaga/hapon para sa <strong>{report.hearingStage || 'Mediation (1st Hearing)'}</strong>, upang sagutin ang sumbong na ginawa laban sa inyo.
-            </p>
-            <p style={{ textIndent: '40px' }}>
-              Pinaaalalahanan kayo na ang inyong pagtanggi, pagliban, o hindi pagharap nang walang sapat na dahilan ay maaaring maging sanhi ng pagkawala ng inyong karapatang maghain ng kontra-sumbong o magdulot ng kaukulang kaparusahan ayon sa itinatakda ng Local Government Code of 1991 (RA 7160).
-            </p>
-            <p style={{ marginTop: '24px' }}>
-              Iginawad ngayong ika-<strong>{currentDay}</strong> ng <strong>{currentMonth} {currentYear}</strong> sa Barangay Bagong Pag-asa, San Jacinto, Pangasinan.
-            </p>
-          </div>
+            <p className="kp9-issued-date">This {currentDay} day of {currentMonth}, {currentYear}.</p>
+            <div className="kp9-signature-block">
+              <div className="kp9-signature-line"><strong>&nbsp;</strong><span>Punong Barangay / Lupon Chairman · Signature over printed name</span></div>
+            </div>
+            <p className="kp9-attachment-note"><strong>Enclosure:</strong> Copy of the complaint</p>
+            <footer className="kp9-page-footer">KP Form No. 9 · Summons for the Respondent · Draft populated from BrgyLink case data</footer>
+          </section>
 
-          {/* SIGNATURE SECTION */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', marginTop: '50px' }}>
+          <section className="kp9-page kp9-return-page" aria-label="Officer’s Return of service">
+            <div className="kp9-draft-mark">DRAFT — COMPLETE AFTER SERVICE</div>
+            <header className="kp9-letterhead kp9-return-letterhead">
+              <div>Republic of the Philippines</div>
+              <div>Province of Pangasinan · Municipality of San Jacinto</div>
+              <strong>Barangay Bagong Pag-asa</strong>
+              <strong>OFFICE OF THE LUPONG TAGAPAMAYAPA</strong>
+            </header>
+            <div className="kp9-return-case-line"><strong>Barangay Case No.:</strong><span /> <strong>BrgyLink Reference:</strong><span>{report.referenceNumber || '—'}</span></div>
+            <h2 className="kp9-form-title">OFFICER’S RETURN</h2>
+            <p className="kp9-return-intro">I served this summons upon the respondent(s) named below on the date(s) written, by the method indicated:</p>
+            <div className="kp9-service-respondent"><span>Respondent name</span><span>Date served</span></div>
+            <div className="kp9-service-methods">
+              <p>☐ 1. Personally handing the summons to the respondent.</p>
+              <p>☐ 2. The respondent refused to receive the summons.</p>
+              <p>☐ 3. Leaving the summons at the respondent’s dwelling with a person of suitable age and discretion residing there:</p>
+              <div className="kp9-write-line"><span>Name of recipient</span></div>
+              <p>☐ 4. Leaving the summons at the respondent’s office/place of business with a competent person in charge:</p>
+              <div className="kp9-write-line"><span>Name of recipient</span></div>
+            </div>
+            <div className="kp9-return-signatures">
+              <div className="kp9-signature-line"><strong>&nbsp;</strong><span>Officer serving summons · Signature over printed name</span></div>
+              <div className="kp9-recipient-signatures">
+                <div className="kp9-signature-line"><strong>&nbsp;</strong><span>Respondent / representative signature</span></div>
+                <div className="kp9-signature-line"><strong>&nbsp;</strong><span>Date received</span></div>
+              </div>
+            </div>
+            <footer className="kp9-page-footer">KP Form No. 9 · Officer’s Return · Complete manually after service</footer>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CFA_FORM_VARIANTS = [
+  {
+    value: 'repudiated-settlement',
+    number: '20',
+    title: 'Certification to File Action — repudiated settlement',
+    signer: 'Lupon Secretary',
+    attestor: 'Lupon Chairman',
+    body: 'There was a personal confrontation between the parties before the Punong Barangay. A settlement was reached, but it was repudiated by {party} in a sworn statement before the Punong Barangay on {date}, on the ground of {ground}. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  },
+  {
+    value: 'pangkat-failed-conciliation',
+    number: '21',
+    title: 'Certification to File Action — conciliation unsuccessful',
+    signer: 'Pangkat Secretary',
+    attestor: 'Pangkat Chairman',
+    body: 'There was a personal confrontation between the parties before the Punong Barangay, but mediation failed. The Pangkat ng Tagapagkasundo was constituted, but the confrontation before the Pangkat likewise did not result in a settlement. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  },
+  {
+    value: 'respondent-failed-to-appear',
+    number: '22',
+    title: 'Certification to File Action — respondent failed to appear',
+    signer: 'Pangkat Secretary',
+    attestor: 'Pangkat Chairman',
+    body: 'Mediation before the Punong Barangay failed. A meeting was set to constitute the Pangkat ng Tagapagkasundo, but the respondent willfully failed or refused to appear, without justifiable reason, at the Pangkat conciliation proceedings. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  }
+];
+
+const KPOutcomeFormModal = ({ type, report, complainantName, onClose }) => {
+  const [cfaVariant, setCfaVariant] = useState('');
+  const cfaForm = CFA_FORM_VARIANTS.find((form) => form.value === cfaVariant);
+  const today = new Date();
+
+  useEffect(() => {
+    if (!type) return undefined;
+    document.body.classList.add('kp-form-printing');
+    return () => document.body.classList.remove('kp-form-printing');
+  }, [type]);
+
+  if (!type || !report) return null;
+
+  const definitions = {
+    hearingNotice: { number: '12', title: 'Notice of Hearing (Conciliation Proceedings)' },
+    settlement: { number: '16', title: 'Amicable Settlement' },
+    cfa: cfaForm ? { number: cfaForm.number, title: cfaForm.title } : { number: '', title: 'Certification to File Action' }
+  };
+  const definition = definitions[type];
+  const printEnabled = type !== 'cfa' || Boolean(cfaForm);
+  const hearing = new Date(report.hearingDate || report.createdAt);
+  const dateLine = `${today.getDate()} ${today.toLocaleString('fil-PH', { month: 'long' })} ${today.getFullYear()}`;
+
+  return (
+    <div className="kp-form-modal" role="dialog" aria-modal="true" aria-labelledby="kp-outcome-form-title" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px', backdropFilter: 'blur(4px)' }}>
+      <div className="kp-form-dialog" style={{ backgroundColor: 'white', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
+        <div className="no-print kp9-modal-toolbar">
+          <div className="kp9-modal-title">
+            <Scale size={20} color="#0038A8" aria-hidden="true" />
             <div>
-              <div style={{ fontSize: '12px', color: '#4b5563', marginBottom: '30px' }}>Inihain ni (Officer Serving Summons):</div>
-              <div style={{ borderBottom: '1.5px solid #000', width: '220px', marginBottom: '4px' }}></div>
-              <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Barangay Tanod / Peace Officer</div>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '12px', color: '#4b5563', marginBottom: '30px' }}>Pinagtibay ni:</div>
-              <div style={{ borderBottom: '1.5px solid #000', width: '220px', marginLeft: 'auto', marginBottom: '4px' }}></div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{report.luponOfficerInCharge || 'HON. PUNONG BARANGAY'}</div>
-              <div style={{ fontSize: '12px', color: '#4b5563' }}>Punong Barangay / Tagapangulo ng Lupon</div>
+              <strong id="kp-outcome-form-title">KP Form No. {definition.number || '—'} — {definition.title}</strong>
+              <span>Draft only · verify the correct form and procedure with the Lupon Secretary</span>
             </div>
           </div>
+          <div className="kp9-toolbar-actions">
+            <button type="button" onClick={() => window.print()} className="kp9-print-button" disabled={!printEnabled}><Printer size={15} /> Print draft</button>
+            <button type="button" onClick={onClose} className="kp9-close-button">Close</button>
+          </div>
+        </div>
 
+        <div id="printable-kp-outcome-form" className="kp9-document">
+          <div className="kp9-review-notice no-print">
+            <strong>Official review required</strong>
+            <span>This is a draft based on the DILG handbook structure. Confirm jurisdiction, procedural grounds, parties, case number, language, signatures, and attestation before any official use. BrgyLink does not issue or sign this document.</span>
+          </div>
+
+          {type === 'cfa' && (
+            <div className="kp-outcome-form-selector no-print">
+              <label htmlFor="cfa-form-variant">Choose the CFA basis that matches the official case record</label>
+              <select id="cfa-form-variant" value={cfaVariant} onChange={(event) => setCfaVariant(event.target.value)}>
+                <option value="">Select the applicable CFA form…</option>
+                {CFA_FORM_VARIANTS.map((form) => <option key={form.value} value={form.value}>KP Form No. {form.number} — {form.title.replace('Certification to File Action — ', '')}</option>)}
+              </select>
+              <div className="kp-outcome-form-selection-preview" role="status" aria-live="polite">
+                {cfaForm
+                  ? <>Previewing <strong>KP Form No. {cfaForm.number}</strong> — {cfaForm.title.replace('Certification to File Action — ', '')}. The certification text and required signatories below match this basis.</>
+                  : 'Choose a form to load its matching certification text and signatories below.'}
+              </div>
+              <small>Do not select a form based only on the stage label. The Lupon Secretary must confirm which procedural ground applies.</small>
+            </div>
+          )}
+
+          <section className="kp9-page kp-outcome-form-page" aria-label={`KP Form No. ${definition.number || 'CFA'} draft`}>
+            <div className="kp9-draft-mark">DRAFT — FOR LOCAL LUPON REVIEW</div>
+            <header className="kp9-letterhead">
+              <div>Republic of the Philippines</div>
+              <div>Province of Pangasinan</div>
+              <div>Municipality of San Jacinto</div>
+              <strong>Barangay Bagong Pag-asa</strong>
+              <strong>OFFICE OF THE LUPONG TAGAPAMAYAPA</strong>
+            </header>
+
+            <div className="kp9-case-meta">
+              <div><span>Barangay Case No.</span><strong className="kp9-blank-line" /></div>
+              <div><span>For</span><strong>{report.incidentType || '____________________________'}</strong></div>
+              <div><span>BrgyLink Reference</span><strong>{report.referenceNumber || '—'}</strong></div>
+            </div>
+            <div className="kp9-parties">
+              <div className="kp9-party"><strong>{complainantName || '____________________________'}</strong><span>Complainant/s</span></div>
+              <div className="kp9-against">— against —</div>
+              <div className="kp9-party"><strong>{report.respondentName || '____________________________'}</strong><span>Respondent/s</span></div>
+            </div>
+
+            {type === 'hearingNotice' && (
+              <>
+                <h1 className="kp9-form-title">NOTICE OF HEARING<br />(CONCILIATION PROCEEDINGS)</h1>
+                <p className="kp-outcome-form-copy">To the parties named above:</p>
+                <p className="kp-outcome-form-copy">You are hereby required to appear before the Pangkat ng Tagapagkasundo on the <strong>{Number.isNaN(hearing.getTime()) ? '________' : hearing.getDate()}</strong> day of <strong>{Number.isNaN(hearing.getTime()) ? '________________' : hearing.toLocaleString('fil-PH', { month: 'long' })}</strong>, <strong>{Number.isNaN(hearing.getTime()) ? '________' : hearing.getFullYear()}</strong>, at <strong>{Number.isNaN(hearing.getTime()) ? '________' : hearing.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}</strong> for conciliation proceedings in this case.</p>
+                <p className="kp-outcome-form-copy">Issued this {dateLine}.</p>
+                <div className="kp-outcome-form-signature"><strong>&nbsp;</strong><span>Pangkat Chairman · Signature over printed name</span></div>
+                <div className="kp-outcome-form-notified"><strong>Notified this ______ day of __________________, ______.</strong><span>Complainant/s signature: ____________________________</span><span>Respondent/s signature: ____________________________</span></div>
+              </>
+            )}
+
+            {type === 'settlement' && (
+              <>
+                <h1 className="kp9-form-title">AMICABLE SETTLEMENT</h1>
+                <p className="kp-outcome-form-copy">We, the complainant/s and respondent/s in the above-captioned case, freely and voluntarily agree to settle our dispute as follows:</p>
+                <div className="kp-outcome-form-writing-lines" aria-label="Space to write settlement terms"><span>Write the specific terms agreed by both parties.</span></div>
+                <p className="kp-outcome-form-copy">We bind ourselves to comply honestly and faithfully with the terms of settlement stated above.</p>
+                <p className="kp-outcome-form-copy">Entered into this ______ day of __________________, ______.</p>
+                <div className="kp-outcome-form-party-signatures">
+                  <div><strong>&nbsp;</strong><span>Complainant/s · Signature</span></div>
+                  <div><strong>&nbsp;</strong><span>Respondent/s · Signature</span></div>
+                </div>
+                <div className="kp-outcome-form-attestation">
+                  <p>I certify that this settlement was entered into freely and voluntarily, after I explained its nature and consequences to the parties.</p>
+                  <div className="kp-outcome-form-signature"><strong>&nbsp;</strong><span>Punong Barangay / Pangkat Chairman · Attestation</span></div>
+                </div>
+              </>
+            )}
+
+            {type === 'cfa' && (
+              <>
+                <h1 className="kp9-form-title">CERTIFICATION TO FILE ACTION</h1>
+                <p className="kp-outcome-form-copy">This is to certify that:</p>
+                {cfaForm ? (
+                  <p className="kp-outcome-form-copy">{cfaForm.body.split(/(\{party\}|\{date\}|\{ground\})/g).map((part, index) => {
+                    if (part === '{party}') return <span key={index} className="kp-form-blank">________________________</span>;
+                    if (part === '{date}') return <span key={index} className="kp-form-blank">________________</span>;
+                    if (part === '{ground}') return <span key={index} className="kp-form-blank">________________</span>;
+                    return part;
+                  })}</p>
+                ) : (
+                  <p className="kp-outcome-form-copy kp-outcome-form-placeholder">Select the CFA basis above to preview the matching draft. No certification text will be generated until a basis is selected.</p>
+                )}
+                <p className="kp-outcome-form-copy">Issued this ______ day of __________________, ______.</p>
+                {cfaForm && <div className="kp-outcome-form-signature"><strong>&nbsp;</strong><span>{cfaForm.signer} · Signature over printed name</span></div>}
+                {cfaForm && <div className="kp-outcome-form-signature"><strong>&nbsp;</strong><span>{cfaForm.attestor} · Attestation</span></div>}
+              </>
+            )}
+
+            <footer className="kp9-page-footer">KP Form No. {definition.number || '—'} · Draft populated from BrgyLink case data · Official review and completion required</footer>
+          </section>
         </div>
       </div>
     </div>
@@ -208,6 +368,7 @@ const BlotterManagement = () => {
   const [savedCaseForm, setSavedCaseForm] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [showKpModal, setShowKpModal] = useState(false);
+  const [outcomeFormType, setOutcomeFormType] = useState(null);
   const [evidenceObjectUrl, setEvidenceObjectUrl] = useState(null);
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
@@ -294,10 +455,14 @@ const BlotterManagement = () => {
     !TERMINAL_CASE_STATUSES.includes(selectedReport?.status)
     && requiresHearingSchedule
     && triageOutcome === 'Potential Lupon Referral'
+    && hearingStage === 'Mediation (1st Hearing)'
     && hearingDate
     && respondentName.trim()
     && luponOfficerInCharge.trim()
   );
+  const canPrintHearingNotice = selectedReport?.hearingStage === 'Conciliation (2nd Hearing)' && Boolean(selectedReport?.hearingDate);
+  const canPrintSettlementForm = selectedReport?.hearingStage === 'Amicable Settlement';
+  const canPrintCfaForm = selectedReport?.hearingStage === 'Issued Certificate to File Action (CFA)';
   const isCaseFormSaveDisabled = updating || !hasCaseFormChanges || !hasCompleteHearingSchedule;
 
   const isCaseStatusDisabled = (status) => {
@@ -403,25 +568,34 @@ const BlotterManagement = () => {
           onClose={() => setShowKpModal(false)}
         />
       )}
+      {outcomeFormType && selectedReport && (
+        <KPOutcomeFormModal
+          type={outcomeFormType}
+          report={selectedReport}
+          complainantName={getComplainantName(selectedReport)}
+          onClose={() => setOutcomeFormType(null)}
+        />
+      )}
 
       <Sidebar />
-      <main className="main-content admin-workspace-page">
+      <main className="main-content admin-workspace-page blotter-admin-page">
         
         {/* HEADER */}
-        <header className="top-header" style={{ flexShrink: 0, marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: 12 }}>
+        <header className="top-header blotter-page-header">
+          <div className="blotter-page-heading">
             <div>
-              <h1 className="greeting" style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#0f172a' }}>
-                ⚖️ Blotter & Lupon Desk
+              <p className="blotter-eyebrow">CASE MANAGEMENT</p>
+              <h1 className="greeting">
+                <Scale size={24} aria-hidden="true" /> Blotter & Lupon Desk
               </h1>
-              <p className="subtitle" style={{ margin: '4px 0 0 0', color: '#64748b', fontSize: 13 }}>
-                Official Peacekeeping, Lupon Conciliation & Case Records Portal
+              <p className="subtitle">
+                Review incident reports, record decisions, and manage Lupon hearings.
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, backgroundColor: '#fef2f2', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: 10 }}>
+            <div className="blotter-access-note">
               <ShieldCheck size={16} color="#dc2626" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#991b1b' }}>
+              <span>
                 Strict RBAC: Authorized Officials & Lupon Only
               </span>
             </div>
@@ -429,28 +603,32 @@ const BlotterManagement = () => {
         </header>
 
         {/* MASTER-DETAIL LAYOUT */}
-        <div className="admin-workspace-split">
+        <div className="admin-workspace-split blotter-workspace">
           
           {/* LEFT: CASE LIST (MASTER) */}
-          <div className="no-print admin-workspace-panel">
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div className="search-box search-box--light" style={{ margin: 0, width: '100%' }}>
+          <div className="no-print admin-workspace-panel blotter-queue-panel">
+            <div className="blotter-queue-toolbar">
+              <div className="blotter-queue-title">
+                <strong>Case queue</strong>
+                <span>{filteredReports.length} {filteredReports.length === 1 ? 'report' : 'reports'}</span>
+              </div>
+              <div className="search-box search-box--light blotter-search">
                 <Search size={18} color="#64748b" />
                 <input 
                   type="text" 
                   placeholder="Search ref no., resident, or type..." 
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  style={{ width: '100%' }}
                 />
               </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+              <div className="blotter-filters" aria-label="Filter case queue">
                 {['All', 'Pending', 'In Progress', 'Hearing Scheduled', 'Resolved', 'Dismissed'].map(filter => (
                   <button
                     key={filter}
                     type="button"
                     onClick={() => setCaseFilter(filter)}
-                    style={{ padding: '4px 9px', borderRadius: 14, border: `1px solid ${caseFilter === filter ? '#0038A8' : '#dbe4f0'}`, background: caseFilter === filter ? '#0038A8' : '#ffffff', color: caseFilter === filter ? '#ffffff' : '#475569', cursor: 'pointer', fontWeight: 700, fontSize: 11 }}
+                    className={`blotter-filter${caseFilter === filter ? ' is-active' : ''}`}
+                    aria-pressed={caseFilter === filter}
                   >
                     {filter}
                   </button>
@@ -458,60 +636,54 @@ const BlotterManagement = () => {
               </div>
             </div>
             
-            <div className="admin-workspace-scroll" style={{ padding: '10px' }}>
+            <div className="admin-workspace-scroll blotter-queue-scroll">
               {loading ? (
                 <div className="loading-state" style={{ marginTop: '50px' }}>Loading cases...</div>
               ) : filteredReports.length === 0 ? (
-                <div className="empty-state" style={{ padding: '40px', textAlign: 'center' }}>
+                <div className="empty-state blotter-queue-empty">
                   <ShieldAlert size={40} color="#cbd5e1" style={{ margin: '0 auto 10px' }} />
                   <p>No cases found.</p>
                 </div>
               ) : (
                 filteredReports.map(report => (
-                  <div 
+                  <button
+                    type="button"
                     key={report._id}
                     onClick={() => handleSelectReport(report)}
-                    style={{ 
-                      padding: '14px', 
-                      borderRadius: '10px', 
-                      marginBottom: '8px',
-                      cursor: 'pointer',
-                      border: `1.5px solid ${selectedReport?._id === report._id ? '#0038A8' : '#e2e8f0'}`,
-                      background: selectedReport?._id === report._id ? '#eff6ff' : 'white',
-                      transition: 'all 0.2s'
-                    }}
+                    className={`blotter-case-card${selectedReport?._id === report._id ? ' is-selected' : ''}`}
+                    aria-pressed={selectedReport?._id === report._id}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '13.5px' }}>{report.referenceNumber}</span>
+                    <div className="blotter-case-card-top">
+                      <span className="blotter-case-reference">{report.referenceNumber}</span>
                       {getStatusBadge(report.status)}
                     </div>
-                    <div style={{ fontSize: '13px', color: '#334155', fontWeight: '700', marginBottom: '2px' }}>
+                    <div className="blotter-case-type">
                       {report.incidentType}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}>
-                      Complainant: {getComplainantName(report)}
+                    <div className="blotter-case-complainant">
+                      <span>Filed by</span> {getComplainantName(report)}
                     </div>
                     {report.hearingStage && report.hearingStage !== 'None' && (
-                      <div style={{ fontSize: '11px', color: '#166534', fontWeight: 800, backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: 4, display: 'inline-block', marginBottom: 4 }}>
-                        ⚖️ {report.hearingStage}
+                      <div className="blotter-case-hearing">
+                        <Scale size={13} aria-hidden="true" /> {report.hearingStage}
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '11.5px', color: '#94a3b8' }}>
+                    <div className="blotter-case-card-bottom">
+                      <span>
                         {formatIncidentDateTime(report.dateOfIncident || report.createdAt)}
                       </span>
                       <ChevronRight size={15} color={selectedReport?._id === report._id ? '#0038A8' : '#cbd5e1'} />
                     </div>
-                  </div>
+                  </button>
                 ))
               )}
             </div>
           </div>
 
           {/* RIGHT: CASE DETAILS (DETAIL) */}
-          <div className="admin-workspace-panel">
+          <div className="admin-workspace-panel blotter-detail-panel">
             {!selectedReport ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+              <div className="blotter-detail-empty">
                 <FileText size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
                 <h3 style={{ margin: '0 0 6px 0', color: '#475569' }}>Select a blotter case to view details</h3>
                 <p style={{ margin: 0, fontSize: 13 }}>Click on any incident report from the left queue to review and schedule Lupon conciliation.</p>
@@ -519,35 +691,57 @@ const BlotterManagement = () => {
             ) : (
               <>
                 {/* CASE HEADER */}
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                <div className="blotter-case-header">
                   <div>
-                    <h2 style={{ margin: '0 0 2px 0', fontSize: '19px', fontWeight: 800, color: '#0f172a' }}>
-                      Case: {selectedReport.referenceNumber}
+                    <p className="blotter-eyebrow">SELECTED CASE</p>
+                    <h2>
+                      {selectedReport.referenceNumber}
                     </h2>
-                    <span style={{ fontSize: '13.5px', color: '#64748b', fontWeight: '700' }}>
-                      Incident: {selectedReport.incidentType}
+                    <span className="blotter-case-subtitle">
+                      {selectedReport.incidentType} <span aria-hidden="true">·</span> Reported {formatIncidentDateTime(selectedReport.dateOfIncident || selectedReport.createdAt)}
                     </span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {getStatusBadge(selectedReport.status)}
+                  <div className="blotter-case-header-actions">
+                    <div className="blotter-status-stack">
+                      <span className="blotter-status-caption">CASE STATUS</span>
+                      {getStatusBadge(selectedReport.status)}
+                    </div>
+                    <div className={`blotter-triage-chip blotter-triage-${(triageOutcome || 'Pending Review').toLowerCase().replace(/[^a-z]+/g, '-')}`}>
+                      <span className="blotter-status-caption">STAFF REVIEW</span>
+                      <strong>{triageOutcome || 'Pending Review'}</strong>
+                    </div>
 
                     {!isTerminalCase(selectedReport.status) && (
                     <button
-                      className="no-print"
                       onClick={() => setShowKpModal(true)}
                       disabled={!canPrintSummons}
-                      style={{ background: '#0038A8', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '8px', cursor: canPrintSummons ? 'pointer' : 'not-allowed', opacity: canPrintSummons ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', fontWeight: 'bold' }}
-                      title={canPrintSummons ? 'Print temporary generic Lupon summons draft' : 'Add the respondent, hearing stage, date and time, and presiding officer first'}
+                      className="no-print blotter-header-button blotter-header-button--primary"
+                      title={canPrintSummons ? 'Print the respondent summons draft for the first mediation hearing' : 'For KP Form No. 9, select the first mediation hearing and provide the confirmed respondent, date/time, and presiding officer'}
                     >
                       <Scale size={14} />
-                      Generic Summons Draft
+                      KP Form No. 9 Draft
                     </button>
                     )}
 
+                    {canPrintHearingNotice && (
+                      <button type="button" onClick={() => setOutcomeFormType('hearingNotice')} className="no-print blotter-header-button" title="Preview and print a draft KP Form No. 12 hearing notice">
+                        <Printer size={14} /> KP Form No. 12 Draft
+                      </button>
+                    )}
+                    {canPrintSettlementForm && (
+                      <button type="button" onClick={() => setOutcomeFormType('settlement')} className="no-print blotter-header-button" title="Preview and print a draft KP Form No. 16 settlement">
+                        <Printer size={14} /> KP Form No. 16 Draft
+                      </button>
+                    )}
+                    {canPrintCfaForm && (
+                      <button type="button" onClick={() => setOutcomeFormType('cfa')} className="no-print blotter-header-button" title="Choose the applicable CFA basis, then preview its draft">
+                        <Printer size={14} /> CFA Draft
+                      </button>
+                    )}
+
                     <button 
-                      className="no-print"
                       onClick={() => window.print()}
-                      style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12.5px', fontWeight: 'bold' }}
+                      className="no-print blotter-header-button"
                       title="Print Blotter Extract"
                     >
                       <Printer size={14} />
@@ -557,28 +751,27 @@ const BlotterManagement = () => {
                 </div>
 
                 {/* CASE BODY (SCROLLABLE) */}
-                <div className="admin-workspace-scroll" style={{ padding: '24px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 8, marginBottom: 16, padding: '12px 14px', border: '1px solid #dbe4f0', borderRadius: 10, background: '#f8fafc' }}>
+                <div className="admin-workspace-scroll blotter-detail-scroll">
+                  <div className="blotter-next-step" role="status">
+                    <div className="blotter-next-step-icon"><Clock size={18} aria-hidden="true" /></div>
                     <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Filed</div>
-                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>{new Date(selectedReport.createdAt).toLocaleDateString()}</div>
+                      <span>RECOMMENDED NEXT STEP</span>
+                      <strong>
+                        {triageOutcome === 'Pending Review' ? 'Review the report and record a staff assessment.' :
+                          triageOutcome === 'Follow-up Needed' ? 'Contact or follow up using the official case notes.' :
+                            triageOutcome === 'Potential Lupon Referral' ? 'Confirm the respondent, then complete the hearing details if ready.' :
+                              'Record the appropriate external referral and resident-facing update.'}
+                      </strong>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Current status</div>
-                      <div style={{ marginTop: 4 }}>{getStatusBadge(selectedReport.status)}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Lupon hearing</div>
-                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#1e293b' }}>{selectedReport.hearingStage && selectedReport.hearingStage !== 'None' ? selectedReport.hearingStage : 'Not scheduled'}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#64748b', textTransform: 'uppercase' }}>Record access</div>
-                      <div style={{ marginTop: 3, fontSize: 12.5, fontWeight: 700, color: '#991b1b' }}>Confidential case record</div>
-                    </div>
+                  </div>
+                  <div className="blotter-case-facts">
+                    <div><span>FILED</span><strong>{new Date(selectedReport.createdAt).toLocaleDateString()}</strong></div>
+                    <div><span>LUPON STAGE</span><strong>{selectedReport.hearingStage && selectedReport.hearingStage !== 'None' ? selectedReport.hearingStage : 'Not scheduled'}</strong></div>
+                    <div><span>RECORD ACCESS</span><strong className="is-confidential">Confidential</strong></div>
                   </div>
                   
                   {/* COMAPLAINANT VS RESPONDENT CARD */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <div className="blotter-parties-grid">
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <div style={{ background: '#eff6ff', padding: '10px', borderRadius: '8px' }}>
@@ -631,7 +824,7 @@ const BlotterManagement = () => {
                   </div>
 
                   {/* INCIDENT DETAILS */}
-                  <div style={{ background: 'white', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                  <div className="blotter-content-card">
                     {selectedReport.reportedRespondentName && (
                       <div style={{ padding: '10px 12px', marginBottom: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
                         <strong style={{ color: '#92400e', fontSize: 12 }}>Person named by resident (unverified): </strong>
@@ -646,8 +839,8 @@ const BlotterManagement = () => {
                   </div>
 
                   {/* EVIDENCE */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Photo Proof / Attachment</h3>
+                  <div className="blotter-evidence-section">
+                    <h3>Photo Proof / Attachment</h3>
                     <p style={{ margin: '0 0 8px', fontSize: 12, color: '#92400e' }}>Resident-uploaded evidence — review and validate before relying on it for a case decision.</p>
                     {selectedReport.evidenceUrl && evidenceLoading ? (
                       <div role="status" style={{ padding: '12px 16px', backgroundColor: '#eff6ff', borderRadius: '8px', color: '#1d4ed8', fontSize: '13px' }}>
@@ -673,15 +866,18 @@ const BlotterManagement = () => {
                   </div>
 
                   {/* ⚖️ LUPON CONCILIATION & ACTION FORM */}
-                  <div className="no-print" style={{ borderTop: '2px solid #e2e8f0', paddingTop: '24px', marginTop: 24 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                      <Scale size={20} color="#0038A8" />
-                      <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                        Lupon Tagapamayapa Conciliation & Case Actions
-                      </h3>
+                  <div className="no-print blotter-workflow-section">
+                    <div className="blotter-workflow-heading">
+                      <div className="blotter-workflow-heading-icon"><Scale size={20} aria-hidden="true" /></div>
+                      <div>
+                        <p className="blotter-eyebrow">STAFF WORKFLOW</p>
+                        <h3>Review & case actions</h3>
+                        <p>Record the review outcome first. Lupon scheduling is only for cases being considered for conciliation.</p>
+                      </div>
                     </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+
+                    <div className="blotter-workflow-step-head"><span>1</span><div><strong>Staff review</strong><small>Choose the next handling path and record confirmed information.</small></div></div>
+                    <div className="blotter-decision-grid">
                       <div className="form-group">
                         <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Staff Review Outcome</label>
                         <select
@@ -739,7 +935,10 @@ const BlotterManagement = () => {
                         />
                         <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>Confirm the person's identity before entering it here; a resident-provided name is unverified.</small>
                       </div>
+                    </div>
 
+                    <div className="blotter-workflow-step-head"><span>2</span><div><strong>Lupon scheduling</strong><small>Complete these details only when a Lupon referral and hearing are appropriate.</small></div></div>
+                    <div className="blotter-hearing-grid">
                       <div className="form-group">
                         <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Lupon Hearing Stage</label>
                         <select
@@ -767,7 +966,7 @@ const BlotterManagement = () => {
                         />
                       </div>
 
-                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <div className="form-group blotter-officer-field">
                         <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Lupon Officer / Presiding Official</label>
                         <input
                           type="text"
@@ -781,7 +980,7 @@ const BlotterManagement = () => {
                       </div>
                     </div>
 
-                    <div className="form-group" style={{ marginBottom: '20px' }}>
+                    <div className="form-group blotter-remarks-field">
                       <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Official Admin Remarks (Visible to Resident)</label>
                       <textarea 
                         className="form-input"
@@ -793,24 +992,16 @@ const BlotterManagement = () => {
                       />
                     </div>
 
-                    <div style={{ display: 'flex', gap: 12 }}>
+                    <div className="blotter-action-bar">
                       <button
                         type="button"
-                        className="btn primary" 
                         onClick={handleUpdateStatus} 
                         disabled={isCaseFormSaveDisabled}
                         aria-disabled={isCaseFormSaveDisabled}
                         title={!hasCaseFormChanges ? 'Change at least one case or review field before saving' : !hasCompleteHearingSchedule ? 'Select Potential Lupon Referral and provide the confirmed respondent, hearing date and time, and presiding officer' : 'Save case review and hearing changes'}
-                        style={{
-                          padding: '10px 20px',
-                          fontSize: '14px',
-                          width: 'auto',
-                          fontWeight: 800,
-                          cursor: isCaseFormSaveDisabled ? 'not-allowed' : 'pointer',
-                          opacity: isCaseFormSaveDisabled ? 0.55 : 1
-                        }}
+                        className="btn primary blotter-save-button"
                       >
-                        {updating ? 'Saving Changes...' : '💾 Save Case & Schedule Hearing'}
+                        {updating ? 'Saving changes…' : 'Save review and changes'}
                       </button>
 
                       {!isTerminalCase(selectedReport.status) && (
@@ -818,11 +1009,26 @@ const BlotterManagement = () => {
                         type="button"
                         onClick={() => setShowKpModal(true)}
                         disabled={!canPrintSummons}
-                        title={canPrintSummons ? 'Print temporary generic Lupon summons draft' : 'Add the respondent, hearing stage, date and time, and presiding officer first'}
-                        style={{ padding: '10px 18px', background: '#f1f5f9', border: '1.5px solid #cbd5e1', borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: canPrintSummons ? 'pointer' : 'not-allowed', opacity: canPrintSummons ? 1 : 0.5, display: 'flex', alignItems: 'center', gap: 6, color: '#1e293b' }}
+                        title={canPrintSummons ? 'Print the respondent summons draft for the first mediation hearing' : 'For KP Form No. 9, select the first mediation hearing and provide the confirmed respondent, date/time, and presiding officer'}
+                        className="blotter-summons-button"
                       >
-                        <Scale size={15} color="#0038A8" /> Print Generic Summons Draft
+                        <Scale size={15} color="#0038A8" /> Print KP Form No. 9 Draft
                       </button>
+                      )}
+                      {canPrintHearingNotice && (
+                        <button type="button" onClick={() => setOutcomeFormType('hearingNotice')} className="blotter-summons-button">
+                          <Printer size={15} /> Print KP Form No. 12 Draft
+                        </button>
+                      )}
+                      {canPrintSettlementForm && (
+                        <button type="button" onClick={() => setOutcomeFormType('settlement')} className="blotter-summons-button">
+                          <Printer size={15} /> Print KP Form No. 16 Draft
+                        </button>
+                      )}
+                      {canPrintCfaForm && (
+                        <button type="button" onClick={() => setOutcomeFormType('cfa')} className="blotter-summons-button">
+                          <Printer size={15} /> Print CFA Draft
+                        </button>
                       )}
                     </div>
                   </div>
