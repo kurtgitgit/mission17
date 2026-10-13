@@ -23,6 +23,7 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
 const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const ALLOWED_TRIAGE_OUTCOMES = ['Pending Review', 'Follow-up Needed', 'Potential Lupon Referral', 'Referred Outside Lupon'];
 const TERMINAL_STATUSES = ['Resolved', 'Dismissed'];
 const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const SCHEDULED_HEARING_STAGES = ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
@@ -47,7 +48,7 @@ const isApprovedCloudinaryEvidenceUrl = (value) => {
 
 // POST / — Resident: Submit a new blotter report
 export const submitReport = asyncHandler(async (req, res) => {
-  const { fullName, contactNumber, incidentType, description, location, dateOfIncident, evidenceUrl } = req.body;
+  const { fullName, contactNumber, incidentType, description, location, dateOfIncident, evidenceUrl, reportedRespondentName } = req.body;
   const userId = req.user._id;
   const username = req.user.username;
 
@@ -55,6 +56,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   const cleanContact = typeof contactNumber === 'string' ? contactNumber.replace(/\s/g, '') : '';
   const cleanDescription = typeof description === 'string' ? description.trim() : '';
   const cleanLocation = typeof location === 'string' ? location.trim() : '';
+  const cleanReportedRespondentName = typeof reportedRespondentName === 'string' ? reportedRespondentName.trim() : '';
   const parsedIncidentDate = new Date(dateOfIncident);
 
   if (!incidentType || !cleanDescription || !cleanLocation || !dateOfIncident) {
@@ -62,6 +64,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   }
   if (cleanName.length < 3 || cleanName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
   if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
+  if (reportedRespondentName !== undefined && (typeof reportedRespondentName !== 'string' || cleanReportedRespondentName.length > 120)) return res.status(400).json({ message: 'Person involved must be text with no more than 120 characters.' });
   if (cleanDescription.length < 10 || cleanDescription.length > 2000) return res.status(400).json({ message: 'Incident description must be between 10 and 2,000 characters.' });
   if (cleanLocation.length < 3 || cleanLocation.length > 250) return res.status(400).json({ message: 'Please enter a valid incident location.' });
   if (Number.isNaN(parsedIncidentDate.getTime()) || parsedIncidentDate.getTime() > Date.now() + 5 * 60_000) return res.status(400).json({ message: 'Please provide a valid incident date.' });
@@ -94,6 +97,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   const report = await BlotterReport.create({
     userId, username, fullName: cleanName, contactNumber: cleanContact, incidentType, description: cleanDescription, location: cleanLocation,
     dateOfIncident: parsedIncidentDate,
+    reportedRespondentName: cleanReportedRespondentName,
     evidenceUrl: finalEvidenceUrl,
   });
 
@@ -202,7 +206,7 @@ export const getAllReports = asyncHandler(async (req, res) => {
 
 // PATCH /:id/status — Admin: Update report status & schedule Lupon hearings
 export const updateStatus = asyncHandler(async (req, res) => {
-  const { status, adminRemarks, respondentName, hearingDate, hearingStage, luponOfficerInCharge } = req.body;
+  const { status, adminRemarks, respondentName, reportedRespondentName, triageOutcome, hearingDate, hearingStage, luponOfficerInCharge } = req.body;
 
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
@@ -212,6 +216,12 @@ export const updateStatus = asyncHandler(async (req, res) => {
   }
   if (respondentName !== undefined && (typeof respondentName !== 'string' || respondentName.length > 120)) {
     return res.status(400).json({ message: 'Respondent name must be text with no more than 120 characters.' });
+  }
+  if (reportedRespondentName !== undefined) {
+    return res.status(400).json({ message: 'The resident-reported person name cannot be edited by staff. Enter a confirmed respondent in the staff case record.' });
+  }
+  if (triageOutcome !== undefined && !ALLOWED_TRIAGE_OUTCOMES.includes(triageOutcome)) {
+    return res.status(400).json({ message: 'Please select a valid staff review outcome.' });
   }
   if (hearingStage !== undefined && !ALLOWED_HEARING_STAGES.includes(hearingStage)) {
     return res.status(400).json({ message: 'Please select a valid Lupon hearing stage.' });
@@ -268,9 +278,21 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  if (isHearingTransition && hearingStage !== 'None') {
+    const effectiveTriageOutcome = triageOutcome === undefined ? (report.triageOutcome || 'Pending Review') : triageOutcome;
+    const effectiveRespondentName = respondentName === undefined ? report.respondentName : respondentName.trim();
+    if (effectiveTriageOutcome !== 'Potential Lupon Referral') {
+      return res.status(400).json({ message: 'Complete staff review and select Potential Lupon Referral before scheduling a hearing.' });
+    }
+    if (!effectiveRespondentName) {
+      return res.status(400).json({ message: 'Confirm and enter the respondent before scheduling a Lupon hearing.' });
+    }
+  }
+
   if (status) report.status = status;
   if (adminRemarks !== undefined) report.adminRemarks = adminRemarks.trim();
   if (respondentName !== undefined) report.respondentName = respondentName.trim();
+  if (triageOutcome !== undefined) report.triageOutcome = triageOutcome;
   if (hearingDate !== undefined) report.hearingDate = hearingDate ? parsedHearingDate : null;
   if (hearingStage !== undefined) report.hearingStage = hearingStage;
   if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge.trim();

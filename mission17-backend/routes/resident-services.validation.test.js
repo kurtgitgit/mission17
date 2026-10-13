@@ -142,10 +142,15 @@ describe('resident service validation and duplicate protection', () => {
     const payload = {
       fullName: 'Juan Dela Cruz', contactNumber: '09171234567', incidentType: 'Disturbance',
       description: 'A loud disturbance continued near the covered court after midnight.',
-      location: 'Covered Court', dateOfIncident: new Date().toISOString()
+      location: 'Covered Court', dateOfIncident: new Date().toISOString(),
+      reportedRespondentName: 'Pedro Santos'
     };
     expect((await request(app).post('/api/blotter-reports').send({ ...payload, dateOfIncident: 'not-a-date' })).status).toBe(400);
-    expect((await request(app).post('/api/blotter-reports').send(payload)).status).toBe(201);
+    const createdReport = await request(app).post('/api/blotter-reports').send(payload);
+    expect(createdReport.status).toBe(201);
+    expect(createdReport.body.report.reportedRespondentName).toBe('Pedro Santos');
+    expect(createdReport.body.report.respondentName).toBe('');
+    expect(createdReport.body.report.triageOutcome).toBe('Pending Review');
     expect((await request(app).post('/api/blotter-reports').send(payload)).status).toBe(409);
   });
 });

@@ -121,6 +121,16 @@ const BlotterHistoryScreen = () => {
           <Text style={styles.locationText} numberOfLines={1}>{item.location}</Text>
         </View>
 
+        {item.triageOutcome && item.triageOutcome !== 'Pending Review' ? (
+          <View style={{ backgroundColor: '#eff6ff', borderRadius: 9, padding: 10, marginTop: 8, borderWidth: 1, borderColor: '#bfdbfe' }}>
+            <Text style={{ color: '#1e3a8a', fontSize: 12, lineHeight: 17, fontWeight: '600' }}>
+              {item.triageOutcome === 'Follow-up Needed' && 'Staff review: Follow-up is needed. Please check the official update below.'}
+              {item.triageOutcome === 'Potential Lupon Referral' && (item.hearingDate ? 'Staff review: The case is proceeding through the Lupon process. See the hearing details below.' : 'Staff review: The case may proceed to Lupon review. No hearing has been scheduled yet.')}
+              {item.triageOutcome === 'Referred Outside Lupon' && 'Staff review: This report was referred for handling outside the Lupon process. Please check the official update below.'}
+            </Text>
+          </View>
+        ) : null}
+
         {/* STATEMENT NARRATIVE */}
         <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
 

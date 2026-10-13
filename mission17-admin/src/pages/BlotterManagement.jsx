@@ -22,6 +22,12 @@ const CASE_STATUSES = [
   { value: 'Resolved', label: 'Resolved / Closed' },
   { value: 'Dismissed', label: 'Dismissed' }
 ];
+const TRIAGE_OUTCOMES = [
+  { value: 'Pending Review', label: 'Pending Review' },
+  { value: 'Follow-up Needed', label: 'Follow-up Needed' },
+  { value: 'Potential Lupon Referral', label: 'Potential Lupon Referral' },
+  { value: 'Referred Outside Lupon', label: 'Referred Outside Lupon' },
+];
 
 const TERMINAL_CASE_STATUSES = ['Resolved', 'Dismissed'];
 const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
@@ -36,6 +42,7 @@ const toDateTimeLocalValue = (value) => {
 
 const getCaseFormValues = (report) => ({
   status: report?.status || 'Pending',
+  triageOutcome: report?.triageOutcome || 'Pending Review',
   adminRemarks: report?.adminRemarks || '',
   respondentName: report?.respondentName || '',
   hearingDate: toDateTimeLocalValue(report?.hearingDate),
@@ -192,6 +199,7 @@ const BlotterManagement = () => {
   
   const [selectedReport, setSelectedReport] = useState(null);
   const [newStatus, setNewStatus] = useState('');
+  const [triageOutcome, setTriageOutcome] = useState('Pending Review');
   const [adminRemarks, setAdminRemarks] = useState('');
   const [respondentName, setRespondentName] = useState('');
   const [hearingDate, setHearingDate] = useState('');
@@ -259,6 +267,7 @@ const BlotterManagement = () => {
     const values = getCaseFormValues(report);
     setSelectedReport(report);
     setNewStatus(values.status);
+    setTriageOutcome(values.triageOutcome);
     setAdminRemarks(values.adminRemarks);
     setRespondentName(values.respondentName);
     setHearingDate(values.hearingDate);
@@ -269,6 +278,7 @@ const BlotterManagement = () => {
 
   const hasCaseFormChanges = Boolean(savedCaseForm && (
     newStatus !== savedCaseForm.status ||
+    triageOutcome !== savedCaseForm.triageOutcome ||
     adminRemarks !== savedCaseForm.adminRemarks ||
     respondentName !== savedCaseForm.respondentName ||
     hearingDate !== savedCaseForm.hearingDate ||
@@ -278,11 +288,12 @@ const BlotterManagement = () => {
 
   const requiresHearingSchedule = SCHEDULED_HEARING_STAGES.includes(hearingStage);
   const hasCompleteHearingSchedule = !requiresHearingSchedule || Boolean(
-    hearingDate && luponOfficerInCharge.trim()
+    triageOutcome === 'Potential Lupon Referral' && respondentName.trim() && hearingDate && luponOfficerInCharge.trim()
   );
   const canPrintSummons = Boolean(
     !TERMINAL_CASE_STATUSES.includes(selectedReport?.status)
     && requiresHearingSchedule
+    && triageOutcome === 'Potential Lupon Referral'
     && hearingDate
     && respondentName.trim()
     && luponOfficerInCharge.trim()
@@ -310,6 +321,7 @@ const BlotterManagement = () => {
     try {
       const res = await blotterApi.updateStatus(selectedReport._id, {
         status: newStatus,
+        triageOutcome,
         adminRemarks,
         respondentName,
         hearingDate: hearingDate || null,
@@ -319,6 +331,7 @@ const BlotterManagement = () => {
       const updatedReport = res.data?.report || {
         ...selectedReport,
         status: newStatus,
+        triageOutcome,
         adminRemarks,
         respondentName,
         hearingDate,
@@ -331,6 +344,7 @@ const BlotterManagement = () => {
       setSelectedReport(updatedReport);
       const savedValues = getCaseFormValues(updatedReport);
       setNewStatus(savedValues.status);
+      setTriageOutcome(savedValues.triageOutcome);
       setAdminRemarks(savedValues.adminRemarks);
       setRespondentName(savedValues.respondentName);
       setHearingDate(savedValues.hearingDate);
@@ -618,6 +632,13 @@ const BlotterManagement = () => {
 
                   {/* INCIDENT DETAILS */}
                   <div style={{ background: 'white', padding: '16px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '24px' }}>
+                    {selectedReport.reportedRespondentName && (
+                      <div style={{ padding: '10px 12px', marginBottom: '12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8 }}>
+                        <strong style={{ color: '#92400e', fontSize: 12 }}>Person named by resident (unverified): </strong>
+                        <span style={{ color: '#78350f', fontSize: 13 }}>{selectedReport.reportedRespondentName}</span>
+                        <div style={{ color: '#92400e', fontSize: 11, marginTop: 3 }}>Review this report before entering a staff-confirmed respondent below.</div>
+                      </div>
+                    )}
                     <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Incident Narrative</h3>
                     <p style={{ fontSize: '14.5px', color: '#334155', lineHeight: '1.6', margin: 0 }}>
                       {selectedReport.description}
@@ -662,6 +683,20 @@ const BlotterManagement = () => {
                     
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                       <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Staff Review Outcome</label>
+                        <select
+                          className="form-input"
+                          value={triageOutcome}
+                          onChange={(e) => setTriageOutcome(e.target.value)}
+                        >
+                          {TRIAGE_OUTCOMES.map(outcome => <option key={outcome.value} value={outcome.value}>{outcome.label}</option>)}
+                        </select>
+                        <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                          Review the report first. Choose Potential Lupon Referral only when mediation appears appropriate; otherwise use follow-up or referral.
+                        </small>
+                      </div>
+
+                      <div className="form-group">
                         <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Case Status</label>
                         <select 
                           className="form-input" 
@@ -693,7 +728,7 @@ const BlotterManagement = () => {
                       </div>
 
                       <div className="form-group">
-                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Respondent (Person Complained)</label>
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Respondent (Staff-Confirmed)</label>
                         <input
                           type="text"
                           className="form-input"
@@ -702,6 +737,7 @@ const BlotterManagement = () => {
                           onChange={(e) => setRespondentName(e.target.value)}
                           maxLength={120}
                         />
+                        <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>Confirm the person's identity before entering it here; a resident-provided name is unverified.</small>
                       </div>
 
                       <div className="form-group">
@@ -712,11 +748,11 @@ const BlotterManagement = () => {
                           onChange={(e) => setHearingStage(e.target.value)}
                         >
                           {LUPON_STAGES.map(stage => (
-                            <option key={stage} value={stage} disabled={isHearingStageDisabled(stage)}>{stage}</option>
+                            <option key={stage} value={stage} disabled={isHearingStageDisabled(stage) || (stage !== 'None' && triageOutcome !== 'Potential Lupon Referral')}>{stage}</option>
                           ))}
                         </select>
                         <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
-                          A hearing stage requires its date, time, and presiding officer. Previous stages are locked after the next stage is saved.
+                          A hearing requires a Potential Lupon Referral outcome, a staff-confirmed respondent, its date and time, and presiding officer. Previous stages are locked after the next stage is saved.
                         </small>
                       </div>
 
@@ -764,7 +800,7 @@ const BlotterManagement = () => {
                         onClick={handleUpdateStatus} 
                         disabled={isCaseFormSaveDisabled}
                         aria-disabled={isCaseFormSaveDisabled}
-                        title={!hasCaseFormChanges ? 'Change at least one case or hearing field before saving' : !hasCompleteHearingSchedule ? 'Add the hearing date, time, and presiding officer before saving this hearing stage' : 'Save case and hearing changes'}
+                        title={!hasCaseFormChanges ? 'Change at least one case or review field before saving' : !hasCompleteHearingSchedule ? 'Select Potential Lupon Referral and provide the confirmed respondent, hearing date and time, and presiding officer' : 'Save case review and hearing changes'}
                         style={{
                           padding: '10px 20px',
                           fontSize: '14px',

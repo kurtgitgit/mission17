@@ -206,6 +206,8 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
         status: 'Resolved',
         incidentType: 'Disturbance',
         dateOfIncident: new Date('2026-10-07T00:00:00.000Z'),
+        reportedRespondentName: 'Resident-provided name',
+        respondentName: 'Staff-confirmed name',
         blockchainTxHash: '0xlegacy-points-transaction',
       });
 
@@ -215,6 +217,8 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       expect(res.body.blockchainTxHash).toBeNull();
       expect(res.body.blockchainRecordHash).toBeNull();
       expect(res.body.blockchainRecordStatus).toBe('Not Configured');
+      expect(res.body).not.toHaveProperty('reportedRespondentName');
+      expect(res.body).not.toHaveProperty('respondentName');
     });
 
     it('returns a recorded privacy-safe resolution ledger entry', async () => {
@@ -244,6 +248,8 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       userId: 'user123',
       referenceNumber: 'BLOTTER-2026-12345',
       status: 'Pending',
+      triageOutcome: 'Pending Review',
+      respondentName: '',
       hearingStage: 'None',
       hearingDate: null,
       blockchainTxHash: null,
@@ -313,6 +319,7 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
         .set('x-mock-user-role', 'admin')
         .send({
           status: 'Pending',
+          triageOutcome: 'Potential Lupon Referral',
           respondentName: 'Respondent',
           hearingStage: 'Mediation (1st Hearing)',
           hearingDate: '2026-09-26T09:30:00.000Z',
@@ -320,10 +327,31 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
         });
 
       expect(res.status).toBe(200);
+      expect(report.triageOutcome).toBe('Potential Lupon Referral');
       expect(report.respondentName).toBe('Respondent');
       expect(report.hearingDate).toEqual(new Date('2026-09-26T09:30:00.000Z'));
       expect(report.luponOfficerInCharge).toBe('Lupon Chair');
       expect(report.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('requires a Lupon referral outcome and confirmed respondent before scheduling', async () => {
+      const report = makeReport();
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          hearingStage: 'Mediation (1st Hearing)',
+          hearingDate: '2026-10-20T09:30:00.000Z',
+          luponOfficerInCharge: 'Lupon Chair',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Potential Lupon Referral');
+      expect(report.save).not.toHaveBeenCalled();
     });
 
     it('allows the Barangay Captain to approve a pending blotter', async () => {

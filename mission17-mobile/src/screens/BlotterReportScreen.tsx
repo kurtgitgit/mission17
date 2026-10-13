@@ -31,6 +31,7 @@ const BlotterReportScreen = () => {
   const [incidentType, setIncidentType]   = useState('Disturbance');
   const [customIncidentType, setCustomIncidentType] = useState('');
   const [description, setDescription]     = useState('');
+  const [reportedRespondentName, setReportedRespondentName] = useState('');
   const [location, setLocation]           = useState('');
   const [incidentPurok, setIncidentPurok] = useState('');
   const [incidentDateTime, setIncidentDateTime] = useState(new Date());
@@ -62,7 +63,7 @@ const BlotterReportScreen = () => {
       const saved = await AsyncStorage.getItem(DRAFT_STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.fullName || parsed.description || parsed.location || parsed.customIncidentType || parsed.incidentDateSelected || parsed.incidentTimeSelected) {
+        if (parsed.fullName || parsed.description || parsed.location || parsed.reportedRespondentName || parsed.customIncidentType || parsed.incidentDateSelected || parsed.incidentTimeSelected) {
           setHasDraft(true);
           setDraftSavedTime(parsed.savedAt ? new Date(parsed.savedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null);
         }
@@ -82,6 +83,7 @@ const BlotterReportScreen = () => {
         if (parsed.incidentType) setIncidentType(parsed.incidentType);
         if (parsed.customIncidentType) setCustomIncidentType(parsed.customIncidentType);
         if (parsed.description) setDescription(parsed.description);
+        if (parsed.reportedRespondentName) setReportedRespondentName(parsed.reportedRespondentName);
         // Preserve drafts created before the exact-location field replaced the old picker.
         if (parsed.location === 'Other / specify' && parsed.customLocation) setLocation(parsed.customLocation);
         else if (parsed.location) setLocation(parsed.location);
@@ -104,6 +106,7 @@ const BlotterReportScreen = () => {
         incidentType,
         customIncidentType,
         description,
+        reportedRespondentName,
         location,
         incidentPurok,
         incidentDateTime: incidentDateTime.toISOString(),
@@ -229,6 +232,7 @@ const BlotterReportScreen = () => {
           description:     finalDescription,
           location:        incidentPurok ? `${location.trim()} (${incidentPurok})` : location.trim(),
           dateOfIncident:  incidentDateTime.toISOString(),
+          reportedRespondentName: reportedRespondentName.trim(),
           evidenceUrl:     evidenceBase64 || null,
         }),
       });
@@ -239,6 +243,7 @@ const BlotterReportScreen = () => {
         setSuccessRef(ref);
         setFullName('');
         setContactNumber('');
+        setReportedRespondentName('');
         setCustomIncidentType('');
         setDescription('');
         setLocation('');
@@ -459,7 +464,7 @@ const BlotterReportScreen = () => {
           <View style={{ flex: 1 }}>
             <Text style={styles.noticeBannerTitle}>Official Community Report</Text>
             <Text style={styles.noticeBannerText}>
-              Please provide truthful and accurate information to assist our Barangay Officers in prompt investigation.
+              This report is sent to authorized barangay staff for review during their normal workflow. It does not request immediate assistance. If anyone is in immediate danger, contact on-duty barangay personnel or local emergency services directly.
             </Text>
           </View>
         </View>
@@ -682,6 +687,25 @@ const BlotterReportScreen = () => {
           <View style={styles.cardHeader}>
             <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>3</Text></View>
             <Text style={styles.cardTitle}>Statement & Evidence</Text>
+          </View>
+
+          <View style={[styles.inputGroup, { marginBottom: 14 }]}>
+            <Text style={styles.fieldLabel}>
+              Person involved, if known <Text style={{ color: colors.textMuted, fontWeight: '500' }}>(optional)</Text>
+            </Text>
+            <View style={styles.inputBox}>
+              <User size={18} color="#64748b" style={styles.inputIcon} />
+              <TextInput
+                style={styles.textInputField}
+                placeholder="Leave blank if unknown"
+                placeholderTextColor={colors.textMuted}
+                value={reportedRespondentName}
+                onChangeText={setReportedRespondentName}
+                maxLength={120}
+                accessibilityLabel="Person involved, if known, optional and unverified"
+              />
+            </View>
+            <Text style={styles.helperText}>Any name entered is the resident's report and is not treated as verified. Staff will review it.</Text>
           </View>
 
           {/* DESCRIPTION WITH LIVE CHAR COUNT */}

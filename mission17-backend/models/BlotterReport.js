@@ -20,7 +20,13 @@ const BlotterReportSchema = new mongoose.Schema({
     default: 'Pending'
   },
   adminRemarks: { type: String, trim: true, maxlength: 2000 },
+  reportedRespondentName: { type: String, trim: true, maxlength: 120, default: '' },
   respondentName: { type: String, trim: true, maxlength: 120, default: '' },
+  triageOutcome: {
+    type: String,
+    enum: ['Pending Review', 'Follow-up Needed', 'Potential Lupon Referral', 'Referred Outside Lupon'],
+    default: 'Pending Review'
+  },
   hearingDate: { type: Date, default: null },
   hearingStage: {
     type: String,
