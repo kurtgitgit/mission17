@@ -9,7 +9,7 @@ const router = express.Router();
 const MAX_MESSAGE_LENGTH = 1_200;
 const CHATBOT_REQUEST_TIMEOUT_MS = 12_000;
 const LANGUAGE_TOPIC_PATTERN = /\b(pangasinan|ilocano|ilokano|tagalog|filipino|wika|salita|pagsasao)\b/i;
-const EMERGENCY_PATTERN = /\b(911|emergency|sunog|fire|ambulance|aksidente|cannot\s*breathe|hirap\s*huminga|abuse|violence|threat|banta|medical|sakit|fever|lagnat)\b/i;
+const EMERGENCY_PATTERN = /\b(911|emergency|sunog|fire|ambulance|aksidente|cannot\s*breathe|can['’]?t\s+breathe|unable\s+to\s+breathe|trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|difficulty\s+breathing|hirap\s*(?:na\s*)?huminga|(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|abuse|violence|threat|banta|medical|sakit|fever|lagnat)\b/i;
 const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)[!.,?\s]*$/i;
 // The directory is the resident-facing source of approved roster details.
 // Do not disclose individual officials' personal contact details in chat.
@@ -21,7 +21,7 @@ export const detectLanguage = (message) => {
   const text = message.toLowerCase();
   if (/\b(pangasinan|antoy|saray|diad|makatalos|nangan|onla|tua)\b/i.test(text)) return 'pangasinan';
   if (/\b(ilocano|ilokano|ania|dagiti|iti|wen|mabalin|agkiddaw|kasano|agyaman)\b/i.test(text)) return 'ilocano';
-  if (/\b(tagalog|filipino|kumusta|kamusta|paano|saan|bakit|salamat|ako|ang|mga|may|kailangan|mag-file|maghain)\b/i.test(text)) return 'tagalog';
+  if (/\b(tagalog|filipino|kumusta|kamusta|paano|saan|bakit|salamat|ako|siya|hindi|di|sunog|hirap|makahinga|ang|mga|may|kailangan|mag-file|maghain)\b/i.test(text)) return 'tagalog';
   return 'english';
 };
 

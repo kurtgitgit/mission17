@@ -98,11 +98,12 @@ _EMERGENCY_RE = re.compile(
     r"assault|sinakal|pinugutan|patay|pinatay|pumatay|self[\s\-]?harm|suicide|"
     r"papatayin|patayin|gustong\s*mamatay|ayaw\s*(ko\s*)?na\s*mabuhay|kill|nananaksak|"
     r"nagdudugo|bleeding|hirap\s*huminga|difficulty\s*breathing|"
+    r"trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|"
     r"(?:cannot|can\s*t|cant|unable\s*to)\s*breathe|"
     r"(?:not|stopped|stops)\s*breathing|chok(?:e|es|ed|ing)|"
     r"(?:cannot|can\s*t|cant)\s*catch\s*(?:my|their|his|her|our)?\s*breath|"
     r"struggling\s*to\s*breathe|gasping\s*(?:for\s*)?air|hurt\s*myself|"
-    r"hindi\s*(?:na\s*)?makahinga|di\s*makahinga|"
+    r"(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|"
     r"nauubusan\s*(?:ng\s*)?hangin|saan\s*a\s*makaanges|ag\s*makainawa|"
     r"end\s*my\s*life|wakasan\s*(?:ang\s*)?(?:aking\s*)?buhay)\b",
     re.IGNORECASE,
@@ -471,6 +472,7 @@ _LANG_RULES: dict[str, list[tuple[re.Pattern, float]]] = {
         (re.compile(r"\b(ang|ng|mga|sa|ay|ko|mo|po|opo|naman|lang|ba|dito|ito|yan|yun|natin|ninyo|amin|atin|nila|siya|sila)\b"), 0.8),
         (re.compile(r"\b(magandang|kumusta|kamusta|salamat|paalam|sige|walang anuman|pasensya|maraming salamat|ingat po)\b"), 2.0),
         (re.compile(r"\b(paano|anong|ano|saan|kailan|sino|bakit|hindi|yung|maling|kailangan|gusto|mayroon|magkano|bayad|libre|puwede|maaari)\b"), 2.0),
+        (re.compile(r"\b(sunog|hirap\s*(?:na\s*)?huminga|hindi\s*(?:na\s*)?makahinga|di\s*makahinga)\b"), 3.0),
         (re.compile(r"\b(tagalog|filipino|pilipino|kumuha|makuha|humiling|ireport|magreklamo|kapitan|kagawad|tanod|nakatira)\b"), 3.0),
     ],
 }

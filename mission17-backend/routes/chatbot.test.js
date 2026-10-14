@@ -54,6 +54,22 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(reply).toContain('Hindi emergency-response service ang BrgyLink');
   });
 
+  it('recognizes breathing emergencies before the AI or out-of-scope fallback', () => {
+    const englishCases = [
+      'Someone is having trouble breathing right now.',
+      'A person has shortness of breath.',
+    ];
+    for (const message of englishCases) {
+      const reply = getControlledFaq(message);
+      expect(reply).toContain('call 911 now');
+      expect(reply).toContain('not an emergency-response service');
+    }
+
+    const tagalogMessage = 'Hindi siya makahinga!';
+    expect(detectLanguage(tagalogMessage)).toBe('tagalog');
+    expect(getControlledFaq(tagalogMessage)).toContain('tumawag agad sa 911');
+  });
+
   it('returns an honest verified-information fallback for unanswered in-scope questions', () => {
     const reply = getSafeFallbackReply('Ano ang eksaktong bayad para sa bagong serbisyo?');
     expect(reply).toContain('verified na sagot');

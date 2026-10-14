@@ -174,6 +174,27 @@ class AIServerTests(unittest.TestCase):
         self.assertEqual(payload['language'], 'english')
         self.assertNotIn('details', payload)
 
+    def test_chat_recognizes_breathing_emergencies_and_short_tagalog_language(self):
+        cases = [
+            ('Someone is having trouble breathing right now.', 'english'),
+            ('Someone has shortness of breath.', 'english'),
+            ('May sunog at may taong hirap huminga.', 'tagalog'),
+            ('Hindi siya makahinga!', 'tagalog'),
+        ]
+
+        for message, expected_language in cases:
+            with self.subTest(message=message):
+                response = self.client.post(
+                    '/chat',
+                    headers=self.headers,
+                    json={'message': message},
+                )
+                self.assertEqual(response.status_code, 200)
+                payload = response.get_json()
+                self.assertEqual(payload['intent'], 'emergency')
+                self.assertEqual(payload['language'], expected_language)
+                self.assertIn('911', payload['response'])
+
     def test_chat_rejects_invalid_payloads_without_affecting_predict(self):
         self.assertEqual(self.client.post('/chat', headers=self.headers, json={}).status_code, 400)
         self.assertEqual(
