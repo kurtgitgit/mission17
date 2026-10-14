@@ -79,7 +79,10 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
   describe('GET /api/blotter-reports/my/:userId', () => {
     it('should allow user to view their own reports', async () => {
       BlotterReport.find.mockReturnValue({
-        sort: jest.fn().mockResolvedValue([{ referenceNumber: 'REP123' }])
+        sort: jest.fn().mockResolvedValue([{
+          referenceNumber: 'REP123',
+          hearingHistory: [{ staffNotes: 'Staff-only note' }],
+        }])
       });
 
       const res = await request(app)
@@ -88,6 +91,7 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       
       expect(res.status).toBe(200);
       expect(res.body).toEqual([{ referenceNumber: 'REP123' }]);
+      expect(res.body[0]).not.toHaveProperty('hearingHistory');
     });
 
     it('should block user from viewing another user\'s reports (IDOR)', async () => {
@@ -252,6 +256,7 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       respondentName: '',
       hearingStage: 'None',
       hearingDate: null,
+      hearingHistory: [],
       blockchainTxHash: null,
       save: jest.fn().mockResolvedValue(undefined),
     });
@@ -323,6 +328,7 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
           respondentName: 'Respondent',
           hearingStage: 'Mediation (1st Hearing)',
           hearingDate: '2026-09-26T09:30:00.000Z',
+          hearingNotes: 'Initial date confirmed with the parties.',
           luponOfficerInCharge: 'Lupon Chair',
         });
 
@@ -331,7 +337,132 @@ describe('Blotter Reports API (IDOR & RBAC)', () => {
       expect(report.respondentName).toBe('Respondent');
       expect(report.hearingDate).toEqual(new Date('2026-09-26T09:30:00.000Z'));
       expect(report.luponOfficerInCharge).toBe('Lupon Chair');
+      expect(report.hearingHistory).toHaveLength(1);
+      expect(report.hearingHistory[0]).toMatchObject({
+        hearingStage: 'Mediation (1st Hearing)',
+        presidingOfficer: 'Lupon Chair',
+        eventType: 'scheduled',
+        staffNotes: 'Initial date confirmed with the parties.',
+        recordedBy: 'admin123',
+      });
       expect(report.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves the previous schedule when a hearing is rescheduled', async () => {
+      const previousHearingDate = new Date('2026-09-26T09:30:00.000Z');
+      const report = {
+        ...makeReport(),
+        triageOutcome: 'Potential Lupon Referral',
+        respondentName: 'Confirmed Respondent',
+        hearingStage: 'Mediation (1st Hearing)',
+        hearingDate: previousHearingDate,
+        luponOfficerInCharge: 'Lupon Chair',
+        updatedAt: new Date('2026-09-20T08:00:00.000Z'),
+      };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          hearingStage: 'Mediation (1st Hearing)',
+          hearingDate: '2026-10-02T10:00:00.000Z',
+          luponOfficerInCharge: 'Lupon Chair',
+          hearingNotes: 'Rescheduled at the parties’ request.',
+        });
+
+      expect(res.status).toBe(200);
+      expect(report.hearingHistory).toHaveLength(2);
+      expect(report.hearingHistory[0]).toMatchObject({
+        hearingStage: 'Mediation (1st Hearing)',
+        hearingDate: previousHearingDate,
+        eventType: 'previously-recorded',
+      });
+      expect(report.hearingHistory[1]).toMatchObject({
+        hearingStage: 'Mediation (1st Hearing)',
+        hearingDate: new Date('2026-10-02T10:00:00.000Z'),
+        eventType: 'rescheduled',
+        staffNotes: 'Rescheduled at the parties’ request.',
+      });
+      expect(report.hearingDate).toEqual(new Date('2026-10-02T10:00:00.000Z'));
+    });
+
+    it('keeps first-hearing details when the case advances to a second hearing', async () => {
+      const firstHearing = {
+        hearingStage: 'Mediation (1st Hearing)',
+        hearingDate: new Date('2026-09-26T09:30:00.000Z'),
+        presidingOfficer: 'Lupon Chair',
+        eventType: 'scheduled',
+        staffNotes: 'First schedule confirmed.',
+      };
+      const report = {
+        ...makeReport(),
+        triageOutcome: 'Potential Lupon Referral',
+        respondentName: 'Confirmed Respondent',
+        hearingStage: firstHearing.hearingStage,
+        hearingDate: firstHearing.hearingDate,
+        hearingHistory: [firstHearing],
+        luponOfficerInCharge: 'Lupon Chair',
+      };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          triageOutcome: 'Potential Lupon Referral',
+          respondentName: 'Confirmed Respondent',
+          hearingStage: 'Conciliation (2nd Hearing)',
+          hearingDate: '2026-10-10T09:30:00.000Z',
+          luponOfficerInCharge: 'Lupon Chair',
+        });
+
+      expect(res.status).toBe(200);
+      expect(report.hearingHistory).toHaveLength(2);
+      expect(report.hearingHistory[0]).toEqual(firstHearing);
+      expect(report.hearingHistory[1]).toMatchObject({
+        hearingStage: 'Conciliation (2nd Hearing)',
+        hearingDate: new Date('2026-10-10T09:30:00.000Z'),
+        eventType: 'stage-advanced',
+      });
+      expect(report.hearingStage).toBe('Conciliation (2nd Hearing)');
+      expect(report.hearingDate).toEqual(new Date('2026-10-10T09:30:00.000Z'));
+    });
+
+    it('requires a new appointment time when advancing from one hearing stage to the next', async () => {
+      const firstHearingDate = new Date('2026-09-26T09:30:00.000Z');
+      const report = {
+        ...makeReport(),
+        triageOutcome: 'Potential Lupon Referral',
+        respondentName: 'Confirmed Respondent',
+        hearingStage: 'Mediation (1st Hearing)',
+        hearingDate: firstHearingDate,
+        luponOfficerInCharge: 'Lupon Chair',
+      };
+      BlotterReport.findById.mockResolvedValue(report);
+
+      const res = await request(app)
+        .patch('/api/blotter-reports/reportABC/status')
+        .set('x-mock-user-id', 'admin123')
+        .set('x-mock-user-role', 'admin')
+        .send({
+          status: 'Pending',
+          triageOutcome: 'Potential Lupon Referral',
+          respondentName: 'Confirmed Respondent',
+          hearingStage: 'Conciliation (2nd Hearing)',
+          hearingDate: firstHearingDate.toISOString(),
+          luponOfficerInCharge: 'Lupon Chair',
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toContain('Choose a new date and time');
+      expect(report.hearingStage).toBe('Mediation (1st Hearing)');
+      expect(report.hearingHistory).toHaveLength(0);
+      expect(report.save).not.toHaveBeenCalled();
     });
 
     it('requires a Lupon referral outcome and confirmed respondent before scheduling', async () => {

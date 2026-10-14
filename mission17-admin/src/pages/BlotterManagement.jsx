@@ -12,9 +12,34 @@ const LUPON_STAGES = [
   'None',
   'Mediation (1st Hearing)',
   'Conciliation (2nd Hearing)',
-  'Arbitration (3rd Hearing)',
-  'Amicable Settlement',
-  'Issued Certificate to File Action (CFA)'
+  'Arbitration (3rd Hearing)'
+];
+const CASE_OUTCOMES = ['Open', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const CFA_FORM_VARIANTS = [
+  {
+    value: 'repudiated-settlement',
+    number: '20',
+    title: 'Certification to File Action — repudiated settlement',
+    signer: 'Lupon Secretary',
+    attestor: 'Lupon Chairman',
+    body: 'There was a personal confrontation between the parties before the Punong Barangay. A settlement was reached, but it was repudiated by {party} in a sworn statement before the Punong Barangay on {date}, on the ground of {ground}. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  },
+  {
+    value: 'pangkat-failed-conciliation',
+    number: '21',
+    title: 'Certification to File Action — conciliation unsuccessful',
+    signer: 'Pangkat Secretary',
+    attestor: 'Pangkat Chairman',
+    body: 'There was a personal confrontation between the parties before the Punong Barangay, but mediation failed. The Pangkat ng Tagapagkasundo was constituted, but the confrontation before the Pangkat likewise did not result in a settlement. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  },
+  {
+    value: 'respondent-failed-to-appear',
+    number: '22',
+    title: 'Certification to File Action — respondent failed to appear',
+    signer: 'Pangkat Secretary',
+    attestor: 'Pangkat Chairman',
+    body: 'Mediation before the Punong Barangay failed. A meeting was set to constitute the Pangkat ng Tagapagkasundo, but the respondent willfully failed or refused to appear, without justifiable reason, at the Pangkat conciliation proceedings. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
+  }
 ];
 
 const CASE_STATUSES = [
@@ -31,8 +56,21 @@ const TRIAGE_OUTCOMES = [
 ];
 
 const TERMINAL_CASE_STATUSES = ['Resolved', 'Dismissed'];
-const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const SCHEDULED_HEARING_STAGES = ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
+const LEGACY_OUTCOMES_BY_HEARING_STAGE = {
+  'Amicable Settlement': 'Amicable Settlement',
+  'Issued Certificate to File Action (CFA)': 'Issued Certificate to File Action (CFA)',
+};
+
+const getNormalizedWorkflow = (report) => {
+  const legacyOutcome = LEGACY_OUTCOMES_BY_HEARING_STAGE[report?.hearingStage];
+  return {
+    hearingStage: SCHEDULED_HEARING_STAGES.includes(report?.hearingStage) ? report.hearingStage : 'None',
+    caseOutcome: report?.caseOutcome && report.caseOutcome !== 'Open'
+      ? report.caseOutcome
+      : (legacyOutcome || report?.caseOutcome || 'Open'),
+  };
+};
 
 const toDateTimeLocalValue = (value) => {
   if (!value) return '';
@@ -47,9 +85,36 @@ const getCaseFormValues = (report) => ({
   adminRemarks: report?.adminRemarks || '',
   respondentName: report?.respondentName || '',
   hearingDate: toDateTimeLocalValue(report?.hearingDate),
-  hearingStage: report?.hearingStage || 'None',
+  ...getNormalizedWorkflow(report),
+  cfaFormBasis: report?.cfaFormBasis || '',
   luponOfficerInCharge: report?.luponOfficerInCharge || 'Punong Barangay / Lupon Tagapamayapa'
 });
+
+const HEARING_EVENT_LABELS = {
+  scheduled: 'Scheduled',
+  'stage-advanced': 'Next stage scheduled',
+  rescheduled: 'Rescheduled',
+  'presiding-officer-updated': 'Presiding officer updated',
+  'previously-recorded': 'Previously recorded schedule (earlier history unavailable)',
+};
+
+const getHearingHistoryForDisplay = (report) => {
+  if (Array.isArray(report?.hearingHistory) && report.hearingHistory.length) return report.hearingHistory;
+
+  const workflow = getNormalizedWorkflow(report);
+  if (workflow.hearingStage === 'None' || !report?.hearingDate) return [];
+
+  // Older reports have only the latest schedule fields, not a true timeline.
+  return [{
+    _id: 'legacy-schedule',
+    hearingStage: workflow.hearingStage,
+    hearingDate: report.hearingDate,
+    presidingOfficer: report.luponOfficerInCharge || '',
+    eventType: 'previously-recorded',
+    staffNotes: '',
+    recordedAt: report.updatedAt || report.createdAt,
+  }];
+};
 
 const formatIncidentDateTime = (value) => {
   const date = new Date(value);
@@ -179,35 +244,8 @@ const KPForm9Modal = ({ report, complainantName, onClose }) => {
   );
 };
 
-const CFA_FORM_VARIANTS = [
-  {
-    value: 'repudiated-settlement',
-    number: '20',
-    title: 'Certification to File Action — repudiated settlement',
-    signer: 'Lupon Secretary',
-    attestor: 'Lupon Chairman',
-    body: 'There was a personal confrontation between the parties before the Punong Barangay. A settlement was reached, but it was repudiated by {party} in a sworn statement before the Punong Barangay on {date}, on the ground of {ground}. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
-  },
-  {
-    value: 'pangkat-failed-conciliation',
-    number: '21',
-    title: 'Certification to File Action — conciliation unsuccessful',
-    signer: 'Pangkat Secretary',
-    attestor: 'Pangkat Chairman',
-    body: 'There was a personal confrontation between the parties before the Punong Barangay, but mediation failed. The Pangkat ng Tagapagkasundo was constituted, but the confrontation before the Pangkat likewise did not result in a settlement. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
-  },
-  {
-    value: 'respondent-failed-to-appear',
-    number: '22',
-    title: 'Certification to File Action — respondent failed to appear',
-    signer: 'Pangkat Secretary',
-    attestor: 'Pangkat Chairman',
-    body: 'Mediation before the Punong Barangay failed. A meeting was set to constitute the Pangkat ng Tagapagkasundo, but the respondent willfully failed or refused to appear, without justifiable reason, at the Pangkat conciliation proceedings. The corresponding complaint for the dispute may now be filed in court or the appropriate government office.'
-  }
-];
-
 const KPOutcomeFormModal = ({ type, report, complainantName, onClose }) => {
-  const [cfaVariant, setCfaVariant] = useState('');
+  const cfaVariant = report.cfaFormBasis || '';
   const cfaForm = CFA_FORM_VARIANTS.find((form) => form.value === cfaVariant);
   const today = new Date();
 
@@ -254,17 +292,13 @@ const KPOutcomeFormModal = ({ type, report, complainantName, onClose }) => {
 
           {type === 'cfa' && (
             <div className="kp-outcome-form-selector no-print">
-              <label htmlFor="cfa-form-variant">Choose the CFA basis that matches the official case record</label>
-              <select id="cfa-form-variant" value={cfaVariant} onChange={(event) => setCfaVariant(event.target.value)}>
-                <option value="">Select the applicable CFA form…</option>
-                {CFA_FORM_VARIANTS.map((form) => <option key={form.value} value={form.value}>KP Form No. {form.number} — {form.title.replace('Certification to File Action — ', '')}</option>)}
-              </select>
+              <strong>Saved CFA basis from the case record</strong>
               <div className="kp-outcome-form-selection-preview" role="status" aria-live="polite">
                 {cfaForm
-                  ? <>Previewing <strong>KP Form No. {cfaForm.number}</strong> — {cfaForm.title.replace('Certification to File Action — ', '')}. The certification text and required signatories below match this basis.</>
-                  : 'Choose a form to load its matching certification text and signatories below.'}
+                  ? <>Previewing saved basis: <strong>KP Form No. {cfaForm.number}</strong> — {cfaForm.title.replace('Certification to File Action — ', '')}. The certification text and required signatories below match this case record.</>
+                  : 'No CFA basis is saved. Close this preview, choose the basis in the staff workflow, and save the case first.'}
               </div>
-              <small>Do not select a form based only on the stage label. The Lupon Secretary must confirm which procedural ground applies.</small>
+              <small>The Lupon Secretary must confirm that this saved basis matches the official case record. Change it in the staff workflow and save before printing.</small>
             </div>
           )}
 
@@ -364,6 +398,10 @@ const BlotterManagement = () => {
   const [respondentName, setRespondentName] = useState('');
   const [hearingDate, setHearingDate] = useState('');
   const [hearingStage, setHearingStage] = useState('None');
+  const [caseOutcome, setCaseOutcome] = useState('Open');
+  const [cfaFormBasis, setCfaFormBasis] = useState('');
+  const [stageAdvanceReason, setStageAdvanceReason] = useState('');
+  const [hearingNotes, setHearingNotes] = useState('');
   const [luponOfficerInCharge, setLuponOfficerInCharge] = useState('Punong Barangay / Lupon Tagapamayapa');
   const [savedCaseForm, setSavedCaseForm] = useState(null);
   const [updating, setUpdating] = useState(false);
@@ -433,6 +471,10 @@ const BlotterManagement = () => {
     setRespondentName(values.respondentName);
     setHearingDate(values.hearingDate);
     setHearingStage(values.hearingStage);
+    setCaseOutcome(values.caseOutcome);
+    setCfaFormBasis(values.cfaFormBasis);
+    setStageAdvanceReason('');
+    setHearingNotes('');
     setLuponOfficerInCharge(values.luponOfficerInCharge);
     setSavedCaseForm(values);
   };
@@ -444,13 +486,42 @@ const BlotterManagement = () => {
     respondentName !== savedCaseForm.respondentName ||
     hearingDate !== savedCaseForm.hearingDate ||
     hearingStage !== savedCaseForm.hearingStage ||
+    caseOutcome !== savedCaseForm.caseOutcome ||
+    cfaFormBasis !== savedCaseForm.cfaFormBasis ||
     luponOfficerInCharge !== savedCaseForm.luponOfficerInCharge
   ));
 
+  const hasHearingScheduleChange = Boolean(savedCaseForm && (
+    hearingStage !== savedCaseForm.hearingStage
+    || hearingDate !== savedCaseForm.hearingDate
+    || luponOfficerInCharge !== savedCaseForm.luponOfficerInCharge
+  ));
+
   const requiresHearingSchedule = SCHEDULED_HEARING_STAGES.includes(hearingStage);
-  const hasCompleteHearingSchedule = !requiresHearingSchedule || Boolean(
-    triageOutcome === 'Potential Lupon Referral' && respondentName.trim() && hearingDate && luponOfficerInCharge.trim()
+  const requiresNewHearingDate = Boolean(
+    savedCaseForm
+    && hearingStage !== savedCaseForm.hearingStage
+    && savedCaseForm.hearingStage !== 'None'
   );
+  const hasNewHearingDate = !requiresNewHearingDate || Boolean(hearingDate && hearingDate !== savedCaseForm.hearingDate);
+  const hasCompleteHearingSchedule = !requiresHearingSchedule || Boolean(
+    triageOutcome === 'Potential Lupon Referral' && respondentName.trim() && hearingDate && hasNewHearingDate && luponOfficerInCharge.trim()
+  );
+  const savedStageIndex = savedCaseForm ? LUPON_STAGES.indexOf(savedCaseForm.hearingStage) : 0;
+  const selectedStageIndex = LUPON_STAGES.indexOf(hearingStage);
+  const requiresPriorProcessNote = Boolean(savedCaseForm && selectedStageIndex > savedStageIndex + 1);
+  const hasPriorProcessNote = !requiresPriorProcessNote || stageAdvanceReason.trim().length >= 10;
+  const hasCompleteCaseOutcome = caseOutcome === 'Open'
+    || (caseOutcome === 'Amicable Settlement' && Boolean(
+      savedCaseForm?.caseOutcome === 'Amicable Settlement'
+      || (requiresHearingSchedule && hasCompleteHearingSchedule && respondentName.trim())
+    ))
+    || (caseOutcome === 'Issued Certificate to File Action (CFA)' && Boolean(
+      savedCaseForm?.caseOutcome === 'Issued Certificate to File Action (CFA)'
+      || (cfaFormBasis && !(savedCaseForm?.caseOutcome === 'Open' && cfaFormBasis === 'repudiated-settlement') && (savedCaseForm?.caseOutcome !== 'Open' || (
+        requiresHearingSchedule && hasCompleteHearingSchedule && respondentName.trim()
+      )))
+    ));
   const canPrintSummons = Boolean(
     !TERMINAL_CASE_STATUSES.includes(selectedReport?.status)
     && requiresHearingSchedule
@@ -460,10 +531,12 @@ const BlotterManagement = () => {
     && respondentName.trim()
     && luponOfficerInCharge.trim()
   );
-  const canPrintHearingNotice = selectedReport?.hearingStage === 'Conciliation (2nd Hearing)' && Boolean(selectedReport?.hearingDate);
-  const canPrintSettlementForm = selectedReport?.hearingStage === 'Amicable Settlement';
-  const canPrintCfaForm = selectedReport?.hearingStage === 'Issued Certificate to File Action (CFA)';
-  const isCaseFormSaveDisabled = updating || !hasCaseFormChanges || !hasCompleteHearingSchedule;
+  const savedWorkflow = getNormalizedWorkflow(selectedReport);
+  const hearingHistory = getHearingHistoryForDisplay(selectedReport);
+  const canPrintHearingNotice = savedWorkflow.hearingStage === 'Conciliation (2nd Hearing)' && Boolean(selectedReport?.hearingDate);
+  const canPrintSettlementForm = savedWorkflow.caseOutcome === 'Amicable Settlement';
+  const canPrintCfaForm = savedWorkflow.caseOutcome === 'Issued Certificate to File Action (CFA)' && Boolean(selectedReport?.cfaFormBasis);
+  const isCaseFormSaveDisabled = updating || !hasCaseFormChanges || !hasCompleteHearingSchedule || !hasCompleteCaseOutcome || !hasPriorProcessNote;
 
   const isCaseStatusDisabled = (status) => {
     if (!savedCaseForm || status === savedCaseForm.status) return false;
@@ -475,12 +548,26 @@ const BlotterManagement = () => {
 
   const isHearingStageDisabled = (stage) => {
     if (!savedCaseForm || stage === savedCaseForm.hearingStage) return false;
-    if (TERMINAL_HEARING_STAGES.includes(savedCaseForm.hearingStage)) return true;
+    if (savedCaseForm.caseOutcome !== 'Open') return true;
     return LUPON_STAGES.indexOf(stage) <= LUPON_STAGES.indexOf(savedCaseForm.hearingStage);
   };
 
+  const isCaseOutcomeDisabled = (outcome) => {
+    if (!savedCaseForm || outcome === savedCaseForm.caseOutcome) return false;
+    if (savedCaseForm.caseOutcome === 'Issued Certificate to File Action (CFA)') return true;
+    if (savedCaseForm.caseOutcome === 'Amicable Settlement') {
+      return outcome !== 'Issued Certificate to File Action (CFA)';
+    }
+    return false;
+  };
+
+  const isCfaBasisDisabled = (basis) => (
+    (savedCaseForm?.caseOutcome === 'Amicable Settlement' && basis !== 'repudiated-settlement')
+    || (savedCaseForm?.caseOutcome === 'Open' && basis === 'repudiated-settlement')
+  );
+
   const handleUpdateStatus = async () => {
-    if (!selectedReport || !hasCaseFormChanges || !hasCompleteHearingSchedule || updatingRef.current) return;
+    if (!selectedReport || !hasCaseFormChanges || !hasCompleteHearingSchedule || !hasCompleteCaseOutcome || !hasPriorProcessNote || updatingRef.current) return;
     updatingRef.current = true;
     setUpdating(true);
     try {
@@ -491,6 +578,10 @@ const BlotterManagement = () => {
         respondentName,
         hearingDate: hearingDate || null,
         hearingStage,
+        caseOutcome,
+        cfaFormBasis: cfaFormBasis || null,
+        ...(requiresPriorProcessNote ? { stageAdvanceReason } : {}),
+        ...(hasHearingScheduleChange ? { hearingNotes } : {}),
         luponOfficerInCharge
       });
       const updatedReport = res.data?.report || {
@@ -501,6 +592,8 @@ const BlotterManagement = () => {
         respondentName,
         hearingDate,
         hearingStage,
+        caseOutcome,
+        cfaFormBasis: cfaFormBasis || null,
         luponOfficerInCharge
       };
       
@@ -514,6 +607,10 @@ const BlotterManagement = () => {
       setRespondentName(savedValues.respondentName);
       setHearingDate(savedValues.hearingDate);
       setHearingStage(savedValues.hearingStage);
+      setCaseOutcome(savedValues.caseOutcome);
+      setCfaFormBasis(savedValues.cfaFormBasis);
+      setStageAdvanceReason('');
+      setHearingNotes('');
       setLuponOfficerInCharge(savedValues.luponOfficerInCharge);
       setSavedCaseForm(savedValues);
       showNotification('Blotter record & Lupon schedule saved successfully.', 'success');
@@ -540,7 +637,7 @@ const BlotterManagement = () => {
     const matchesSearch = r.referenceNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.incidentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
       getComplainantName(r).toLowerCase().includes(searchTerm.toLowerCase());
-    const hasHearing = Boolean(r.hearingDate) || (r.hearingStage && r.hearingStage !== 'None');
+    const hasHearing = getNormalizedWorkflow(r).hearingStage !== 'None';
     const matchesFilter = caseFilter === 'All' ||
       (caseFilter === 'Hearing Scheduled' ? hasHearing : r.status === caseFilter);
     return matchesSearch && matchesFilter;
@@ -663,9 +760,14 @@ const BlotterManagement = () => {
                     <div className="blotter-case-complainant">
                       <span>Filed by</span> {getComplainantName(report)}
                     </div>
-                    {report.hearingStage && report.hearingStage !== 'None' && (
+                    {getNormalizedWorkflow(report).hearingStage !== 'None' && (
                       <div className="blotter-case-hearing">
-                        <Scale size={13} aria-hidden="true" /> {report.hearingStage}
+                        <Scale size={13} aria-hidden="true" /> {getNormalizedWorkflow(report).hearingStage}
+                      </div>
+                    )}
+                    {getNormalizedWorkflow(report).caseOutcome !== 'Open' && (
+                      <div className="blotter-case-hearing">
+                        <FileText size={13} aria-hidden="true" /> {getNormalizedWorkflow(report).caseOutcome}
                       </div>
                     )}
                     <div className="blotter-case-card-bottom">
@@ -766,9 +868,37 @@ const BlotterManagement = () => {
                   </div>
                   <div className="blotter-case-facts">
                     <div><span>FILED</span><strong>{new Date(selectedReport.createdAt).toLocaleDateString()}</strong></div>
-                    <div><span>LUPON STAGE</span><strong>{selectedReport.hearingStage && selectedReport.hearingStage !== 'None' ? selectedReport.hearingStage : 'Not scheduled'}</strong></div>
+                    <div><span>LUPON STAGE</span><strong>{savedWorkflow.hearingStage !== 'None' ? savedWorkflow.hearingStage : 'Not scheduled'}</strong></div>
+                    <div><span>CASE OUTCOME</span><strong>{savedWorkflow.caseOutcome}</strong></div>
                     <div><span>RECORD ACCESS</span><strong className="is-confidential">Confidential</strong></div>
                   </div>
+
+                  {hearingHistory.length > 0 && (
+                    <section aria-labelledby="blotter-hearing-history-title" style={{ margin: '14px 0', padding: 16, border: '1px solid #cbd5e1', borderRadius: 12, background: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 10 }}>
+                        <h3 id="blotter-hearing-history-title" style={{ margin: 0, color: '#0f172a', fontSize: 15 }}>Hearing schedule history</h3>
+                        <span style={{ color: '#64748b', fontSize: 11 }}>Staff-only case record</span>
+                      </div>
+                      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+                        {hearingHistory.map((event, index) => (
+                          <li key={event._id || `${event.hearingStage}-${event.hearingDate}-${index}`} style={{ padding: '10px 12px', borderLeft: '3px solid #1d4ed8', borderRadius: '0 8px 8px 0', background: '#f8fafc' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 6 }}>
+                              <strong style={{ color: '#1e3a8a', fontSize: 13 }}>{event.hearingStage} · {HEARING_EVENT_LABELS[event.eventType] || 'Schedule updated'}</strong>
+                              {event.recordedAt && <span style={{ color: '#64748b', fontSize: 11 }}>Recorded {formatIncidentDateTime(event.recordedAt)}</span>}
+                            </div>
+                            <div style={{ color: '#334155', fontSize: 12, marginTop: 5 }}>Scheduled for {formatIncidentDateTime(event.hearingDate)}</div>
+                            {event.presidingOfficer && <div style={{ color: '#475569', fontSize: 12, marginTop: 3 }}>Presiding officer: {event.presidingOfficer}</div>}
+                            {event.recordedByName && <div style={{ color: '#64748b', fontSize: 11, marginTop: 3 }}>Recorded by: {event.recordedByName}</div>}
+                            {event.staffNotes && (
+                              <p style={{ color: '#475569', fontSize: 12, lineHeight: 1.45, margin: '7px 0 0', whiteSpace: 'pre-wrap' }}>
+                                <strong>Staff-only note:</strong> {event.staffNotes}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ol>
+                    </section>
+                  )}
                   
                   {/* COMAPLAINANT VS RESPONDENT CARD */}
                   <div className="blotter-parties-grid">
@@ -964,6 +1094,11 @@ const BlotterManagement = () => {
                         onChange={(e) => setHearingDate(e.target.value)}
                         required={requiresHearingSchedule}
                         />
+                        {requiresNewHearingDate && !hasNewHearingDate && (
+                          <small role="alert" style={{ display: 'block', marginTop: 6, color: '#b45309' }}>
+                            Choose a new date and time for this next hearing; the earlier schedule will stay in the history.
+                          </small>
+                        )}
                       </div>
 
                       <div className="form-group blotter-officer-field">
@@ -978,6 +1113,93 @@ const BlotterManagement = () => {
                         required={requiresHearingSchedule}
                         />
                       </div>
+                    </div>
+
+                    {requiresHearingSchedule && (
+                      <div className="form-group" style={{ marginTop: 10 }}>
+                        <label htmlFor="blotter-hearing-notes" style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Staff-only note for this hearing schedule event</label>
+                        <textarea
+                          id="blotter-hearing-notes"
+                          className="form-input"
+                          rows="2"
+                          value={hearingNotes}
+                          onChange={(event) => setHearingNotes(event.target.value)}
+                          maxLength={2000}
+                          disabled={!hasHearingScheduleChange}
+                          placeholder={hasHearingScheduleChange ? 'Optional: record scheduling context or a brief case note…' : 'Change the stage, date/time, or presiding officer to add a timeline entry.'}
+                        />
+                        <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                          This note is saved with the new or changed schedule and is not shown in the resident app.
+                        </small>
+                      </div>
+                    )}
+
+                    {requiresPriorProcessNote && (
+                      <div className="form-group" style={{ marginTop: 12 }}>
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>
+                          Why is this case already at a later hearing stage? <span aria-hidden="true">*</span>
+                        </label>
+                        <textarea
+                          className="form-input"
+                          rows="2"
+                          value={stageAdvanceReason}
+                          onChange={(event) => setStageAdvanceReason(event.target.value)}
+                          maxLength={1000}
+                          placeholder="Note which earlier steps were completed before BrgyLink was used. This note is staff-only and saved in the audit log."
+                          aria-describedby="prior-process-note-help"
+                        />
+                        <small id="prior-process-note-help" style={{ display: 'block', marginTop: 6, color: hasPriorProcessNote ? '#64748b' : '#b45309' }}>
+                          Explain the earlier process briefly (at least 10 characters). The note is not shown to residents.
+                        </small>
+                      </div>
+                    )}
+
+                    <div className="blotter-workflow-step-head"><span>3</span><div><strong>Case outcome & forms</strong><small>Record the outcome separately from hearing progress. Confirm the applicable CFA basis before saving.</small></div></div>
+                    <div className="blotter-decision-grid">
+                      <div className="form-group">
+                        <label style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>Case Outcome</label>
+                        <select
+                          className="form-input"
+                          value={caseOutcome}
+                          onChange={(event) => {
+                            setCaseOutcome(event.target.value);
+                            if (event.target.value !== 'Issued Certificate to File Action (CFA)') setCfaFormBasis('');
+                          }}
+                        >
+                          {CASE_OUTCOMES.map((outcome) => (
+                            <option key={outcome} value={outcome} disabled={isCaseOutcomeDisabled(outcome)}>{outcome}</option>
+                          ))}
+                        </select>
+                        <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                          Keep the case Open while review or hearings continue. Settlement and CFA are recorded here, not as hearing stages.
+                        </small>
+                      </div>
+
+                      {caseOutcome === 'Issued Certificate to File Action (CFA)' && (
+                        <div className="form-group">
+                          <label htmlFor="saved-cfa-basis" style={{ fontWeight: '700', fontSize: 13, color: '#475569', display: 'block', marginBottom: 6 }}>
+                            CFA basis confirmed by Lupon Secretary
+                          </label>
+                          <select
+                            id="saved-cfa-basis"
+                            className="form-input"
+                            value={cfaFormBasis}
+                            onChange={(event) => setCfaFormBasis(event.target.value)}
+                          >
+                            <option value="">Select the basis from the official case record…</option>
+                            {CFA_FORM_VARIANTS.map((form) => (
+                              <option key={form.value} value={form.value} disabled={isCfaBasisDisabled(form.value)}>KP Form No. {form.number} — {form.title.replace('Certification to File Action — ', '')}</option>
+                            ))}
+                          </select>
+                          <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>
+                            {savedCaseForm?.caseOutcome === 'Amicable Settlement'
+                              ? 'Because this case is recorded as settled, only the repudiated-settlement CFA basis is available.'
+                              : savedCaseForm?.caseOutcome === 'Open'
+                                ? 'A repudiated-settlement CFA requires the settlement to be recorded first. Save the settlement outcome, then return to record a repudiation.'
+                                : 'The selected basis is saved with the case and controls which CFA draft is previewed. Do not choose based only on the hearing stage.'}
+                          </small>
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-group blotter-remarks-field">
@@ -998,7 +1220,7 @@ const BlotterManagement = () => {
                         onClick={handleUpdateStatus} 
                         disabled={isCaseFormSaveDisabled}
                         aria-disabled={isCaseFormSaveDisabled}
-                        title={!hasCaseFormChanges ? 'Change at least one case or review field before saving' : !hasCompleteHearingSchedule ? 'Select Potential Lupon Referral and provide the confirmed respondent, hearing date and time, and presiding officer' : 'Save case review and hearing changes'}
+                        title={!hasCaseFormChanges ? 'Change at least one case or review field before saving' : !hasCompleteHearingSchedule ? 'Select Potential Lupon Referral and provide the confirmed respondent, hearing date and time, and presiding officer' : !hasCompleteCaseOutcome ? 'Complete the hearing and respondent details required for this outcome, and select a saved CFA basis when applicable' : !hasPriorProcessNote ? 'Add the staff-only note explaining the earlier process before saving a skipped stage' : 'Save case review, hearing, and outcome changes'}
                         className="btn primary blotter-save-button"
                       >
                         {updating ? 'Saving changes…' : 'Save review and changes'}

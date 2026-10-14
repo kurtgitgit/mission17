@@ -22,6 +22,25 @@ const STATUS_CONFIG: Record<string, { icon: any; bg: string; text: string; borde
   'Dismissed':   { icon: AlertCircle,  bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
 };
 
+const SCHEDULED_HEARING_STAGES = [
+  'Mediation (1st Hearing)',
+  'Conciliation (2nd Hearing)',
+  'Arbitration (3rd Hearing)',
+];
+const LEGACY_OUTCOMES_BY_HEARING_STAGE: Record<string, string> = {
+  'Amicable Settlement': 'Amicable Settlement',
+  'Issued Certificate to File Action (CFA)': 'Issued Certificate to File Action (CFA)',
+};
+const getReportWorkflow = (report: any) => {
+  const legacyOutcome = LEGACY_OUTCOMES_BY_HEARING_STAGE[report?.hearingStage];
+  return {
+    hearingStage: SCHEDULED_HEARING_STAGES.includes(report?.hearingStage) ? report.hearingStage : 'None',
+    caseOutcome: report?.caseOutcome && report.caseOutcome !== 'Open'
+      ? report.caseOutcome
+      : (legacyOutcome || report?.caseOutcome || 'Open'),
+  };
+};
+
 const BlotterHistoryScreen = () => {
   const navigation = useNavigation<any>();
   const [reports, setReports] = useState<any[]>([]);
@@ -83,6 +102,7 @@ const BlotterHistoryScreen = () => {
     };
     const StatusIcon = cfg.icon;
     const isCopied = copiedId === item.referenceNumber;
+    const workflow = getReportWorkflow(item);
 
     return (
       <View style={styles.card}>
@@ -135,12 +155,12 @@ const BlotterHistoryScreen = () => {
         <Text style={styles.description} numberOfLines={3}>{item.description}</Text>
 
         {/* ⚖️ LUPON CONCILIATION SCHEDULE BANNER */}
-        {(item.hearingDate || (item.hearingStage && item.hearingStage !== 'None')) ? (
+        {workflow.hearingStage !== 'None' ? (
           <View style={{ backgroundColor: '#F0FDF4', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#86EFAC' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Text style={{ fontSize: 14 }}>⚖️</Text>
               <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>
-                Lupon Conciliation: {item.hearingStage || 'Mediation Hearing'}
+                Lupon Conciliation: {workflow.hearingStage}
               </Text>
             </View>
             {item.hearingDate && (
@@ -156,6 +176,13 @@ const BlotterHistoryScreen = () => {
                 👤 Respondent: {item.respondentName}
               </Text>
             ) : null}
+          </View>
+        ) : null}
+
+        {workflow.caseOutcome !== 'Open' ? (
+          <View style={{ backgroundColor: '#fff7ed', borderRadius: 10, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#fed7aa' }}>
+            <Text style={{ color: '#9a3412', fontSize: 11, fontWeight: '800', textTransform: 'uppercase' }}>Case outcome</Text>
+            <Text style={{ color: '#7c2d12', fontSize: 13, fontWeight: '700', marginTop: 3 }}>{workflow.caseOutcome}</Text>
           </View>
         ) : null}
 

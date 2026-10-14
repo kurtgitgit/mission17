@@ -1,5 +1,24 @@
 import mongoose from 'mongoose';
 
+const HearingHistoryEntrySchema = new mongoose.Schema({
+  hearingStage: {
+    type: String,
+    enum: ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'],
+    required: true
+  },
+  hearingDate: { type: Date, required: true },
+  presidingOfficer: { type: String, trim: true, maxlength: 160, default: '' },
+  eventType: {
+    type: String,
+    enum: ['scheduled', 'stage-advanced', 'rescheduled', 'presiding-officer-updated', 'previously-recorded'],
+    required: true
+  },
+  staffNotes: { type: String, trim: true, maxlength: 2000, default: '' },
+  recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  recordedByName: { type: String, trim: true, maxlength: 120, default: '' },
+  recordedAt: { type: Date, default: Date.now }
+}, { _id: true });
+
 const BlotterReportSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   username: { type: String, required: true },
@@ -27,7 +46,23 @@ const BlotterReportSchema = new mongoose.Schema({
     enum: ['Pending Review', 'Follow-up Needed', 'Potential Lupon Referral', 'Referred Outside Lupon'],
     default: 'Pending Review'
   },
+  // Hearing progress, case outcome, and CFA basis are stored independently.
+  // Legacy terminal values remain in hearingStage temporarily so old records
+  // can be read and normalized by the application without a destructive migration.
+  caseOutcome: {
+    type: String,
+    enum: ['Open', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'],
+    default: 'Open'
+  },
+  cfaFormBasis: {
+    type: String,
+    enum: ['repudiated-settlement', 'pangkat-failed-conciliation', 'respondent-failed-to-appear', null],
+    default: null
+  },
   hearingDate: { type: Date, default: null },
+  // Append-only schedule history. Legacy cases may have no entries; their last
+  // known schedule is preserved as a snapshot when the first new event is saved.
+  hearingHistory: { type: [HearingHistoryEntrySchema], default: [] },
   hearingStage: {
     type: String,
     enum: ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'],

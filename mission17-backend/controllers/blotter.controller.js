@@ -22,11 +22,21 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 }
 
 const ALLOWED_STATUSES = ['Pending', 'In Progress', 'Resolved', 'Dismissed'];
-const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const ALLOWED_HEARING_STAGES = ['None', 'Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
+const ALLOWED_CASE_OUTCOMES = ['Open', 'Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
+const ALLOWED_CFA_FORM_BASES = ['repudiated-settlement', 'pangkat-failed-conciliation', 'respondent-failed-to-appear'];
+const LEGACY_OUTCOMES_BY_HEARING_STAGE = {
+  'Amicable Settlement': 'Amicable Settlement',
+  'Issued Certificate to File Action (CFA)': 'Issued Certificate to File Action (CFA)',
+};
 const ALLOWED_TRIAGE_OUTCOMES = ['Pending Review', 'Follow-up Needed', 'Potential Lupon Referral', 'Referred Outside Lupon'];
 const TERMINAL_STATUSES = ['Resolved', 'Dismissed'];
-const TERMINAL_HEARING_STAGES = ['Amicable Settlement', 'Issued Certificate to File Action (CFA)'];
 const SCHEDULED_HEARING_STAGES = ['Mediation (1st Hearing)', 'Conciliation (2nd Hearing)', 'Arbitration (3rd Hearing)'];
+const getCurrentHearingStage = (report) => SCHEDULED_HEARING_STAGES.includes(report.hearingStage) ? report.hearingStage : 'None';
+const getCurrentCaseOutcome = (report) => {
+  if (report.caseOutcome && report.caseOutcome !== 'Open') return report.caseOutcome;
+  return LEGACY_OUTCOMES_BY_HEARING_STAGE[report.hearingStage] || report.caseOutcome || 'Open';
+};
 const MAX_REMOTE_EVIDENCE_BYTES = 8 * 1024 * 1024;
 const MAX_INLINE_EVIDENCE_LENGTH = Math.ceil(MAX_REMOTE_EVIDENCE_BYTES * 4 / 3) + 256;
 
@@ -123,7 +133,13 @@ export const getMyReports = asyncHandler(async (req, res) => {
 
   const reports = await BlotterReport.find({ userId: req.user._id }).sort({ createdAt: -1 });
   res.set('Cache-Control', 'private, no-store, max-age=0');
-  res.json(reports);
+  // The hearing timeline contains staff-only notes and must remain admin-only.
+  const residentReports = reports.map((report) => {
+    const safeReport = typeof report.toObject === 'function' ? report.toObject() : { ...report };
+    delete safeReport.hearingHistory;
+    return safeReport;
+  });
+  res.json(residentReports);
 });
 
 // GET /:id/evidence — Report owner or administrator: view private evidence.
@@ -206,7 +222,11 @@ export const getAllReports = asyncHandler(async (req, res) => {
 
 // PATCH /:id/status — Admin: Update report status & schedule Lupon hearings
 export const updateStatus = asyncHandler(async (req, res) => {
-  const { status, adminRemarks, respondentName, reportedRespondentName, triageOutcome, hearingDate, hearingStage, luponOfficerInCharge } = req.body;
+  const {
+    status, adminRemarks, respondentName, reportedRespondentName, triageOutcome,
+    hearingDate, hearingStage, luponOfficerInCharge, caseOutcome, cfaFormBasis,
+    stageAdvanceReason, hearingNotes,
+  } = req.body;
 
   if (status && !ALLOWED_STATUSES.includes(status)) {
     return res.status(400).json({ message: `Invalid status. Allowed: ${ALLOWED_STATUSES.join(', ')}` });
@@ -223,8 +243,21 @@ export const updateStatus = asyncHandler(async (req, res) => {
   if (triageOutcome !== undefined && !ALLOWED_TRIAGE_OUTCOMES.includes(triageOutcome)) {
     return res.status(400).json({ message: 'Please select a valid staff review outcome.' });
   }
-  if (hearingStage !== undefined && !ALLOWED_HEARING_STAGES.includes(hearingStage)) {
+  const legacyOutcomeFromRequest = LEGACY_OUTCOMES_BY_HEARING_STAGE[hearingStage];
+  if (hearingStage !== undefined && !ALLOWED_HEARING_STAGES.includes(hearingStage) && !legacyOutcomeFromRequest) {
     return res.status(400).json({ message: 'Please select a valid Lupon hearing stage.' });
+  }
+  if (caseOutcome !== undefined && !ALLOWED_CASE_OUTCOMES.includes(caseOutcome)) {
+    return res.status(400).json({ message: 'Please select a valid case outcome.' });
+  }
+  if (cfaFormBasis !== undefined && cfaFormBasis !== null && cfaFormBasis !== '' && !ALLOWED_CFA_FORM_BASES.includes(cfaFormBasis)) {
+    return res.status(400).json({ message: 'Please select a valid CFA form basis.' });
+  }
+  if (stageAdvanceReason !== undefined && (typeof stageAdvanceReason !== 'string' || stageAdvanceReason.length > 1000)) {
+    return res.status(400).json({ message: 'The prior-process note must be text with no more than 1,000 characters.' });
+  }
+  if (hearingNotes !== undefined && (typeof hearingNotes !== 'string' || hearingNotes.length > 2000)) {
+    return res.status(400).json({ message: 'Hearing notes must be text with no more than 2,000 characters.' });
   }
   if (luponOfficerInCharge !== undefined && (typeof luponOfficerInCharge !== 'string' || luponOfficerInCharge.length > 160)) {
     return res.status(400).json({ message: 'Lupon officer name must be text with no more than 160 characters.' });
@@ -250,19 +283,105 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
-  const isHearingTransition = Boolean(hearingStage && hearingStage !== report.hearingStage);
+  const currentHearingStage = getCurrentHearingStage(report);
+  const requestedHearingStage = legacyOutcomeFromRequest
+    ? currentHearingStage
+    : (hearingStage === undefined ? currentHearingStage : hearingStage);
+  const isHearingTransition = requestedHearingStage !== currentHearingStage;
+  const currentCaseOutcome = getCurrentCaseOutcome(report);
+  const nextCaseOutcome = caseOutcome === undefined
+    ? (legacyOutcomeFromRequest || currentCaseOutcome)
+    : caseOutcome;
+  const outcomeChanged = nextCaseOutcome !== currentCaseOutcome;
+  const currentCfaFormBasis = report.cfaFormBasis || null;
+  const nextCfaFormBasis = cfaFormBasis === undefined ? (report.cfaFormBasis || null) : (cfaFormBasis || null);
+  const cfaBasisChanged = nextCfaFormBasis !== currentCfaFormBasis;
+  const currentHearingDateTime = report.hearingDate ? new Date(report.hearingDate).getTime() : null;
+  const currentPresidingOfficer = report.luponOfficerInCharge || '';
+  const nextHearingDate = hearingDate === undefined ? report.hearingDate : (hearingDate ? parsedHearingDate : null);
+  const nextHearingDateTime = nextHearingDate ? new Date(nextHearingDate).getTime() : null;
+  const nextPresidingOfficer = luponOfficerInCharge === undefined
+    ? currentPresidingOfficer
+    : luponOfficerInCharge.trim();
+  const hasScheduledHearing = SCHEDULED_HEARING_STAGES.includes(requestedHearingStage);
+  const hearingScheduleChanged = hasScheduledHearing && (
+    requestedHearingStage !== currentHearingStage
+    || nextHearingDateTime !== currentHearingDateTime
+    || nextPresidingOfficer !== currentPresidingOfficer
+  );
+
   if (isHearingTransition) {
-    const currentRank = ALLOWED_HEARING_STAGES.indexOf(report.hearingStage || 'None');
-    const nextRank = ALLOWED_HEARING_STAGES.indexOf(hearingStage);
-    if (TERMINAL_HEARING_STAGES.includes(report.hearingStage) || nextRank <= currentRank) {
-      return res.status(409).json({ message: `Lupon hearing stage cannot move backward from "${report.hearingStage}" to "${hearingStage}".` });
+    if (currentCaseOutcome !== 'Open') {
+      return res.status(409).json({ message: `Lupon hearing progress cannot advance after the case outcome is recorded as "${currentCaseOutcome}".` });
     }
+    const currentRank = ALLOWED_HEARING_STAGES.indexOf(currentHearingStage);
+    const nextRank = ALLOWED_HEARING_STAGES.indexOf(requestedHearingStage);
+    if (nextRank <= currentRank) {
+      return res.status(409).json({ message: `Lupon hearing stage cannot move backward from "${currentHearingStage}" to "${requestedHearingStage}".` });
+    }
+    const skippedStage = nextRank > currentRank + 1;
+    const cleanAdvanceReason = typeof stageAdvanceReason === 'string' ? stageAdvanceReason.trim() : '';
+    if (skippedStage && cleanAdvanceReason.length < 10) {
+      return res.status(400).json({ message: 'Add a short staff note explaining which earlier process steps were completed before BrgyLink.' });
+    }
+    if (!skippedStage && cleanAdvanceReason) {
+      return res.status(400).json({ message: 'A prior-process note is only needed when recording a case that skipped an earlier BrgyLink stage.' });
+    }
+    if (currentHearingStage !== 'None' && nextHearingDateTime === currentHearingDateTime) {
+      return res.status(400).json({ message: 'Choose a new date and time for this hearing stage. The earlier schedule will remain in the history.' });
+    }
+  }
+
+  if (hearingNotes?.trim() && !hearingScheduleChanged) {
+    return res.status(400).json({ message: 'Staff hearing notes must be saved with a new or changed hearing schedule.' });
+  }
+
+  if (outcomeChanged && currentCaseOutcome === 'Issued Certificate to File Action (CFA)') {
+    return res.status(409).json({ message: 'A recorded CFA outcome cannot be changed to another outcome.' });
+  }
+  if (outcomeChanged && currentCaseOutcome === 'Amicable Settlement'
+    && !(nextCaseOutcome === 'Issued Certificate to File Action (CFA)' && nextCfaFormBasis === 'repudiated-settlement')) {
+    return res.status(409).json({ message: 'A settlement can proceed to CFA only when the Lupon Secretary confirms a repudiated-settlement basis.' });
+  }
+  if (outcomeChanged && nextCaseOutcome === 'Amicable Settlement') {
+    if (requestedHearingStage === 'None' || (triageOutcome ?? report.triageOutcome) !== 'Potential Lupon Referral') {
+      return res.status(400).json({ message: 'Record a Lupon hearing and Potential Lupon Referral before saving a settlement outcome.' });
+    }
+    const effectiveRespondentName = respondentName === undefined ? report.respondentName : respondentName.trim();
+    if (!effectiveRespondentName) {
+      return res.status(400).json({ message: 'Confirm and record the respondent before saving a settlement outcome.' });
+    }
+  }
+  if (nextCaseOutcome === 'Issued Certificate to File Action (CFA)') {
+    if (!nextCfaFormBasis && currentCaseOutcome !== 'Issued Certificate to File Action (CFA)') {
+      return res.status(400).json({ message: 'Choose and save the CFA basis that matches the official case record.' });
+    }
+    if (currentCaseOutcome === 'Amicable Settlement' && nextCfaFormBasis !== 'repudiated-settlement') {
+      return res.status(400).json({ message: 'A case recorded as settled may proceed to CFA only with the repudiated-settlement basis.' });
+    }
+    if (outcomeChanged && currentCaseOutcome === 'Open') {
+      if (nextCfaFormBasis === 'repudiated-settlement') {
+        return res.status(400).json({ message: 'Record the amicable settlement first, then select CFA if the settlement is repudiated.' });
+      }
+      if (requestedHearingStage === 'None') {
+        return res.status(400).json({ message: 'Record the applicable Lupon hearing stage before saving a CFA outcome.' });
+      }
+      if ((triageOutcome ?? report.triageOutcome) !== 'Potential Lupon Referral') {
+        return res.status(400).json({ message: 'Complete staff review and select Potential Lupon Referral before saving a CFA outcome.' });
+      }
+      const effectiveRespondentName = respondentName === undefined ? report.respondentName : respondentName.trim();
+      if (!effectiveRespondentName) {
+        return res.status(400).json({ message: 'Confirm and record the respondent before saving a CFA outcome.' });
+      }
+    }
+  } else if (nextCfaFormBasis) {
+    return res.status(400).json({ message: 'A CFA basis can only be saved with a CFA case outcome.' });
   }
 
   // A scheduled Lupon hearing is not meaningful to the resident without its
   // appointment details. Enforce this server-side so direct API calls cannot
   // create a hearing stage with no date, time, or presiding officer.
-  const effectiveHearingStage = hearingStage === undefined ? (report.hearingStage || 'None') : hearingStage;
+  const effectiveHearingStage = requestedHearingStage;
   if (SCHEDULED_HEARING_STAGES.includes(effectiveHearingStage)) {
     const effectiveHearingDate = hearingDate === undefined ? report.hearingDate : hearingDate;
     const effectiveOfficer = luponOfficerInCharge === undefined
@@ -278,7 +397,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
-  if (isHearingTransition && hearingStage !== 'None') {
+  if (isHearingTransition && requestedHearingStage !== 'None') {
     const effectiveTriageOutcome = triageOutcome === undefined ? (report.triageOutcome || 'Pending Review') : triageOutcome;
     const effectiveRespondentName = respondentName === undefined ? report.respondentName : respondentName.trim();
     if (effectiveTriageOutcome !== 'Potential Lupon Referral') {
@@ -289,12 +408,56 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
+  if (hearingScheduleChanged) {
+    if (!Array.isArray(report.hearingHistory)) report.hearingHistory = [];
+
+    // Older cases only kept the latest schedule. Preserve that known detail as
+    // a clearly-labelled snapshot before appending the first new timeline event.
+    if (
+      report.hearingHistory.length === 0
+      && currentHearingStage !== 'None'
+      && report.hearingDate
+    ) {
+      report.hearingHistory.push({
+        hearingStage: currentHearingStage,
+        hearingDate: report.hearingDate,
+        presidingOfficer: currentPresidingOfficer,
+        eventType: 'previously-recorded',
+        staffNotes: '',
+        recordedBy: null,
+        recordedByName: '',
+        recordedAt: report.updatedAt || report.createdAt || report.hearingDate,
+      });
+    }
+
+    const eventType = requestedHearingStage !== currentHearingStage
+      ? (currentHearingStage === 'None' ? 'scheduled' : 'stage-advanced')
+      : (nextHearingDateTime !== currentHearingDateTime ? 'rescheduled' : 'presiding-officer-updated');
+    const eventNotes = [
+      stageAdvanceReason?.trim() ? `Earlier process completed before BrgyLink: ${stageAdvanceReason.trim()}` : '',
+      hearingNotes?.trim() || '',
+    ].filter(Boolean).join('\n');
+
+    report.hearingHistory.push({
+      hearingStage: requestedHearingStage,
+      hearingDate: nextHearingDate,
+      presidingOfficer: nextPresidingOfficer,
+      eventType,
+      staffNotes: eventNotes,
+      recordedBy: req.user._id,
+      recordedByName: req.user.username || '',
+      recordedAt: new Date(),
+    });
+  }
+
   if (status) report.status = status;
   if (adminRemarks !== undefined) report.adminRemarks = adminRemarks.trim();
   if (respondentName !== undefined) report.respondentName = respondentName.trim();
   if (triageOutcome !== undefined) report.triageOutcome = triageOutcome;
   if (hearingDate !== undefined) report.hearingDate = hearingDate ? parsedHearingDate : null;
-  if (hearingStage !== undefined) report.hearingStage = hearingStage;
+  if (hearingStage !== undefined) report.hearingStage = requestedHearingStage;
+  if (caseOutcome !== undefined || legacyOutcomeFromRequest) report.caseOutcome = nextCaseOutcome;
+  if (cfaFormBasis !== undefined || outcomeChanged || legacyOutcomeFromRequest) report.cfaFormBasis = nextCfaFormBasis;
   if (luponOfficerInCharge !== undefined) report.luponOfficerInCharge = luponOfficerInCharge.trim();
 
   // Anchor only a privacy-safe resolution digest. The removed points contract
@@ -325,12 +488,15 @@ export const updateStatus = asyncHandler(async (req, res) => {
   await report.save();
 
   // Notify the resident
-  const hearingStr = report.hearingDate 
+  const savedHearingDateTime = report.hearingDate ? new Date(report.hearingDate).getTime() : null;
+  const shouldNotifyHearing = hasScheduledHearing && hearingScheduleChanged && Boolean(savedHearingDateTime);
+  const hearingStr = shouldNotifyHearing
     ? ` Schedule: ${new Date(report.hearingDate).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })} (${report.hearingStage || 'Lupon Hearing'}). Presiding official: ${report.luponOfficerInCharge || 'To be confirmed'}.`
     : '';
 
-  const notificationTitle = report.hearingDate ? '⚖️ Lupon Hearing Scheduled' : 'Blotter Report Update';
-  const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${report.status}".${hearingStr}`;
+  const notificationTitle = shouldNotifyHearing ? '⚖️ Lupon Hearing Scheduled' : 'Blotter Report Update';
+  const outcomeStr = outcomeChanged ? ` Case outcome: ${report.caseOutcome}.` : '';
+  const notificationMessage = `Your report (Ref: ${report.referenceNumber}) status is now "${report.status}".${hearingStr}${outcomeStr}`;
 
   try {
     await Notification.create({
@@ -348,8 +514,17 @@ export const updateStatus = asyncHandler(async (req, res) => {
     console.error('Blotter status saved, but resident notification failed:', notificationError.message);
   }
 
-  await logAudit(req.user.id, req.user.username, isStatusTransition ? 'BLOTTER_FINAL_DECISION' : 'BLOTTER_UPDATE',
-    `Updated blotter ${report.referenceNumber} → ${report.status}${report.hearingStage ? ` (${report.hearingStage})` : ''}`, req);
+  const auditDetails = [
+    `Updated blotter ${report.referenceNumber} → ${report.status}`,
+    report.hearingStage && report.hearingStage !== 'None' ? `Hearing: ${report.hearingStage}` : '',
+    hearingScheduleChanged ? `Hearing schedule history: ${report.hearingHistory.length} event(s) recorded` : '',
+    outcomeChanged ? `Outcome: ${currentCaseOutcome} → ${report.caseOutcome}` : '',
+    cfaBasisChanged ? `CFA basis: ${currentCfaFormBasis || 'not recorded'} → ${report.cfaFormBasis || 'not recorded'}` : '',
+    isHearingTransition && ALLOWED_HEARING_STAGES.indexOf(requestedHearingStage) > ALLOWED_HEARING_STAGES.indexOf(currentHearingStage) + 1
+      ? `Prior-process note: ${stageAdvanceReason.trim()}`
+      : '',
+  ].filter(Boolean).join('. ');
+  await logAudit(req.user.id, req.user.username, isStatusTransition ? 'BLOTTER_FINAL_DECISION' : 'BLOTTER_UPDATE', auditDetails, req);
 
   res.json({ message: `Report updated successfully.`, report });
 });
