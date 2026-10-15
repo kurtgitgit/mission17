@@ -4,20 +4,20 @@ import { onIdTokenChanged } from 'firebase/auth';
 import { auth } from './config/firebase';
 import Login from './pages/Login';
 import PublicVerify from './pages/PublicVerify';
-import DashboardHome from './pages/Dashboard/DashboardHome';
-import Users from './pages/Users/Users';
-import Settings from './pages/Settings/Settings';
-import AuditLogs from './pages/AuditLogs/AuditLogs';
 import LegalPage from './pages/LegalPage';
 import EssentialStorageNotice from './components/EssentialStorageNotice';
 
-// 🏛️ New Barangay Portal Admin Pages
-import Announcements from './pages/Announcements';
-import Officials from './pages/Officials';
-import DocumentRequests from './pages/DocumentRequests';
-import BlotterManagement from './pages/BlotterManagement';
-import ReportGeneration from './pages/ReportGeneration';
-import Suggestions from './pages/Suggestions';
+// Keep the login/public shell small; load protected admin screens only when visited.
+const DashboardHome = React.lazy(() => import('./pages/Dashboard/DashboardHome'));
+const Users = React.lazy(() => import('./pages/Users/Users'));
+const Settings = React.lazy(() => import('./pages/Settings/Settings'));
+const AuditLogs = React.lazy(() => import('./pages/AuditLogs/AuditLogs'));
+const Announcements = React.lazy(() => import('./pages/Announcements'));
+const Officials = React.lazy(() => import('./pages/Officials'));
+const DocumentRequests = React.lazy(() => import('./pages/DocumentRequests'));
+const BlotterManagement = React.lazy(() => import('./pages/BlotterManagement'));
+const ReportGeneration = React.lazy(() => import('./pages/ReportGeneration'));
+const Suggestions = React.lazy(() => import('./pages/Suggestions'));
 
 import { NotificationProvider } from './context/NotificationContext';
 
@@ -38,7 +38,52 @@ function RequireAdmin({ ready, isAdmin, children }) {
   if (!ready) return null;
   // This is a UI guard only; every sensitive API route remains protected by
   // backend Firebase verification and role checks.
-  return (isAdmin || getStoredAdmin()) ? children : <Navigate to="/" replace />;
+  return (isAdmin || getStoredAdmin()) ? (
+    <LazyRouteBoundary>
+      <React.Suspense
+        fallback={
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              minHeight: '40vh',
+              display: 'grid',
+              placeItems: 'center',
+              padding: '2rem',
+              color: '#64748b',
+            }}
+          >
+            Loading portal section…
+          </div>
+        }
+      >
+        {children}
+      </React.Suspense>
+    </LazyRouteBoundary>
+  ) : <Navigate to="/" replace />;
+}
+
+class LazyRouteBoundary extends React.Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div role="alert" style={{ padding: '2rem', color: '#7f1d1d' }}>
+          <p>This portal section could not be loaded. Check your connection and reload the page.</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Reload page
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function App() {

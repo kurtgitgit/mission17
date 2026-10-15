@@ -1,7 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Shield, RefreshCw, Search, Download, Pause, Play } from 'lucide-react';
 import { endpoints } from '../config/api';
+import { sameAuditLogSnapshot } from '../utils/auditLogSnapshot.mjs';
 import '../styles/ActivityConsole.css';
+
+const formatTimestamp = (dateStr) => {
+  const date = new Date(dateStr);
+  return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+};
+
+const getActionColor = (action) => {
+  if (action.includes('REJECT')) return '#f87171';
+  if (action.includes('APPROVE') || action.includes('SUCCESS')) return '#4ade80';
+  if (action.includes('SIGNUP') || action.includes('ADD')) return '#60a5fa';
+  if (action.includes('DELETE')) return '#fb923c';
+  return '#9ca3af';
+};
+
+const AuditLogLines = React.memo(({ logs }) => (
+  <>
+    {logs.map((log) => (
+      <div key={log._id} className="console-line">
+        <span className="line-time">[{formatTimestamp(log.timestamp)}]</span>
+        <span className="line-user">@{log.username || 'System'}:</span>
+        <span className="line-action" style={{ color: getActionColor(log.action) }}>
+          {log.action}
+        </span>
+        <span className="line-details">{log.details}</span>
+      </div>
+    ))}
+  </>
+));
+AuditLogLines.displayName = 'AuditLogLines';
 
 const ActivityConsole = () => {
   const [logs, setLogs] = useState([]);
@@ -28,8 +58,10 @@ const ActivityConsole = () => {
       });
       if (res.ok) {
         const data = await res.json();
-        // Only update if there are new logs to prevent unnecessary re-renders
-        setLogs(data);
+        // Keep the list's array identity stable when a poll returns the same visible rows.
+        if (Array.isArray(data)) {
+          setLogs((current) => sameAuditLogSnapshot(current, data) ? current : data);
+        }
         setLastSync(new Date());
       }
     } catch (error) {
@@ -50,11 +82,6 @@ const ActivityConsole = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [logs]);
-
-  const formatTimestamp = (dateStr) => {
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
 
   const exportCSV = () => {
     const headers = ['Timestamp', 'User', 'Action', 'Details', 'IP Address'];
@@ -77,23 +104,15 @@ const ActivityConsole = () => {
     document.body.removeChild(link);
   };
 
-  const filteredLogs = logs.filter(log => {
+  const filteredLogs = useMemo(() => logs.filter(log => {
     const matchesSearch = (log.username || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (log.details || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesAction = filterAction === 'ALL' || log.action.includes(filterAction);
     return matchesSearch && matchesAction;
-  });
+  }), [logs, searchTerm, filterAction]);
 
   const uniqueUsers = new Set(logs.map(l => l.username).filter(Boolean)).size;
   const criticalEvents = logs.filter(l => l.action.includes('DELETE') || l.action.includes('REJECT')).length;
-
-  const getActionColor = (action) => {
-    if (action.includes('REJECT')) return '#f87171'; // Red
-    if (action.includes('APPROVE') || action.includes('SUCCESS')) return '#4ade80'; // Green
-    if (action.includes('SIGNUP') || action.includes('ADD')) return '#60a5fa'; // Blue
-    if (action.includes('DELETE')) return '#fb923c'; // Orange
-    return '#9ca3af'; // Gray
-  };
 
   return (
     <div className="activity-console-wrapper">
@@ -161,16 +180,7 @@ const ActivityConsole = () => {
             <p>Waiting for system events...</p>
           </div>
         ) : (
-          filteredLogs.map((log) => (
-            <div key={log._id} className="console-line">
-              <span className="line-time">[{formatTimestamp(log.timestamp)}]</span>
-              <span className="line-user">@{log.username || 'System'}:</span>
-              <span className="line-action" style={{ color: getActionColor(log.action) }}>
-                {log.action}
-              </span>
-              <span className="line-details">{log.details}</span>
-            </div>
-          ))
+          <AuditLogLines logs={filteredLogs} />
         )}
       </div>
       

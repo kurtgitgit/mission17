@@ -169,10 +169,10 @@
       "title": "Complaint or Blotter",
       "needs_staff_verification": true,
       "answer": {
-        "english": "To file an incident report, open Blotter Reports in BrgyLink, choose File New Report, select the incident category, enter the details and location, and submit. You can track your report status in the app. For emergencies, call 911.",
-        "tagalog": "Para mag-file ng incident report, buksan ang Blotter Reports sa BrgyLink, piliin ang File New Report, piliin ang kategorya, ilagay ang mga detalye at lokasyon, at i-submit. Masusubaybayan ang status ng report sa app. Para sa emergency, tumawag sa 911.",
-        "ilocano": "Tapno ag-file iti incident report, lukatan ti Blotter Reports iti BrgyLink, piliem ti File New Report, piliem ti kategorya, ikabil dagiti detalye ken lokasion, ken i-submit. Masubaybayam ti status ti report iti app. Para iti emergency, umawag iti 911.",
-        "pangasinan": "Pian man-file na incident report, lukatan so Blotter Reports ed BrgyLink, piliyen so File New Report, piliyen so kategorya, ilagay so saray detalye tan lokasyon, tan i-submit. Nayarin bantayan so status na report ed app. Para ed emergency, tawagan so 911."
+        "english": "To file an incident report, open Blotter Reports in BrgyLink, choose File New Report, select the incident category, enter the details and location, and submit. You can track your own report status in the app. For emergencies, use the appropriate verified number under Home > Emergency Hotlines.",
+        "tagalog": "Para mag-file ng incident report, buksan ang Blotter Reports sa BrgyLink, piliin ang File New Report, piliin ang kategorya, ilagay ang mga detalye at lokasyon, at i-submit. Masusubaybayan ang sarili mong report sa app. Para sa emergency, gamitin ang naaangkop na verified na numero sa Home > Emergency Hotlines.",
+        "ilocano": "Tapno ag-file iti incident report, lukatan ti Blotter Reports iti BrgyLink, piliem ti File New Report, piliem ti kategoria, ikabil dagiti detalye ken lokasion, ken i-submit. Masubaybayam ti bukodmo a report iti app. Para iti emergency, usarem ti umiso a verified a numero iti Home > Emergency Hotlines.",
+        "pangasinan": "Pian man-file na incident report, lukatan so Blotter Reports ed BrgyLink, piliyen so File New Report, piliyen so kategoria, ilagay so saray detalye tan lokasyon, tan i-submit. Nayarin bantayan so bukod mon report ed app. Para ed emergency, usaren so umiso ya verified ya numero ed Home > Emergency Hotlines."
       },
       "verified": false,
       "verified_by": null,
@@ -187,28 +187,49 @@
     {
       "intent": "emergency",
       "title": "Emergency",
-      "needs_staff_verification": true,
+      "needs_staff_verification": false,
       "emergency_contacts": {
-        "national_emergency": "911",
-        "barangay_tanod": null,
-        "fire": null,
-        "ambulance": null
+        "medical": ["RHU Ambulance: 0991-642-1048 / 653-3164"],
+        "fire": ["BFP San Jacinto: 0917-189-4611"],
+        "police": ["PNP San Jacinto: 0906-525-9725 / 0998-598-5126 / 653-1762"],
+        "disaster": ["MDRRMO San Jacinto: 0976-402-4120 / 540-0851"],
+        "barangay": ["Barangay Hall: 0991-698-2914", "Chief Tanod: 0933-682-8737"]
       },
       "answer": {
-        "english": "If there is immediate danger to life or property, call 911 immediately. Do not wait for a chatbot reply. The chatbot cannot dispatch help or contact emergency services for you.",
-        "tagalog": "Kung may agarang panganib sa buhay o ari-arian, tumawag agad sa 911. Huwag maghintay ng sagot ng chatbot. Hindi kayang magpadala ng tulong o tumawag sa emergency services para sa iyo ang chatbot.",
-        "ilocano": "No adda dagus a peggad iti biag wenno sanikua, umawag a dagus iti 911. Saan nga urayen ti sungbat ti chatbot. Saan a makapatulod ti chatbot iti tulong wenno umawag kadagiti emergency services para kenka.",
-        "pangasinan": "No walay tampol ya peligro ed bilay odino kayarian, tawagan ya tampol so 911. Ag-antayan so ebat na chatbot. Ag makapatulod na tulong so chatbot odino ontawag ed emergency services para ed sika."
+        "english": "If anyone is in immediate danger, call the appropriate verified local hotline now: RHU Ambulance (medical): 0991-642-1048 or 653-3164; BFP San Jacinto (fire): 0917-189-4611; PNP San Jacinto (police/security): 0906-525-9725, 0998-598-5126, or 653-1762; MDRRMO San Jacinto (disaster response): 0976-402-4120 or 540-0851. Barangay Hall: 0991-698-2914; Chief Tanod: 0933-682-8737. These are listed under Home > Emergency Hotlines in BrgyLink. The chatbot cannot dispatch or call help for you.",
+        "tagalog": "Kung may agarang panganib, tawagan agad ang naaangkop na verified na lokal na hotline: RHU Ambulance (medical): 0991-642-1048 o 653-3164; BFP San Jacinto (sunog): 0917-189-4611; PNP San Jacinto (pulis/seguridad): 0906-525-9725, 0998-598-5126, o 653-1762; MDRRMO San Jacinto (sakuna): 0976-402-4120 o 540-0851. Barangay Hall: 0991-698-2914; Chief Tanod: 0933-682-8737. Nasa Home > Emergency Hotlines din ang mga numerong ito sa BrgyLink. Hindi nakakapagpadala o nakakatawag ng tulong ang chatbot.",
+        "ilocano": "No adda dagus a peggad, tawagan a dagus ti umiso a verified a lokal a hotline: RHU Ambulance (medical): 0991-642-1048 wenno 653-3164; BFP San Jacinto (apoy): 0917-189-4611; PNP San Jacinto (police/security): 0906-525-9725, 0998-598-5126, wenno 653-1762; MDRRMO San Jacinto (disaster): 0976-402-4120 wenno 540-0851. Barangay Hall: 0991-698-2914; Chief Tanod: 0933-682-8737. Makita dagitoy iti Home > Emergency Hotlines iti BrgyLink. Saan a makapatulod wenno makatawag iti tulong ti chatbot.",
+        "pangasinan": "No wala so tampol ya peligro, tawagan la so umiso ya verified ya lokal ya hotline: RHU Ambulance (medical): 0991-642-1048 odino 653-3164; BFP San Jacinto (apoy): 0917-189-4611; PNP San Jacinto (police/security): 0906-525-9725, 0998-598-5126, odino 653-1762; MDRRMO San Jacinto (disaster): 0976-402-4120 odino 540-0851. Barangay Hall: 0991-698-2914; Chief Tanod: 0933-682-8737. Nengnengen ira ed Home > Emergency Hotlines ed BrgyLink. Ag makapatulod odino makatawag na tulong so chatbot."
       },
       "verified": false,
       "verified_by": null,
       "verified_at": null,
       "expires_at": null,
-      "source": null,
-      "last_reviewed_at": null,
-      "review_notes": "",
-      "content_type": "barangay_fact",
-      "requires_verification": true
+      "source": "BrgyLink mobile Home > Emergency Hotlines; project owner confirmed the listed numbers on 2026-10-15",
+      "last_reviewed_at": "2026-10-15",
+      "review_notes": "Hotline numbers confirmed by the project owner against the resident app. Reconfirm before a future official release.",
+      "content_type": "system_copy",
+      "requires_verification": false
+    },
+    {
+      "intent": "privacy_refusal",
+      "title": "Private Records and Personal Information",
+      "needs_staff_verification": false,
+      "answer": {
+        "english": "I can't look up or disclose a resident's blotter report, home address, or other private case details in chat. For your own report, sign in and open My Blotter Reports. Only authorized staff should access case records through the proper process.",
+        "tagalog": "Hindi ako makakapaghanap o makakapagbahagi ng blotter report, tirahan, o pribadong detalye ng ibang residente. Para sa sarili mong report, mag-sign in at buksan ang My Blotter Reports. Tanging awtorisadong kawani ang dapat mag-access ng case records sa tamang proseso.",
+        "ilocano": "Saanak a makasapul wenno mangibingay iti blotter report, pagnaedan, wenno pribado a detalye ti sabali a residente. Para iti bukodmo a report, ag-sign in ken lukatam ti My Blotter Reports. Dagiti awtorisado laeng a kawani ti makaakses kadagiti case record babaen iti umiso a proseso.",
+        "pangasinan": "Agko na-search odino naibingay so blotter report, address, odino pribado ya detalye na arum ya residente. Para ed bukod mon report, mag-sign in tan buksan so My Blotter Reports. Saray awtorisado labat ya staff so nanengneng ed case records gamit so umiso ya proseso."
+      },
+      "verified": false,
+      "verified_by": null,
+      "verified_at": null,
+      "expires_at": null,
+      "source": "BrgyLink access-control and privacy guidance",
+      "last_reviewed_at": "2026-10-15",
+      "review_notes": "Safety refusal; chatbot must not access or disclose resident case details or home addresses.",
+      "content_type": "system_copy",
+      "requires_verification": false
     },
     {
       "intent": "garbage",
@@ -403,20 +424,13 @@
     },
     {
       "intent": "sdg_mission",
-      "title": "Community Initiatives and SDG Missions",
+      "title": "Civic Tasks Availability",
       "needs_staff_verification": false,
-      "steps": [
-        "Open Community Initiatives",
-        "Select an active program",
-        "Tap Upload Proof",
-        "Capture live photo evidence",
-        "Tap Analyze & Submit"
-      ],
       "answer": {
-        "english": "Open Civic Tasks & Community Events, choose an active civic task, and use Capture Live Photo to show your participation clearly. Retake unclear photos, then tap Submit Task Proof. Open Profile and Community Mission Submissions to see your own submission status and any rejection reason. Pending is not approval; the chatbot cannot see or change your result. Civic participation does not earn reward points in the current app. Follow the task instructions and do not use unrelated or reused photos.",
-        "tagalog": "Buksan ang Civic Tasks & Community Events, pumili ng aktibong civic task, at gamitin ang Capture Live Photo para malinaw na ipakita ang pakikilahok. Mag-retake kung malabo at i-tap ang Submit Task Proof. Sa Profile, tingnan ang Community Mission Submissions para sa sariling submission status at rejection reason kung mayroon. Hindi pa approval ang Pending; hindi nakikita o nababago ng chatbot ang resulta. Walang reward points ang civic participation sa kasalukuyang app. Sundin ang task instructions at huwag gumamit ng hindi kaugnay o lumang larawan.",
-        "ilocano": "Lukatan ti Civic Tasks & Community Events, piliem ti aktibo a civic task, ken usarem ti Capture Live Photo tapno nalawag ti panagpasetmo. I-retake no saan a nalawag ken i-tap ti Submit Task Proof. Iti Profile, kitaem ti Community Mission Submissions para iti bukodmo a submission status ken rejection reason no adda. Saan pay nga approval ti Pending; saan a makita wenno baliwan ti chatbot ti resulta. Awan ti reward points iti agdama nga app. Surotem dagiti task instructions ken saan nga usaren ti saan a kaugnay wenno daan a ladawan.",
-        "pangasinan": "Lukatan so Civic Tasks & Community Events, piliyen so aktibon civic task, tan usaren so Capture Live Photo pian malinew so pakikiba mo. I-retake no agmalinew tan i-tap so Submit Task Proof. Ed Profile, nengnengen so Community Mission Submissions para ed bukod mon submission status tan rejection reason no wala. Agni approval so Pending; ag nanengneng odino nabago na chatbot so resulta. Anggapoy reward points ed kasalukuyan ya app. Suroten so task instructions tan ag-usar na agkaugnay odino daan ya litrato."
+        "english": "I don't have a verified current Civic Tasks workflow to share. Use only features visible in your current BrgyLink app, or check official Announcements or contact the barangay office. I cannot accept or review participation proof.",
+        "tagalog": "Wala akong beripikadong kasalukuyang proseso para sa Civic Tasks. Gamitin lamang ang mga feature na nakikita sa kasalukuyan mong BrgyLink app, o tingnan ang opisyal na Announcements o makipag-ugnayan sa opisina ng barangay. Hindi ako tumatanggap o nagsusuri ng participation proof.",
+        "ilocano": "Awan ti beripikado a pagannurotan ti Civic Tasks nga maibingayko ita. Usarem laeng dagiti feature a makita iti agdama a BrgyLink appmo, wenno kitaem dagiti opisial nga Announcements wenno makipag-ugnay iti opisina ti barangay. Saanak a makaawat wenno makasuri iti participation proof.",
+        "pangasinan": "Agko verified ya kasalukuyan a proseso para ed Civic Tasks. Usaren la so saray feature ya nanengneng ed agdama ya BrgyLink app mo, odino nengnengen so opisyal ya Announcements odino mantepet ed opisina na barangay. Ag ko naawat odino nasuri so participation proof."
       },
       "verified": false,
       "verified_by": null,
@@ -424,9 +438,9 @@
       "expires_at": null,
       "source": null,
       "last_reviewed_at": null,
-      "review_notes": "",
-      "content_type": "barangay_fact",
-      "requires_verification": true
+      "content_type": "system_copy",
+      "requires_verification": false,
+      "review_notes": "Legacy intent retained only to provide a safe no-workflow response; do not direct residents to removed task screens."
     },
     {
       "intent": "suggestion",
@@ -723,10 +737,10 @@
       "fee_php": null,
       "processing_time": null,
       "answer": {
-        "english": "BrgyLink AI can guide you through BrgyLink topics: registration and email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, and where to check officials information. You may ask in English, Tagalog, Ilocano, or Pangasinan. I cannot access accounts, passwords, OTPs, IDs, personal submissions, live schedules, or emergency services.",
-        "tagalog": "Makakatulong ang BrgyLink AI sa mga paksa sa BrgyLink: registration at email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, at kung saan titingnan ang impormasyon tungkol sa officials. Maaari kang magtanong sa English, Tagalog, Ilocano, o Pangasinan. Hindi ko naa-access ang accounts, passwords, OTPs, IDs, personal submissions, live schedules, o emergency services.",
-        "ilocano": "Makatulong ti BrgyLink AI kadagiti paksa iti BrgyLink: registration ken email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, ken sadino a kitaen ti impormasyon maipapan kadagiti officials. Mabalin a mangsaludsod iti English, Tagalog, Ilocano, wenno Pangasinan. Saan a ma-access ti chatbot dagiti account, password, OTP, ID, personal submission, live schedule, wenno emergency services.",
-        "pangasinan": "Nayarin makatulong so BrgyLink AI ed saray paksa ed BrgyLink: registration tan email verification, password recovery, document requests, blotter reports, feedback, announcements, civic tasks, events, tan iner ya nengnengen so impormasyon nipaakar ed officials. Nayarin magtanong ed English, Tagalog, Ilocano, odino Pangasinan. Ag na-access na chatbot so accounts, passwords, OTPs, IDs, personal submissions, live schedules, odino emergency services."
+        "english": "BrgyLink AI can help with registration and email verification, password recovery, document requests, blotter reports, feedback, announcements, and where to find officials information. You may ask in English, Tagalog, Ilocano, or Pangasinan. I cannot access accounts, passwords, OTPs, IDs, personal submissions, live schedules, or emergency services.",
+        "tagalog": "Makakatulong ang BrgyLink AI sa registration at email verification, password recovery, document requests, blotter reports, feedback, announcements, at kung saan makikita ang impormasyon tungkol sa mga opisyal. Maaari kang magtanong sa English, Tagalog, Ilocano, o Pangasinan. Hindi ko naa-access ang accounts, passwords, OTPs, IDs, personal submissions, live schedules, o emergency services.",
+        "ilocano": "Makatulong ti BrgyLink AI iti registration ken email verification, password recovery, document requests, blotter reports, feedback, announcements, ken no sadino a kitaen ti impormasyon maipapan kadagiti opisial. Mabalin a mangsaludsod iti English, Tagalog, Ilocano, wenno Pangasinan. Saan a ma-access ti chatbot dagiti account, password, OTP, ID, personal submission, live schedule, wenno emergency services.",
+        "pangasinan": "Nayarin makatulong so BrgyLink AI ed registration tan email verification, password recovery, document requests, blotter reports, feedback, announcements, tan iner ya nengnengen so impormasyon nipaakar ed saray opisyal. Nayarin magtanong ed English, Tagalog, Ilocano, odino Pangasinan. Ag na-access na chatbot so accounts, passwords, OTPs, IDs, personal submissions, live schedules, odino emergency services."
       },
       "verified": false,
       "verified_by": null,
@@ -792,10 +806,10 @@
       "fee_php": null,
       "processing_time": null,
       "answer": {
-        "english": "Open the Events tab under Civic Tasks & Community Events, choose an active event, and read its date, time, location, and instructions. If proof is requested, take a clear participation photo and tap Submit Participation Proof. Submitted is not the same as Approved. Check the app's displayed status or ask the barangay office if no review status is shown. The chatbot cannot see live event details or your personal approval result.",
-        "tagalog": "Buksan ang Events tab sa Civic Tasks & Community Events, pumili ng aktibong event, at basahin ang petsa, oras, lugar, at tagubilin. Kung kailangan ng proof, kumuha ng malinaw na larawan ng pakikilahok at i-tap ang Submit Participation Proof. Hindi pareho ang Submitted at Approved. Tingnan ang status na ipinapakita ng app o magtanong sa opisina ng barangay kung walang review status. Hindi nakikita ng chatbot ang live event details o personal na approval result.",
-        "ilocano": "Lukatan ti Events tab iti Civic Tasks & Community Events, piliem ti aktibo nga event, ken basaem ti petsa, oras, lugar, ken tagubilin. No kasapulan ti proof, alaem ti nalawag a ladawan ti panagpaset ken i-tap ti Submit Participation Proof. Saan nga agpada ti Submitted ken Approved. Kitaem ti status iti app wenno agsaludsod iti opisina ti barangay no awan ti review status. Saan a makita ti chatbot ti live event details wenno personal a approval result.",
-        "pangasinan": "Lukatan so Events tab ed Civic Tasks & Community Events, piliyen so aktibon event, tan basaen so petsa, oras, lugar, tan tagubilin. No kasapulan so proof, alaen so malinew ya litrato na pakikiba tan i-tap so Submit Participation Proof. Agpareho so Submitted tan Approved. Nengnengen so status ed app odino mantepet ed opisina na barangay no anggapo so review status. Ag nanengneng na chatbot so live event details odino personal ya approval result."
+        "english": "I don't have a verified current Community Events feature or event-submission workflow to share. Check official Announcements or contact the barangay office for current schedules. I cannot confirm event dates or accept participation proof.",
+        "tagalog": "Wala akong beripikadong kasalukuyang feature o proseso para sa Community Events. Tingnan ang opisyal na Announcements o makipag-ugnayan sa opisina ng barangay para sa kasalukuyang iskedyul. Hindi ko makukumpirma ang petsa ng event o matatanggap ang participation proof.",
+        "ilocano": "Awan ti beripikado a Community Events feature wenno proseso ti panag-submit ti event a maibingayko ita. Kitaem dagiti opisial nga Announcements wenno makipag-ugnay iti opisina ti barangay para iti agdama nga iskediul. Saanak a makakumpirma kadagiti petsa ti event wenno makaawat iti participation proof.",
+        "pangasinan": "Agko verified ya kasalukuyan ya Community Events feature odino proseso na panag-submit ed event ya maibingay ko. Nengnengen so opisyal ya Announcements odino mantepet ed opisina na barangay para ed agdama ya iskedyul. Ag ko na-confirm so petsa na event odino naawat so participation proof."
       },
       "verified": false,
       "verified_by": null,
@@ -803,7 +817,7 @@
       "expires_at": null,
       "source": null,
       "last_reviewed_at": null,
-      "review_notes": "App navigation copy only; event details remain in the live Events screen.",
+      "review_notes": "Legacy intent retained only to provide a safe no-workflow response; do not direct residents to removed event screens.",
       "content_type": "system_copy",
       "requires_verification": false
     },
@@ -853,20 +867,20 @@
       "intent": "safety_threat",
       "title": "Safety Threat",
       "answer": {
-        "english": "Please contact emergency services (911) immediately.",
-        "tagalog": "Mangyaring tumawag sa emergency services (911) kaagad.",
-        "ilocano": "Pangngaasi nga umawag ti emergency services (911) a dagus.",
-        "pangasinan": "Tawagan so emergency services (911) a tampol."
+        "english": "If there is immediate danger, call PNP San Jacinto now: 0906-525-9725, 0998-598-5126, or 653-1762. For local barangay assistance, call the Chief Tanod at 0933-682-8737. These contacts are also listed under Home > Emergency Hotlines. The chatbot cannot dispatch or call help for you.",
+        "tagalog": "Kung may agarang panganib, tawagan agad ang PNP San Jacinto: 0906-525-9725, 0998-598-5126, o 653-1762. Para sa tulong ng barangay, tawagan ang Chief Tanod sa 0933-682-8737. Nasa Home > Emergency Hotlines din ang mga numerong ito. Hindi nakakapagpadala o nakakatawag ng tulong ang chatbot.",
+        "ilocano": "No adda dagus a peggad, tawagan a dagus ti PNP San Jacinto: 0906-525-9725, 0998-598-5126, wenno 653-1762. Para iti tulong ti barangay, tawagan ti Chief Tanod iti 0933-682-8737. Makita dagitoy iti Home > Emergency Hotlines. Saan a makapatulod wenno makatawag iti tulong ti chatbot.",
+        "pangasinan": "No wala so tampol ya peligro, tawagan la so PNP San Jacinto: 0906-525-9725, 0998-598-5126, odino 653-1762. Para ed tulong na barangay, tawagan so Chief Tanod ed 0933-682-8737. Makita ira ed Home > Emergency Hotlines. Ag makapatulod odino makatawag na tulong so chatbot."
       },
       "verified": false,
       "verified_by": null,
       "verified_at": null,
       "expires_at": null,
-      "source": null,
-      "last_reviewed_at": null,
-      "review_notes": "",
-      "content_type": "barangay_fact",
-      "requires_verification": true
+      "source": "BrgyLink mobile Home > Emergency Hotlines; project owner confirmed the listed numbers on 2026-10-15",
+      "last_reviewed_at": "2026-10-15",
+      "review_notes": "Hotline numbers confirmed by the project owner against the resident app. Reconfirm before a future official release.",
+      "content_type": "system_copy",
+      "requires_verification": false
     },
     {
       "intent": "medical_non_emergency",

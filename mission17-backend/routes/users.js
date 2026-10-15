@@ -57,7 +57,7 @@ router.get('/users', verifyAdmin, async (req, res) => {
     if (['approved', 'pending', 'rejected'].includes(status)) query.accountStatus = status;
 
     const users = await User.find(query)
-      .select('-password -points')
+      .select('-password -points -otpCode -otpExpires -mfaSecret')
       .sort({ _id: -1 }) // Sort newest first
       .skip(skip)
       .limit(limit);
@@ -318,7 +318,7 @@ router.get('/user/:id', verifyAuthenticatedUser, async (req, res) => {
       return res.status(403).json({ message: 'Forbidden: you can only view your own profile.' });
     }
 
-    const user = await User.findById(req.params.id).select('-password -points');
+    const user = await User.findById(req.params.id).select('-password -points -otpCode -otpExpires -mfaSecret');
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.set('Cache-Control', 'private, no-store, max-age=0');
     res.json(user);

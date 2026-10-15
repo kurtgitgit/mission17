@@ -399,6 +399,7 @@ describe('early signup email verification', () => {
     });
   });
 
+
   it('preserves a retryable error when Firebase session refresh is temporarily unavailable', async () => {
     jest.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok: false,

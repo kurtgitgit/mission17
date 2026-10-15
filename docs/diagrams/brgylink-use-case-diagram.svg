@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980" role="img" aria-labelledby="title desc">
+  <title id="title">BrgyLink Use-Case Diagram</title>
+  <desc id="desc">A use-case diagram showing Resident, Barangay Staff, and Public Visitor interactions with BrgyLink.</desc>
+  <style>
+    .bg{fill:#f7f9fc}.boundary{fill:#ffffff;stroke:#0b2b66;stroke-width:3}.title{font:700 34px Arial,sans-serif;fill:#102a56}.subtitle{font:400 17px Arial,sans-serif;fill:#5c6f8f}.boundaryTitle{font:700 24px Arial,sans-serif;fill:#0b2b66}.actorLabel{font:700 20px Arial,sans-serif;fill:#102a56}.use{fill:#edf4ff;stroke:#0d4ba0;stroke-width:2}.useText{font:600 17px Arial,sans-serif;fill:#102a56;text-anchor:middle}.line{stroke:#6b7f9e;stroke-width:2;fill:none}.note{font:400 14px Arial,sans-serif;fill:#5c6f8f}
+  </style>
+  <rect class="bg" width="1600" height="980"/>
+  <text x="800" y="50" text-anchor="middle" class="title">BrgyLink: Barangay E-Services Platform</text>
+  <text x="800" y="78" text-anchor="middle" class="subtitle">Use-Case Diagram — Final Defense Scope</text>
+
+  <!-- System boundary -->
+  <rect x="245" y="110" width="1110" height="760" rx="18" class="boundary"/>
+  <text x="275" y="148" class="boundaryTitle">BrgyLink System</text>
+
+  <!-- Actors -->
+  <g transform="translate(95 302)">
+    <circle cx="48" cy="22" r="17" fill="#dbeafe" stroke="#0d4ba0" stroke-width="3"/>
+    <path d="M48 39v50M18 59h60M48 89l-30 42M48 89l30 42" fill="none" stroke="#0d4ba0" stroke-width="4" stroke-linecap="round"/>
+    <text x="48" y="165" text-anchor="middle" class="actorLabel">Resident</text>
+  </g>
+  <g transform="translate(95 682)">
+    <circle cx="48" cy="22" r="17" fill="#fef3c7" stroke="#b7791f" stroke-width="3"/>
+    <path d="M48 39v50M18 59h60M48 89l-30 42M48 89l30 42" fill="none" stroke="#b7791f" stroke-width="4" stroke-linecap="round"/>
+    <text x="48" y="165" text-anchor="middle" class="actorLabel">Public Visitor</text>
+  </g>
+  <g transform="translate(1442 402)">
+    <circle cx="48" cy="22" r="17" fill="#dcfce7" stroke="#16803c" stroke-width="3"/>
+    <path d="M48 39v50M18 59h60M48 89l-30 42M48 89l30 42" fill="none" stroke="#16803c" stroke-width="4" stroke-linecap="round"/>
+    <text x="48" y="165" text-anchor="middle" class="actorLabel">Barangay Staff</text>
+  </g>
+
+  <!-- Use cases: resident services -->
+  <ellipse cx="525" cy="225" rx="175" ry="43" class="use"/>
+  <text x="525" y="220" class="useText"><tspan x="525">Create account and</tspan><tspan x="525" dy="21">access resident portal</tspan></text>
+  <ellipse cx="525" cy="345" rx="175" ry="43" class="use"/>
+  <text x="525" y="340" class="useText"><tspan x="525">Request and track</tspan><tspan x="525" dy="21">barangay documents</tspan></text>
+  <ellipse cx="525" cy="465" rx="175" ry="43" class="use"/>
+  <text x="525" y="460" class="useText"><tspan x="525">File and monitor</tspan><tspan x="525" dy="21">blotter reports</tspan></text>
+  <ellipse cx="525" cy="585" rx="175" ry="43" class="use"/>
+  <text x="525" y="580" class="useText"><tspan x="525">View announcements</tspan><tspan x="525" dy="21">and alerts</tspan></text>
+  <ellipse cx="525" cy="705" rx="175" ry="43" class="use"/>
+  <text x="525" y="700" class="useText"><tspan x="525">Submit citizen feedback</tspan><tspan x="525" dy="21">and manage profile</tspan></text>
+
+  <!-- Use cases: assistant and public verification -->
+  <ellipse cx="870" cy="285" rx="155" ry="43" class="use"/>
+  <text x="870" y="280" class="useText"><tspan x="870">Ask BrgyLink</tspan><tspan x="870" dy="21">AI Assistant</tspan></text>
+  <ellipse cx="870" cy="760" rx="155" ry="43" class="use"/>
+  <text x="870" y="755" class="useText"><tspan x="870">Verify public</tspan><tspan x="870" dy="21">record authenticity</tspan></text>
+
+  <!-- Use cases: staff administration -->
+  <ellipse cx="1120" cy="225" rx="175" ry="43" class="use"/>
+  <text x="1120" y="220" class="useText"><tspan x="1120">Process document</tspan><tspan x="1120" dy="21">requests</tspan></text>
+  <ellipse cx="1120" cy="345" rx="175" ry="43" class="use"/>
+  <text x="1120" y="340" class="useText"><tspan x="1120">Manage blotter and</tspan><tspan x="1120" dy="21">Lupon case workflow</tspan></text>
+  <ellipse cx="1120" cy="465" rx="175" ry="43" class="use"/>
+  <text x="1120" y="460" class="useText"><tspan x="1120">Publish announcements</tspan><tspan x="1120" dy="21">and alerts</tspan></text>
+  <ellipse cx="1120" cy="585" rx="175" ry="43" class="use"/>
+  <text x="1120" y="580" class="useText"><tspan x="1120">Review feedback and</tspan><tspan x="1120" dy="21">manage resident directory</tspan></text>
+  <ellipse cx="1120" cy="705" rx="175" ry="43" class="use"/>
+  <text x="1120" y="700" class="useText"><tspan x="1120">Generate reports and</tspan><tspan x="1120" dy="21">review audit trail</tspan></text>
+
+  <!-- Associations: resident -->
+  <path class="line" d="M191 360 L350 225M191 360 L350 345M191 360 L350 465M191 360 L350 585M191 360 L350 705M191 360 L715 285"/>
+  <!-- Associations: public visitor -->
+  <path class="line" d="M191 740 L715 760"/>
+  <!-- Associations: staff -->
+  <path class="line" d="M1442 460 L1295 225M1442 460 L1295 345M1442 460 L1295 465M1442 460 L1295 585M1442 460 L1295 705"/>
+
+  <text x="800" y="925" text-anchor="middle" class="note">Scope: resident services, public record verification, and authorized barangay administration.</text>
+  <text x="800" y="950" text-anchor="middle" class="note">Excluded from this final-defense diagram: retired Civic Tasks, Events, image analysis, and gamification features.</text>
+</svg>

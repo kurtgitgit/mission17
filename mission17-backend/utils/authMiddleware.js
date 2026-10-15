@@ -6,6 +6,7 @@ import '../config/firebase-admin.js';
 import { getAuth } from 'firebase-admin/auth';
 import User from '../models/User.js';
 import AuditLog from '../models/AuditLog.js';
+import { hasMfaVerifiedSession } from './mfaSession.js';
 
 export const logAudit = async (userId, username, action, details, req) => {
   try {
@@ -63,6 +64,13 @@ const getAuthenticatedUser = async (req) => {
 
   if (user.accountStatus === 'pending') {
     const error = new Error('Your account is awaiting administrator approval.');
+    error.status = 403;
+    throw error;
+  }
+
+  const requiresMfa = ['admin', 'super_admin'].includes(user.role) || user.mfaEnabled === true;
+  if (requiresMfa && !await hasMfaVerifiedSession(decodedToken.uid, decodedToken.auth_time)) {
+    const error = new Error('Complete the verification code step before using this account.');
     error.status = 403;
     throw error;
   }

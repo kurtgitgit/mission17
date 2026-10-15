@@ -1,15 +1,20 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { BARANGAY_INFO } from '../config/barangayInfo.js';
+import { BARANGAY_INFO, LOCAL_EMERGENCY_HOTLINES } from '../config/barangayInfo.js';
 import Announcement from '../models/Announcement.js';
 import Official from '../models/Official.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
 
 const router = express.Router();
 const MAX_MESSAGE_LENGTH = 1_200;
+const MAX_CHATBOT_AI_RESPONSE_BYTES = 32 * 1024;
 const CHATBOT_REQUEST_TIMEOUT_MS = 12_000;
 const LANGUAGE_TOPIC_PATTERN = /\b(pangasinan|ilocano|ilokano|tagalog|filipino|wika|salita|pagsasao)\b/i;
-const EMERGENCY_PATTERN = /\b(911|emergency|sunog|fire|ambulance|aksidente|cannot\s*breathe|can['’]?t\s+breathe|unable\s+to\s+breathe|trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|difficulty\s+breathing|hirap\s*(?:na\s*)?huminga|(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|abuse|violence|threat|banta|medical|sakit|fever|lagnat)\b/i;
+const IMMEDIATE_EMERGENCY_PATTERN = /\b(sunog|fire|ambulance|aksidente|cannot\s*breathe|can['’]?t\s+breathe|unable\s+to\s+breathe|trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|difficulty\s+breathing|hirap\s*(?:na\s*)?huminga|(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|abuse|violence|threat|banta|heart\s*attack|unconscious|severe\s+bleeding|suicide|self[\s-]?harm|flood|baha|bagyo|earthquake|lindol)\b/i;
+const EMERGENCY_TOPIC_PATTERN = /\b(?:emergenc(?:y|ies)|911|hotlines?)\b/i;
+const NON_EMERGENCY_CONTEXT_PATTERN = /\b(?:no\s+(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|not\s+(?:an?\s+)?(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|non[-\s]?emergenc(?:y|ies))\b/i;
+const PRIVATE_RECORD_REQUEST_PATTERN = /\b(?:look\s*up|lookup|find|search|show|give|reveal|share|access|retrieve|check)\b.{0,100}\b(?:blotter|incident\s+reports?|case\s+(?:records?|details?)|home\s+addresses?|resident\s+(?:records?|reports?|details?)|personal\s+data)\b|\b(?:someone\s+else'?s?|somebody\s+else'?s?|another|other|neighbor\w*|kapitbahay)\b.{0,80}\b(?:blotter|incident|case|report|address|records?|details?|data)\b/i;
+const REMOVED_FEATURE_PATTERN = /\b(?:civic\s*(?:tasks?|participation)|community\s*(?:events?|initiatives?)|sdg\s*missions?)\b/i;
 const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)[!.,?\s]*$/i;
 // The directory is the resident-facing source of approved roster details.
 // Do not disclose individual officials' personal contact details in chat.
@@ -47,11 +52,61 @@ const officialDirectoryReply = (language) => {
   return "For the name, role, or approved information of the Punong Barangay and other officials, open Barangay E-Services in BrgyLink and select 'Barangay Council'. For contact or an urgent concern, contact the official barangay office.";
 };
 
-const emergencyReply = (language) => {
-  if (language === 'tagalog') return 'Kung may agarang panganib o emergency, tumawag agad sa 911 at ibigay ang eksaktong lokasyon. Hindi emergency-response service ang BrgyLink. Kapag ligtas na, maaari mong gamitin ang Blotter Reports para sa naaangkop na non-emergency report.';
-  if (language === 'pangasinan') return 'No wala so agarang peligro odino emergency, tawagan dayon so 911 tan ibaga so eksakto ya lugar. Aliwan emergency-response service so BrgyLink. No ligtas la, mabalin ya gamit so Blotter Reports para ed anggapo ya emergency report.';
-  if (language === 'ilocano') return 'No adda dagus a peggad wenno emergency, tawagam dagus ti 911 ken ibagam ti eksakto a lugar. Saan a emergency-response service ti BrgyLink. No natalgeden, mabalin nga usaren ti Blotter Reports para iti non-emergency a report.';
-  return 'If there is immediate danger or an emergency, call 911 now and provide the exact location. BrgyLink is not an emergency-response service. When it is safe, you can use Blotter Reports for an appropriate non-emergency report.';
+const emergencyReply = (language, message) => {
+  const text = message.toLowerCase();
+  const category = /\b(sunog|fire|apoy|bfp)\b/i.test(text)
+    ? 'fire'
+    : /\b(ambulance|ambulansya|cannot\s*breathe|can['’]?t\s+breathe|unable\s+to\s+breathe|trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|difficulty\s+breathing|hirap\s*(?:na\s*)?huminga|makahinga|heart\s*attack|rhu|medical)\b/i.test(text)
+      ? 'medical'
+      : /\b(police|pnp|violence|abuse|threat|banta|assault|hold.?up|robbery|crime|krimen|sinasaksak|binabaril)\b/i.test(text)
+        ? 'police'
+        : /\b(flood|baha|bagyo|typhoon|earthquake|lindol|disaster|mdrrmo)\b/i.test(text)
+          ? 'disaster'
+          : null;
+  const matchingContacts = category
+    ? LOCAL_EMERGENCY_HOTLINES.filter((contact) => contact.category === category || contact.category === 'barangay')
+    : LOCAL_EMERGENCY_HOTLINES;
+  const contactLines = matchingContacts
+    .map((contact) => `${contact.label}: ${contact.numbers.join(' / ')}`)
+    .join('\n');
+  const isImmediate = IMMEDIATE_EMERGENCY_PATTERN.test(message);
+
+  if (language === 'tagalog') {
+    const intro = isImmediate
+      ? 'Kung may agarang panganib, tawagan agad ang naaangkop na lokal na hotline:'
+      : 'Narito ang mga lokal na emergency hotline sa BrgyLink:';
+    return `${intro}\n${contactLines}\nMakikita rin ang mga ito sa Home > Emergency Hotlines. Hindi nakakapagpadala o nakakatawag ng tulong ang BrgyLink.`;
+  }
+  if (language === 'ilocano') {
+    const intro = isImmediate
+      ? 'No adda dagus a peggad, tawagan a dagus ti umiso a lokal a hotline:'
+      : 'Dagitoy dagiti lokal nga emergency hotline iti BrgyLink:';
+    return `${intro}\n${contactLines}\nMakita met dagitoy iti Home > Emergency Hotlines. Saan a makapatulod wenno makatawag iti tulong ti BrgyLink.`;
+  }
+  if (language === 'pangasinan') {
+    const intro = isImmediate
+      ? 'No wala so tampol ya peligro, tawagan la so umiso ya lokal ya hotline:'
+      : 'Saray lokal ya emergency hotline ed BrgyLink:';
+    return `${intro}\n${contactLines}\nMakita met ira ed Home > Emergency Hotlines. Ag makapatulod odino makatawag na tulong so BrgyLink.`;
+  }
+  const intro = isImmediate
+    ? 'If anyone is in immediate danger, call the appropriate local hotline now:'
+    : 'These are the local emergency hotlines listed in BrgyLink:';
+  return `${intro}\n${contactLines}\nYou can also find them under Home > Emergency Hotlines. BrgyLink cannot dispatch or call help for you.`;
+};
+
+const privateRecordReply = (language) => {
+  if (language === 'tagalog') return "Hindi ako makakapaghanap o makakapagbahagi ng blotter report, tirahan, o pribadong detalye ng ibang residente. Para sa sarili mong report, mag-sign in at buksan ang 'My Blotter Reports'. Tanging awtorisadong kawani ang dapat mag-access ng case records sa tamang proseso.";
+  if (language === 'ilocano') return "Saanak a makasapul wenno mangibingay iti blotter report, pagnaedan, wenno pribado a detalye ti sabali a residente. Para iti bukodmo a report, ag-sign in ken lukatam ti 'My Blotter Reports'. Dagiti awtorisado laeng a kawani ti makaakses kadagiti case record babaen iti umiso a proseso.";
+  if (language === 'pangasinan') return "Agko na-search odino naibingay so blotter report, address, odino pribado ya detalye na arum ya residente. Para ed bukod mon report, mag-sign in tan buksan so 'My Blotter Reports'. Saray awtorisado labat ya staff so nanengneng ed case records gamit so umiso ya proseso.";
+  return "I can't look up or disclose a resident's blotter report, home address, or other private case details in chat. For your own report, sign in and open 'My Blotter Reports'. Only authorized staff should access case records through the proper process.";
+};
+
+const retiredFeatureReply = (language) => {
+  if (language === 'tagalog') return 'Wala akong beripikadong kasalukuyang proseso para sa Civic Tasks o Community Events sa BrgyLink. Gamitin lamang ang mga feature na nakikita sa app; tingnan ang Announcements o makipag-ugnayan sa opisina ng barangay para sa kasalukuyang impormasyon. Hindi ako tumatanggap o nagsusuri ng participation proof.';
+  if (language === 'ilocano') return 'Awan ti napasingkedan nga agdama a proseso para iti Civic Tasks wenno Community Events iti BrgyLink. Usarem laeng dagiti feature a makita iti app; kitaem ti Announcements wenno makipag-ugnay iti opisina ti barangay para iti agdama nga impormasyon. Saanak a makaawat wenno makasuri iti participation proof.';
+  if (language === 'pangasinan') return 'Agko verified ya kasalukuyan ya proseso para ed Civic Tasks odino Community Events ed BrgyLink. Usaren la so saray feature ya nanengneng ed app; nengnengen so Announcements odino mantepet ed opisina na barangay para ed agdama ya impormasyon. Agko naawat odino nasuri so participation proof.';
+  return "I don't have a verified current Civic Tasks or Community Events workflow in BrgyLink. Use only features visible in the app; check Announcements or contact the barangay office for current information. I cannot accept or review participation proof.";
 };
 
 const knowledgeGapReply = (language) => {
@@ -71,7 +126,12 @@ const greetingReply = (language) => {
 export const getControlledFaq = (message) => {
   const text = message.toLowerCase();
   const language = detectLanguage(message);
-  if (EMERGENCY_PATTERN.test(message)) return emergencyReply(language);
+  if (IMMEDIATE_EMERGENCY_PATTERN.test(message)) return emergencyReply(language, message);
+  if (PRIVATE_RECORD_REQUEST_PATTERN.test(text)) return privateRecordReply(language);
+  if (EMERGENCY_TOPIC_PATTERN.test(text) && !NON_EMERGENCY_CONTEXT_PATTERN.test(text)) {
+    return emergencyReply(language, message);
+  }
+  if (REMOVED_FEATURE_PATTERN.test(text)) return retiredFeatureReply(language);
   if (GREETING_PATTERN.test(message)) return greetingReply(language);
   if (OFFICIAL_DIRECTORY_PATTERN.test(text)) return officialDirectoryReply(language);
   if (LANGUAGE_TOPIC_PATTERN.test(message)) {
@@ -87,10 +147,10 @@ export const getControlledFaq = (message) => {
     return "To request a Barangay Clearance, open 'Document Requests' in BrgyLink, select 'Barangay Clearance', and complete the form. For current requirements, fees, hours, or collection instructions, check Announcements or contact the official barangay office.";
   }
   if (/blotter|incident\s+report|reklamo/i.test(text)) {
-    if (language === 'tagalog') return "Para maghain ng blotter o reklamo, buksan ang 'Blotter Reports' sa BrgyLink at piliin ang 'File New Report'. Ilagay ang tamang detalye ng insidente at subaybayan ang report sa 'My Blotter Reports'. Para sa emergency, tumawag sa 911.";
-    if (language === 'ilocano') return "Tapno mangipasa iti blotter wenno reklamo, lukatam ti 'Blotter Reports' iti BrgyLink ket piliem ti 'File New Report'. Para iti emergency, tawagam ti 911.";
-    if (language === 'pangasinan') return "Para mangipasa na blotter odino reklamo, buksan so 'Blotter Reports' ed BrgyLink tan piliyen so 'File New Report'. Para ed emergency, tawagan so 911.";
-    return "To file a blotter report or complaint, open 'Blotter Reports' in BrgyLink and select 'File New Report'. For an emergency, call 911.";
+    if (language === 'tagalog') return "Para maghain ng blotter o reklamo, buksan ang 'Blotter Reports' sa BrgyLink at piliin ang 'File New Report'. Ilagay ang tamang detalye ng insidente at subaybayan ang report sa 'My Blotter Reports'. Para sa emergency, gamitin ang naaangkop na numerong nasa Home > Emergency Hotlines.";
+    if (language === 'ilocano') return "Tapno mangipasa iti blotter wenno reklamo, lukatam ti 'Blotter Reports' iti BrgyLink ket piliem ti 'File New Report'. Para iti emergency, usarem ti umiso a numero iti Home > Emergency Hotlines.";
+    if (language === 'pangasinan') return "Para mangipasa na blotter odino reklamo, buksan so 'Blotter Reports' ed BrgyLink tan piliyen so 'File New Report'. Para ed emergency, usaren so umiso ya numero ed Home > Emergency Hotlines.";
+    return "To file a blotter report or complaint, open 'Blotter Reports' in BrgyLink and select 'File New Report'. For an emergency, use the appropriate number under Home > Emergency Hotlines.";
   }
   return null;
 };
@@ -139,6 +199,47 @@ export const getChatbotAiUrl = (
     : `${normalizedVerificationUrl}/chat`;
 };
 
+const readBoundedChatbotAiPayload = async (response) => {
+  const contentLength = Number(response.headers?.get?.('content-length'));
+  if (Number.isFinite(contentLength) && contentLength > MAX_CHATBOT_AI_RESPONSE_BYTES) {
+    throw new Error('Chatbot AI response exceeded the size limit.');
+  }
+
+  // Native fetch responses expose a stream. Bound streamed responses even when
+  // the upstream omits Content-Length; the json() fallback supports test mocks.
+  if (!response.body?.getReader) {
+    const payload = await response.json().catch(() => ({}));
+    if (Buffer.byteLength(JSON.stringify(payload ?? {}), 'utf8') > MAX_CHATBOT_AI_RESPONSE_BYTES) {
+      throw new Error('Chatbot AI response exceeded the size limit.');
+    }
+    return payload;
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_CHATBOT_AI_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => {});
+        throw new Error('Chatbot AI response exceeded the size limit.');
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  try {
+    return JSON.parse(Buffer.concat(chunks, totalBytes).toString('utf8'));
+  } catch {
+    return {};
+  }
+};
+
 export const requestChatbotAi = async (
   message,
   {
@@ -163,7 +264,7 @@ export const requestChatbotAi = async (
       body: JSON.stringify({ message }),
       signal: controller.signal,
     });
-    const payload = await response.json().catch(() => ({}));
+    const payload = await readBoundedChatbotAiPayload(response);
     if (!response.ok || typeof payload.response !== 'string' || !payload.response.trim()) {
       throw new Error(`Chatbot AI request failed with status ${response.status}.`);
     }
@@ -186,7 +287,7 @@ export const requestLiveChatReply = (message) => getLiveChatReply(message, {
     .lean(),
 });
 
-const chatbotLimiter = rateLimit({
+export const chatbotLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 12,
   standardHeaders: true,
@@ -195,8 +296,18 @@ const chatbotLimiter = rateLimit({
   message: { reply: 'Too many chatbot requests. Please wait a moment and try again.' },
 });
 
-router.post('/', chatbotLimiter, async (req, res) => {
-  const { message } = req.body;
+// Keep chat payload parsing far below the general API limit. index.js mounts
+// this parser and limiter before the shared JSON parser so oversized chat
+// bodies are rejected before parsing or model/live-data work.
+export const chatbotJsonParser = express.json({ limit: 16 * 1024 });
+
+router.post('/', async (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ reply: 'Please provide a message.' });
+  }
+
+  const { message } = body;
   if (typeof message !== 'string' || !message.trim()) {
     return res.status(400).json({ reply: 'Please provide a message.' });
   }

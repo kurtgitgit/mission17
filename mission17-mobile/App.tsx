@@ -205,7 +205,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!navigationReady) return;
+    // Expo notification responses are native-only. Skipping this listener on
+    // web keeps the browser preview usable for demos and screen recording.
+    if (!navigationReady || Platform.OS === 'web') return;
 
     const navigateFromNotification = (response: Notifications.NotificationResponse) => {
       const data = response.notification.request.content.data || {};

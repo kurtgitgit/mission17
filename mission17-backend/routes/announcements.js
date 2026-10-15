@@ -54,12 +54,14 @@ router.get('/categories', asyncHandler(async (req, res) => {
   res.json(merged);
 }));
 
-// GET /:id — Public: single announcement
-router.get('/:id', asyncHandler(async (req, res) => {
-  const announcement = await Announcement.findById(req.params.id);
+// GET /:id — Public: active announcement only. Inactive announcements must
+// not remain reachable after they disappear from the public listing.
+export const getPublicAnnouncementById = asyncHandler(async (req, res) => {
+  const announcement = await Announcement.findOne({ _id: req.params.id, isActive: true });
   if (!announcement) return res.status(404).json({ message: 'Announcement not found.' });
   res.json(announcement);
-}));
+});
+router.get('/:id', getPublicAnnouncementById);
 
 // POST / — Admin: create announcement
 router.post('/', verifyAdmin, asyncHandler(async (req, res) => {

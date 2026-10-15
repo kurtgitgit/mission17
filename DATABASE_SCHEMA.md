@@ -27,11 +27,15 @@ erDiagram
         ObjectId _id PK
         string username UK
         string email UK
-        string password
-        string fullName
-        string phoneNumber
-        string address
-        string role "resident | official | admin"
+        string firebaseUid UK
+        string firstName
+        string middleName
+        string lastName
+        string mobileNumber
+        string completeAddress
+        string purok
+        string role "resident | lgu | admin | super_admin"
+        string accountStatus "pending | approved | rejected"
         boolean mfaEnabled
         string mfaSecret
         date createdAt
@@ -160,10 +164,18 @@ erDiagram
 | `_id` | `ObjectId` | Primary Key | Yes | Auto | Unique MongoDB Identifier |
 | `username` | `String` | Unique (`IXSCAN`) | Yes | None | Unique citizen handle |
 | `email` | `String` | Unique (`IXSCAN`) | Yes | None | RFC 5322 email |
-| `password` | `String` | No | Yes | None | Bcrypt hash (`saltRounds = 10`) |
-| `fullName` | `String` | No | Yes | None | Official citizen name |
-| `role` | `String` | Single (`IXSCAN`) | Yes | `'resident'` | Enum: `['resident', 'official', 'admin']` |
-| `mfaEnabled` | `Boolean` | No | No | `true` | Enforces 6-digit email OTP |
+| `firebaseUid` | `String` | Unique (`IXSCAN`) | Yes | None | Firebase Authentication user identifier. Firebase, not MongoDB, stores the password credential. |
+| `firstName`, `middleName`, `lastName`, `suffix` | `String` | No | First/last required | None | Resident legal-name fields used by signup and profile editing. |
+| `birthDate`, `age` | `Date`, `Number` | No | Yes | None | Validated date of birth and calculated age; resident registration requires age 15 or older. |
+| `mobileNumber` | `String` | No | Yes | None | Resident contact number. |
+| `completeAddress`, `purok` | `String` | No | Yes | None | Resident address. Purok supports the confirmed Purok 1–7 directory and a controlled Other value. |
+| `idType` | `String` | No | Yes | None | Valid government ID type; PhilSys National ID/ePhilID is preferred in the app. |
+| `validIdFrontUrl`, `validIdBackUrl` | `String` | No | Yes | None | Securely stored ID attachment references for barangay review. |
+| `role` | `String` | Single (`IXSCAN`) | Yes | `'resident'` | Enum: `['resident', 'lgu', 'admin', 'super_admin']` |
+| `accountStatus` | `String` | Single (`IXSCAN`) | Yes | `'pending'` | Enum: `['pending', 'approved', 'rejected']`; an approved status is required for resident access. |
+| `rejectionReason` | `String` | No | Conditional | None | Clear administrator reason retained when the account is rejected (maximum 500 characters). |
+| `mfaEnabled` | `Boolean` | No | No | `false` | Account preference; signup email verification is stored separately. |
+| `legalConsent` | `Boolean` | No | Yes | `false` | Records accepted Privacy Notice and Terms of Use consent. |
 | `createdAt` | `Date` | No | Yes | `Date.now` | Registration timestamp |
 
 ---

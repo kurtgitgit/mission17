@@ -12,7 +12,6 @@ import json
 import hashlib
 import math
 import os
-import pickle
 import re
 import tempfile
 from collections import Counter, defaultdict
@@ -20,7 +19,7 @@ from collections import Counter, defaultdict
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INTENTS_FILE = os.path.join(BASE_DIR, "data", "intents_brgylink_curated.json")
 KB_FILE = os.path.join(BASE_DIR, "knowledge_base.json")
-MODEL_FILE = os.path.join(BASE_DIR, "smart_classifier.pkl")
+MODEL_FILE = os.path.join(BASE_DIR, "smart_classifier.json")
 MODEL_VERSION = 7
 FALLBACK = "out_of_scope"
 
@@ -106,6 +105,21 @@ _EMERGENCY_RE = re.compile(
     r"(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|"
     r"nauubusan\s*(?:ng\s*)?hangin|saan\s*a\s*makaanges|ag\s*makainawa|"
     r"end\s*my\s*life|wakasan\s*(?:ang\s*)?(?:aking\s*)?buhay)\b",
+    re.IGNORECASE,
+)
+
+# The word "emergency" alone can occur in an explicitly non-emergency
+# blotter question. Keep that request on the reporting workflow unless an
+# active hazard above already triggered the safety override.
+_NON_EMERGENCY_CONTEXT_RE = re.compile(
+    r"\b(?:no\s+(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|"
+    r"not\s+(?:an?\s+)?(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|"
+    r"non[-\s]?emergenc(?:y|ies))\b",
+    re.IGNORECASE,
+)
+_REPORT_INCIDENT_RE = re.compile(
+    r"\b(?:blotter|incident\s+reports?|file\s+(?:a\s+)?report|"
+    r"report\s+an?\s+incident|complaint|reklamo)\b",
     re.IGNORECASE,
 )
 
@@ -214,6 +228,13 @@ _PRIVATE_DATA_RE = re.compile(
     r"\b(?:password|credentials|token|secret)\b.{0,30}\b(?:admin|administrator)\b|"
     r"\b(?:other|another|all)\s+residents?\b.{0,40}\b(?:ids?|records?|details|data)\b|"
     r"\b(?:neighbou?r\w*|someone|somebody|another|other)\b.{0,40}\b(?:password|credentials|private\s*records)\b"
+)
+_PRIVATE_RECORD_REQUEST_RE = re.compile(
+    r"\b(?:look\s*up|find|search|show|give|reveal|share|access|retrieve|check|track)\b.{0,100}"
+    r"\b(?:blotter|incident\s+reports?|case\s+(?:records?|details?)|home\s+addresses?|"
+    r"residential\s+addresses?|resident\s+(?:records?|reports?|details?)|personal\s+data)\b|"
+    r"\b(?:another|other|someone\s+else|somebody\s+else|neighbor\w*|kapitbahay|ibang\s+residente?)\b"
+    r".{0,80}\b(?:blotter|incident|case|report|address|records?|details?|data)\b"
 )
 
 # ---------------------------------------------------------------------------
@@ -439,6 +460,48 @@ def featurize(text: str) -> Counter:
     return features
 
 
+def _serialize_model(model: dict) -> dict:
+    """Encode tuple-keyed feature maps as JSON-safe rows."""
+    return {
+        "version": model["version"],
+        "training_sha256": model["training_sha256"],
+        "idf": [[kind, feature, score] for (kind, feature), score in model["idf"].items()],
+        "centroids": {
+            tag: [[kind, feature, score] for (kind, feature), score in centroid.items()]
+            for tag, centroid in model["centroids"].items()
+        },
+    }
+
+
+def _deserialize_model(payload: dict) -> dict:
+    """Restore model feature tuples from the safe JSON representation."""
+    if not isinstance(payload, dict) or not isinstance(payload.get("centroids"), dict):
+        raise ValueError("Invalid chatbot model structure.")
+
+    def decode_feature_rows(rows):
+        if not isinstance(rows, list):
+            raise ValueError("Invalid chatbot feature rows.")
+        result = {}
+        for row in rows:
+            if (not isinstance(row, list) or len(row) != 3
+                    or not isinstance(row[0], str) or not isinstance(row[1], str)
+                    or not isinstance(row[2], (int, float))):
+                raise ValueError("Invalid chatbot feature row.")
+            result[(row[0], row[1])] = row[2]
+        return result
+
+    return {
+        "version": payload.get("version"),
+        "training_sha256": payload.get("training_sha256"),
+        "idf": decode_feature_rows(payload.get("idf")),
+        "centroids": {
+            tag: decode_feature_rows(rows)
+            for tag, rows in payload["centroids"].items()
+            if isinstance(tag, str)
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Scored Language Detection (Ilocano, Pangasinan, Tagalog, English)
 # ---------------------------------------------------------------------------
@@ -604,11 +667,11 @@ def train() -> dict:
         "centroids": dict(centroids),
     }
     # An interrupted training run must not replace a working model with a
-    # partially written pickle. Save alongside the target and atomically swap.
+    # partially written JSON file. JSON also avoids executable pickle loading.
     fd, temporary_path = tempfile.mkstemp(prefix=".classifier-", dir=os.path.dirname(MODEL_FILE))
     try:
-        with os.fdopen(fd, "wb") as f:
-            pickle.dump(model, f)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(_serialize_model(model), f, separators=(",", ":"))
         os.replace(temporary_path, MODEL_FILE)
     finally:
         if os.path.exists(temporary_path):
@@ -620,9 +683,9 @@ def load_model() -> dict:
     if not os.path.exists(MODEL_FILE):
         return train()
     try:
-        with open(MODEL_FILE, "rb") as f:
-            model = pickle.load(f)
-    except (pickle.UnpicklingError, EOFError, ValueError, AttributeError):
+        with open(MODEL_FILE, "r", encoding="utf-8") as f:
+            model = _deserialize_model(json.load(f))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError, TypeError, ValueError):
         return train()
     with open(INTENTS_FILE, "rb") as f:
         fingerprint = hashlib.sha256(f.read()).hexdigest()
@@ -754,6 +817,18 @@ def handle_message(message: str, session: dict | None = None, model: dict | None
     if _LEGAL_RE.search(value):
         resp = HELPER_TEXTS["legal_disclaimer"][language]
         return _build("legal_disclaimer", 1.0, language, resp, session)
+
+    # Do not disclose private case records or personal details, even when a
+    # request is framed as a test or asks the model to ignore its safeguards.
+    if _PRIVATE_RECORD_REQUEST_RE.search(value):
+        resp = get_kb_answer("privacy_refusal", language)
+        return _build("privacy_refusal", 1.0, language, resp, session)
+
+    # Safety hazards above keep precedence; explicit non-emergency blotter
+    # questions bypass the classifier's weaker keyword association.
+    if _NON_EMERGENCY_CONTEXT_RE.search(value) and _REPORT_INCIDENT_RE.search(value):
+        resp = get_kb_answer("report_incident", language)
+        return _build("report_incident", 0.98, language, resp, session)
 
     # 5. Obvious out-of-scope topics
     # Passport/licence *upload* guidance for signup is in scope, not advice

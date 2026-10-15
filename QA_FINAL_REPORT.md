@@ -1,8 +1,10 @@
-# Mission17 Quality Assurance Report — 2026-08-31
+# Mission17 Quality Assurance Report — Historical audit (2026-08-31)
+
+> **Historical snapshot only.** This audit and its approval are superseded by the revalidation addendum dated 2026-10-15 below. Do not treat the historical “READY” verdict as current release approval.
 
 ## Decision
 
-- **Overall status:** APPROVE (Ready for Physical Device Test)
+- **Historical overall status (2026-08-31):** APPROVE (Ready for Physical Device Test; superseded)
 - **Confidence:** HIGH
 - **Conservative requirements compliance:** 100%
 - **Grouped findings:** All prior findings have been addressed.
@@ -104,4 +106,43 @@ The mobile client includes Expo token registration, Android notification channel
 
 ## Final capstone assessment
 
-**READY.** The critical security, integrity, testing, and documentation issues have been systematically fixed. The backend has robust automated test coverage, and API contracts are fully reconciled. The software integrations are validated. The project is approved and unblocked for final Physical Device Push Notification testing by the human operator.
+**Historical status only: READY (superseded).** This conclusion was recorded on 2026-08-31 and has not been re-established by the checks below.
+
+## Revalidation addendum — 2026-10-15
+
+### Current decision
+
+**HOLD — the two critical dependency findings below are remediated in this checkout, but production readiness is still unproven.** High/moderate dependency advisories and the staging, credential-history, and physical-device verification gaps remain. This is not a deployment approval. No production service was contacted or changed, and no APK, live database mutation, or push notification was performed.
+
+### Execution-verified locally
+
+- Post-update backend lint and full Jest run passed: **20 suites / 160 tests**.
+- Admin lint and production build passed.
+- Mobile TypeScript check passed; regular Android JavaScript/assets export passed. This is not an APK or device test.
+- AI tests passed: **22 tests** across `test_app.py` and `test_chatbot_model_serialization.py`.
+- Targeted dependency behavior checks passed: the malformed IPv4-mapped IPv6 trust subnet no longer trusts an unrelated IPv4 address, while ordinary IPv4 and correctly formed mapped subnets still work; shell-quote rejects newline/Unicode line-separator injection tokens while preserving valid operators and argument quoting.
+- `git diff --check` passed.
+- The earlier report-refresh pass began with **44 pre-existing modified/untracked status entries**; none were reverted. Verification ran against that dirty tree and does not prove the broader changes are release-ready or isolated.
+
+### Current production-dependency audit
+
+Read-only `npm audit --omit=dev` queries against the package lockfiles completed after the targeted updates on 2026-10-15. These counts cover production dependencies only; they are advisory totals, not exploitability determinations:
+
+| Package | Total | Critical | High | Moderate | Low |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Backend | 17 | 0 | 7 | 10 | 0 |
+| Mobile | 56 | 0 | 33 | 22 | 1 |
+| Admin | 12 | 0 | 8 | 4 | 0 |
+| Website | 0 | 0 | 0 | 0 | 0 |
+
+This pass updated only the backend and mobile lockfiles: Express's `proxy-addr` dependency from **2.0.7 to 2.0.8** (GHSA-jqcg-44mw-7w3h), and React Native DevTools' `shell-quote` dependency from **1.8.3 to 1.12.0** (GHSA-w7jw-789q-3m8p). Their package manifests and application source were not changed. The backend service currently configures Express `trust proxy` as the numeric value `1`, not an IPv4-mapped subnet; the affected subnet configuration was not present in the inspected application config.
+
+### Still blocked or unverified
+
+- No staging base URL/target is identified in this checkout. The mobile API config points to the production host, so staging health/auth checks were not attempted.
+- No dedicated physical test device/recipient was provided; push delivery remains unverified. No native APK was built or installed in this pass.
+- No production deployment or production health/auth check was performed.
+- A narrow current-tree search found MongoDB-URI credential-pattern hits in documentation files and no private-key PEM marker. This is not a comprehensive secret scan, does not inspect full Git history, and does not verify rotation/revocation of any previously exposed credentials.
+- Website build/lint and a broad fresh security review were not part of this revalidation.
+
+The two critical package findings no longer reproduce in the targeted checks or the updated production-dependency audit. The remaining high/moderate advisories, historical credential rotation/history status, staging/production behavior, and device push delivery are not cleared. Re-run the release gate on a clean, scoped tree after those remediations and staging/device verification before changing this decision.

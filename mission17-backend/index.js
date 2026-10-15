@@ -18,7 +18,7 @@ import blockchainRoutes     from './routes/blockchain.js';       // retired dire
 import announcementRoutes   from './routes/announcements.js';   // barangay announcements
 import officialsRoutes      from './routes/officials.js';        // barangay officials
 import docRequestRoutes     from './routes/document-requests.js'; // document requests
-import chatbotRoutes        from './routes/chatbot.js';           // AI chatbot
+import chatbotRoutes, { chatbotJsonParser, chatbotLimiter } from './routes/chatbot.js'; // AI chatbot
 import blotterRoutes        from './routes/blotter-reports.js';   // Blotter reports
 import suggestionRoutes     from './routes/suggestions.js';       // Suggestions
 import { upload } from './utils/upload.js';
@@ -79,10 +79,6 @@ app.use(xss());
 
 // --- STANDARD MIDDLEWARE ---
 
-// 🛡️ CAPSTONE MITIGATION: 5MB Payload Cap to prevent RAM exhaustion (DoS)
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ limit: '5mb', extended: true }));
-
 const configuredCorsOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -117,6 +113,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'auth-token', 'Authorization'],
 }));
+
+// Apply the public chatbot's tighter IP limit and 16 KiB JSON cap before the
+// shared parser so oversized bodies cannot consume the 5 MiB general allowance.
+app.use('/api/chatbot', chatbotLimiter, chatbotJsonParser);
+
+// 🛡️ CAPSTONE MITIGATION: 5MB Payload Cap for the remaining API request bodies.
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ limit: '5mb', extended: true }));
 
 // 📝 Simple Request Logger with Timing
 app.use((req, res, next) => {

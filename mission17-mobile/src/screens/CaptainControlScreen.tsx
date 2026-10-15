@@ -24,6 +24,8 @@ type Blotter = {
   respondentName?: string;
   hearingDate?: string;
   hearingStage?: string;
+  caseOutcome?: string;
+  cfaFormBasis?: string | null;
   luponOfficerInCharge?: string;
 };
 type BlotterDecision = { report: Blotter; status: 'In Progress' | 'Resolved' | 'Dismissed'; label: string };
@@ -31,6 +33,25 @@ type AccountDecision = { user: User; status: 'approved' | 'rejected' };
 type Feedback = { _id: string; title: string; category?: string; sentiment?: string; status?: string };
 type DocumentRequest = { _id: string; status?: string };
 type Announcement = { _id: string; isUrgent?: boolean; category?: string };
+
+const SCHEDULED_HEARING_STAGES = [
+  'Mediation (1st Hearing)',
+  'Conciliation (2nd Hearing)',
+  'Arbitration (3rd Hearing)',
+];
+const LEGACY_OUTCOMES_BY_HEARING_STAGE: Record<string, string> = {
+  'Amicable Settlement': 'Amicable Settlement',
+  'Issued Certificate to File Action (CFA)': 'Issued Certificate to File Action (CFA)',
+};
+const getBlotterWorkflow = (report?: Blotter) => {
+  const legacyOutcome = report?.hearingStage ? LEGACY_OUTCOMES_BY_HEARING_STAGE[report.hearingStage] : undefined;
+  return {
+    hearingStage: report?.hearingStage && SCHEDULED_HEARING_STAGES.includes(report.hearingStage) ? report.hearingStage : 'None',
+    caseOutcome: report?.caseOutcome && report.caseOutcome !== 'Open'
+      ? report.caseOutcome
+      : (legacyOutcome || report?.caseOutcome || 'Open'),
+  };
+};
 
 const CaptainControlScreen = () => {
   const navigation = useNavigation<any>();
@@ -389,7 +410,9 @@ const CaptainControlScreen = () => {
               <Text style={styles.caseDetailLabel}>Respondent</Text>
               <Text style={styles.caseDetailValue}>{selectedBlotter?.respondentName || 'Not yet identified'}</Text>
               <Text style={styles.caseDetailLabel}>Lupon hearing stage</Text>
-              <Text style={styles.caseDetailValue}>{selectedBlotter?.hearingStage && selectedBlotter.hearingStage !== 'None' ? selectedBlotter.hearingStage : 'Not scheduled'}</Text>
+              <Text style={styles.caseDetailValue}>{getBlotterWorkflow(selectedBlotter).hearingStage !== 'None' ? getBlotterWorkflow(selectedBlotter).hearingStage : 'Not scheduled'}</Text>
+              <Text style={styles.caseDetailLabel}>Case outcome</Text>
+              <Text style={styles.caseDetailValue}>{getBlotterWorkflow(selectedBlotter).caseOutcome}</Text>
               <Text style={styles.caseDetailLabel}>Hearing date and time</Text>
               <Text style={styles.caseDetailValue}>{formatDateTime(selectedBlotter?.hearingDate)}</Text>
               <Text style={styles.caseDetailLabel}>Presiding official</Text>

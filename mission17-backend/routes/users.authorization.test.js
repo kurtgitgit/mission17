@@ -70,6 +70,7 @@ describe('User management authorization', () => {
     expect(response.status).toBe(200);
     expect(User.find).toHaveBeenCalledWith({ role: 'resident' });
     expect(User.countDocuments).toHaveBeenCalledWith({ role: 'resident' });
+    expect(userQuery.select).toHaveBeenCalledWith('-password -points -otpCode -otpExpires -mfaSecret');
   });
 
   it.each([

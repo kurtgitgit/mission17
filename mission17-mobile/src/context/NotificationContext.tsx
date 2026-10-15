@@ -6,15 +6,17 @@ import * as Notifications from 'expo-notifications';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { getAuthData } from '../utils/storage';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 type NotificationType = 'success' | 'error' | 'info';
 
@@ -255,6 +257,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   useEffect(() => {
+    if (Platform.OS === 'web') return;
+
     const subscription = Notifications.addPushTokenListener((token) => {
       const userId = GlobalState.userId;
       if (!userId || token.type !== 'expo') return;

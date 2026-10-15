@@ -15,6 +15,15 @@ const hasMeaningfulText = (value) => {
   return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
 };
 
+const serializeAdminSuggestion = (suggestion) => {
+  const doc = typeof suggestion?.toObject === 'function' ? suggestion.toObject() : { ...suggestion };
+  if (doc.isAnonymous) {
+    delete doc.userId;
+    doc.username = 'Anonymous Resident';
+  }
+  return doc;
+};
+
 // POST / — Resident: Submit private feedback / concern to Barangay Head
 export const submitSuggestion = asyncHandler(async (req, res) => {
   const { title, category, description, isAnonymous } = req.body;
@@ -70,14 +79,7 @@ export const getAllSuggestions = asyncHandler(async (req, res) => {
     .sort({ createdAt: -1 });
 
   // Hide sensitive personal identifiers if submitted as anonymous
-  const sanitized = suggestions.map(s => {
-    const doc = s.toObject();
-    if (doc.isAnonymous) {
-      delete doc.userId;
-      doc.username = 'Anonymous Resident';
-    }
-    return doc;
-  });
+  const sanitized = suggestions.map(serializeAdminSuggestion);
 
   res.json(sanitized);
 });
@@ -175,7 +177,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
-  res.json({ message: 'Feedback updated successfully.', suggestion });
+  res.json({ message: 'Feedback updated successfully.', suggestion: serializeAdminSuggestion(suggestion) });
 });
 
 // DELETE /:id — Admin: Delete feedback

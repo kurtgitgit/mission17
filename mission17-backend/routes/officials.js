@@ -54,8 +54,18 @@ const officialData = (body = {}) => {
   return clean;
 };
 
-// GET / — Public / Admin: officials queryable by status (default: active only)
-router.get('/', asyncHandler(async (req, res) => {
+// Active officials are public directory information. Archived and unfiltered
+// records can contain staff-only archive notes, so those views require admin.
+export const requireAdminForNonPublicOfficialList = (req, res, next) => {
+  if (req.query.status === 'archived' || req.query.status === 'all') {
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    return verifyAdmin(req, res, next);
+  }
+  return next();
+};
+
+// GET / — Public active directory; archived/all views are admin-only.
+router.get('/', requireAdminForNonPublicOfficialList, asyncHandler(async (req, res) => {
   const { status } = req.query;
   let filter = { isArchived: { $ne: true } };
 

@@ -17,6 +17,12 @@ jest.unstable_mockModule('../models/User.js', () => ({
   },
 }));
 
+jest.unstable_mockModule('../models/MfaVerifiedSession.js', () => ({
+  default: {
+    exists: jest.fn(),
+  },
+}));
+
 jest.unstable_mockModule('../models/AuditLog.js', () => ({
   default: jest.fn().mockImplementation(() => ({
     save: jest.fn().mockResolvedValue({}),
@@ -27,6 +33,7 @@ jest.unstable_mockModule('../models/AuditLog.js', () => ({
 const { verifyFirebaseToken, verifyAuthenticatedUser, verifyAdmin, verifySuperAdmin } = await import('./authMiddleware.js');
 const { getAuth } = await import('firebase-admin/auth');
 const User = (await import('../models/User.js')).default;
+const MfaVerifiedSession = (await import('../models/MfaVerifiedSession.js')).default;
 
 describe('Auth Middleware', () => {
   let req, res, next;
@@ -43,6 +50,7 @@ describe('Auth Middleware', () => {
     };
     next = jest.fn();
     jest.clearAllMocks();
+    MfaVerifiedSession.exists.mockResolvedValue(null);
   });
 
   describe('verifyFirebaseToken', () => {
@@ -65,6 +73,28 @@ describe('Auth Middleware', () => {
       expect(getAuth().verifyIdToken).toHaveBeenCalledWith('valid-token');
       expect(req.firebaseUser.uid).toBe('firebase-123');
       expect(next).toHaveBeenCalled();
+    });
+
+    it('rejects malformed, invalid, and expired Firebase tokens without entering protected handlers', async () => {
+      for (const [authorization, code] of [
+        ['Basic malformed-token', 'auth/argument-error'],
+        ['Bearer invalid-token', 'auth/invalid-id-token'],
+        ['Bearer expired-token', 'auth/id-token-expired'],
+      ]) {
+        req.header = jest.fn((name) => name === 'Authorization' ? authorization : null);
+        getAuth().verifyIdToken.mockRejectedValueOnce(Object.assign(new Error('synthetic token rejection'), { code }));
+        const tokenRes = {
+          status: jest.fn().mockReturnThis(),
+          json: jest.fn().mockReturnThis(),
+        };
+        const tokenNext = jest.fn();
+
+        await verifyFirebaseToken(req, tokenRes, tokenNext);
+
+        expect(tokenRes.status).toHaveBeenCalledWith(401);
+        expect(tokenRes.json).toHaveBeenCalledWith({ message: 'Authentication failed.' });
+        expect(tokenNext).not.toHaveBeenCalled();
+      }
     });
   });
 
@@ -118,21 +148,53 @@ describe('Auth Middleware', () => {
 
     it('should call next if user is admin', async () => {
       req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
-      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123', auth_time: 1700000000 });
       const mockAdmin = { accountStatus: 'approved', role: 'admin' };
       User.findOne.mockResolvedValueOnce(mockAdmin);
+      MfaVerifiedSession.exists.mockResolvedValueOnce({ _id: 'mfa-session-1' });
       
       await verifyAdmin(req, res, next);
       
       expect(req.user).toBe(mockAdmin);
       expect(next).toHaveBeenCalled();
+      expect(MfaVerifiedSession.exists).toHaveBeenCalledWith({
+        firebaseUid: 'firebase-123',
+        firebaseAuthTime: 1700000000,
+        expiresAt: { $gt: expect.any(Date) },
+      });
+    });
+
+    it('blocks an administrator token until this Firebase sign-in completes OTP', async () => {
+      req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123', auth_time: 1700000000 });
+      User.findOne.mockResolvedValueOnce({ accountStatus: 'approved', role: 'admin' });
+      MfaVerifiedSession.exists.mockResolvedValueOnce(null);
+
+      await verifyAdmin(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Complete the verification code step before using this account.' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('blocks MFA-enabled residents until this Firebase sign-in completes OTP', async () => {
+      req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123', auth_time: 1700000000 });
+      User.findOne.mockResolvedValueOnce({ accountStatus: 'approved', role: 'resident', mfaEnabled: true });
+      MfaVerifiedSession.exists.mockResolvedValueOnce(null);
+
+      await verifyAuthenticatedUser(req, res, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(next).not.toHaveBeenCalled();
     });
 
     it('should call next if user is super admin', async () => {
       req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
-      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123', auth_time: 1700000000 });
       const mockCaptain = { accountStatus: 'approved', role: 'super_admin' };
       User.findOne.mockResolvedValueOnce(mockCaptain);
+      MfaVerifiedSession.exists.mockResolvedValueOnce({ _id: 'mfa-session-1' });
 
       await verifyAdmin(req, res, next);
 
@@ -155,9 +217,10 @@ describe('Auth Middleware', () => {
 
     it('should call next if user is the Barangay Captain', async () => {
       req.header = jest.fn((name) => name === 'Authorization' ? 'Bearer valid-token' : null);
-      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123' });
+      getAuth().verifyIdToken.mockResolvedValueOnce({ uid: 'firebase-123', auth_time: 1700000000 });
       const mockCaptain = { accountStatus: 'approved', role: 'super_admin' };
       User.findOne.mockResolvedValueOnce(mockCaptain);
+      MfaVerifiedSession.exists.mockResolvedValueOnce({ _id: 'mfa-session-1' });
 
       await verifySuperAdmin(req, res, next);
 

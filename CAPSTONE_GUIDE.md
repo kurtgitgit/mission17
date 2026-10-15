@@ -88,7 +88,7 @@ To design, develop, and evaluate a secure, AI-verified, and blockchain-backed e-
 
 ### 3.1 Software Development Lifecycle (Agile Scrum)
 The development followed an Agile Scrum framework structured across two-week sprint cycles:
-* **Sprint 1**: Database schema design, authentication pipeline (JWT + Bcrypt + MFA OTP), and baseline REST API.
+* **Sprint 1**: Database schema design, Firebase Authentication and email-verification pipeline, and baseline REST API.
 * **Sprint 2**: Mobile UI implementation (theme.ts, resident screens) and Admin Web Portal dashboard.
 * **Sprint 3**: AI Computer Vision model training, containerization on Hugging Face, and anti-cheat hashing.
 * **Sprint 4**: Solidity smart contract design, UUPS upgradeable proxy deployment, and gas optimization.
@@ -131,16 +131,14 @@ The development followed an Agile Scrum framework structured across two-week spr
 ## 📊 Chapter 4: Results, Discussion & Performance Evaluation
 
 ### 4.1 AI Model Performance & Robustness
-The custom CNN model was trained on validated datasets for SDG 12 (Recycling) and SDG 13/15 (Tree Planting).
+The AI service is used as an evidence-screening aid for civic proof submissions. It does not replace barangay review. Before publication or defense, report only results reproduced from a versioned held-out evaluation dataset, including sample size, class distribution, confusion matrix, precision, recall, F1-score, duplicate-test method, inference environment, and date.
 
-| Metric | Target Goal | Achieved Result |
+| Metric | Target Goal | Result to Report |
 | :--- | :--- | :--- |
-| **Overall Accuracy** | ≥ 85.0% | **92.4%** |
-| **Precision (Tree Planting)** | ≥ 85.0% | **94.1%** |
-| **Recall (Tree Planting)** | ≥ 80.0% | **89.5%** |
-| **F1-Score** | ≥ 85.0% | **91.7%** |
-| **Anti-Cheat Duplicate Catch Rate** | 100% | **100% (Identical / Re-compressed images)** |
-| **Mean Inference Time** | < 1.0s | **420ms (via Hugging Face API)** |
+| **Overall Accuracy** | ≥ 85.0% | Measured result from documented held-out dataset |
+| **Precision / Recall / F1** | Project-defined | Per-class measured result with evaluation evidence |
+| **Duplicate Screening** | Scenario-based | Detection result by documented duplicate/re-compression scenarios |
+| **Inference Time** | Practical for review flow | Median and percentile latency with environment stated |
 
 ---
 
@@ -166,8 +164,8 @@ A formal User Acceptance Test (UAT) was conducted across two cohorts: **Cohort A
 ### 5.1 Summary of Findings
 1. The integration of modern mobile and web e-Services significantly reduced simulated document turnaround time by over **70%**.
 2. The decentralized Ethereum Sepolia audit trail successfully proved mathematical non-repudiation for incident resolutions.
-3. The AI verification pipeline prevented fraudulent photo uploads with a **92.4% accuracy rate** and **100% duplicate catch rate**.
-4. The Groq-powered multilingual chatbot maintained sub-second response times across 4 regional dialects.
+3. The AI-assisted evidence workflow can screen proof submissions and surface them for accountable barangay review; final performance figures require reproducible evaluation evidence.
+4. The multilingual chatbot is a guidance feature and should follow its knowledge-base safety rules, escalating uncertain or official-policy questions to barangay staff.
 
 ---
 

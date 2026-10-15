@@ -52,9 +52,6 @@ const ChatBotScreen = () => {
 
     const userMsg: ChatMessage = { id: Date.now().toString(), text, isBot: false };
 
-    // Capture history BEFORE adding the new user message (exclude initial greeting)
-    const history = messages.slice(1).map(m => ({ text: m.text, isBot: m.isBot }));
-
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
@@ -65,7 +62,7 @@ const ChatBotScreen = () => {
       const res  = await fetch(`${endpoints.auth.backendBaseUrl}/api/chatbot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, history }),
+        body: JSON.stringify({ message: text }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

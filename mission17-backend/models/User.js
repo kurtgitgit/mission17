@@ -96,14 +96,17 @@ const UserSchema = new mongoose.Schema({
     default: false 
   }, 
   mfaSecret: { 
-    type: String 
+    type: String,
+    select: false
   }, // (Reserved for Google Authenticator if needed later)
   
   otpCode: { 
-    type: String 
+    type: String,
+    select: false
   },
   otpExpires: { 
-    type: Date 
+    type: Date,
+    select: false
   },
   // Firebase remains the password authority.  We retain hashes only to stop a
   // user from cycling through recently used passwords after a verified change.

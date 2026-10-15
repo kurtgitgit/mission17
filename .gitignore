@@ -4,6 +4,7 @@ venv/
 .venv_image/
 __pycache__/
 mission17-ai/chatbot_runtime/*.pkl
+mission17-ai/chatbot_runtime/smart_classifier.json
 *.pyc
 
 # We are un-ignoring .h5 so the AI model can be deployed
@@ -21,3 +22,21 @@ mission17-mobile/firebase-service-account.json
 
 # Downloaded files
 drive_downloads/
+
+# Local build products, release checks, and generated media
+/output/
+/outputs/
+/tmp/
+/mission17-ai/outputs/
+/mission17-mobile/tmp/
+/mission17-mobile/.expo/
+/mission17-mobile/dist/
+/mission17-admin/dist/
+/mission17-website/dist/
+/mission17-website/.vercel/
+*.mp4
+repomix-output-research.txt
+
+# Local manual-design exports. The one image used by the committed manual stays tracked.
+/mission17-website/public/manual-assets/*
+!/mission17-website/public/manual-assets/blotter.png

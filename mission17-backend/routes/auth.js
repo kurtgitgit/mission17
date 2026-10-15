@@ -27,6 +27,7 @@ import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import SignupEmailVerification from '../models/SignupEmailVerification.js';
 import { logAudit, verifyAdmin, verifyAuthenticatedUser, verifyFirebaseToken } from '../utils/authMiddleware.js';
+import { recordMfaVerifiedSession } from '../utils/mfaSession.js';
 import multer from 'multer';
 import path from 'path';
 
@@ -64,6 +65,15 @@ const MAX_SIGNUP_OTP_ATTEMPTS = 10;
 const normalizeEmail = (email) => typeof email === 'string' ? email.trim().toLowerCase() : '';
 const hashSignupOtp = (email, otp) => crypto.createHash('sha256').update(`${email}:${otp}`).digest('hex');
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const serializeUserForClient = (user) => {
+  const result = typeof user?.toObject === 'function' ? user.toObject() : { ...user };
+  delete result.otpCode;
+  delete result.otpExpires;
+  delete result.mfaSecret;
+  delete result.password;
+  delete result.passwordHistory;
+  return result;
+};
 const escapeHtml = (value = '') => String(value).replace(/[&<>'"]/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 }[char]));
@@ -168,7 +178,7 @@ const verifySignupEmailToken = (token, email) => {
 // 🔧 EMAIL HELPER (OTP)
 // ==========================================
 const sendOTP = async (user, type = 'mfa') => {
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
   const isSignup = type === 'signup';
   const subject = isSignup ? 'Activate Your Account - Welcome to Mission 17!' : 'Security Verification Code - Mission 17';
@@ -755,17 +765,20 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
     const firebaseUid = decodedToken.uid;
     const email = decodedToken.email;
 
-    let user = await User.findOne({ firebaseUid });
+    let user = await User.findOne({ firebaseUid }).select('+otpCode +otpExpires');
 
     // If not found by UID, check if they exist by email (Legacy Account Migration)
     if (!user && email) {
-      user = await User.findOne({ email: new RegExp('^' + email + '$', 'i') });
+      user = await User.findOne({ email: new RegExp(`^${escapeRegex(email)}$`, 'i') }).select('+otpCode +otpExpires');
       if (user) {
         // Never attach an unverified Firebase identity to an existing account.
         // This prevents possession of an unverified matching email from taking
         // over a legacy MongoDB account.
         if (decodedToken.email_verified !== true) {
           return res.status(403).json({ message: 'Please verify your email before linking this account.' });
+        }
+        if (user.firebaseUid && user.firebaseUid !== firebaseUid) {
+          return res.status(409).json({ message: 'This account is already linked to another sign-in identity. Contact the barangay administrator.' });
         }
         // Link the existing legacy account to the new Firebase UID using updateOne to bypass strict validation
         await User.updateOne({ _id: user._id }, { $set: { firebaseUid } });
@@ -785,7 +798,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       // reason and correct/resubmit their registration. This does not grant
       // any normal protected-route access (enforced in authMiddleware).
       if (user.accountStatus === 'rejected') {
-        return res.status(200).json({ user, registrationActionRequired: true });
+        return res.status(200).json({ user: serializeUserForClient(user), registrationActionRequired: true });
       }
 
       if (req.body.isAdminLogin && !['admin', 'super_admin'].includes(user.role)) {
@@ -808,7 +821,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
       }
 
       logAudit(user._id, user.username, "LOGIN_SUCCESS", "User synced successfully via Firebase", req);
-      return res.status(200).json({ user });
+      return res.status(200).json({ user: serializeUserForClient(user) });
     }
 
     // Otherwise, create a new user in MongoDB (Signup Flow)
@@ -889,7 +902,7 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
 
     logAudit(user._id, user.username, "SIGNUP_INITIATED", "New account synced via Firebase", req);
 
-    res.status(201).json({ message: "Account created and synced!", user });
+    res.status(201).json({ message: "Account created and synced!", user: serializeUserForClient(user) });
   } catch (error) {
     console.error("Sync Error:", error);
     if (error?.name === 'ValidationError') return res.status(400).json({ message: error.message });
@@ -902,10 +915,10 @@ router.post('/sync-user', verifyFirebaseToken, cpUpload, async (req, res) => {
 // ==========================================
 // 🛡️ VERIFY OTP ROUTE (Nodemailer)
 // ==========================================
-router.post('/verify-otp', verifyFirebaseToken, otpVerifyLimiter, async (req, res) => {
+export const verifyOtpHandler = async (req, res) => {
   const { otp } = req.body;
   try {
-    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid });
+    const user = await User.findOne({ firebaseUid: req.firebaseUser.uid }).select('+otpCode +otpExpires');
     if (!user) {
       return res.status(401).json({ message: 'Your account is not registered in this service.' });
     }
@@ -917,31 +930,56 @@ router.post('/verify-otp', verifyFirebaseToken, otpVerifyLimiter, async (req, re
       return res.status(400).json({ message: 'A valid six-digit OTP is required.' });
     }
 
-    if (user.otpCode !== otp || user.otpExpires < Date.now()) {
+    const now = new Date();
+    const accountRequiresMfa = ['admin', 'super_admin'].includes(user.role) || user.mfaEnabled === true;
+    const isSignupVerification = user.accountStatus === 'pending' && user.isVerified !== true;
+    if (!accountRequiresMfa && !isSignupVerification) {
+      return res.status(400).json({ message: 'This account does not have a pending verification step.' });
+    }
+    if (accountRequiresMfa && user.accountStatus === 'approved'
+      && (!Number.isSafeInteger(req.firebaseUser.auth_time) || req.firebaseUser.auth_time <= 0)) {
+      return res.status(401).json({ message: 'Sign in again before completing the verification step.' });
+    }
+
+    if (user.otpCode !== otp || !(user.otpExpires instanceof Date) || user.otpExpires <= now) {
       logAudit(user._id, user.username, "LOGIN_FAILED", "Invalid or expired OTP", req);
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }
 
-    // OTP verifies email possession. It must never replace human account approval.
-    const updatedUser = await User.findByIdAndUpdate(
-      user._id,
+    // Consume the code atomically so concurrent/replayed submissions cannot
+    // create multiple MFA-complete sessions from the same one-time code.
+    const updatedUser = await User.findOneAndUpdate(
       {
-        $set: {
-          otpCode: null,
-          otpExpires: null,
-          isVerified: true
-        }
+        _id: user._id,
+        firebaseUid: req.firebaseUser.uid,
+        otpCode: otp,
+        otpExpires: { $gt: now },
+        accountStatus: { $ne: 'rejected' },
       },
+      { $set: { otpCode: null, otpExpires: null, isVerified: true } },
       { new: true }
     );
+    if (!updatedUser) {
+      logAudit(user._id, user.username, "LOGIN_FAILED", "Invalid, expired, or already-used OTP", req);
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // A pending resident's code verifies signup email only. For an approved
+    // account requiring MFA, persist proof bound to this Firebase sign-in's
+    // auth_time; protected API middleware checks this marker on every request.
+    if (accountRequiresMfa && user.accountStatus === 'approved') {
+      await recordMfaVerifiedSession(req.firebaseUser.uid, req.firebaseUser.auth_time, now);
+    }
 
     logAudit(user._id, user.username, "OTP_VERIFIED", "Email OTP verified", req);
-    res.json({ message: "OTP verified. Account approval is still required.", user: updatedUser });
+    res.json({ message: "OTP verified. Account approval is still required.", user: serializeUserForClient(updatedUser) });
   } catch (error) {
     console.error("Verify OTP Error:", error);
     res.status(500).json({ message: "Error verifying OTP" });
   }
-});
+};
+
+router.post('/verify-otp', verifyFirebaseToken, otpVerifyLimiter, verifyOtpHandler);
 
 // Request a fresh code without forcing the user to restart the login flow.
 router.post('/resend-otp', verifyFirebaseToken, otpResendLimiter, async (req, res) => {
