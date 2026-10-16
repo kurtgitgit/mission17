@@ -181,6 +181,27 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(result.reply).not.toContain("I don't know about that");
   });
 
+  it('does not mistake an unrelated question for a general BrgyLink overview', () => {
+    const result = resolveAiChatReply(
+      'What does the word flibbertigibbet mean in BrgyLink?',
+      { intent: 'about_app', response: 'BrgyLink AI can help with registration and document requests.' },
+    );
+
+    expect(result.source).toBe('safe-local-fallback');
+    expect(result.reply).toContain("I'm sorry");
+    expect(result.reply).toContain('official barangay office');
+  });
+
+  it('keeps a general app overview when the user asks what BrgyLink is', () => {
+    const result = resolveAiChatReply('What is BrgyLink?', {
+      intent: 'about_app',
+      response: 'BrgyLink AI can help with registration and document requests.',
+    });
+
+    expect(result.source).toBe('brgylink-ai-classifier');
+    expect(result.reply).toContain('BrgyLink AI can help');
+  });
+
   it('preserves AI answers for recognized intents', () => {
     const result = resolveAiChatReply('Tell me about this barangay program', {
       intent: 'community_program',

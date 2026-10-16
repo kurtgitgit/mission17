@@ -213,10 +213,12 @@ export const outOfScopeReply = (message) => {
 };
 
 const UNKNOWN_CHATBOT_INTENTS = new Set(['fallback', 'out_of_scope', 'unknown', 'unanswered']);
+const ABOUT_APP_QUESTION_PATTERN = /\b(?:what\s+is|what['’]s|tell\s+me\s+about|describe|explain)\s+(?:the\s+)?brgylink(?:\s+app)?\b|\bwhat\s+(?:can|does)\s+(?:brgylink|the\s+app)\b|\bbrgylink\s+(?:features|services|capabilities)\b/i;
 
 export const resolveAiChatReply = (message, aiReply) => {
   const intent = typeof aiReply?.intent === 'string' ? aiReply.intent.trim().toLowerCase() : '';
-  if (UNKNOWN_CHATBOT_INTENTS.has(intent)) {
+  const misclassifiedAboutAppQuestion = intent === 'about_app' && !ABOUT_APP_QUESTION_PATTERN.test(message);
+  if (UNKNOWN_CHATBOT_INTENTS.has(intent) || misclassifiedAboutAppQuestion) {
     return { reply: getSafeFallbackReply(message), source: 'safe-local-fallback' };
   }
   return {
