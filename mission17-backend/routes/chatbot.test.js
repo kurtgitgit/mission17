@@ -73,30 +73,55 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('does not treat an acknowledgment at the start of a question as a standalone reply', () => {
     const reply = getControlledFaq('Okay, how do I file a blotter report?');
-    expect(reply).toContain("'Blotter Reports'");
-    expect(reply).toContain("'File New Report'");
+    expect(reply).toContain("'Blotter Incident'");
+    expect(reply).toContain("'File a Blotter Report'");
   });
 
   it('returns a controlled Ilocano clearance answer instead of calling the model', () => {
     const message = 'Mabalin ba nga agkiddaw iti barangay clearance?';
     expect(detectLanguage(message)).toBe('ilocano');
     expect(isInScope(message)).toBe(true);
-    expect(getControlledFaq(message)).toContain("'Document Requests'");
+    expect(getControlledFaq(message)).toContain("'Clearance & ID'");
     expect(getControlledFaq(message)).toContain('opisial a barangay office');
   });
 
   it('returns a controlled Tagalog blotter answer', () => {
     const message = 'Paano ako magrereklamo sa barangay?';
     expect(detectLanguage(message)).toBe('tagalog');
-    expect(getControlledFaq(message)).toContain("'Blotter Reports'");
-    expect(getMockReply(message)).toContain("'File New Report'");
+    expect(getControlledFaq(message)).toContain("'Blotter Incident'");
+    expect(getMockReply(message)).toContain("'File a Blotter Report'");
   });
 
   it('answers the app FAQ questions with controlled, app-grounded guidance', () => {
     expect(getControlledFaq('I forgot my password. What should I do?')).toContain('Forgot Password');
-    expect(getControlledFaq('I did not receive my verification code.')).toContain('6-digit code');
-    expect(getControlledFaq('How do I check my document request status?')).toContain('reference number');
+    const verificationReply = getControlledFaq('I did not receive my verification code.');
+    expect(verificationReply).toContain("'Resend verification code'");
+    expect(verificationReply).toContain("'Resend Code'");
+    expect(verificationReply).not.toContain('no verified');
+    const statusReply = getControlledFaq('How do I check my document request status?');
+    expect(statusReply).toContain("'Clearance & ID'");
+    expect(statusReply).toContain("'My Requests'");
+    expect(statusReply).toContain('reference number');
     expect(getControlledFaq('What can BrgyLink help me do?')).toContain('document requests, blotter reports');
+  });
+
+  it('uses the current mobile app labels in the clearance, blotter, and officials FAQs', () => {
+    const clearanceReply = getControlledFaq('How do I request a Barangay Clearance?');
+    expect(clearanceReply).toContain("'Clearance & ID'");
+    expect(clearanceReply).toContain("'New Request'");
+    expect(clearanceReply).toContain('News tab');
+    expect(clearanceReply).not.toContain("'Document Requests'");
+
+    const blotterReply = getControlledFaq('How do I file a blotter report?');
+    expect(blotterReply).toContain("'Blotter Incident'");
+    expect(blotterReply).toContain("'File a Blotter Report'");
+    expect(blotterReply).toContain("'My Blotter Reports'");
+    expect(blotterReply).not.toContain("'File New Report'");
+
+    const officialsReply = getControlledFaq('Who are the current barangay officials?');
+    expect(officialsReply).toContain("'Barangay Council'");
+    expect(officialsReply).toContain('From BrgyLink Home');
+    expect(officialsReply).not.toContain('Barangay E-Services');
   });
 
   it('prioritizes local emergency guidance over a normal blotter workflow', () => {
@@ -128,7 +153,7 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('does not treat an explicitly non-emergency blotter request as an active emergency', () => {
     const reply = getControlledFaq('No emergency is happening. How can I file a non-emergency incident report?');
-    expect(reply).toContain("'File New Report'");
+    expect(reply).toContain("'File a Blotter Report'");
     expect(reply).not.toContain('RHU Ambulance');
     expect(reply).not.toContain('911');
   });
@@ -221,9 +246,9 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(reply).toContain('Bhea Monique San Miguel');
   });
 
-  it('routes official-directory questions to Barangay E-Services without disclosing individual contact details', () => {
+  it('routes official-directory questions to the mobile Barangay Council tile without disclosing individual contact details', () => {
     const reply = getControlledFaq("What is the Punong Barangay's phone number?");
-    expect(reply).toContain('Barangay E-Services');
+    expect(reply).toContain('From BrgyLink Home');
     expect(reply).toContain("'Barangay Council'");
     expect(reply).not.toContain('0991-698-2914');
   });
@@ -382,8 +407,32 @@ describe('chatbot multilingual routing and fallback', () => {
       findMissions: jest.fn().mockResolvedValue([{ title: 'Care for a Plant', sdgNumber: 15 }]),
       findEvents: jest.fn(),
     };
-    await expect(getLiveChatReply('May latest announcement ba?', dependencies)).resolves.toContain('Clean-up Drive');
+    const reply = await getLiveChatReply('What are the latest barangay announcements?', dependencies);
+    expect(reply).toContain('Clean-up Drive');
+    expect(reply).toContain('Environment');
+    expect(reply).toContain('News tab, or on Home choose Barangay Bulletins > See all');
+    expect(reply).not.toContain('(environment)');
     await expect(getLiveChatReply('Ano ang retired feature?', dependencies)).resolves.toBeNull();
+  });
+
+  it('summarizes long announcement titles without cutting a word in half', async () => {
+    const title = 'PhilHealth Yakap registration and Guiconsulta is coming to San Jacinto for residents';
+    const reply = await getLiveChatReply('What are the latest barangay announcements?', {
+      findOfficials: jest.fn(),
+      findAnnouncements: jest.fn().mockResolvedValue([{ title, category: 'health', isUrgent: false }]),
+    });
+    expect(reply).toContain('PhilHealth Yakap registration and Guiconsulta is coming to San Jacinto for…');
+    expect(reply).toContain('Health & Wellness');
+    expect(reply).not.toContain('for res');
+  });
+
+  it('answers where-to-find-announcement questions with the actual mobile navigation', async () => {
+    const findAnnouncements = jest.fn();
+    await expect(getLiveChatReply('Where can I find barangay announcements?', {
+      findOfficials: jest.fn(),
+      findAnnouncements,
+    })).resolves.toBe('You can find barangay announcements in the News tab. You can also go to Home and choose Barangay Bulletins > See all.');
+    expect(findAnnouncements).not.toHaveBeenCalled();
   });
 
   it('does not let live-data answers override an emergency request', async () => {
@@ -452,7 +501,8 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'How do I request a Barangay Clearance?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('controlled-faq');
-    expect(res.body.reply).toContain("'Document Requests'");
+    expect(res.body.reply).toContain("'Clearance & ID'");
+    expect(res.body.reply).toContain("'New Request'");
     expect(res.body.reply).toContain("'Barangay Clearance'");
     expect(res.body.reply).not.toMatch(/[₱]|php\s*\d|\b\d+\s*(?:days?|araw|oras|hours?)\b|\bpdf\b|\bqr\s*code\b/i);
   });
@@ -463,8 +513,8 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'How do I file a blotter report?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('controlled-faq');
-    expect(res.body.reply).toContain("'Blotter Reports'");
-    expect(res.body.reply).toContain("'File New Report'");
+    expect(res.body.reply).toContain("'Blotter Incident'");
+    expect(res.body.reply).toContain("'File a Blotter Report'");
     expect(res.body.reply).toContain('Home > Emergency Hotlines');
     expect(res.body.reply).not.toContain('911');
   });
@@ -475,7 +525,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'No emergency is happening. How can I file a non-emergency incident report?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('controlled-faq');
-    expect(res.body.reply).toContain("'File New Report'");
+    expect(res.body.reply).toContain("'File a Blotter Report'");
     expect(res.body.reply).not.toContain('RHU Ambulance');
     expect(res.body.reply).not.toContain('911');
   });
@@ -503,7 +553,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
         .send({ message: 'Who are the current barangay officials?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('controlled-faq');
-      expect(res.body.reply).toContain('Barangay E-Services');
+      expect(res.body.reply).toContain('From BrgyLink Home');
       expect(res.body.reply).toContain("'Barangay Council'");
       expect(res.body.reply).not.toContain('Hon. Reynaldo Cruz');
     });
@@ -514,7 +564,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
         .send({ message: 'Who are the current barangay officials?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('controlled-faq');
-      expect(res.body.reply).toContain('Barangay E-Services');
+      expect(res.body.reply).toContain('From BrgyLink Home');
     });
 
     it('returns published active announcements when available in live data', async () => {
@@ -529,17 +579,19 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
 
       const res = await request(app)
         .post('/api/chatbot')
-        .send({ message: 'Where can I find barangay announcements?' });
+        .send({ message: 'What are the latest barangay announcements?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('live-brgylink-data');
       expect(res.body.reply).toContain('Community General Assembly');
-      expect(res.body.reply).toContain('URGENT');
+      expect(res.body.reply).toContain('General');
+      expect(res.body.reply).toContain('priority alert');
+      expect(res.body.reply).toContain('News tab, or on Home choose Barangay Bulletins > See all');
     });
 
     it('returns honest message when no active announcements are published yet', async () => {
       const res = await request(app)
         .post('/api/chatbot')
-        .send({ message: 'Where can I find barangay announcements?' });
+        .send({ message: 'What are the latest barangay announcements?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('live-brgylink-data');
       expect(res.body.reply).toContain('There are no active announcements published in BrgyLink yet');
@@ -567,7 +619,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
     expect(res.body.reply).toContain('0917-189-4611');
     expect(res.body.reply).toContain('Hindi nakakapagpadala o nakakatawag ng tulong ang BrgyLink');
     expect(res.body.reply).not.toContain('911');
-    expect(res.body.reply).not.toContain("'File New Report'");
+    expect(res.body.reply).not.toContain("'Blotter Incident'");
   });
 
   describe('Case 8: Failure recovery and safe fallback', () => {
