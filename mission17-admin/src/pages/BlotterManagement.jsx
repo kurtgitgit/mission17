@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer, Scale, Calendar, ShieldCheck, AlertCircle } from 'lucide-react';
+import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer, Scale, Calendar, ShieldCheck, AlertCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
 import { useNotification } from '../context/NotificationContext';
@@ -392,6 +392,7 @@ const BlotterManagement = () => {
   const [caseFilter, setCaseFilter] = useState('All');
   
   const [selectedReport, setSelectedReport] = useState(null);
+  const [workflowStep, setWorkflowStep] = useState(1);
   const [newStatus, setNewStatus] = useState('');
   const [triageOutcome, setTriageOutcome] = useState('Pending Review');
   const [adminRemarks, setAdminRemarks] = useState('');
@@ -411,10 +412,25 @@ const BlotterManagement = () => {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
   const updatingRef = useRef(false);
+  const isCaseModalOpen = Boolean(selectedReport);
 
   useEffect(() => {
     fetchReports();
   }, []);
+
+  useEffect(() => {
+    if (!isCaseModalOpen) return undefined;
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = event => {
+      if (event.key === 'Escape' && !showKpModal && !outcomeFormType) setSelectedReport(null);
+    };
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCaseModalOpen, showKpModal, outcomeFormType]);
 
   useEffect(() => {
     let objectUrl;
@@ -465,6 +481,7 @@ const BlotterManagement = () => {
   const handleSelectReport = (report) => {
     const values = getCaseFormValues(report);
     setSelectedReport(report);
+    setWorkflowStep(1);
     setNewStatus(values.status);
     setTriageOutcome(values.triageOutcome);
     setAdminRemarks(values.adminRemarks);
@@ -641,6 +658,13 @@ const BlotterManagement = () => {
     const matchesFilter = caseFilter === 'All' ||
       (caseFilter === 'Hearing Scheduled' ? hasHearing : r.status === caseFilter);
     return matchesSearch && matchesFilter;
+  }).sort((left, right) => {
+    const isActionable = report => !['Resolved', 'Dismissed'].includes(report.status);
+    const leftOpen = isActionable(left);
+    const rightOpen = isActionable(right);
+    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
+    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
+    return leftOpen ? createdDelta : -createdDelta;
   });
 
   const isTerminalCase = (status) => ['Resolved', 'Dismissed'].includes(status);
@@ -782,21 +806,24 @@ const BlotterManagement = () => {
             </div>
           </div>
 
-          {/* RIGHT: CASE DETAILS (DETAIL) */}
-          <div className="admin-workspace-panel blotter-detail-panel">
-            {!selectedReport ? (
-              <div className="blotter-detail-empty">
-                <FileText size={64} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                <h3 style={{ margin: '0 0 6px 0', color: '#475569' }}>Select a blotter case to view details</h3>
-                <p style={{ margin: 0, fontSize: 13 }}>Click on any incident report from the left queue to review and schedule Lupon conciliation.</p>
-              </div>
-            ) : (
-              <>
+          {selectedReport && (
+            <div
+              className="blotter-case-modal-backdrop"
+              role="presentation"
+              onMouseDown={event => { if (event.target === event.currentTarget && !showKpModal && !outcomeFormType) setSelectedReport(null); }}
+            >
+              <section
+                className="admin-workspace-panel blotter-detail-panel blotter-case-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="blotter-modal-title"
+                onMouseDown={event => event.stopPropagation()}
+              >
                 {/* CASE HEADER */}
                 <div className="blotter-case-header">
                   <div>
                     <p className="blotter-eyebrow">SELECTED CASE</p>
-                    <h2>
+                    <h2 id="blotter-modal-title">
                       {selectedReport.referenceNumber}
                     </h2>
                     <span className="blotter-case-subtitle">
@@ -848,6 +875,15 @@ const BlotterManagement = () => {
                     >
                       <Printer size={14} />
                       Print
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedReport(null)}
+                      className="no-print blotter-modal-close"
+                      aria-label="Close case details"
+                      title="Close case details"
+                    >
+                      <X size={18} />
                     </button>
                   </div>
                 </div>
@@ -1006,6 +1042,25 @@ const BlotterManagement = () => {
                       </div>
                     </div>
 
+                    <div className="blotter-wizard-steps" aria-label="Blotter case workflow steps">
+                      {[
+                        ['1', 'Staff review'],
+                        ['2', 'Lupon scheduling'],
+                        ['3', 'Outcome & forms'],
+                      ].map(([step, label]) => (
+                        <button
+                          key={step}
+                          type="button"
+                          className={`blotter-wizard-step${workflowStep === Number(step) ? ' is-current' : ''}${workflowStep > Number(step) ? ' is-complete' : ''}`}
+                          onClick={() => setWorkflowStep(Number(step))}
+                          aria-current={workflowStep === Number(step) ? 'step' : undefined}
+                        >
+                          <span>{step}</span><strong>{label}</strong>
+                        </button>
+                      ))}
+                    </div>
+
+                    {workflowStep === 1 && <>
                     <div className="blotter-workflow-step-head"><span>1</span><div><strong>Staff review</strong><small>Choose the next handling path and record confirmed information.</small></div></div>
                     <div className="blotter-decision-grid">
                       <div className="form-group">
@@ -1066,7 +1121,9 @@ const BlotterManagement = () => {
                         <small style={{ display: 'block', marginTop: 6, color: '#64748b' }}>Confirm the person's identity before entering it here; a resident-provided name is unverified.</small>
                       </div>
                     </div>
+                    </>}
 
+                    {workflowStep === 2 && <>
                     <div className="blotter-workflow-step-head"><span>2</span><div><strong>Lupon scheduling</strong><small>Complete these details only when a Lupon referral and hearing are appropriate.</small></div></div>
                     <div className="blotter-hearing-grid">
                       <div className="form-group">
@@ -1153,7 +1210,9 @@ const BlotterManagement = () => {
                         </small>
                       </div>
                     )}
+                    </>}
 
+                    {workflowStep === 3 && <>
                     <div className="blotter-workflow-step-head"><span>3</span><div><strong>Case outcome & forms</strong><small>Record the outcome separately from hearing progress. Confirm the applicable CFA basis before saving.</small></div></div>
                     <div className="blotter-decision-grid">
                       <div className="form-group">
@@ -1214,8 +1273,21 @@ const BlotterManagement = () => {
                       />
                     </div>
 
+                    </>}
+
                     <div className="blotter-action-bar">
-                      <button
+                      {workflowStep > 1 && <button type="button" className="blotter-wizard-back" onClick={() => setWorkflowStep(current => Math.max(1, current - 1))}>Back</button>}
+                      {workflowStep < 3 ? (
+                        <button
+                          type="button"
+                          className="btn primary blotter-wizard-next"
+                          onClick={() => setWorkflowStep(current => Math.min(3, current + 1))}
+                          disabled={workflowStep === 2 && (!hasCompleteHearingSchedule || !hasPriorProcessNote)}
+                          title={workflowStep === 2 && !hasCompleteHearingSchedule ? 'Complete the required hearing details before continuing' : workflowStep === 2 && !hasPriorProcessNote ? 'Add the required note for the skipped hearing stage before continuing' : 'Continue to the next workflow step'}
+                        >
+                          Continue to {workflowStep === 1 ? 'Lupon scheduling' : 'Outcome & forms'}
+                        </button>
+                      ) : <button
                         type="button"
                         onClick={handleUpdateStatus} 
                         disabled={isCaseFormSaveDisabled}
@@ -1224,7 +1296,7 @@ const BlotterManagement = () => {
                         className="btn primary blotter-save-button"
                       >
                         {updating ? 'Saving changes…' : 'Save review and changes'}
-                      </button>
+                      </button>}
 
                       {!isTerminalCase(selectedReport.status) && (
                       <button
@@ -1255,9 +1327,9 @@ const BlotterManagement = () => {
                     </div>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              </section>
+            </div>
+          )}
         </div>
       </main>
     </div>

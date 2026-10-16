@@ -121,7 +121,7 @@ export const getAllRequests = asyncHandler(async (req, res) => {
   const filter = req.query.status ? { status: req.query.status } : {};
   const requests = await DocumentRequest.find(filter)
     .populate('userId', 'purok idType validIdFrontUrl validIdBackUrl accountStatus isVerified email completeAddress voterStatus mobileNumber')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: 1, _id: 1 });
   res.json(requests);
 });
 

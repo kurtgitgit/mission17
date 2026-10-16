@@ -71,6 +71,13 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(getMockReply(message)).toContain("'File New Report'");
   });
 
+  it('answers the app FAQ questions with controlled, app-grounded guidance', () => {
+    expect(getControlledFaq('I forgot my password. What should I do?')).toContain('Forgot Password');
+    expect(getControlledFaq('I did not receive my verification code.')).toContain('6-digit code');
+    expect(getControlledFaq('How do I check my document request status?')).toContain('reference number');
+    expect(getControlledFaq('What can BrgyLink help me do?')).toContain('document requests, blotter reports');
+  });
+
   it('prioritizes local emergency guidance over a normal blotter workflow', () => {
     const reply = getControlledFaq('May sunog at kailangan ko mag-file ng blotter!');
     expect(reply).toContain('BFP San Jacinto');

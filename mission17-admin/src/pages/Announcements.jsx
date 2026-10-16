@@ -8,9 +8,9 @@ import '../styles/PortalAdmin.css';
 
 const DEFAULT_CATEGORIES = ['general', 'health', 'safety', 'environment', 'services'];
 const CAT_LABELS = {
-  general: 'General', health: 'Health', safety: 'Safety & Security',
-  environment: 'Environment', services: 'Services',
-  urgent: 'Emergency / Urgent'
+  general: 'General', health: 'Health & Wellness', safety: 'Public Safety',
+  environment: 'Environment', services: 'Public Services',
+  urgent: 'Emergency Alert'
 };
 const CAT_COLORS = {
   general: { bg: '#dcfce7', text: '#16a34a' },
@@ -18,6 +18,7 @@ const CAT_COLORS = {
   safety:  { bg: '#fee2e2', text: '#dc2626' },
   environment: { bg: '#dcfce7', text: '#15803d' },
   services:{ bg: '#fef3c7', text: '#b45309' },
+  urgent: { bg: '#fee2e2', text: '#dc2626' },
 };
 
 const Announcements = () => {

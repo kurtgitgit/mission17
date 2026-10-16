@@ -22,7 +22,7 @@ import Svg, { Defs, Ellipse, RadialGradient, Stop } from 'react-native-svg';
 import { useNotification } from '../context/NotificationContext';
 import { useTheme } from '../context/ThemeContext';
 import { endpoints, GlobalState } from '../config/api';
-import { saveAuthData, type FallbackSession } from '../utils/storage';
+import { AUTH_SESSION_DURATION_MS, saveAuthData, type FallbackSession } from '../utils/storage';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword, signInWithCredential, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
@@ -339,7 +339,7 @@ export default function LoginScreen() {
     GlobalState.auth = { token: data.token };
     GlobalState.fallbackSession = data.fallbackSession || null;
     GlobalState.tempFallbackSession = null;
-    await saveAuthData(data.token, userData, data.fallbackSession || null);
+    await saveAuthData(data.token, userData, data.fallbackSession || null, Date.now() + AUTH_SESSION_DURATION_MS);
     showNotification(`Welcome back, ${data.user.username}!`, "success");
     
     // Register device for push notifications

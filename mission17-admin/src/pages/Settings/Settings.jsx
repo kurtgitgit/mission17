@@ -352,11 +352,11 @@ const Settings = () => {
 
               <div className="preference-item" style={{ borderBottom: 'none', paddingBottom: 0 }}>
                 <div className="pref-text">
-                  <h4>Session Timeout</h4>
-                  <p>JWT tokens expire after 24 hours automatically.</p>
+                  <h4>Mobile app session</h4>
+                  <p>Resident and Captain mobile sign-ins expire after 7 days. The web admin portal follows its own sign-in settings.</p>
                 </div>
                 <span style={cardStyles.infoBadge}>
-                  <Globe size={11} /> 24h
+                  <Globe size={11} /> 7 days
                 </span>
               </div>
             </div>

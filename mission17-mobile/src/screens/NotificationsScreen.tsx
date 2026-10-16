@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator,
-  RefreshControl, StatusBar, Alert
+  RefreshControl, StatusBar, Modal
 } from 'react-native';
-import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck } from 'lucide-react-native';
+import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck, X } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
@@ -15,6 +15,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const [confirmClearVisible, setConfirmClearVisible] = useState(false);
+  const [clearError, setClearError] = useState('');
   
   const userId = route.params?.userId || GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
@@ -87,9 +89,11 @@ export default function NotificationsScreen({ navigation, route }: any) {
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || `Notification clearing failed (${response.status})`);
       setNotifications([]);
+      setConfirmClearVisible(false);
+      setClearError('');
     } catch (error) {
       console.error('Failed to clear notifications:', error);
-      Alert.alert('Could not clear alerts', getFriendlyNetworkMessage(error, 'Please try again.'));
+      setClearError(getFriendlyNetworkMessage(error, 'Please try again.'));
     } finally {
       setClearing(false);
     }
@@ -97,14 +101,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
 
   const handleClearAll = () => {
     if (!notifications.length || clearing) return;
-    Alert.alert(
-      'Clear all alerts?',
-      'This permanently removes your notification history. It will not delete your document requests, blotter reports, or account.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear All', style: 'destructive', onPress: () => { void clearAllNotifications(); } },
-      ],
-    );
+    setClearError('');
+    setConfirmClearVisible(true);
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -218,6 +216,42 @@ export default function NotificationsScreen({ navigation, route }: any) {
           }
         />
       )}
+
+      <Modal
+        visible={confirmClearVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => { if (!clearing) setConfirmClearVisible(false); }}
+      >
+        <View style={styles.dialogBackdrop}>
+          <View style={styles.dialogCard} accessibilityRole="alert">
+            <View style={styles.dialogHeader}>
+              <View style={styles.dialogIcon}><Trash2 size={21} color="#b42318" /></View>
+              <TouchableOpacity
+                onPress={() => { if (!clearing) setConfirmClearVisible(false); }}
+                disabled={clearing}
+                style={styles.dialogClose}
+                accessibilityRole="button"
+                accessibilityLabel="Close clear alerts confirmation"
+              >
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.dialogTitle}>Clear all alerts?</Text>
+            <Text style={styles.dialogMessage}>This removes your notification history. Your document requests, blotter reports, and account will not be affected.</Text>
+            {clearError ? <Text style={styles.dialogError}>{clearError}</Text> : null}
+            <View style={styles.dialogActions}>
+              <TouchableOpacity disabled={clearing} onPress={() => setConfirmClearVisible(false)} style={styles.dialogCancel} accessibilityRole="button">
+                <Text style={styles.dialogCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={clearing} onPress={() => void clearAllNotifications()} style={[styles.dialogConfirm, clearing && styles.dialogDisabled]} accessibilityRole="button">
+                {clearing ? <ActivityIndicator size="small" color="#fff" /> : <Trash2 size={16} color="#fff" />}
+                <Text style={styles.dialogConfirmText}>{clearing ? 'Clearing…' : 'Clear alerts'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </RootComponent>
   );
 }
@@ -275,5 +309,19 @@ const styles = StyleSheet.create({
   emptyIconCircle: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginBottom: 14, borderWidth: 1.5, borderColor: '#bfdbfe' },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: '#0f172a', marginBottom: 6 },
   emptyText: { color: '#64748b', textAlign: 'center', fontSize: 13, lineHeight: 19 },
+  dialogBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: 'rgba(15, 23, 42, 0.58)' },
+  dialogCard: { width: '100%', maxWidth: 440, backgroundColor: '#fff', borderRadius: 22, padding: 22, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#0f172a', shadowOpacity: 0.22, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 12 },
+  dialogHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  dialogIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff1f0' },
+  dialogClose: { padding: 6 },
+  dialogTitle: { color: '#0f172a', fontSize: 21, lineHeight: 27, fontWeight: '900' },
+  dialogMessage: { color: '#475569', fontSize: 14, lineHeight: 21, marginTop: 9 },
+  dialogError: { color: '#b42318', backgroundColor: '#fff1f0', borderColor: '#fecaca', borderWidth: 1, borderRadius: 10, padding: 11, marginTop: 14, fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  dialogActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginTop: 22 },
+  dialogCancel: { minHeight: 44, paddingHorizontal: 14, borderRadius: 11, borderWidth: 1, borderColor: '#cbd5e1', justifyContent: 'center' },
+  dialogCancelText: { color: '#334155', fontSize: 14, fontWeight: '800' },
+  dialogConfirm: { minHeight: 44, paddingHorizontal: 15, borderRadius: 11, backgroundColor: '#b42318', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  dialogConfirmText: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  dialogDisabled: { opacity: 0.65 },
 });
 

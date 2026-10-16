@@ -105,6 +105,12 @@ const Suggestions = () => {
       || (statusFilter === 'Open' && !['Resolved', 'Dismissed'].includes(s.status || 'New'))
       || s.status === statusFilter;
     return matchesSearch && matchesSentiment && matchesStatus;
+  }).sort((left, right) => {
+    const leftOpen = !['Resolved', 'Dismissed'].includes(left.status || 'New');
+    const rightOpen = !['Resolved', 'Dismissed'].includes(right.status || 'New');
+    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
+    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
+    return leftOpen ? createdDelta : -createdDelta;
   });
 
   const getSentimentBadge = (sentiment) => {

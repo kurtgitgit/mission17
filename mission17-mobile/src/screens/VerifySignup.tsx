@@ -15,7 +15,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ShieldCheck, Mail, ArrowLeft } from 'lucide-react-native';
 import { useNotification } from '../context/NotificationContext';
-import { endpoints, getAuthHeaders } from '../config/api';
+import { endpoints, getSignupVerificationAuthHeaders } from '../config/api';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
@@ -44,14 +44,14 @@ const VerifySignup = () => {
     try {
       const response = await fetchWithTimeout(endpoints.auth.verifyOTP, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(await getAuthHeaders()) },
+        headers: { 'Content-Type': 'application/json', ...(await getSignupVerificationAuthHeaders()) },
         body: JSON.stringify({ otp }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        const authorization = await getAuthHeaders();
+        const authorization = await getSignupVerificationAuthHeaders();
         const firebaseToken = authorization.Authorization.replace(/^Bearer\s+/i, '');
         await signOut(auth);
         navigation.replace('PendingApproval', { firebaseToken });

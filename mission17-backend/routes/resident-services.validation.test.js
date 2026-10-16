@@ -146,6 +146,7 @@ describe('resident service validation and duplicate protection', () => {
       reportedRespondentName: 'Pedro Santos'
     };
     expect((await request(app).post('/api/blotter-reports').send({ ...payload, dateOfIncident: 'not-a-date' })).status).toBe(400);
+    expect((await request(app).post('/api/blotter-reports').send({ ...payload, reportedRespondentName: '1111111' })).status).toBe(400);
     const createdReport = await request(app).post('/api/blotter-reports').send(payload);
     expect(createdReport.status).toBe(201);
     expect(createdReport.body.report.reportedRespondentName).toBe('Pedro Santos');

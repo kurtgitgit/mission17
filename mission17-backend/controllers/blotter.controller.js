@@ -75,6 +75,9 @@ export const submitReport = asyncHandler(async (req, res) => {
   if (cleanName.length < 3 || cleanName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
   if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
   if (reportedRespondentName !== undefined && (typeof reportedRespondentName !== 'string' || cleanReportedRespondentName.length > 120)) return res.status(400).json({ message: 'Person involved must be text with no more than 120 characters.' });
+  if (cleanReportedRespondentName && (cleanReportedRespondentName.length < 2 || !/[A-Za-z]/.test(cleanReportedRespondentName) || /^(.)\1+$/.test(cleanReportedRespondentName.replace(/\s/g, '')))) {
+    return res.status(400).json({ message: 'Person involved must be a person’s name, or leave it blank if unknown.' });
+  }
   if (cleanDescription.length < 10 || cleanDescription.length > 2000) return res.status(400).json({ message: 'Incident description must be between 10 and 2,000 characters.' });
   if (cleanLocation.length < 3 || cleanLocation.length > 250) return res.status(400).json({ message: 'Please enter a valid incident location.' });
   if (Number.isNaN(parsedIncidentDate.getTime()) || parsedIncidentDate.getTime() > Date.now() + 5 * 60_000) return res.status(400).json({ message: 'Please provide a valid incident date.' });
@@ -213,7 +216,7 @@ export const getAllReports = asyncHandler(async (req, res) => {
 
   const reports = await BlotterReport.find(filter)
     .populate('userId', 'firstName lastName middleName username completeAddress mobileNumber purok')
-    .sort({ createdAt: -1 })
+    .sort({ createdAt: 1, _id: 1 })
     .skip(skip)
     .limit(limit);
     

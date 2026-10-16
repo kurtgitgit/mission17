@@ -204,6 +204,15 @@ const BlotterReportScreen = () => {
     if (!cleanDesc || cleanDesc.length < 10 || !/[a-zA-Z]/.test(cleanDesc) || /^(.)\1+$/.test(cleanDesc))
       newErrors.description = 'Please describe what happened in detail (at least 10 characters).';
 
+    const cleanReportedRespondent = reportedRespondentName.trim();
+    if (cleanReportedRespondent && (
+      cleanReportedRespondent.length < 2
+      || !/[a-zA-Z]/.test(cleanReportedRespondent)
+      || /^(.)\1+$/.test(cleanReportedRespondent.replace(/\s/g, ''))
+    )) {
+      newErrors.reportedRespondentName = 'Enter a person’s name, or leave this blank if unknown.';
+    }
+
     return newErrors;
   };
 
@@ -700,11 +709,21 @@ const BlotterReportScreen = () => {
                 placeholder="Leave blank if unknown"
                 placeholderTextColor={colors.textMuted}
                 value={reportedRespondentName}
-                onChangeText={setReportedRespondentName}
+                onChangeText={(value) => {
+                  const digitsOnly = /\d/.test(value) && !/[a-zA-Z]/.test(value);
+                  setReportedRespondentName(value.replace(/[0-9]/g, ''));
+                  setErrors(current => ({
+                    ...current,
+                    reportedRespondentName: digitsOnly ? 'Enter a person’s name, or leave this blank if unknown.' : '',
+                  }));
+                }}
                 maxLength={120}
+                autoCapitalize="words"
+                autoCorrect={false}
                 accessibilityLabel="Person involved, if known, optional and unverified"
               />
             </View>
+            {errors.reportedRespondentName ? <Text style={styles.errorText}>{errors.reportedRespondentName}</Text> : null}
             <Text style={styles.helperText}>Any name entered is the resident's report and is not treated as verified. Staff will review it.</Text>
           </View>
 

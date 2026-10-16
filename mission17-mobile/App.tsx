@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, Platform, AppState } from 'react-native';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -7,6 +7,8 @@ import { Home, Landmark, Megaphone, ShieldCheck, User } from 'lucide-react-nativ
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
+import { signOut } from 'firebase/auth';
+import { auth } from './src/config/firebase';
 // ─── SCREENS ───────────────────────────────────────────
 import LoginScreen       from './src/screens/LoginScreen';
 import SignupScreen      from './src/screens/SignupScreen';
@@ -37,7 +39,7 @@ import ServicesScreen      from './src/screens/ServicesScreen';
 import OfficialsScreen     from './src/screens/OfficialsScreen';
 
 // ─── UTILS ─────────────────────────────────────────────
-import { clearAuthData, getAuthData, saveAuthData } from './src/utils/storage';
+import { clearAuthData, getAuthData, saveAuthData, subscribeToAuthSessionExpiry } from './src/utils/storage';
 import { endpoints, getAuthHeadersIfAvailable, GlobalState } from './src/config/api';
 import { fetchWithTimeout } from './src/utils/network';
 import { NotificationProvider } from './src/context/NotificationContext';
@@ -160,9 +162,59 @@ export default function App() {
   const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let expiring = false;
+    const expireSession = async () => {
+      if (expiring) return;
+      expiring = true;
+      if (timer) clearTimeout(timer);
+      await clearAuthData();
+      try { await signOut(auth); } catch {}
+      GlobalState.userId = null;
+      GlobalState.username = null;
+      GlobalState.role = null;
+      GlobalState.token = null;
+      GlobalState.auth = null;
+      GlobalState.fallbackSession = null;
+      if (navigationRef.isReady()) navigationRef.resetRoot({ index: 0, routes: [{ name: 'Login' }] });
+      expiring = false;
+    };
+    const scheduleExpiry = (expiresAt: number | null) => {
+      if (timer) clearTimeout(timer);
+      if (!expiresAt) return;
+      const remaining = expiresAt - Date.now();
+      if (remaining <= 0) void expireSession();
+      else timer = setTimeout(() => void expireSession(), remaining);
+    };
+    const refreshExpiry = async () => {
+      const saved = await getAuthData();
+      if (!saved && GlobalState.userId) {
+        await expireSession();
+        return;
+      }
+      scheduleExpiry(saved?.sessionExpiresAt ?? null);
+    };
+    const unsubscribe = subscribeToAuthSessionExpiry(scheduleExpiry);
+    void refreshExpiry();
+    const appStateSubscription = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        void refreshExpiry();
+      }
+    });
+    return () => {
+      if (timer) clearTimeout(timer);
+      unsubscribe();
+      appStateSubscription.remove();
+    };
+  }, []);
+
+  useEffect(() => {
     const checkLogin = async () => {
       try {
         const authData = await getAuthData();
+        if (!authData && auth.currentUser) {
+          try { await signOut(auth); } catch {}
+        }
         if (authData?.user?.accountStatus === 'pending' || authData?.user?.accountStatus === 'rejected') {
           await clearAuthData();
         } else if (authData?.token && authData.user?._id) {

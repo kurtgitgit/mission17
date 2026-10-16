@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, Image, TextInput,
-  TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator
+  TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView
 } from 'react-native';
 import { ArrowLeft, Send, Bot, User, MessageCircleQuestion } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -122,6 +122,26 @@ const ChatBotScreen = () => {
     </View>
   );
 
+  const renderQuickQuestions = () => (
+    <View style={styles.quickQuestions}>
+      <Text style={styles.quickQuestionsTitle}>Frequently asked questions</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickQuestionList}>
+        {FAQ_SECTIONS.flatMap(section => section.questions).map(question => (
+          <TouchableOpacity
+            key={question}
+            style={[styles.quickQuestion, loading && styles.faqButtonDisabled]}
+            onPress={() => sendMessage(question)}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={question}
+          >
+            <Text style={styles.quickQuestionText}>{question}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.root}>
       {/* HEADER */}
@@ -154,14 +174,17 @@ const ChatBotScreen = () => {
               {renderSuggestions()}
             </View>
           ) : null}
-          ListFooterComponent={loading ? (
-            <View style={styles.typingRow}>
-              <View style={styles.avatar}><Bot size={16} color="white" /></View>
-              <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
-                <ActivityIndicator size="small" color={colors.primary} />
+          ListFooterComponent={<>
+            {loading ? (
+              <View style={styles.typingRow}>
+                <View style={styles.avatar}><Bot size={16} color="white" /></View>
+                <View style={[styles.bubble, styles.bubbleBot, styles.typingBubble]}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
               </View>
-            </View>
-          ) : null}
+            ) : null}
+            {!isStarter ? renderQuickQuestions() : null}
+          </>}
         />
 
         <View style={styles.inputBar}>
@@ -249,6 +272,11 @@ const styles = StyleSheet.create({
   },
   faqButtonDisabled: { opacity: 0.55 },
   faqButtonText: { color: colors.textPrimary, fontSize: 14, fontWeight: '700', flex: 1, lineHeight: 19 },
+  quickQuestions: { marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.border },
+  quickQuestionsTitle: { color: colors.textSecondary, fontSize: 12, fontWeight: '800', marginBottom: spacing.sm },
+  quickQuestionList: { gap: spacing.sm, paddingRight: spacing.md },
+  quickQuestion: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: radius.xl, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  quickQuestionText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
 
   inputBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,

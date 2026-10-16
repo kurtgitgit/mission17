@@ -76,7 +76,7 @@ export const getAllSuggestions = asyncHandler(async (req, res) => {
 
   const suggestions = await Suggestion.find(filter)
     .populate('userId', 'firstName lastName username email contactNo')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: 1, _id: 1 });
 
   // Hide sensitive personal identifiers if submitted as anonymous
   const sanitized = suggestions.map(serializeAdminSuggestion);

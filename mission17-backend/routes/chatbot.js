@@ -133,6 +133,22 @@ export const getControlledFaq = (message) => {
   }
   if (REMOVED_FEATURE_PATTERN.test(text)) return retiredFeatureReply(language);
   if (GREETING_PATTERN.test(message)) return greetingReply(language);
+  if (/forgot\s+(?:my\s+)?password|reset\s+(?:my\s+)?password|nakalimutan.*password|nakalimutan.*password|password.*nakalimutan/i.test(text)) {
+    if (language === 'tagalog') return "Sa sign-in screen ng BrgyLink, piliin ang 'Forgot Password', ilagay ang email na ginamit sa account, at buksan ang password-reset link na ipinadala sa email. Tingnan din ang Spam o Junk folder. Huwag ibahagi ang reset link o password mo.";
+    return "On the BrgyLink sign-in screen, tap 'Forgot Password', enter the email used for your account, then open the password-reset link sent to that email. Check Spam or Junk too. Never share your reset link or password.";
+  }
+  if (/verification\s+code|verify\s+(?:my\s+)?email|did\s+not\s+receive.*code|didn['’]?t\s+receive.*code|otp|verification\s+email|code.*not\s+(?:arriv|receiv)/i.test(text)) {
+    if (language === 'tagalog') return "Para sa email verification, ilagay ang 6-digit code na ipinadala sa email na ginamit mo sa pag-sign up. Tingnan ang Spam/Junk at tiyaking tama ang email. Kung wala pa rin ang code, bumalik sa sign-in at makipag-ugnayan sa opisyal na barangay office; walang verified na resend option na maituturo ko sa kasalukuyang app.";
+    return "For signup email verification, enter the 6-digit code sent to the email you used to register. Check Spam/Junk and confirm the address is correct. If it still hasn't arrived, return to sign-in and contact the official barangay office; I can't confirm a resend option in the current app.";
+  }
+  if (/document\s+(?:request\s+)?status|request\s+status|check\s+(?:my\s+)?(?:document|clearance)\s+request/i.test(text)) {
+    if (language === 'tagalog') return "Para makita ang sarili mong request, mag-sign in sa BrgyLink at buksan ang 'Document Requests' o 'My Requests'. Gamitin ang reference number para makilala ang request. Para sa kasalukuyang update o requirements, makipag-ugnayan sa barangay office; huwag magpadala ng pribadong detalye rito sa chat.";
+    return "To check your own request, sign in to BrgyLink and open 'Document Requests' or 'My Requests'. Use its reference number to identify it. For a current update or requirements, contact the barangay office; don't post private details in this chat.";
+  }
+  if (/what\s+can\s+(?:brgylink|the\s+app)\s+(?:help\s+me\s+)?do|what\s+does\s+brgylink\s+do|brgylink\s+features/i.test(text)) {
+    if (language === 'tagalog') return 'Makakatulong ang BrgyLink sa document requests, blotter reports, barangay announcements, resident feedback, notifications, at pagtingin sa impormasyon ng mga opisyal. Makikita sa app kung aling serbisyo ang available sa account mo.';
+    return 'BrgyLink supports document requests, blotter reports, barangay announcements, resident feedback, notifications, and viewing barangay-official information. The services available to you are shown in the app.';
+  }
   if (OFFICIAL_DIRECTORY_PATTERN.test(text)) return officialDirectoryReply(language);
   if (LANGUAGE_TOPIC_PATTERN.test(message)) {
     return languageCapabilityReply(language);

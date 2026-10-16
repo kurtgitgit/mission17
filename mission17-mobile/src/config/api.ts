@@ -90,6 +90,11 @@ const refreshFallbackSession = async (refreshToken: string): Promise<string> => 
 
 /** Returns a current Firebase ID token for authenticated backend requests. */
 export const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const saved = await getAuthData();
+  if (!saved || saved.sessionExpiresAt <= Date.now()) {
+    throw new Error('Your 7-day sign-in session has expired. Please sign in again.');
+  }
+
   const user = auth.currentUser;
   if (user) {
     const token = await user.getIdToken();
@@ -98,7 +103,6 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
     return { Authorization: `Bearer ${token}` };
   }
 
-  const saved = await getAuthData();
   const token = GlobalState.token || saved?.token;
   const fallbackSession = GlobalState.fallbackSession || saved?.fallbackSession;
   if (!token || !fallbackSession?.refreshToken) {
@@ -113,6 +117,22 @@ export const getAuthHeaders = async (): Promise<Record<string, string>> => {
   GlobalState.token = token;
   GlobalState.auth = { token };
   GlobalState.fallbackSession = fallbackSession;
+  return { Authorization: `Bearer ${token}` };
+};
+
+/**
+ * Returns the short-lived Firebase credential used only by the pre-session
+ * signup verification flow. Regular authenticated app requests must use
+ * getAuthHeaders() so the seven-day sign-in expiry is enforced.
+ */
+export const getSignupVerificationAuthHeaders = async (): Promise<Record<string, string>> => {
+  const user = auth.currentUser;
+  if (user) {
+    return { Authorization: `Bearer ${await user.getIdToken()}` };
+  }
+
+  const token = GlobalState.tempToken || GlobalState.token;
+  if (!token) throw new Error('Your verification session expired. Please start signup verification again.');
   return { Authorization: `Bearer ${token}` };
 };
 

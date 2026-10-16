@@ -378,7 +378,13 @@ const DocumentRequests = () => {
     r.fullName?.toLowerCase().includes(search.toLowerCase()) ||
     r.referenceNumber?.toLowerCase().includes(search.toLowerCase()) ||
     r.documentType?.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((left, right) => {
+    const leftOpen = !['Completed', 'Rejected'].includes(left.status || '');
+    const rightOpen = !['Completed', 'Rejected'].includes(right.status || '');
+    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
+    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
+    return leftOpen ? createdDelta : -createdDelta;
+  });
 
   return (
     <Layout title="Document Requests">
