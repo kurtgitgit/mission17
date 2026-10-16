@@ -16,6 +16,7 @@ import chatbotRouter, {
   isInScope,
   outOfScopeReply,
   requestChatbotAi,
+  resolveAiChatReply,
 } from './chatbot.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
 import Official from '../models/Official.js';
@@ -54,6 +55,26 @@ describe('chatbot multilingual routing and fallback', () => {
     const reply = getControlledFaq('Hi');
     expect(reply).toContain('Hello!');
     expect(reply).toContain('document requests');
+  });
+
+  it('responds politely to standalone thanks and acknowledgments instead of repeating the generic fallback', () => {
+    const thanksReply = getControlledFaq('Thank you');
+    const okayReply = getControlledFaq('Okay');
+    const tagalogReply = getControlledFaq('Salamat po');
+
+    expect(thanksReply).toContain("You're very welcome!");
+    expect(thanksReply).toContain('feel free to ask');
+    expect(okayReply).toContain('Of course!');
+    expect(okayReply).toContain('just let me know');
+    expect(tagalogReply).toContain('Walang anuman po!');
+    expect(thanksReply).not.toContain('Try asking:');
+    expect(okayReply).not.toContain('Try asking:');
+  });
+
+  it('does not treat an acknowledgment at the start of a question as a standalone reply', () => {
+    const reply = getControlledFaq('Okay, how do I file a blotter report?');
+    expect(reply).toContain("'Blotter Reports'");
+    expect(reply).toContain("'File New Report'");
   });
 
   it('returns a controlled Ilocano clearance answer instead of calling the model', () => {
@@ -135,14 +156,41 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('returns an honest verified-information fallback for unanswered in-scope questions', () => {
     const reply = getSafeFallbackReply('Ano ang eksaktong bayad para sa bagong serbisyo?');
-    expect(reply).toContain('verified na sagot');
+    expect(reply).toContain('Pasensya na po');
+    expect(reply).toContain('Para maiwasan ang maling detalye');
     expect(reply).toContain('opisyal na barangay office');
   });
 
-  it('keeps unrelated questions in the out-of-scope fallback', () => {
+  it('politely explains the chatbot scope and offers useful examples for unrelated questions', () => {
     const reply = getSafeFallbackReply('What is the weather tomorrow?');
+    expect(reply).toContain('I’m sorry');
+    expect(reply).toContain('I focus on BrgyLink');
     expect(reply).toContain('Barangay Bagong Pag-asa services');
     expect(reply).toContain('How do I request a clearance?');
+  });
+
+  it('replaces an AI unknown-intent response with the polite, language-aware safe fallback', () => {
+    const result = resolveAiChatReply(
+      'What is the exact fee for this new barangay service?',
+      { intent: 'out_of_scope', response: "I'm a barangay assistant. I don't know about that." },
+    );
+
+    expect(result.source).toBe('safe-local-fallback');
+    expect(result.reply).toContain("I'm sorry");
+    expect(result.reply).toContain('verified information');
+    expect(result.reply).not.toContain("I don't know about that");
+  });
+
+  it('preserves AI answers for recognized intents', () => {
+    const result = resolveAiChatReply('Tell me about this barangay program', {
+      intent: 'community_program',
+      response: 'Here is the available information.',
+    });
+
+    expect(result).toEqual({
+      reply: 'Here is the available information.',
+      source: 'brgylink-ai-classifier',
+    });
   });
 
   it('returns the verified barangay contact details without model invention', () => {
@@ -483,7 +531,8 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'Ano ang eksaktong bayad para sa bagong serbisyo?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('safe-local-fallback');
-    expect(res.body.reply).toContain('verified na sagot');
+    expect(res.body.reply).toContain('Pasensya na po');
+    expect(res.body.reply).toContain('Para maiwasan ang maling detalye');
     expect(res.body.reply).toContain('opisyal na barangay office');
   });
 
@@ -507,7 +556,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
         .send({ message: 'Ano ang permit para sa bagong proyekto ng barangay?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('safe-local-fallback');
-      expect(res.body.reply).toContain('verified na sagot');
+      expect(res.body.reply).toContain('Pasensya na po');
     });
 
     it('returns safe fallback when live data lookup throws an error', async () => {
