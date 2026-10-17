@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Search, ShieldCheck, FileSearch, XCircle } from 'lucide-react';
 import { endpoints } from '../config/api';
-import '../styles/DashboardHome.css'; // Reuse some basic styles
+import '../styles/PublicVerify.css';
 
 const PublicVerify = () => {
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -9,148 +9,150 @@ const PublicVerify = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!referenceNumber.trim()) return;
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    const reference = referenceNumber.trim();
+    if (!reference) return;
 
     setLoading(true);
     setError('');
     setResult(null);
 
     try {
-      const res = await fetch(`${endpoints.auth.backendBaseUrl}/api/blotter-reports/public/${referenceNumber.trim()}`);
-      
-      if (!res.ok) {
-        throw new Error('Report not found or invalid reference number.');
+      const response = await fetch(
+        `${endpoints.auth.backendBaseUrl}/api/blotter-reports/public/${encodeURIComponent(reference)}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Report not found. Check the reference number and try again.');
       }
-      
-      const data = await res.json();
-      setResult(data);
-    } catch (err) {
-      setError(err.message);
+
+      setResult(await response.json());
+    } catch (requestError) {
+      setError(requestError.message || 'Unable to verify this report right now. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }}>
-      
-      {/* HEADER */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-          <ShieldCheck size={64} color="#0038A8" />
-        </div>
-        <h1 style={{ color: '#0f172a', fontSize: '28px', marginBottom: '8px' }}>Public Transparency Portal</h1>
-        <p style={{ color: '#64748b', maxWidth: '500px', margin: '0 auto', lineHeight: '1.6' }}>
-          Verify the authenticity and resolution status of Barangay Bagong Pag-asa Blotter Reports. 
-          When enabled, an official resolution is anchored as a privacy-safe integrity record on Ethereum Sepolia.
-        </p>
-      </div>
+  const isResolved = result?.status === 'Resolved';
 
-      {/* SEARCH BOX */}
-      <div style={{ background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '600px', marginBottom: '30px' }}>
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px' }}>
-          <div className="search-box" style={{ flex: 1, margin: 0, border: '2px solid #e2e8f0', borderRadius: '8px' }}>
-            <Search size={20} color="#94a3b8" />
-            <input 
-              type="text" 
-              placeholder="Enter Reference Number (e.g. BLOTTER-...)"
-              value={referenceNumber}
-              onChange={(e) => setReferenceNumber(e.target.value)}
-              style={{ width: '100%', padding: '12px 10px', fontSize: '16px' }}
-            />
+  return (
+    <main className="public-verify-page">
+      <div className="public-verify-shell">
+        <header className="public-verify-header">
+          <div className="public-verify-icon" aria-hidden="true">
+            <ShieldCheck size={42} strokeWidth={2.1} />
           </div>
-          <button 
-            type="submit" 
-            className="btn primary"
-            disabled={loading || !referenceNumber.trim()}
-            style={{ width: 'auto', padding: '0 24px', fontSize: '16px' }}
-          >
-            {loading ? 'Searching...' : 'Verify'}
+          <p className="public-verify-eyebrow">BRGYLINK · PUBLIC RECORD CHECK</p>
+          <h1>Public Transparency Portal</h1>
+          <p className="public-verify-intro">
+            Check the official status of a Barangay Bagong Pag-asa blotter report. If enabled,
+            a confirmed resolution-ledger entry can also be viewed on Ethereum Sepolia.
+          </p>
+        </header>
+
+        <form className="public-verify-search" onSubmit={handleSearch}>
+          <label className="public-verify-field" htmlFor="blotter-reference">
+            <Search size={20} aria-hidden="true" />
+            <input
+              id="blotter-reference"
+              type="text"
+              autoComplete="off"
+              placeholder="Enter a blotter reference number"
+              value={referenceNumber}
+              onChange={(event) => setReferenceNumber(event.target.value)}
+              aria-describedby="reference-help"
+              required
+            />
+          </label>
+          <p className="public-verify-help" id="reference-help">
+            Use the reference number provided for the report.
+          </p>
+          <button className="public-verify-submit" type="submit" disabled={loading || !referenceNumber.trim()}>
+            {loading ? 'Searching…' : 'Verify report'}
           </button>
         </form>
-      </div>
 
-      {/* RESULTS AREA */}
-      {error && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px', color: '#dc2626', maxWidth: '600px', width: '100%' }}>
-          <XCircle size={24} />
-          <p style={{ margin: 0, fontWeight: '500' }}>{error}</p>
-        </div>
-      )}
-
-      {result && (
-        <div style={{ background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', width: '100%', maxWidth: '600px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '20px', marginBottom: '20px' }}>
-            <div>
-              <h2 style={{ margin: '0 0 4px 0', fontSize: '18px', color: '#0f172a' }}>Case: {result.referenceNumber}</h2>
-              <span style={{ fontSize: '14px', color: '#64748b' }}>{result.incidentType}</span>
-            </div>
-            <div style={{
-              background: result.status === 'Resolved' ? '#dcfce7' : '#f1f5f9',
-              color: result.status === 'Resolved' ? '#16a34a' : '#475569',
-              padding: '6px 12px', borderRadius: '20px', fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase'
-            }}>
-              {result.status}
-            </div>
+        {error && (
+          <div className="public-verify-error" role="alert">
+            <XCircle size={21} aria-hidden="true" />
+            <p>{error}</p>
           </div>
+        )}
 
-          <div style={{ marginBottom: '20px' }}>
-            <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#64748b' }}>Date of Incident</p>
-            <p style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#0f172a' }}>
-              {new Date(result.dateOfIncident).toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px' }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#475569', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <FileSearch size={16} /> Resolution Ledger
-            </h3>
-            
-            {result.blockchainRecordStatus === 'Recorded' && result.blockchainTxHash && result.blockchainRecordHash ? (
-              <div>
-                <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#16a34a', fontWeight: '600' }}>
-                  ✓ Resolution integrity record found on Ethereum Sepolia
-                </p>
-                <p style={{ margin: '0 0 10px 0', fontSize: '12px', color: '#64748b', lineHeight: '1.5' }}>
-                  This record contains a cryptographic digest only—not resident information, narratives, locations, or evidence.
-                </p>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input 
-                    type="text" 
-                    readOnly 
-                    value={result.blockchainTxHash} 
-                    style={{ flex: 1, padding: '8px 12px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}
-                  />
-                  <button 
-                    onClick={() => window.open(`https://sepolia.etherscan.io/tx/${result.blockchainTxHash}`, '_blank')}
-                    style={{ background: '#2563eb', color: 'white', border: 'none', padding: '0 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
-                  >
-                    View Ledger
-                  </button>
-                </div>
-                <p style={{ margin: '10px 0 0', fontSize: '11px', color: '#64748b', fontFamily: 'monospace', overflowWrap: 'anywhere' }}>
-                  Integrity digest: {result.blockchainRecordHash}
-                </p>
+        {result && (
+          <section className="public-verify-result" aria-live="polite" aria-label="Verification result">
+            <div className="public-verify-result-heading">
+              <div className="public-verify-case-title">
+                <p className="public-verify-eyebrow">VERIFIED BARANGAY RECORD</p>
+                <h2>{result.referenceNumber}</h2>
+                <p>{result.incidentType}</p>
               </div>
-            ) : result.blockchainRecordStatus === 'Failed' ? (
-              <p style={{ margin: 0, fontSize: '13px', color: '#b45309' }}>
-                This case is resolved, but its resolution-ledger record could not be created. Please contact Barangay Hall for verification.
-              </p>
-            ) : result.blockchainRecordStatus === 'Not Configured' ? (
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                The resolution ledger is not configured yet. The case status above remains the official Barangay record.
-              </p>
-            ) : (
-              <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                A resolution-ledger entry is created only after an official case resolution.
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+              <span className={`public-verify-status${isResolved ? ' is-resolved' : ''}`}>
+                {result.status}
+              </span>
+            </div>
+
+            <div className="public-verify-date">
+              <span>Date of incident</span>
+              <strong>
+                {new Date(result.dateOfIncident).toLocaleDateString('en-PH', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </strong>
+            </div>
+
+            <div className="public-verify-ledger">
+              <h3><FileSearch size={18} aria-hidden="true" /> Resolution ledger</h3>
+
+              {result.blockchainRecordStatus === 'Recorded' && result.blockchainTxHash && result.blockchainRecordHash ? (
+                <>
+                  <p className="public-verify-ledger-success">Resolution integrity record found on Ethereum Sepolia.</p>
+                  <p className="public-verify-ledger-note">
+                    The ledger entry contains a cryptographic digest only—not resident details,
+                    incident narratives, locations, or evidence.
+                  </p>
+                  <div className="public-verify-transaction">
+                    <code>{result.blockchainTxHash}</code>
+                    <a
+                      href={`https://sepolia.etherscan.io/tx/${encodeURIComponent(result.blockchainTxHash)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View on Sepolia
+                    </a>
+                  </div>
+                  <p className="public-verify-digest">
+                    <span>Integrity digest</span>
+                    <code>{result.blockchainRecordHash}</code>
+                  </p>
+                </>
+              ) : result.blockchainRecordStatus === 'Failed' ? (
+                <p className="public-verify-ledger-note">
+                  This case is resolved, but its ledger entry could not be created. Contact Barangay Hall for verification.
+                </p>
+              ) : result.blockchainRecordStatus === 'Not Configured' ? (
+                <p className="public-verify-ledger-note">
+                  The resolution ledger is not configured. The case status shown above remains the official Barangay record.
+                </p>
+              ) : (
+                <p className="public-verify-ledger-note">
+                  A resolution-ledger entry is created only after an official case resolution.
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        <footer className="public-verify-footer">
+          This page displays limited verification details. Contact the barangay office for official assistance.
+        </footer>
+      </div>
+    </main>
   );
 };
 
