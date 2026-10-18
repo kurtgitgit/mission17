@@ -21,6 +21,7 @@ import docRequestRoutes     from './routes/document-requests.js'; // document re
 import chatbotRoutes, { chatbotJsonParser, chatbotLimiter } from './routes/chatbot.js'; // AI chatbot
 import blotterRoutes        from './routes/blotter-reports.js';   // Blotter reports
 import suggestionRoutes     from './routes/suggestions.js';       // Suggestions
+import analyticsRoutes      from './routes/analytics.js';
 import { upload } from './utils/upload.js';
 import { verifyAdmin } from './utils/authMiddleware.js';
 import { processPendingPushReceipts } from './utils/pushNotifier.js';
@@ -164,6 +165,7 @@ app.use('/api/document-requests', docRequestRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/blotter-reports', blotterRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // ─── GLOBAL ERROR HANDLER ─────────────────────────────────────────────────────
 // Catches any unhandled errors from asyncHandler() across all routes.

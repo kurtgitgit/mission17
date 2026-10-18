@@ -15,19 +15,19 @@ import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
-  { id: 'Barangay Clearance', label: 'Barangay Clearance', fee: 'Confirm', time: 'Confirm', desc: 'For employment, business, or general legal verification' },
-  { id: 'Certificate of Indigency', label: 'Certificate of Indigency', fee: 'Confirm', time: 'Confirm', desc: 'For medical, financial, or scholarship assistance' },
-  { id: 'Certificate of Residency', label: 'Certificate of Residency', fee: 'Confirm', time: 'Confirm', desc: 'Proof of bona fide residence in Bagong Pag-asa' },
-  { id: 'Business Clearance', label: 'Business Clearance', fee: 'Confirm', time: 'Confirm', desc: 'Permit clearance for micro and local businesses' },
-  { id: 'Certificate of Good Moral Character', label: 'Good Moral Certificate', fee: 'Confirm', time: 'Confirm', desc: 'For school, employment, or other official purposes' },
-  { id: 'Barangay ID', label: 'Barangay Resident ID', fee: 'Confirm', time: 'Confirm', desc: 'Official resident identification issued by the Barangay' },
-  { id: 'Certificate of Tree Planting', label: 'Certificate of Tree Planting', fee: 'Confirm', time: 'Confirm', desc: 'Certification of participation in an eligible tree-planting activity' },
-  { id: 'Certificate for First-Time Job Seeker', label: 'First-Time Job Seeker Certificate', fee: 'Confirm', time: 'Confirm', desc: 'For qualified first-time job seekers requesting barangay certification' },
-  { id: 'Oath of Undertaking', label: 'Oath of Undertaking', fee: 'Confirm', time: 'Confirm', desc: 'Barangay-issued undertaking document for an approved purpose' },
-  { id: 'Certificate of Low Income', label: 'Certificate of Low Income', fee: 'Confirm', time: 'Confirm', desc: 'Certification of low-income status for an official transaction' },
+  { id: 'Barangay Clearance', label: 'Barangay Clearance', desc: 'For employment, business, or general legal verification' },
+  { id: 'Certificate of Indigency', label: 'Certificate of Indigency', desc: 'For medical, financial, or scholarship assistance' },
+  { id: 'Certificate of Residency', label: 'Certificate of Residency', desc: 'Proof of bona fide residence in Bagong Pag-asa' },
+  { id: 'Business Clearance', label: 'Business Clearance', desc: 'Permit clearance for micro and local businesses' },
+  { id: 'Certificate of Good Moral Character', label: 'Good Moral Certificate', desc: 'For school, employment, or other official purposes' },
+  { id: 'Barangay ID', label: 'Barangay Resident ID', desc: 'Official resident identification issued by the Barangay' },
+  { id: 'Certificate of Tree Planting', label: 'Certificate of Tree Planting', desc: 'Certification of participation in an eligible tree-planting activity' },
+  { id: 'Certificate for First-Time Job Seeker', label: 'First-Time Job Seeker Certificate', desc: 'For qualified first-time job seekers requesting barangay certification' },
+  { id: 'Oath of Undertaking', label: 'Oath of Undertaking', desc: 'Barangay-issued undertaking document for an approved purpose' },
+  { id: 'Certificate of Low Income', label: 'Certificate of Low Income', desc: 'Certification of low-income status for an official transaction' },
 ];
 
-const OTHER_DOCUMENT_TYPE = { id: 'Other', label: 'Other Document', fee: 'To be confirmed', time: 'To be confirmed', desc: 'Specify the document you need for Barangay review' };
+const OTHER_DOCUMENT_TYPE = { id: 'Other', label: 'Other Document', desc: 'Specify the document you need for Barangay review' };
 DOCUMENT_TYPES.push(OTHER_DOCUMENT_TYPE);
 
 const STATUS_CONFIG: Record<string, { color: string; icon: any; bg: string; border: string }> = {
@@ -37,6 +37,8 @@ const STATUS_CONFIG: Record<string, { color: string; icon: any; bg: string; bord
   'Completed':        { color: '#15803d', icon: CheckCircle,  bg: '#dcfce7', border: '#86efac' },
   'Rejected':         { color: '#991b1b', icon: XCircle,      bg: '#fee2e2', border: '#fca5a5' },
 };
+
+const PICKUP_PAYMENT_NOTICE = 'Payment, if applicable, will be made at the Barangay Hall when you pick up your document.';
 
 const ServicesScreen: React.FC = () => {
   const [tab, setTab] = useState<'request' | 'status'>('request');
@@ -190,6 +192,7 @@ const ServicesScreen: React.FC = () => {
               🗓️ Pickup Date: {new Date(item.pickupDate).toDateString()}
             </Text>
           )}
+          {item.status === 'Ready for Pickup' && <Text style={styles.statusMetaText}>{PICKUP_PAYMENT_NOTICE}</Text>}
           {item.rejectionReason && (
             <Text style={[styles.statusMetaText, { color: '#dc2626', fontWeight: '700' }]}>
               ⚠️ Notice / Missing Requirements: {item.rejectionReason}
@@ -264,7 +267,7 @@ const ServicesScreen: React.FC = () => {
               </View>
               <Text style={styles.successTitle}>Request Submitted!</Text>
               <Text style={styles.successBody}>
-                Your clearance request has been queued for Desk Officer evaluation.
+                Your document request has been queued for staff review. {PICKUP_PAYMENT_NOTICE}
               </Text>
               <View style={styles.successRefBox}>
                 <Text style={styles.successRefLabel}>OFFICIAL REFERENCE NUMBER</Text>
@@ -328,16 +331,6 @@ const ServicesScreen: React.FC = () => {
               </View>
             ) : null}
 
-            <View style={styles.badgeRow}>
-              <View style={styles.feeBadge}>
-                <Text style={styles.feeBadgeLabel}>FEE: </Text>
-                <Text style={styles.feeBadgeValue}>{selectedDocObj.fee}</Text>
-              </View>
-              <View style={styles.timeBadge}>
-                <Clock size={12} color="#0038A8" />
-                <Text style={styles.timeBadgeText}>Est: {selectedDocObj.time}</Text>
-              </View>
-            </View>
           </View>
 
           {/* ── CARD 2: APPLICANT DETAILS ── */}
@@ -428,7 +421,7 @@ const ServicesScreen: React.FC = () => {
 
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>🏛️ Pickup Location: Barangay Hall, San Jacinto, Pangasinan</Text>
-              <Text style={styles.infoText}>📋 Current fees, requirements, and release schedules will be confirmed by Barangay staff during review.</Text>
+              <Text style={styles.infoText}>{PICKUP_PAYMENT_NOTICE}</Text>
               <Text style={styles.infoText}>🔖 Keep your reference number and follow the instructions shown in your request status.</Text>
             </View>
 
@@ -500,9 +493,6 @@ const ServicesScreen: React.FC = () => {
                       {item.label}
                     </Text>
                     <Text style={styles.modalOptionSub}>{item.desc}</Text>
-                  </View>
-                  <View style={styles.modalOptionBadge}>
-                    <Text style={styles.modalOptionFee}>{item.fee}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -651,31 +641,6 @@ const styles = StyleSheet.create({
   },
   pickerTitle: { fontSize: 15, fontWeight: '800', color: '#0038A8' },
   pickerDesc: { fontSize: 12, color: '#475569', marginTop: 2 },
-  badgeRow: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  feeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-  },
-  feeBadgeLabel: { fontSize: 11, fontWeight: '700', color: '#64748b' },
-  feeBadgeValue: { fontSize: 11, fontWeight: '900', color: '#0038A8' },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#cbd5e1',
-  },
-  timeBadgeText: { fontSize: 11, fontWeight: '700', color: '#475569' },
 
   // SUCCESS CARD
   successCard: {
@@ -797,8 +762,6 @@ const styles = StyleSheet.create({
   modalOptionText: { fontSize: 14.5, color: '#0f172a', fontWeight: '700' },
   modalOptionTextActive: { color: '#0038A8', fontWeight: '800' },
   modalOptionSub: { fontSize: 11.5, color: '#64748b', marginTop: 2 },
-  modalOptionBadge: { backgroundColor: '#f1f5f9', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
-  modalOptionFee: { fontSize: 11.5, fontWeight: '800', color: '#0038A8' },
 });
 
 export default ServicesScreen;

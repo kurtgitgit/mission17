@@ -44,7 +44,7 @@ const DashboardHome = () => {
       const users = userRes && userRes.ok ? await userRes.json() : [];
 
       const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Processing');
-      const activeBlotters = blotters.filter(b => b.status === 'Pending' || b.status === 'Under Investigation');
+      const activeBlotters = blotters.filter(b => b.status === 'Pending' || b.status === 'In Progress');
       const urgentAlerts = anns.filter(a => a.isUrgent);
 
       setStats({

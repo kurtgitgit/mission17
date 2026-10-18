@@ -9,6 +9,7 @@ import EssentialStorageNotice from './components/EssentialStorageNotice';
 
 // Keep the login/public shell small; load protected admin screens only when visited.
 const DashboardHome = React.lazy(() => import('./pages/Dashboard/DashboardHome'));
+const Analytics = React.lazy(() => import('./pages/Analytics'));
 const Users = React.lazy(() => import('./pages/Users/Users'));
 const Settings = React.lazy(() => import('./pages/Settings/Settings'));
 const AuditLogs = React.lazy(() => import('./pages/AuditLogs/AuditLogs'));
@@ -134,6 +135,7 @@ function App() {
           
           {/* Protected Admin Routes */}
           <Route path="/dashboard" element={protectedRoute(<DashboardHome />)} />
+          <Route path="/analytics" element={protectedRoute(<Analytics />)} />
           <Route path="/users" element={protectedRoute(<Users />)} />
           <Route path="/settings" element={protectedRoute(<Settings />)} />
           <Route path="/audit-logs" element={protectedRoute(<AuditLogs />)} />

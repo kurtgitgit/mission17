@@ -14,7 +14,8 @@ import {
   ShieldAlert, 
   ChevronDown,
   Layers,
-  Briefcase
+  Briefcase,
+  ChartNoAxesCombined
 } from 'lucide-react';
 import '../styles/Sidebar.css';
 import Modal from './Modal';
@@ -29,6 +30,7 @@ const MENU_GROUPS = [
     icon: Layers,
     items: [
       { to: '/dashboard', label: 'Operations Dashboard', icon: LayoutDashboard },
+      { to: '/analytics', label: 'Analytics', icon: ChartNoAxesCombined },
       { to: '/report-generation', label: 'Report Generation', icon: Printer },
     ]
   },

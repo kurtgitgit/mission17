@@ -39,24 +39,17 @@ const ReportGeneration = () => {
       const token = localStorage.getItem('token');
       if (reportType === 'analytics') {
         const headers = { Authorization: `Bearer ${token}`, 'auth-token': token };
-        const [userRes, docRes, blotterRes] = await Promise.all([
-          axios.get(endpoints.users.getAll, { headers }),
-          axios.get(`${endpoints.auth.backendBaseUrl}/api/document-requests`, { headers }),
-          axios.get(`${endpoints.auth.backendBaseUrl}/api/blotter-reports`, { headers })
-        ]);
-        
-        let usersArr = userRes.data.data || userRes.data;
-        if (!Array.isArray(usersArr)) usersArr = [];
-        const filteredUsers = filterByDate(usersArr);
-
-        const docs = filterByDate(docRes.data || []);
-        const blotters = filterByDate(blotterRes.data || []);
-
+        const { data: summary } = await axios.get(endpoints.analytics, {
+          headers,
+          params: { startDate: startDate || undefined, endDate: endDate || undefined },
+          timeout: 25000,
+        });
         if (requestId !== latestRequestId.current) return;
         setData({
-          users: filteredUsers.length || 0,
-          documents: docs.length || 0,
-          blotters: blotters.length || 0
+          users: summary.residents,
+          documents: summary.documents.total,
+          blotters: summary.blotters.total,
+          feedback: summary.feedback.total,
         });
       } else {
         let url = '';
@@ -83,7 +76,7 @@ const ReportGeneration = () => {
     } finally {
       if (requestId === latestRequestId.current) setLoading(false);
     }
-  }, [filterByDate, reportType]);
+  }, [filterByDate, reportType, startDate, endDate]);
 
   useEffect(() => {
     void fetchReportData();
@@ -183,7 +176,7 @@ const ReportGeneration = () => {
         <tr>
           <td style={{ fontWeight: 'bold' }}>Registered Residents</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.users}</td>
-          <td>Total accounts in the system</td>
+          <td>Resident accounts registered within the selected period</td>
         </tr>
         <tr>
           <td style={{ fontWeight: 'bold' }}>Document Requests</td>
@@ -194,6 +187,11 @@ const ReportGeneration = () => {
           <td style={{ fontWeight: 'bold' }}>Blotter Reports</td>
           <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.blotters}</td>
           <td>Total incidents reported to barangay</td>
+        </tr>
+        <tr>
+          <td style={{ fontWeight: 'bold' }}>Citizen Feedback</td>
+          <td style={{ fontSize: '18px', fontWeight: 'bold' }}>{data.feedback}</td>
+          <td>Feedback submitted within the selected period</td>
         </tr>
       </>
     );

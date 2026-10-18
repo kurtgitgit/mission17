@@ -6,6 +6,7 @@ const BACKEND_BASE_URL = API_URL.replace('/api', '');
 
 
 export const endpoints = {
+  analytics: `${API_URL}/analytics`,
   auth: {
     baseUrl: `${API_URL}/auth`,
     backendBaseUrl: BACKEND_BASE_URL,

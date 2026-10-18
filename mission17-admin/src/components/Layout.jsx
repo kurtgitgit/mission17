@@ -3,9 +3,9 @@ import React from 'react';
 import Sidebar from './Sidebar'; // Import the menu
 import '../styles/Layout.css';   // Import the positioning rules
 
-const Layout = ({ children }) => {
+const Layout = ({ children, className = '' }) => {
   return (
-    <div className="layout-container">
+    <div className={`layout-container ${className}`}>
       {/* 1. The Fixed Sidebar */}
       <Sidebar />
 

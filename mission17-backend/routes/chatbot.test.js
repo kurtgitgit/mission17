@@ -503,7 +503,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
     expect(res.body.source).toBe('controlled-faq');
     expect(res.body.reply).toContain("'Clearance & ID'");
     expect(res.body.reply).toContain("'New Request'");
-    expect(res.body.reply).toContain("'Barangay Clearance'");
+    expect(res.body.reply).toMatch(/choose ['"]?Barangay Clearance['"]?/);
     expect(res.body.reply).not.toMatch(/[₱]|php\s*\d|\b\d+\s*(?:days?|araw|oras|hours?)\b|\bpdf\b|\bqr\s*code\b/i);
   });
 
