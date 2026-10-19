@@ -1,7 +1,8 @@
+import { detectLanguage, stripLanguageDirective } from './chatbotLanguage.js';
+
 const OFFICIALS_PATTERN = /\b(kapitan|captain|punong\s*barangay|kagawad|opisyal|officials?|council(?:lor|man|woman|member)?s?|tanod|sk\s*chairman)\b/i;
 const ANNOUNCEMENTS_PATTERN = /\b(announcements?|anunsyo|balita|latest\s+(?:news|update)|barangay\s+updates?)\b/i;
 const ANNOUNCEMENT_LOCATION_PATTERN = /\bwhere\s+(?:(?:can|do)\s+i\s+)?(?:find|see)\b|\bwhere\s+are\s+(?:the\s+)?(?:barangay\s+)?announcements\b|\b(?:saan|nasaan)\b/i;
-const TAGALOG_PATTERN = /\b(ano|anong|paano|saan|sino|mga|ang|ng|sa|po|opo|may|wala|kailangan|pwede|puwede|aktibidad|anunsyo)\b/i;
 const LIVE_DATA_EXCLUSION_PATTERN = /\b(911|emergency|sunog|fire|ambulance|aksidente|hirap\s*huminga|cannot\s*breathe|abuse|violence|threat|banta|sakit|fever|lagnat|medical|legal|abogado|lawyer|password|otp|verification\s*code|account\s*(?:status|problem)|personal\s*(?:record|data))\b/i;
 const ANNOUNCEMENT_CATEGORY_LABELS = {
   general: 'General',
@@ -15,7 +16,7 @@ const ANNOUNCEMENT_CATEGORY_LABELS = {
 const cleanText = (value, maxLength = 160) => (
   typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').slice(0, maxLength) : ''
 );
-const isTagalog = (message) => TAGALOG_PATTERN.test(message);
+const isTagalog = (message) => detectLanguage(message) === 'tagalog';
 const compactList = (items) => items.filter(Boolean).slice(0, 3).join('; ');
 const announcementTitle = (value) => {
   const title = cleanText(value, 5_000);
@@ -69,9 +70,10 @@ const announcementLocationReply = (tagalog) => (tagalog
 export const getLiveChatReply = async (message, { findOfficials, findAnnouncements }) => {
   if (typeof message !== 'string' || LIVE_DATA_EXCLUSION_PATTERN.test(message)) return null;
   const tagalog = isTagalog(message);
-  if (OFFICIALS_PATTERN.test(message)) return officialsReply(await findOfficials(), tagalog);
-  if (ANNOUNCEMENTS_PATTERN.test(message)) {
-    if (ANNOUNCEMENT_LOCATION_PATTERN.test(message)) return announcementLocationReply(tagalog);
+  const question = stripLanguageDirective(message);
+  if (OFFICIALS_PATTERN.test(question)) return officialsReply(await findOfficials(), tagalog);
+  if (ANNOUNCEMENTS_PATTERN.test(question)) {
+    if (ANNOUNCEMENT_LOCATION_PATTERN.test(question)) return announcementLocationReply(tagalog);
     return announcementsReply(await findAnnouncements(), tagalog);
   }
   return null;

@@ -5,33 +5,32 @@ import Announcement from '../models/Announcement.js';
 import { buildVisibleAnnouncementFilter } from '../utils/announcementVisibility.js';
 import Official from '../models/Official.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
+import { detectLanguage, stripLanguageDirective } from './chatbotLanguage.js';
+import { getWorkflowReply, getClassifiedWorkflowReply } from './chatbotKnowledge.js';
+export { detectLanguage } from './chatbotLanguage.js';
 
 const router = express.Router();
 const MAX_MESSAGE_LENGTH = 1_200;
 const MAX_CHATBOT_AI_RESPONSE_BYTES = 32 * 1024;
 const CHATBOT_REQUEST_TIMEOUT_MS = 12_000;
 const LANGUAGE_TOPIC_PATTERN = /\b(pangasinan|ilocano|ilokano|tagalog|filipino|wika|salita|pagsasao)\b/i;
+const isLanguageCapabilityQuestion = (message) => (
+  /^\s*(?:english|tagalog|filipino|ilocano|pangasinan)(?:\s+(?:please|po))?[?.!\s]*$/i.test(message)
+  || /\b(?:speak|understand|languages?|makakatalos|makaawat|nakakaunawa|wika|pagsasao)\b/i.test(message) && LANGUAGE_TOPIC_PATTERN.test(message)
+);
 const IMMEDIATE_EMERGENCY_PATTERN = /\b(sunog|fire|ambulance|aksidente|cannot\s*breathe|can['’]?t\s+breathe|unable\s+to\s+breathe|trouble\s+(?:with\s+)?breathing|shortness\s+of\s+breath|difficulty\s+breathing|hirap\s*(?:na\s*)?huminga|(?:hindi|di)\s+(?:na\s+)?(?:(?:ako|siya|kami|tayo|sila|ka|kayo)\s+)?(?:na\s*)?makahinga|abuse|violence|threat|banta|heart\s*attack|unconscious|severe\s+bleeding|suicide|self[\s-]?harm|flood|baha|bagyo|earthquake|lindol)\b/i;
 const EMERGENCY_TOPIC_PATTERN = /\b(?:emergenc(?:y|ies)|911|hotlines?)\b/i;
 const NON_EMERGENCY_CONTEXT_PATTERN = /\b(?:no\s+(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|not\s+(?:an?\s+)?(?:(?:current|immediate)\s+)?emergenc(?:y|ies)|non[-\s]?emergenc(?:y|ies))\b/i;
-const PRIVATE_RECORD_REQUEST_PATTERN = /\b(?:look\s*up|lookup|find|search|show|give|reveal|share|access|retrieve|check)\b.{0,100}\b(?:blotter|incident\s+reports?|case\s+(?:records?|details?)|home\s+addresses?|resident\s+(?:records?|reports?|details?)|personal\s+data)\b|\b(?:someone\s+else'?s?|somebody\s+else'?s?|another|other|neighbor\w*|kapitbahay)\b.{0,80}\b(?:blotter|incident|case|report|address|records?|details?|data)\b/i;
+const PRIVATE_RECORD_REQUEST_PATTERN = /\b(?:someone\s+else'?s?|somebody\s+else'?s?|another|other\s+resident|neighbor\w*|kapitbahay|ibang\s+(?:residente|tao))\b.{0,80}\b(?:blotter|incident|case|report|feedback|notifications?|address|tirahan|records?|details?|data)\b|\b(?:blotter|report|feedback|notifications?|address|tirahan|detalye)\b.{0,80}\b(?:kapitbahay|ibang\s+(?:residente|tao))\b|\b(?:look\s*up|lookup|find|search|show|give|reveal|share|access|retrieve|check|ipakita|ibigay)\b.{0,100}\b(?:home\s+addresses?|resident\s+(?:records?|reports?|details?)|personal\s+data|[\w -]+['’]s\s+blotter)\b/i;
 const REMOVED_FEATURE_PATTERN = /\b(?:civic\s*(?:tasks?|participation)|community\s*(?:events?|initiatives?)|sdg\s*missions?)\b/i;
-const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)[!.,?\s]*$/i;
-const GRATITUDE_PATTERN = /^\s*(?:thank\s+you(?:\s+(?:so\s+much|very\s+much))?|thanks?(?:\s+(?:a\s+lot|so\s+much))?|many\s+thanks|salamat(?:\s+po)?|maraming\s+salamat(?:\s+po)?|agyamanak(?:\s+unay)?)[!.,?\s]*$/i;
-const ACKNOWLEDGMENT_PATTERN = /^\s*(?:o\.?k\.?|okay|alright|all\s+right|got\s+it|understood|i\s+understand|noted|sige(?:\s+po)?|naiintindihan\s+ko|naunawaan\s+ko|wen)[!.,?\s]*$/i;
+const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)(?:\s+po)?[!.,?\s]*$/i;
+const GRATITUDE_PATTERN = /^\s*(?:thank\s+you(?:\s+(?:so\s+much|very\s+much))?|thanks?(?:\s+(?:a\s+lot|so\s+much))?|many\s+thanks|salamat|maraming\s+salamat|agyamanak(?:\s+unay)?)(?:\s+po)?[!.,?\s]*$/i;
+const ACKNOWLEDGMENT_PATTERN = /^\s*(?:o\.?k\.?|okay|alright|all\s+right|got\s+it|understood|i\s+understand|noted|sige|naiintindihan\s+ko|naunawaan\s+ko|wen)(?:\s+po)?[!.,?\s]*$/i;
 // The directory is the resident-facing source of approved roster details.
 // Do not disclose individual officials' personal contact details in chat.
-const OFFICIAL_DIRECTORY_PATTERN = /\b(?:punong\s+barangay|barangay\s+captain|kapitan|barangay\s+kagawad|kagawad|barangay\s+officials?|officials?\s+(?:of|information|contact)|official\s+(?:directory|details?|phone|number|email|contact)|council(?:\s+members?)?)\b/i;
+const OFFICIAL_DIRECTORY_PATTERN = /\b(?:punong\s+barangay|barangay\s+captain|kapitan|opisyal|barangay\s+kagawad|kagawad|barangay\s+officials?|officials?\s+(?:of|information|contact)|official\s+(?:directory|details?|phone|number|email|contact)|council(?:\s+members?)?)\b/i;
 
 const normalizeMessage = (message) => message.trim().replace(/\s+/g, ' ');
-
-export const detectLanguage = (message) => {
-  const text = message.toLowerCase();
-  if (/\b(pangasinan|antoy|saray|diad|makatalos|nangan|onla|tua)\b/i.test(text)) return 'pangasinan';
-  if (/\b(ilocano|ilokano|ania|dagiti|iti|wen|mabalin|agkiddaw|kasano|agyaman)\b/i.test(text)) return 'ilocano';
-  if (/\b(tagalog|filipino|kumusta|kamusta|paano|saan|bakit|salamat|ako|siya|hindi|di|sunog|hirap|makahinga|ang|mga|may|kailangan|mag-file|maghain)\b/i.test(text)) return 'tagalog';
-  return 'english';
-};
 
 const languageCapabilityReply = (language) => {
   if (language === 'pangasinan') return 'On, makatalos ak na Pangasinan. Makatulong ak ed saray serbisyo na Barangay Bagong Pag-asa tan BrgyLink app.';
@@ -49,10 +48,10 @@ const contactOfficeReply = (language) => {
 };
 
 const officialDirectoryReply = (language) => {
-  if (language === 'tagalog') return "Sa Home ng BrgyLink, piliin ang 'Barangay Council' para makita ang kasalukuyang directory at mga tungkulin ng mga opisyal na naka-publish sa app. Para sa contact details o agarang concern, makipag-ugnayan sa opisyal na barangay office.";
-  if (language === 'pangasinan') return "Diad Home na BrgyLink, piliyen so 'Barangay Council' pian nanengneng so kasalukuyan ya directory tan saray katungkulan na opisyal ya naka-publish ed app. Para ed contact odino agarang concern, pakaammo ed opisyal ya barangay office.";
-  if (language === 'ilocano') return "Iti Home ti BrgyLink, piliem ti 'Barangay Council' tapno makita ti agdama a directory ken dagiti katungdan dagiti opisial a naipablaak iti app. Para iti contact wenno napardas a concern, makipag-ugnay iti opisial a barangay office.";
-  return "From BrgyLink Home, tap 'Barangay Council' to view the officials and roles published in the directory. For contact details or an urgent concern, contact the official barangay office.";
+  if (language === 'tagalog') return "Sa Home ng BrgyLink, piliin ang 'Officials' para makita ang kasalukuyang directory at mga tungkulin ng mga opisyal na naka-publish sa app. Para sa contact details o agarang concern, makipag-ugnayan sa opisyal na barangay office.";
+  if (language === 'pangasinan') return "Diad Home na BrgyLink, piliyen so 'Officials' pian nanengneng so kasalukuyan ya directory tan saray katungkulan na opisyal ya naka-publish ed app. Para ed contact odino agarang concern, pakaammo ed opisyal ya barangay office.";
+  if (language === 'ilocano') return "Iti Home ti BrgyLink, piliem ti 'Officials' tapno makita ti agdama a directory ken dagiti katungdan dagiti opisial a naipablaak iti app. Para iti contact wenno napardas a concern, makipag-ugnay iti opisial a barangay office.";
+  return "From BrgyLink Home, tap 'Officials' to view the officials and roles published in the directory. For contact details or an urgent concern, contact the official barangay office.";
 };
 
 const emergencyReply = (language, message) => {
@@ -99,10 +98,10 @@ const emergencyReply = (language, message) => {
 };
 
 const privateRecordReply = (language) => {
-  if (language === 'tagalog') return "Hindi ako makakapaghanap o makakapagbahagi ng blotter report, tirahan, o pribadong detalye ng ibang residente. Para sa sarili mong report, mag-sign in at buksan ang 'My Blotter Reports'. Tanging awtorisadong kawani ang dapat mag-access ng case records sa tamang proseso.";
+  if (language === 'tagalog') return "Hindi ako makakapaghanap o makakapagbahagi ng report, feedback, notifications, tirahan, o pribadong detalye ng ibang residente. Para sa sarili mong records, mag-sign in: 'Documents' > 'My Requests', 'My Blotter Reports', o 'eFeedback' > 'My Inbox & History'. Tanging awtorisadong kawani ang dapat mag-access ng case records sa tamang proseso.";
   if (language === 'ilocano') return "Saanak a makasapul wenno mangibingay iti blotter report, pagnaedan, wenno pribado a detalye ti sabali a residente. Para iti bukodmo a report, ag-sign in ken lukatam ti 'My Blotter Reports'. Dagiti awtorisado laeng a kawani ti makaakses kadagiti case record babaen iti umiso a proseso.";
   if (language === 'pangasinan') return "Agko na-search odino naibingay so blotter report, address, odino pribado ya detalye na arum ya residente. Para ed bukod mon report, mag-sign in tan buksan so 'My Blotter Reports'. Saray awtorisado labat ya staff so nanengneng ed case records gamit so umiso ya proseso.";
-  return "I can't look up or disclose a resident's blotter report, home address, or other private case details in chat. For your own report, sign in and open 'My Blotter Reports'. Only authorized staff should access case records through the proper process.";
+  return "I can't look up or disclose another resident's reports, feedback, notifications, home address, or other private details in chat. For your own records, sign in: 'Documents' > 'My Requests', 'My Blotter Reports', or 'eFeedback' > 'My Inbox & History'. Only authorized staff should access case records through the proper process.";
 };
 
 const retiredFeatureReply = (language) => {
@@ -143,7 +142,8 @@ const acknowledgmentReply = (language, isGratitude) => {
 };
 
 export const getControlledFaq = (message) => {
-  const text = message.toLowerCase();
+  const question = stripLanguageDirective(message);
+  const text = question.toLowerCase();
   const language = detectLanguage(message);
   if (IMMEDIATE_EMERGENCY_PATTERN.test(message)) return emergencyReply(language, message);
   if (PRIVATE_RECORD_REQUEST_PATTERN.test(text)) return privateRecordReply(language);
@@ -154,40 +154,44 @@ export const getControlledFaq = (message) => {
   if (GREETING_PATTERN.test(message)) return greetingReply(language);
   if (GRATITUDE_PATTERN.test(message)) return acknowledgmentReply(language, true);
   if (ACKNOWLEDGMENT_PATTERN.test(message)) return acknowledgmentReply(language, false);
-  if (/forgot\s+(?:my\s+)?password|reset\s+(?:my\s+)?password|nakalimutan.*password|nakalimutan.*password|password.*nakalimutan/i.test(text)) {
+  // Specific workflows precede broad contact/document/language keywords.
+  const workflowReply = getWorkflowReply(question, language);
+  if (workflowReply) return workflowReply;
+  if (/forgot\s+(?:my\s+)?password|(?:i-?)?reset.*password|nakalimutan.*password|password.*nakalimutan/i.test(text)) {
     if (language === 'tagalog') return "Sa sign-in screen ng BrgyLink, piliin ang 'Forgot Password', ilagay ang email na ginamit sa account, at buksan ang password-reset link na ipinadala sa email. Tingnan din ang Spam o Junk folder. Huwag ibahagi ang reset link o password mo.";
     return "On the BrgyLink sign-in screen, tap 'Forgot Password', enter the email used for your account, then open the password-reset link sent to that email. Check Spam or Junk too. Never share your reset link or password.";
   }
-  if (/verification\s+code|verify\s+(?:my\s+)?email|did\s+not\s+receive.*code|didn['’]?t\s+receive.*code|otp|verification\s+email|code.*not\s+(?:arriv|receiv)/i.test(text)) {
+  if (/verification\s+code|verify\s+(?:my\s+)?email|did\s+not\s+receive.*code|didn['’]?t\s+receive.*code|otp|verification\s+email|code.*not\s+(?:arriv|receiv)|(?:hindi|di).*dumating.*code|code.*(?:expired|mali|dumating)/i.test(text)) {
     if (language === 'tagalog') return "Tingnan muna ang Inbox at Spam/Junk folder, at tiyaking tama ang email na ginamit mo. Sa signup, piliin ang 'Resend verification code' kapag tapos na ang countdown. Sa sign-in verification, piliin ang 'Resend Code' kapag available na ito; maaaring may cooldown o security limit. Kung hindi pa rin dumating, makipag-ugnayan sa opisyal na barangay office.";
     return "Check your Inbox and Spam/Junk folders, and confirm you used the correct email address. During signup, tap 'Resend verification code' when the countdown ends. During sign-in verification, tap 'Resend Code' when it becomes available; a cooldown or security limit may apply. If the code still doesn't arrive, contact the official barangay office.";
   }
   if (/document\s+(?:request\s+)?status|request\s+status|check\s+(?:my\s+)?(?:document|clearance)\s+request/i.test(text)) {
-    if (language === 'tagalog') return "Mag-sign in, pumunta sa Home, piliin ang 'Clearance & ID', at buksan ang tab na 'My Requests'. Hanapin ang request gamit ang reference number at tingnan ang status doon. Kung kailangan ng paglilinaw, makipag-ugnayan sa opisyal na barangay office at ibigay ang reference number sa opisyal na channel; huwag mag-post ng pribadong detalye rito sa chat.";
-    return "Sign in, go to Home, tap 'Clearance & ID', then open the 'My Requests' tab. Find your request using its reference number and check its status there. If you need clarification, contact the official barangay office through an official channel and provide the reference number; don't post private details in this chat.";
+    if (language === 'tagalog') return "Mag-sign in, pumunta sa Home, piliin ang 'Documents', at buksan ang tab na 'My Requests'. Hanapin ang request gamit ang reference number at tingnan ang status doon. Kung kailangan ng paglilinaw, makipag-ugnayan sa opisyal na barangay office at ibigay ang reference number sa opisyal na channel; huwag mag-post ng pribadong detalye rito sa chat.";
+    return "Sign in, go to Home, tap 'Documents', then open the 'My Requests' tab. Find your request using its reference number and check its status there. If you need clarification, contact the official barangay office through an official channel and provide the reference number; don't post private details in this chat.";
   }
   if (/what\s+can\s+(?:brgylink|the\s+app)\s+(?:help\s+me\s+)?do|what\s+does\s+brgylink\s+do|brgylink\s+features/i.test(text)) {
     if (language === 'tagalog') return 'Makakatulong ang BrgyLink sa document requests, blotter reports, barangay announcements, resident feedback, notifications, at pagtingin sa impormasyon ng mga opisyal. Makikita sa app kung aling serbisyo ang available sa account mo.';
     return 'BrgyLink supports document requests, blotter reports, barangay announcements, resident feedback, notifications, and viewing barangay-official information. The services available to you are shown in the app.';
   }
   if (OFFICIAL_DIRECTORY_PATTERN.test(text)) return officialDirectoryReply(language);
-  if (LANGUAGE_TOPIC_PATTERN.test(message)) {
+  if (isLanguageCapabilityQuestion(message)) {
     return languageCapabilityReply(language);
   }
-  if (/contact|phone|telephone|mobile|number|email|address|office\s+hours|oras\s+ng\s+opisina|barangay\s+hall/i.test(text)) {
+  if (/^\s*english\s*(?:please|po)?[.!?\s]*$/i.test(message)) return languageCapabilityReply(language);
+  if (/\b(?:office\s+hours|oras\s+ng\s+opisina|barangay\s+hall|barangay\s+office)\b|\b(?:barangay|office)\b.{0,30}\b(?:contact|phone|telephone|mobile|number|email|address|numero|oras)\b/i.test(text)) {
     return contactOfficeReply(language);
   }
   if (/barangay\s+clearance|clearance/i.test(text)) {
-    if (language === 'ilocano') return "Tapno agkiddaw iti Barangay Clearance, manipud Home piliem ti 'Clearance & ID', lukatam ti 'New Request', piliem ti Barangay Clearance, ket punuem ken ipasa ti form. Para kadagiti agdama a kasapulan, bayad, oras, wenno panangala, kitaem ti News wenno agdamag iti opisial a barangay office.";
-    if (language === 'tagalog') return "Para humiling ng Barangay Clearance, mula Home piliin ang 'Clearance & ID', buksan ang 'New Request', piliin ang Barangay Clearance, at kumpletuhin at isumite ang form. Para sa kasalukuyang requirements, bayad, oras, o pagkuha, tingnan ang News o magtanong sa opisyal na barangay office.";
-    if (language === 'pangasinan') return "Para mangikeddeng na Barangay Clearance, manipud Home piliyen so 'Clearance & ID', buksan so 'New Request', piliyen so Barangay Clearance, tan punan tan ipasa so form. Para ed agdama ya kasapulan, bayad, oras, odino panangala, silipen so News odino pakaammo ed opisyal ya barangay office.";
-    return "To request a Barangay Clearance, go to Home, tap 'Clearance & ID', open 'New Request', choose Barangay Clearance, then complete and submit the form. For current requirements, fees, office hours, or pickup instructions, check the News tab or contact the official barangay office.";
+    if (language === 'ilocano') return "Tapno agkiddaw iti Barangay Clearance, manipud Home piliem ti 'Documents', lukatam ti 'New Request', piliem ti Barangay Clearance, ket punuem ken ipasa ti form. Para kadagiti agdama a kasapulan, bayad, oras, wenno panangala, kitaem ti News wenno agdamag iti opisial a barangay office.";
+    if (language === 'tagalog') return "Para humiling ng Barangay Clearance, mula Home piliin ang 'Documents', buksan ang 'New Request', piliin ang Barangay Clearance, at kumpletuhin at isumite ang form. Para sa kasalukuyang requirements, bayad, oras, o pagkuha, tingnan ang News o magtanong sa opisyal na barangay office.";
+    if (language === 'pangasinan') return "Para mangikeddeng na Barangay Clearance, manipud Home piliyen so 'Documents', buksan so 'New Request', piliyen so Barangay Clearance, tan punan tan ipasa so form. Para ed agdama ya kasapulan, bayad, oras, odino panangala, silipen so News odino pakaammo ed opisyal ya barangay office.";
+    return "To request a Barangay Clearance, go to Home, tap 'Documents', open 'New Request', choose Barangay Clearance, then complete and submit the form. For current requirements, fees, office hours, or pickup instructions, check the News tab or contact the official barangay office.";
   }
   if (/blotter|incident\s+report|reklamo/i.test(text)) {
-    if (language === 'tagalog') return "Mula Home, piliin ang 'Blotter Incident' para buksan ang 'File a Blotter Report'. Ilagay ang detalye ng insidente at isumite ang report. Para subaybayan ito, gamitin ang history icon o 'Track My Reports' at tingnan ang 'My Blotter Reports'. Kung emergency, tawagan ang naaangkop na numerong nasa Home > Emergency Hotlines; hindi nakakatawag o nakakapagpadala ng tulong ang BrgyLink.";
-    if (language === 'ilocano') return "Manipud Home, piliem ti 'Blotter Incident' tapno lukatan ti 'File a Blotter Report'. Iserrek dagiti detalye ti pasamak ket ipasa ti report. Tapno subaybayan, usarem ti history icon wenno 'Track My Reports' ket kitaem ti 'My Blotter Reports'. No emergency, tawagan ti umiso a numero iti Home > Emergency Hotlines; saan a makatawag wenno makapatulod iti tulong ti BrgyLink.";
-    if (language === 'pangasinan') return "Manipud Home, piliyen so 'Blotter Incident' pian buksan so 'File a Blotter Report'. Ilagay so detalye na insidente tan ipasa so report. Pian subaybayan, usaren so history icon odino 'Track My Reports' tan nengnengen so 'My Blotter Reports'. No emergency, tawagan so umiso ya numero ed Home > Emergency Hotlines; ag makatawag odino makapatulod na tulong so BrgyLink.";
-    return "From Home, tap 'Blotter Incident' to open 'File a Blotter Report'. Enter the incident details and submit the report. To track it, use the history icon or 'Track My Reports', then check 'My Blotter Reports'. For an emergency, call the appropriate number under Home > Emergency Hotlines; BrgyLink cannot call or dispatch help.";
+    if (language === 'tagalog') return "Mula Home, piliin ang 'Blotter report' para buksan ang 'File a Blotter Report'. Ilagay ang detalye ng insidente at isumite ang report. Para subaybayan ito, gamitin ang history icon o 'Track My Reports' at tingnan ang 'My Blotter Reports'. Kung emergency, tawagan ang naaangkop na numerong nasa Home > Emergency Hotlines; hindi nakakatawag o nakakapagpadala ng tulong ang BrgyLink.";
+    if (language === 'ilocano') return "Manipud Home, piliem ti 'Blotter report' tapno lukatan ti 'File a Blotter Report'. Iserrek dagiti detalye ti pasamak ket ipasa ti report. Tapno subaybayan, usarem ti history icon wenno 'Track My Reports' ket kitaem ti 'My Blotter Reports'. No emergency, tawagan ti umiso a numero iti Home > Emergency Hotlines; saan a makatawag wenno makapatulod iti tulong ti BrgyLink.";
+    if (language === 'pangasinan') return "Manipud Home, piliyen so 'Blotter report' pian buksan so 'File a Blotter Report'. Ilagay so detalye na insidente tan ipasa so report. Pian subaybayan, usaren so history icon odino 'Track My Reports' tan nengnengen so 'My Blotter Reports'. No emergency, tawagan so umiso ya numero ed Home > Emergency Hotlines; ag makatawag odino makapatulod na tulong so BrgyLink.";
+    return "From Home, tap 'Blotter report' to open 'File a Blotter Report'. Enter the incident details and submit the report. To track it, use the history icon or 'Track My Reports', then check 'My Blotter Reports'. For an emergency, call the appropriate number under Home > Emergency Hotlines; BrgyLink cannot call or dispatch help.";
   }
   return null;
 };
@@ -199,14 +203,14 @@ export const guardModelReply = (message, reply) => (
 );
 
 export const isInScope = (message) => (
-  /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|brgylink|document|clearance|certificate|request|blotter|report|complaint|announcement|official|service|permit|resident|verification|otp|profile|account|notification|government|public\s+service|pamahalaan|gobyerno|serbisyo|tulong|kasapulan|dokument|agkiddaw)\b/i.test(message)
+  /\b(barangay|brgy|bagong\s+pag-asa|san\s+jacinto|brgylink|documents?|dokumento|clearance|certificates?|request|blotter|report|complaint|announcements?|anunsyo|balita|officials?|opisyal|service|permit|resident|verification|otp|profile|account|notifications?|notifikasyon|feedback|e\s*-?\s*feedback|suggestion|government|public\s+service|pamahalaan|gobyerno|serbisyo|tulong|kasapulan|dokument|agkiddaw)\b/i.test(message)
   || /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|kumusta|kamusta|mabuhay|maong|kablaaw|naragsak)\b/i.test(message)
   || LANGUAGE_TOPIC_PATTERN.test(message)
 );
 
 export const outOfScopeReply = (message) => {
   const language = detectLanguage(message);
-  if (LANGUAGE_TOPIC_PATTERN.test(message)) return languageCapabilityReply(language);
+  if (isLanguageCapabilityQuestion(message)) return languageCapabilityReply(language);
   if (language === 'pangasinan') return 'Dispensar, anggapo ak ni sigurado ya sungbat ed sayan tan nakatuon ak ed saray serbisyo na Barangay Bagong Pag-asa tan BrgyLink. Makatulong ak ed document requests, blotter reports, tan announcements. Subok mo itanong: “Paano ako mangikeddeng na clearance?”, “Paano ako mangipasa na blotter?”, odino “Anto so latest announcements?”';
   if (language === 'ilocano') return 'Pakawanennak, saanak a sigurado iti sungbat dayta ta nakatutokak kadagiti serbisyo ti Barangay Bagong Pag-asa ken BrgyLink. Makatulongak kadagiti document requests, blotter reports, ken announcements. Padasem nga agdamag: “Kasano nga agkiddaw iti clearance?”, “Kasano nga agpasa iti blotter?”, wenno “Ania ti latest announcements?”';
   if (language === 'tagalog') return 'Pasensya na po, hindi ako makakasagot nang maaasahan tungkol diyan dahil nakatuon ako sa BrgyLink at mga serbisyo ng Barangay Bagong Pag-asa. Maaari akong tumulong sa document requests, blotter reports, at announcements. Subukan: “Paano ako hihingi ng clearance?”, “Paano ako magfa-file ng blotter?”, o “Ano ang latest announcements?”';
@@ -222,10 +226,11 @@ export const resolveAiChatReply = (message, aiReply) => {
   if (UNKNOWN_CHATBOT_INTENTS.has(intent) || misclassifiedAboutAppQuestion) {
     return { reply: getSafeFallbackReply(message), source: 'safe-local-fallback' };
   }
-  return {
-    reply: guardModelReply(message, aiReply.response),
-    source: 'brgylink-ai-classifier',
-  };
+  const groundedReply = getControlledFaq(message)
+    || getClassifiedWorkflowReply(message, { ...aiReply, intent }, detectLanguage(message));
+  return groundedReply
+    ? { reply: groundedReply, source: 'brgylink-ai-classifier' }
+    : { reply: getSafeFallbackReply(message), source: 'safe-local-fallback' };
 };
 
 export const getMockReply = (message) => {

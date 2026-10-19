@@ -73,7 +73,7 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('does not treat an acknowledgment at the start of a question as a standalone reply', () => {
     const reply = getControlledFaq('Okay, how do I file a blotter report?');
-    expect(reply).toContain("'Blotter Incident'");
+    expect(reply).toContain("'Blotter report'");
     expect(reply).toContain("'File a Blotter Report'");
   });
 
@@ -81,14 +81,14 @@ describe('chatbot multilingual routing and fallback', () => {
     const message = 'Mabalin ba nga agkiddaw iti barangay clearance?';
     expect(detectLanguage(message)).toBe('ilocano');
     expect(isInScope(message)).toBe(true);
-    expect(getControlledFaq(message)).toContain("'Clearance & ID'");
+    expect(getControlledFaq(message)).toContain("'Documents'");
     expect(getControlledFaq(message)).toContain('opisial a barangay office');
   });
 
   it('returns a controlled Tagalog blotter answer', () => {
     const message = 'Paano ako magrereklamo sa barangay?';
     expect(detectLanguage(message)).toBe('tagalog');
-    expect(getControlledFaq(message)).toContain("'Blotter Incident'");
+    expect(getControlledFaq(message)).toContain("'Blotter report'");
     expect(getMockReply(message)).toContain("'File a Blotter Report'");
   });
 
@@ -99,7 +99,7 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(verificationReply).toContain("'Resend Code'");
     expect(verificationReply).not.toContain('no verified');
     const statusReply = getControlledFaq('How do I check my document request status?');
-    expect(statusReply).toContain("'Clearance & ID'");
+    expect(statusReply).toContain("'Documents'");
     expect(statusReply).toContain("'My Requests'");
     expect(statusReply).toContain('reference number');
     expect(getControlledFaq('What can BrgyLink help me do?')).toContain('document requests, blotter reports');
@@ -107,19 +107,19 @@ describe('chatbot multilingual routing and fallback', () => {
 
   it('uses the current mobile app labels in the clearance, blotter, and officials FAQs', () => {
     const clearanceReply = getControlledFaq('How do I request a Barangay Clearance?');
-    expect(clearanceReply).toContain("'Clearance & ID'");
+    expect(clearanceReply).toContain("'Documents'");
     expect(clearanceReply).toContain("'New Request'");
     expect(clearanceReply).toContain('News tab');
     expect(clearanceReply).not.toContain("'Document Requests'");
 
     const blotterReply = getControlledFaq('How do I file a blotter report?');
-    expect(blotterReply).toContain("'Blotter Incident'");
+    expect(blotterReply).toContain("'Blotter report'");
     expect(blotterReply).toContain("'File a Blotter Report'");
     expect(blotterReply).toContain("'My Blotter Reports'");
     expect(blotterReply).not.toContain("'File New Report'");
 
     const officialsReply = getControlledFaq('Who are the current barangay officials?');
-    expect(officialsReply).toContain("'Barangay Council'");
+    expect(officialsReply).toContain("'Officials'");
     expect(officialsReply).toContain('From BrgyLink Home');
     expect(officialsReply).not.toContain('Barangay E-Services');
   });
@@ -224,19 +224,19 @@ describe('chatbot multilingual routing and fallback', () => {
     });
 
     expect(result.source).toBe('brgylink-ai-classifier');
-    expect(result.reply).toContain('BrgyLink AI can help');
+    expect(result.reply).toContain('document requests, blotter reports');
+    expect(result.reply).not.toContain('BrgyLink AI can help');
   });
 
-  it('preserves AI answers for recognized intents', () => {
+  it('does not trust arbitrary prose or unapproved intent names from the classifier', () => {
     const result = resolveAiChatReply('Tell me about this barangay program', {
       intent: 'community_program',
       response: 'Here is the available information.',
     });
 
-    expect(result).toEqual({
-      reply: 'Here is the available information.',
-      source: 'brgylink-ai-classifier',
-    });
+    expect(result.source).toBe('safe-local-fallback');
+    expect(result.reply).toContain('verified information');
+    expect(result.reply).not.toContain('Here is the available information.');
   });
 
   it('returns the verified barangay contact details without model invention', () => {
@@ -246,10 +246,10 @@ describe('chatbot multilingual routing and fallback', () => {
     expect(reply).toContain('Bhea Monique San Miguel');
   });
 
-  it('routes official-directory questions to the mobile Barangay Council tile without disclosing individual contact details', () => {
+  it('routes official-directory questions to the mobile Officials tile without disclosing individual contact details', () => {
     const reply = getControlledFaq("What is the Punong Barangay's phone number?");
     expect(reply).toContain('From BrgyLink Home');
-    expect(reply).toContain("'Barangay Council'");
+    expect(reply).toContain("'Officials'");
     expect(reply).not.toContain('0991-698-2914');
   });
 
@@ -501,9 +501,9 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'How do I request a Barangay Clearance?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('controlled-faq');
-    expect(res.body.reply).toContain("'Clearance & ID'");
+    expect(res.body.reply).toContain("'Documents'");
     expect(res.body.reply).toContain("'New Request'");
-    expect(res.body.reply).toMatch(/choose ['"]?Barangay Clearance['"]?/);
+    expect(res.body.reply).toMatch(/choose ['"]?Barangay Clearance['"]?/i);
     expect(res.body.reply).not.toMatch(/[₱]|php\s*\d|\b\d+\s*(?:days?|araw|oras|hours?)\b|\bpdf\b|\bqr\s*code\b/i);
   });
 
@@ -513,7 +513,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       .send({ message: 'How do I file a blotter report?' });
     expect(res.status).toBe(200);
     expect(res.body.source).toBe('controlled-faq');
-    expect(res.body.reply).toContain("'Blotter Incident'");
+    expect(res.body.reply).toContain("'Blotter report'");
     expect(res.body.reply).toContain("'File a Blotter Report'");
     expect(res.body.reply).toContain('Home > Emergency Hotlines');
     expect(res.body.reply).not.toContain('911');
@@ -554,7 +554,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('controlled-faq');
       expect(res.body.reply).toContain('From BrgyLink Home');
-      expect(res.body.reply).toContain("'Barangay Council'");
+      expect(res.body.reply).toContain("'Officials'");
       expect(res.body.reply).not.toContain('Hon. Reynaldo Cruz');
     });
 
@@ -596,6 +596,37 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
       expect(res.body.source).toBe('live-brgylink-data');
       expect(res.body.reply).toContain('There are no active announcements published in BrgyLink yet');
     });
+
+    it('never summarizes expired, archived, or inactive posts', async () => {
+      await Announcement.create([
+        { title: 'Current bulletin', body: 'Current public details', category: 'general', postedBy: 'admin', isActive: true, expiresAt: new Date(Date.now() + 86400000) },
+        { title: 'Expired bulletin', body: 'Old public details', category: 'general', postedBy: 'admin', isActive: true, expiresAt: new Date(Date.now() - 86400000) },
+        { title: 'Archived bulletin', body: 'Archived public details', category: 'general', postedBy: 'admin', isActive: true, isArchived: true },
+        { title: 'Inactive bulletin', body: 'Inactive public details', category: 'general', postedBy: 'admin', isActive: false },
+      ]);
+      const res = await request(app).post('/api/chatbot').send({ message: 'Ano ang latest announcements?' });
+      expect(res.body.source).toBe('live-brgylink-data');
+      expect(res.body.reply).toContain('Current bulletin');
+      expect(res.body.reply).not.toMatch(/Expired bulletin|Archived bulletin|Inactive bulletin/);
+    });
+  });
+
+  it('grounds a real gateway result in an allowlisted bilingual answer', async () => {
+    process.env.AI_SERVICE_TOKEN = 'test-only-token';
+    const fetchSpy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ intent: 'registration', confidence: 0.9, response: 'Invented account advice' }),
+    });
+    try {
+      const res = await request(app).post('/api/chatbot').send({ message: 'Could you walk me through my account?' });
+      expect(res.body.source).toBe('brgylink-ai-classifier');
+      expect(res.body.reply).toContain('Create Account');
+      expect(res.body.reply).not.toContain('Invented account advice');
+      expect(fetchSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      fetchSpy.mockRestore();
+      delete process.env.AI_SERVICE_TOKEN;
+    }
   });
 
   it('Case 6: states no verified information available and directs to Announcements or barangay office for unknown in-scope question', async () => {
@@ -619,7 +650,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
     expect(res.body.reply).toContain('0917-189-4611');
     expect(res.body.reply).toContain('Hindi nakakapagpadala o nakakatawag ng tulong ang BrgyLink');
     expect(res.body.reply).not.toContain('911');
-    expect(res.body.reply).not.toContain("'Blotter Incident'");
+    expect(res.body.reply).not.toContain("'Blotter report'");
   });
 
   describe('Case 8: Failure recovery and safe fallback', () => {
@@ -633,16 +664,17 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
     });
 
     it('returns safe fallback when live data lookup throws an error', async () => {
-      const findSpy = jest.spyOn(Official, 'find').mockImplementationOnce(() => {
+      const findSpy = jest.spyOn(Announcement, 'find').mockImplementationOnce(() => {
         throw new Error('Database connection failed during live query');
       });
 
       const res = await request(app)
         .post('/api/chatbot')
-        .send({ message: 'Sino ang mga opisyal ng barangay?' });
+        .send({ message: 'Ano ang latest announcements?' });
       expect(res.status).toBe(200);
       expect(res.body.source).toBe('safe-local-fallback');
       expect(res.body.reply).toBeDefined();
+      expect(findSpy).toHaveBeenCalledTimes(1);
 
       findSpy.mockRestore();
     });
