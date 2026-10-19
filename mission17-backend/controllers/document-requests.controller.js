@@ -7,6 +7,8 @@ import User from '../models/User.js';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import { logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { archiveFilter } from '../utils/archiveQuery.js';
+import { hasMeaningfulText, parsePickupDate } from '../utils/serviceValidation.js';
 
 const ALLOWED_STATUSES = ['Pending', 'Processing', 'Ready for Pickup', 'Completed', 'Rejected'];
 const ALLOWED_DOCUMENT_TYPES = [
@@ -59,12 +61,12 @@ export const submitRequest = asyncHandler(async (req, res) => {
   const cleanContact = typeof contactNumber === 'string' ? contactNumber.replace(/\s/g, '') : '';
   const cleanPurpose = typeof purpose === 'string' ? purpose.trim() : '';
   const cleanCustomDocumentType = typeof customDocumentType === 'string' ? customDocumentType.trim().replace(/\s+/g, ' ') : '';
-  if (cleanFullName.length < 3 || cleanFullName.length > 120 || !/[A-Za-z]/.test(cleanFullName) || /^(.)\1+$/.test(cleanFullName.replace(/\s/g, ''))) return res.status(400).json({ message: 'Please enter a valid complete name.' });
-  if (cleanAddress.length < 5 || cleanAddress.length > 250 || !/[A-Za-z]/.test(cleanAddress) || /^(.)\1+$/.test(cleanAddress.replace(/\s/g, ''))) return res.status(400).json({ message: 'Please enter a valid barangay address.' });
+  if (cleanFullName.length < 3 || cleanFullName.length > 120 || !hasMeaningfulText(cleanFullName)) return res.status(400).json({ message: 'Please enter a valid complete name.' });
+  if (cleanAddress.length < 5 || cleanAddress.length > 250 || !hasMeaningfulText(cleanAddress)) return res.status(400).json({ message: 'Please enter a valid barangay address.' });
   if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
   if (!ALLOWED_DOCUMENT_TYPES.includes(documentType)) return res.status(400).json({ message: 'Please select a valid document type.' });
-  if (documentType === 'Other' && (cleanCustomDocumentType.length < 3 || cleanCustomDocumentType.length > 80 || !/[A-Za-z]/.test(cleanCustomDocumentType))) return res.status(400).json({ message: 'Please specify the document type you need.' });
-  if (cleanPurpose.length < 5 || cleanPurpose.length > 500 || !/[A-Za-z]/.test(cleanPurpose) || /^(.)\1+$/.test(cleanPurpose.replace(/\s/g, ''))) return res.status(400).json({ message: 'Purpose must be between 5 and 500 meaningful characters.' });
+  if (documentType === 'Other' && (cleanCustomDocumentType.length < 3 || cleanCustomDocumentType.length > 80 || !hasMeaningfulText(cleanCustomDocumentType))) return res.status(400).json({ message: 'Please specify the document type you need.' });
+  if (cleanPurpose.length < 5 || cleanPurpose.length > 500 || !hasMeaningfulText(cleanPurpose)) return res.status(400).json({ message: 'Purpose must be between 5 and 500 meaningful characters.' });
 
   const recentDuplicate = await DocumentRequest.findOne({
     userId, documentType, customDocumentType: cleanCustomDocumentType || undefined, purpose: cleanPurpose,
@@ -118,10 +120,10 @@ export const getMyRequests = asyncHandler(async (req, res) => {
 
 // GET / — Admin: Get all requests (with optional status filter)
 export const getAllRequests = asyncHandler(async (req, res) => {
-  const filter = req.query.status ? { status: req.query.status } : {};
+  const filter = { ...archiveFilter(req.query.archive), ...(req.query.status ? { status: req.query.status } : {}) };
   const requests = await DocumentRequest.find(filter)
     .populate('userId', 'purok idType validIdFrontUrl validIdBackUrl accountStatus isVerified email completeAddress voterStatus mobileNumber')
-    .sort({ createdAt: 1, _id: 1 });
+    .sort({ createdAt: -1, _id: -1 });
   res.json(requests);
 });
 
@@ -140,9 +142,9 @@ export const updateStatus = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Please provide a clear rejection or missing-requirements reason.' });
   }
   let parsedPickupDate = null;
-  if (pickupDate) {
-    parsedPickupDate = new Date(pickupDate);
-    if (Number.isNaN(parsedPickupDate.getTime())) return res.status(400).json({ message: 'Please provide a valid pickup date.' });
+  if (pickupDate !== undefined && pickupDate !== null) {
+    parsedPickupDate = parsePickupDate(pickupDate);
+    if (!parsedPickupDate) return res.status(400).json({ message: 'Pickup date must be a valid date today or later (Philippine time).' });
   }
   if (status === 'Ready for Pickup' && !parsedPickupDate) {
     return res.status(400).json({ message: 'A pickup date is required when a document is ready.' });
@@ -150,13 +152,16 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   const docRequest = await DocumentRequest.findById(req.params.id);
   if (!docRequest) return res.status(404).json({ message: 'Request not found.' });
+  if (docRequest.isArchived) return res.status(409).json({ message: 'Restore this record before changing its status.' });
 
   docRequest.status      = status;
   docRequest.processedBy = req.user.username;
   if (rejectionReason !== undefined) docRequest.rejectionReason = rejectionReason.trim();
   if (pickupDate !== undefined)      docRequest.pickupDate = parsedPickupDate;
   if (status === 'Rejected')         docRequest.pickupDate = null;
-  await docRequest.save();
+  docRequest.$where = {isArchived:{$ne:true}};
+  try {await docRequest.save();}
+  catch(error){if(error.name==='DocumentNotFoundError')return res.status(409).json({message:'The record was archived or changed. Refresh before saving.'});throw error;}
 
   // Create in-app notification in DB
   const notif = buildNotification(docRequest, status, rejectionReason, docRequest.pickupDate);

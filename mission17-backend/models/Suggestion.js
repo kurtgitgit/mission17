@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { archiveFields } from '../utils/archiveFields.js';
 
 const suggestionSchema = new mongoose.Schema({
+  ...archiveFields,
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

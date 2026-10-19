@@ -1,304 +1,64 @@
-import React, { useState, useEffect } from 'react';
-import Layout from '../../components/Layout';
-import { 
-  Users, Activity, AlertCircle, CheckSquare, FileText, Megaphone, 
-  ShieldAlert, MessageSquare, ArrowRight, Clock, AlertTriangle, 
-  CheckCircle, Plus, Send, RefreshCw, ChevronRight, Eye 
-} from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import '../../styles/DashboardHome.css';
+import { FileText, ShieldCheck, MessageSquare, Megaphone, ArrowRight, RefreshCw, Plus, Info } from 'lucide-react';
+import Layout from '../../components/Layout';
+import { newestFirst } from '../../utils/serviceRecords';
 import { endpoints } from '../../config/api';
+import '../../styles/OperationsDashboard.css';
 
-const DashboardHome = () => {
-  const [stats, setStats] = useState({
-    pendingDocs: 0,
-    activeBlotters: 0,
-    newFeedback: 0,
-    activeAlerts: 0,
-    totalResidents: 0,
-  });
+const formatDate = (date, options = {month:'short',day:'numeric'}) => date ? new Date(date).toLocaleString('en-PH',{timeZone:'Asia/Manila',...options}) : '—';
+const badge = status => <span className={`ops-badge ops-${String(status).toLowerCase().replaceAll(' ','-')}`}>{status}</span>;
 
-  const [pendingDocsList, setPendingDocsList] = useState([]);
-  const [activeBlottersList, setActiveBlottersList] = useState([]);
-  const [recentAnnouncements, setRecentAnnouncements] = useState([]);
-  const [loading, setLoading] = useState(true);
+async function fetchDashboard() {
+  const base = endpoints.auth.backendBaseUrl;
+  const headers = {'auth-token':localStorage.getItem('token')};
+  const sources=[['documents','/api/document-requests'],['blotters','/api/blotter-reports?open=true&limit=5'],['counts','/api/analytics/operations'],['posts','/api/announcements']];
+  const results=await Promise.allSettled(sources.map(async ([,path])=>{
+    const response=await fetch(base+path,{headers});
+    if(!response.ok) throw new Error('Unavailable');
+    return response.json();
+  }));
+  const errors=[];
+  const data=Object.fromEntries(results.map((result,index)=>{
+    const key=sources[index][0];
+    if(result.status==='rejected'){errors.push(key);return [key,null];}
+    return [key,result.value];
+  }));
+  return {data,errors};
+}
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    const token = localStorage.getItem('token');
-    const baseUrl = endpoints.auth.backendBaseUrl;
-
-    try {
-      const [docRes, blotterRes, feedbackRes, annRes, userRes] = await Promise.all([
-        fetch(`${baseUrl}/api/document-requests`, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(`${baseUrl}/api/blotter-reports`, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(`${baseUrl}/api/suggestions/stats`, { headers: { 'auth-token': token } }).catch(() => null),
-        fetch(`${baseUrl}/api/announcements`).catch(() => null),
-        fetch(`${endpoints.auth.baseUrl}/users`, { headers: { 'auth-token': token } }).catch(() => null)
-      ]);
-
-      const docs = docRes && docRes.ok ? await docRes.json() : [];
-      const blotters = blotterRes && blotterRes.ok ? await blotterRes.json() : [];
-      const feedbackStats = feedbackRes && feedbackRes.ok ? await feedbackRes.json() : {};
-      const anns = annRes && annRes.ok ? await annRes.json() : [];
-      const users = userRes && userRes.ok ? await userRes.json() : [];
-
-      const pendingDocs = docs.filter(d => d.status === 'Pending' || d.status === 'Processing');
-      const activeBlotters = blotters.filter(b => b.status === 'Pending' || b.status === 'In Progress');
-      const urgentAlerts = anns.filter(a => a.isUrgent);
-
-      setStats({
-        pendingDocs: pendingDocs.length,
-        activeBlotters: activeBlotters.length,
-        newFeedback: feedbackStats.pending || feedbackStats.total || 0,
-        activeAlerts: urgentAlerts.length,
-        totalResidents: Array.isArray(users) ? users.length : (users.total || 0),
-      });
-
-
-      setPendingDocsList(pendingDocs.slice(0, 5));
-      setActiveBlottersList(activeBlotters.slice(0, 5));
-      setRecentAnnouncements(anns.slice(0, 3));
-
-    } catch (err) {
-      console.error('Error loading daily essentials dashboard:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const todayFormatted = new Date().toLocaleDateString('en-PH', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
-
-  return (
-    <Layout title="Operations Hub">
-      <div className="dashboard-container" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-
-        {/* ── DAILY ESSENTIALS HEADER ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', margin: '0 0 4px 0' }}>
-              🏛️ Barangay Operations Command Center
-            </h1>
-            <p style={{ margin: 0, fontSize: '14px', color: '#64748b' }}>
-              {todayFormatted} · Daily Essentials & Immediate Priority Queue
-            </p>
-          </div>
-          
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              onClick={fetchDashboardData}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#ffffff', border: '1.5px solid #e2e8f0', padding: '9px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#475569' }}
-            >
-              <RefreshCw size={14} /> Refresh Data
-            </button>
-            <Link
-              to="/announcements"
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#dc2626', color: '#ffffff', border: 'none', padding: '9px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 800, textDecoration: 'none' }}
-            >
-              <AlertTriangle size={15} /> Post Alert
-            </Link>
-          </div>
-        </div>
-
-        {/* ── 4 PRIMARY DAILY ESSENTIALS METRICS ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          
-          {/* 1. PENDING DOCS */}
-          <Link to="/document-requests" style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.02)', transition: 'all 0.2s' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Document Requests</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
-                  {loading ? '...' : stats.pendingDocs}
-                </div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Needs Processing <ArrowRight size={12} />
-                </div>
-              </div>
-              <div style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FileText size={22} color="#b45309" />
-              </div>
-            </div>
-          </Link>
-
-          {/* 2. ACTIVE BLOTTERS */}
-          <Link to="/blotter-reports" style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Active Blotters</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
-                  {loading ? '...' : stats.activeBlotters}
-                </div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Incidents & Lupon <ArrowRight size={12} />
-                </div>
-              </div>
-              <div style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ShieldAlert size={22} color="#dc2626" />
-              </div>
-            </div>
-          </Link>
-
-          {/* 3. CITIZEN FEEDBACK */}
-          <Link to="/suggestions" style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: '#0038A8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Citizen Feedback</div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
-                  {loading ? '...' : stats.newFeedback}
-                </div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Private Desk Inbox <ArrowRight size={12} />
-                </div>
-              </div>
-              <div style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <MessageSquare size={22} color="#0038A8" />
-              </div>
-            </div>
-          </Link>
-
-          {/* 4. EMERGENCY ALERTS */}
-          <Link to="/announcements" style={{ textDecoration: 'none' }}>
-            <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px', border: '1.5px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div>
-                <div style={{ fontSize: 12, fontWeight: 800, color: stats.activeAlerts > 0 ? '#dc2626' : '#16a34a', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {stats.activeAlerts > 0 ? '🚨 Emergency Alerts' : '📢 Active Bulletins'}
-                </div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#0f172a', marginTop: 4 }}>
-                  {loading ? '...' : (stats.activeAlerts > 0 ? `${stats.activeAlerts} Active` : 'Normal')}
-                </div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
-                  Broadcast Status <ArrowRight size={12} />
-                </div>
-              </div>
-              <div style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: stats.activeAlerts > 0 ? '#fee2e2' : '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Megaphone size={22} color={stats.activeAlerts > 0 ? '#dc2626' : '#16a34a'} />
-              </div>
-            </div>
-          </Link>
-
-        </div>
-
-        {/* ── DAILY ACTION QUEUE (SPLIT VIEW) ── */}
-        <div className="daily-action-grid">
-          
-          {/* LEFT: PENDING DOCUMENT REQUESTS QUEUE */}
-          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <FileText size={18} color="#0038A8" />
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Priority Document Requests</h3>
-              </div>
-              <Link to="/document-requests" style={{ fontSize: '12.5px', fontWeight: 700, color: '#0038A8', textDecoration: 'none' }}>
-                View All ({stats.pendingDocs}) →
-              </Link>
-            </div>
-
-            {loading ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>Loading requests...</div>
-            ) : pendingDocsList.length === 0 ? (
-              <div style={{ padding: '30px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: 12 }}>
-                <CheckCircle size={32} color="#16a34a" style={{ margin: '0 auto 8px' }} />
-                <p style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#334155' }}>All caught up!</p>
-                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#64748b' }}>No pending clearance or certificate requests right now.</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {pendingDocsList.map(req => (
-                  <div key={req._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', borderRadius: 10, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                    <div>
-                      <strong style={{ fontSize: '13.5px', color: '#0f172a', display: 'block' }}>{req.fullName}</strong>
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>{req.documentType} · Ref: {req.referenceNumber}</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: 6, backgroundColor: req.status === 'Processing' ? '#e0f2fe' : '#fef3c7', color: req.status === 'Processing' ? '#0369a1' : '#b45309' }}>
-                        {req.status}
-                      </span>
-                      <Link to="/document-requests" style={{ color: '#0038A8' }}>
-                        <ChevronRight size={16} />
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT: ACTIVE BLOTTERS & EMERGENCY BULLETINS */}
-          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px', border: '1.5px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ShieldAlert size={18} color="#dc2626" />
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#0f172a' }}>Active Blotter Incidents</h3>
-                </div>
-                <Link to="/blotter-reports" style={{ fontSize: '12.5px', fontWeight: 700, color: '#dc2626', textDecoration: 'none' }}>
-                  View All ({stats.activeBlotters}) →
-                </Link>
-              </div>
-
-              {loading ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8' }}>Loading blotters...</div>
-              ) : activeBlottersList.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: 12 }}>
-                  <CheckCircle size={28} color="#16a34a" style={{ margin: '0 auto 6px' }} />
-                  <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#334155' }}>Peace & Order Calm</p>
-                  <p style={{ margin: '2px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>No pending or unassigned blotter cases.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {activeBlottersList.map(b => (
-                    <div key={b._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 10, border: '1px solid #fee2e2', backgroundColor: '#fffafa' }}>
-                      <div>
-                        <strong style={{ fontSize: '13px', color: '#991b1b', display: 'block' }}>{b.incidentType}</strong>
-                        <span style={{ fontSize: '11.5px', color: '#64748b' }}>By {b.username || 'Resident'} · Ref: {b.referenceNumber}</span>
-                      </div>
-                      <span style={{ fontSize: '11px', fontWeight: 800, padding: '3px 8px', borderRadius: 6, backgroundColor: '#fee2e2', color: '#dc2626' }}>
-                        {b.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-          </div>
-
-          <div style={{ background: '#ffffff', borderRadius: 16, padding: '20px 24px', border: '1.5px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Megaphone size={18} color="#0038A8" />
-                  <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#0f172a' }}>Latest Barangay Bulletins</h3>
-                </div>
-                <Link to="/announcements" style={{ fontSize: '12px', fontWeight: 700, color: '#0038A8', textDecoration: 'none' }}>
-                  Manage →
-                </Link>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {recentAnnouncements.map(a => (
-                  <div key={a._id} style={{ padding: '8px 12px', borderRadius: 8, backgroundColor: a.isUrgent ? '#fee2e2' : '#f8fafc', borderLeft: a.isUrgent ? '3px solid #dc2626' : '3px solid #0038A8' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {a.isUrgent && <span style={{ fontSize: 10, fontWeight: 900, color: '#dc2626' }}>🚨 URGENT</span>}
-                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: a.isUrgent ? '#991b1b' : '#0f172a' }}>{a.title}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-          </div>
-
-        </div>
-
-      </div>
-    </Layout>
-  );
-};
-
-export default DashboardHome;
-
+export default function DashboardHome() {
+  const [data,setData] = useState({documents:[],blotters:[],feedback:null,posts:[]});
+  const [loading,setLoading] = useState(true);
+  const [errors,setErrors] = useState([]);
+  const load = useCallback(async () => {
+    const result=await fetchDashboard();
+    setData(result.data);setErrors(result.errors);setLoading(false);
+  },[]);
+  useEffect(()=>{
+    let active=true;
+    void fetchDashboard().then(result=>{if(active){setData(result.data);setErrors(result.errors);setLoading(false);}});
+    return ()=>{active=false;};
+  },[]);
+  const documents=(data.documents||[]).filter(r=>!r.isArchived&&['Pending','Processing'].includes(r.status)).sort(newestFirst);
+  const blotters=(data.blotters||[]).filter(r=>!r.isArchived&&['Pending','In Progress'].includes(r.status)).sort(newestFirst);
+  const posts=data.posts||[];
+  const metrics=[
+    {label:'Document requests',value:data.counts?.documents,source:'counts',note:'Pending or processing',to:'/document-requests',Icon:FileText},
+    {label:'Active blotters',value:data.counts?.blotters,source:'counts',note:'Pending or in progress',to:'/blotter-reports',Icon:ShieldCheck},
+    {label:'New feedback',value:data.counts?.feedback,source:'counts',note:'Awaiting staff review',to:'/suggestions',Icon:MessageSquare},
+    {label:'Active bulletins',value:data.counts?.posts,source:'counts',note:data.counts?`${data.counts.alerts} active alerts`:'Alert count unavailable',to:'/announcements',Icon:Megaphone},
+  ];
+  return <Layout className="ops-layout"><div className="ops-page">
+    <header className="ops-heading"><div><h1>Operations dashboard</h1><p>{new Date().toLocaleDateString('en-PH',{timeZone:'Asia/Manila',weekday:'long',year:'numeric',month:'long',day:'numeric'})} · A clear view of today’s barangay services.</p></div><div className="ops-actions"><button className="ops-button" onClick={()=>{setLoading(true);void load();}} disabled={loading}><RefreshCw size={15}/>{loading?'Refreshing…':'Refresh'}</button><Link to="/announcements?urgent=1" className="ops-button ops-alert"><Plus size={16}/>Post alert</Link></div></header>
+    {errors.length>0&&<div role="alert" className="ops-error">Some information could not be loaded: {errors.join(', ')}. Refresh to try again; unavailable counts are shown as a dash.</div>}
+    <div className="ops-metrics">{metrics.map(({label,value,source,note,to,Icon})=><Link to={to} className="ops-metric" key={label}><div>{label}{React.createElement(Icon,{size:19})}</div><strong>{loading?'…':errors.includes(source)?'—':value}</strong><small>{note}</small></Link>)}</div>
+    <div className="ops-grid"><div>
+      <section className="ops-panel"><header><div><h2>Latest document requests</h2><p>New submissions first. Open a request to review its details.</p></div><Link to="/document-requests">View all <ArrowRight size={14}/></Link></header>
+        <div className="ops-table-scroll"><table><thead><tr><th>Resident / document</th><th>Submitted</th><th>Status</th><th>Action</th></tr></thead><tbody>{documents.slice(0,5).map(r=><tr key={r._id}><td><strong>{r.fullName}</strong><small>{r.documentType==='Other'?r.customDocumentType:r.documentType}</small></td><td>{formatDate(r.createdAt)}<small>{formatDate(r.createdAt,{hour:'numeric',minute:'2-digit'})}</small></td><td>{badge(r.status)}</td><td><Link to="/document-requests">Review <ArrowRight size={14}/></Link></td></tr>)}</tbody></table></div>
+        {!documents.length&&<p className="ops-empty">{loading?'Loading requests…':errors.includes('documents')?'Document requests are unavailable.':'No requests are waiting for processing.'}</p>}<footer>Showing up to 5 latest open requests<Link to="/document-requests">Open document desk</Link></footer>
+      </section>
+      <section className="ops-panel"><header><div><h2>Blotter reports</h2><p>Staff review and active case handling.</p></div><Link to="/blotter-reports">View all <ArrowRight size={14}/></Link></header><div className="ops-table-scroll"><table><thead><tr><th>Case</th><th>Filed by</th><th>Status</th><th>Next step</th></tr></thead><tbody>{blotters.slice(0,5).map(r=><tr key={r._id}><td><strong>{r.incidentType}</strong><small>{r.referenceNumber}</small></td><td>{r.fullName||r.username||'Resident'}<small>{formatDate(r.createdAt)}</small></td><td>{badge(r.status)}</td><td><Link to="/blotter-reports">{r.status==='Pending'?'Staff review':'Continue handling'} <ArrowRight size={14}/></Link></td></tr>)}</tbody></table></div>{!blotters.length&&<p className="ops-empty">{loading?'Loading reports…':errors.includes('blotters')?'Blotter reports are unavailable.':'No cases are awaiting staff handling.'}</p>}</section>
+    </div><aside><section className="ops-panel"><header><h2>Latest bulletins</h2><Link to="/announcements">Manage</Link></header>{posts.slice(0,3).map(post=><Link className="ops-bulletin" to="/announcements" key={post._id}>{badge(post.isUrgent?'Urgent':'Published')}<h3>{post.title}</h3><small>{post.category} · {formatDate(post.createdAt)}</small></Link>)}{!posts.length&&<p className="ops-empty">{loading?'Loading bulletins…':errors.includes('posts')?'Bulletins are unavailable.':'No current announcements.'}</p>}<footer>Only current posts appear in mobile News</footer></section><p className="ops-note"><Info size={17}/>Archived service records remain available in their respective desks and in residents’ histories.</p></aside></div>
+  </div></Layout>;
+}

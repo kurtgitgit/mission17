@@ -1,8 +1,25 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import Notification from '../models/Notification.js';
 import { verifyAuthenticatedUser } from '../utils/authMiddleware.js';
 
 const router = express.Router();
+
+router.post('/notifications/delete-selected', verifyAuthenticatedUser, async (req, res) => {
+  const ids = req.body.notificationIds;
+  if (!Array.isArray(ids) || ids.length < 1 || ids.length > 100 || ids.some(id => !mongoose.isObjectIdOrHexString(id)) || new Set(ids).size !== ids.length) {
+    return res.status(400).json({ message: 'Select between 1 and 100 distinct valid notifications.' });
+  }
+  try {
+    const owned = await Notification.find({ _id: { $in: ids }, userId: req.user._id }).select('_id');
+    if (owned.length !== ids.length) return res.status(403).json({ message: 'One or more selected notifications are unavailable or do not belong to you. Refresh the list.' });
+    const result = await Notification.deleteMany({ _id: { $in: ids }, userId: req.user._id });
+    res.json({ deletedIds: owned.map(item => String(item._id)), deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error('Selected notification deletion failed:', error.message);
+    res.status(500).json({ message: 'Notifications could not be deleted. Please try again.' });
+  }
+});
 
 // GET all notifications for a user
 router.get('/notifications/:userId', verifyAuthenticatedUser, async (req, res) => {

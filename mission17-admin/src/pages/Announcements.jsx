@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
+import { ArchiveView, ArchiveAction } from '../components/ServiceRecordControls';
+import { manilaDateTimeInput } from '../utils/serviceRecords';
+import { createLatestRequest } from '../utils/latestRequest';
 import { Plus, Pin, Trash2, Edit3, X, Link as LinkIcon, Upload, Loader, AlertTriangle, Flame, BellRing } from 'lucide-react';
 import { endpoints } from '../config/api';
 
@@ -26,47 +30,56 @@ const Announcements = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [categories, setCategories]       = useState(DEFAULT_CATEGORIES);
   const [loading, setLoading]             = useState(true);
-  const [showForm, setShowForm]           = useState(false);
+  const [searchParams] = useSearchParams();
+  const fromAlert = searchParams.get('urgent') === '1';
+  const [showForm, setShowForm]           = useState(fromAlert);
+  const [archiveView, setArchiveView] = useState('active');
+  const [expiry, setExpiry] = useState(manilaDateTimeInput(new Date(Date.now() + (fromAlert ? 1 : 7)*86400000)));
   const [editItem, setEditItem]           = useState(null);
   const [submitting, setSubmitting]       = useState(false);
   const [filterCat, setFilterCat]         = useState('all');
   const [isCustomCat, setIsCustomCat]     = useState(false);
   const [customCatInput, setCustomCatInput] = useState('');
-  const [form, setForm] = useState({ title: '', body: '', category: 'general', isPinned: false, isUrgent: false, image: '' });
+  const [form, setForm] = useState({ title: '', body: '', category: 'general', isPinned: false, isUrgent: fromAlert, image: '' });
   const [imageMode, setImageMode] = useState('url'); // 'url' | 'upload'
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const fileInputRef = useRef(null);
   const submittingRef = useRef(false);
+  const requestsRef = useRef(createLatestRequest());
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
   const fetchData = useCallback(async () => {
+    const request=requestsRef.current.begin();
     try {
       const [annRes, catRes] = await Promise.all([
-        fetch(`${baseUrl}/api/announcements`),
+        fetch(`${baseUrl}/api/announcements/manage?view=${archiveView}`, {headers:{'auth-token':token}}),
         fetch(`${baseUrl}/api/announcements/categories`).catch(() => null)
       ]);
 
-      if (annRes.ok) {
+      if (!annRes.ok) throw new Error('Announcements unavailable');
+      {
         const data = await annRes.json();
+        if(!requestsRef.current.isCurrent(request))return;
         setAnnouncements(data);
 
         // Derive dynamic categories from data
         if (catRes && catRes.ok) {
           const cats = await catRes.json();
+          if(!requestsRef.current.isCurrent(request))return;
           setCategories(Array.from(new Set([...DEFAULT_CATEGORIES, ...cats])));
         } else {
           const derived = Array.from(new Set([...DEFAULT_CATEGORIES, ...data.map(d => d.category?.toLowerCase()).filter(Boolean)]));
           setCategories(derived);
         }
       }
-    } catch { showNotification('Failed to load announcements.', 'error'); }
-    finally   { setLoading(false); }
-  }, [baseUrl, showNotification]);
+    } catch { if(requestsRef.current.isCurrent(request)){setAnnouncements([]);showNotification('Failed to load announcements.', 'error');} }
+    finally   { if(requestsRef.current.isCurrent(request))setLoading(false); }
+  }, [baseUrl, showNotification, archiveView, token]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => { const gate=requestsRef.current;void fetchData();return ()=>gate.invalidate(); }, [fetchData]);
 
   useEffect(() => {
     if (!showForm) return undefined;
@@ -121,6 +134,8 @@ const Announcements = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const expiresAt = new Date(`${expiry}+08:00`);
+    if (!Number.isFinite(expiresAt.getTime()) || expiresAt <= new Date()) return showNotification('Choose a future expiration date and time.', 'error');
     if (submittingRef.current) return;
     if (!form.title.trim() || !form.body.trim()) return showNotification('Title and body are required.', 'error');
     
@@ -136,7 +151,7 @@ const Announcements = () => {
       const res    = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json', 'auth-token': token },
-        body: JSON.stringify({ ...form, category: finalCategory }),
+        body: JSON.stringify({ ...form, category: finalCategory, expiresAt: expiresAt.toISOString() }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -177,6 +192,7 @@ const Announcements = () => {
 
   const startEdit = (item) => {
     setEditItem(item);
+    setExpiry(manilaDateTimeInput(item.expiresAt || new Date(Date.now()+7*86400000)));
     const isCustom = !DEFAULT_CATEGORIES.includes(item.category?.toLowerCase());
     setIsCustomCat(isCustom);
     if (isCustom) setCustomCatInput(item.category);
@@ -223,12 +239,13 @@ const Announcements = () => {
             <h1>📢 Announcements & Alerts</h1>
             <p>Publish bulletins, manage dynamic categories, and broadcast urgent emergency alerts to residents.</p>
           </div>
-          <button className="pa-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>
+          <button className="pa-btn-primary" onClick={() => { resetForm(); setExpiry(manilaDateTimeInput(new Date(Date.now()+7*86400000))); setShowForm(true); }}>
             <Plus size={16} /> New Announcement
           </button>
         </div>
 
         {/* ── FORM ── */}
+        <ArchiveView posts value={archiveView} onChange={view=>{requestsRef.current.invalidate();setAnnouncements([]);setArchiveView(view);}}/>
         {showForm && (
           <div className="pa-modal-overlay" role="presentation">
             <div className="pa-modal-dialog" role="dialog" aria-modal="true" aria-label={editItem ? 'Edit announcement' : 'New announcement'}>
@@ -318,7 +335,7 @@ const Announcements = () => {
                         type="checkbox"
                         style={{ width: 18, height: 18, accentColor: '#dc2626' }}
                         checked={form.isUrgent}
-                        onChange={e => setForm({ ...form, isUrgent: e.target.checked })}
+                        onChange={e => {setForm({ ...form, isUrgent: e.target.checked }); if(!editItem) setExpiry(manilaDateTimeInput(new Date(Date.now()+(e.target.checked?1:7)*86400000)));}}
                       />
                       <span style={{ fontSize: 13, fontWeight: 700, color: form.isUrgent ? '#dc2626' : '#475569' }}>
                         {form.isUrgent ? 'URGENT ENABLED' : 'Enable Alert'}
@@ -327,6 +344,15 @@ const Announcements = () => {
                   </div>
                 </div>
 
+                <div className="pa-form-group full">
+                  <label className="pa-label">Visible for</label>
+                  <select className="pa-input" defaultValue="custom" onChange={e=>{if(e.target.value!=='custom')setExpiry(manilaDateTimeInput(new Date(Date.now()+Number(e.target.value)*86400000)));}}>
+                    <option value="custom">Custom expiration</option><option value="1">1 day</option><option value="7">7 days</option><option value="30">30 days</option>
+                  </select>
+                  <label className="pa-label" htmlFor="post-expiration">Expiration (Philippine time) *</label>
+                  <input id="post-expiration" className="pa-input" type="datetime-local" min={manilaDateTimeInput(new Date())} value={expiry} onChange={e=>setExpiry(e.target.value)} required/>
+                  <p className="record-order-note">The post leaves mobile and public feeds after this time. It remains available for administrative reference.</p>
+                </div>
                 <div className="pa-form-group full">
                   <label className="pa-label">Body *</label>
                   <textarea className="pa-input pa-textarea" placeholder="Detailed announcement advisory or instructions for residents..."
@@ -496,7 +522,8 @@ const Announcements = () => {
                         <Pin size={16} />
                       </button>
                       <button className="pa-btn-icon blue" onClick={() => startEdit(ann)}><Edit3 size={16} /></button>
-                      <button className="pa-btn-icon red" onClick={() => setDeleteTarget(ann)} aria-label={`Delete ${ann.title}`}><Trash2 size={16} /></button>
+                      <ArchiveAction record={ann} resource="announcements" onChanged={fetchData}/>
+                      <span className="record-order-note">{ann.expiresAt ? `Expires ${new Date(ann.expiresAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'})}` : 'No expiry set — legacy post'}</span>
                     </div>
                   </div>
                 </div>

@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArchiveView, ArchiveAction, ReadableText } from '../components/ServiceRecordControls';
+import { newestFirst } from '../utils/serviceRecords';
+import { createLatestRequest } from '../utils/latestRequest';
 import { Lightbulb, MessageSquare, Search, CheckCircle, Clock, ChevronRight, User, Trash2, AlertTriangle, XCircle, Smile, Meh, Frown, Sparkles, Filter, RefreshCw, Send } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { suggestionsApi } from '../services/api.service';
@@ -17,6 +20,7 @@ const QUICK_REPLIES = [
 const Suggestions = () => {
   const { showNotification } = useNotification();
   const [suggestions, setSuggestions] = useState([]);
+  const [archiveView, setArchiveView] = useState('active');
   const [stats, setStats]             = useState({ total: 0, positive: 0, neutral: 0, negative: 0, positivePercent: 0, neutralPercent: 0, negativePercent: 0 });
   const [loading, setLoading]         = useState(true);
   const [searchTerm, setSearchTerm]   = useState('');
@@ -29,26 +33,31 @@ const Suggestions = () => {
   const [updating, setUpdating]         = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const updatingRef = useRef(false);
+  const requestsRef = useRef(createLatestRequest());
 
   const fetchData = useCallback(async () => {
+    const request=requestsRef.current.begin();
     setLoading(true);
     try {
       const [listRes, statsRes] = await Promise.all([
-        suggestionsApi.getAll(),
+        suggestionsApi.getAll({ archive: archiveView }),
         suggestionsApi.getStats().catch(() => null)
       ]);
+      if(!requestsRef.current.isCurrent(request))return;
       setSuggestions(listRes.data || []);
       if (statsRes?.data) setStats(statsRes.data);
     } catch (err) {
       console.error('Error fetching suggestions', err);
-      showNotification('Failed to load feedback records.', 'error');
+      if(requestsRef.current.isCurrent(request)){setSuggestions([]);showNotification('Failed to load feedback records.', 'error');}
     } finally {
-      setLoading(false);
+      if(requestsRef.current.isCurrent(request))setLoading(false);
     }
-  }, [showNotification]);
+  }, [showNotification, archiveView]);
 
   useEffect(() => {
+    const gate=requestsRef.current;
     void fetchData();
+    return ()=>gate.invalidate();
   }, [fetchData]);
 
   const handleSelectItem = (item) => {
@@ -58,7 +67,7 @@ const Suggestions = () => {
   };
 
   const handleUpdate = async () => {
-    if (!selectedItem || updatingRef.current) return;
+    if (!selectedItem || selectedItem.isArchived || updatingRef.current) return;
     if (adminReply.length > 2000) {
       showNotification('Official response cannot exceed 2,000 characters.', 'error');
       return;
@@ -101,17 +110,11 @@ const Suggestions = () => {
                           s.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (s.category && s.category.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSentiment = sentimentFilter === 'All' || s.sentiment === sentimentFilter;
-    const matchesStatus = statusFilter === 'All'
+    const matchesStatus = archiveView === 'archived' || statusFilter === 'All'
       || (statusFilter === 'Open' && !['Resolved', 'Dismissed'].includes(s.status || 'New'))
       || s.status === statusFilter;
     return matchesSearch && matchesSentiment && matchesStatus;
-  }).sort((left, right) => {
-    const leftOpen = !['Resolved', 'Dismissed'].includes(left.status || 'New');
-    const rightOpen = !['Resolved', 'Dismissed'].includes(right.status || 'New');
-    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
-    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
-    return leftOpen ? createdDelta : -createdDelta;
-  });
+  }).sort(newestFirst);
 
   const getSentimentBadge = (sentiment) => {
     switch(sentiment) {
@@ -335,6 +338,8 @@ const Suggestions = () => {
             </div>
             
             {/* FEEDBACK ITEMS */}
+            <ArchiveView value={archiveView} onChange={view => {requestsRef.current.invalidate();setSuggestions([]);setArchiveView(view);setSelectedItem(null);setStatusFilter('All');}}/>
+            <p className="record-order-note">Newest submissions first</p>
             <div className="admin-workspace-scroll" style={{ padding: '10px' }}>
               {loading ? (
                 <div className="loading-state" style={{ marginTop: '40px' }}>Loading private feedback...</div>
@@ -443,11 +448,10 @@ const Suggestions = () => {
                   </div>
 
                   {/* CITIZEN MESSAGE DETAILS */}
+                  <ArchiveAction record={selectedItem} resource="suggestions" onChanged={async()=>{setSelectedItem(null);await fetchData();}}/>
                   <div style={{ background: '#ffffff', padding: '18px', borderRadius: '12px', border: '1.5px solid #e2e8f0', marginBottom: '24px' }}>
                     <h3 style={{ fontSize: '12px', color: '#64748b', margin: '0 0 8px 0', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Resident Message Content</h3>
-                    <p style={{ fontSize: '14.5px', color: '#1e293b', lineHeight: '1.6', margin: 0 }}>
-                      {selectedItem.description}
-                    </p>
+                    <ReadableText label="Resident’s message" text={selectedItem.description}/>
                   </div>
 
                   {/* ACTION & RESPONSE DESK */}
@@ -516,7 +520,7 @@ const Suggestions = () => {
                       <button
                         className="btn primary"
                         onClick={handleUpdate}
-                        disabled={updating}
+                        disabled={updating || selectedItem.isArchived}
                         style={{ padding:'10px 22px', fontSize:'14px', width:'auto', display: 'flex', alignItems: 'center', gap: 6 }}
                       >
                         <Send size={15} /> {updating ? 'Saving...' : 'Save Response & Update Status'}

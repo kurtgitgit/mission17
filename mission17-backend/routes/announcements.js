@@ -2,6 +2,8 @@
 // Prefix: /api/announcements
 
 import express from 'express';
+import mongoose from 'mongoose';
+import { buildVisibleAnnouncementFilter } from '../utils/announcementVisibility.js';
 import Announcement from '../models/Announcement.js';
 import User from '../models/User.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
@@ -21,10 +23,12 @@ const normalizeAnnouncementData = (body = {}) => {
   if (body.isPinned !== undefined) data.isPinned = body.isPinned;
   if (body.isUrgent !== undefined) data.isUrgent = body.isUrgent;
   if (body.isActive !== undefined) data.isActive = body.isActive;
+  if (body.expiresAt !== undefined) data.expiresAt = body.expiresAt;
   return data;
 };
 
 const validateAnnouncement = (data, { partial = false } = {}) => {
+  if (data.expiresAt !== undefined && (typeof data.expiresAt !== 'string' || !Number.isFinite(new Date(data.expiresAt).getTime()) || new Date(data.expiresAt) <= new Date())) return 'Expiration must be a valid future date and time.';
   if (!partial || data.title !== undefined) {
     if (typeof data.title !== 'string' || data.title.length < 3 || data.title.length > 150) return 'Title must be between 3 and 150 characters.';
   }
@@ -41,23 +45,55 @@ const validateAnnouncement = (data, { partial = false } = {}) => {
 
 // GET / — Public: all active announcements
 router.get('/', asyncHandler(async (req, res) => {
-  const announcements = await Announcement.find({ isActive: true })
+  const announcements = await Announcement.find(buildVisibleAnnouncementFilter())
     .sort({ isUrgent: -1, isPinned: -1, createdAt: -1 })
     .limit(50);
+  res.set('Cache-Control', 'no-store');
   res.json(announcements);
 }));
 
 // GET /categories — Public: dynamic category list from active bulletins
 router.get('/categories', asyncHandler(async (req, res) => {
-  const distinctCats = await Announcement.distinct('category', { isActive: true });
+  const distinctCats = await Announcement.distinct('category', buildVisibleAnnouncementFilter());
   const merged = Array.from(new Set([...BASE_CATEGORIES, ...distinctCats.map(c => c.toLowerCase())]));
   res.json(merged);
 }));
 
 // GET /:id — Public: active announcement only. Inactive announcements must
 // not remain reachable after they disappear from the public listing.
+router.get('/manage', verifyAdmin, asyncHandler(async (req, res) => {
+  const now = new Date();
+  const filters = {
+    active: buildVisibleAnnouncementFilter(now),
+    expired: { isArchived: { $ne: true }, isActive: true, expiresAt: { $lte: now, $ne: null } },
+    archived: { $or: [{ isArchived: true }, { isActive: false }] },
+    all: {},
+  };
+  if (!Object.hasOwn(filters, req.query.view || 'active')) return res.status(400).json({ message: 'Invalid post view.' });
+  res.set('Cache-Control', 'private, no-store');
+  res.json(await Announcement.find(filters[req.query.view || 'active']).sort({ createdAt: -1, _id: -1 }).limit(500));
+}));
+
+router.patch('/:id/archive', verifyAdmin, asyncHandler(async (req, res) => {
+  if (typeof req.body.archived !== 'boolean' || !mongoose.isObjectIdOrHexString(req.params.id)) return res.status(400).json({ message: 'Provide a valid post ID and archive selection.' });
+  const post = await Announcement.findById(req.params.id);
+  if (!post) return res.status(404).json({ message: 'Announcement not found.' });
+  let expiresAt = post.expiresAt;
+  if (!req.body.archived) {
+    if (req.body.expiresAt !== undefined) {
+      const error = validateAnnouncement({ expiresAt: req.body.expiresAt }, { partial: true });
+      if (error) return res.status(400).json({ message: error });
+      expiresAt = new Date(req.body.expiresAt);
+    }
+    if (!expiresAt || expiresAt <= new Date()) return res.status(400).json({ message: 'Choose a new future expiration before restoring this post.' });
+  }
+  await Announcement.updateOne({ _id: post._id }, { $set: { isArchived: req.body.archived, archivedAt: req.body.archived ? new Date() : null, archivedBy: req.body.archived ? req.user._id : null, isActive: !req.body.archived, expiresAt } });
+  logAudit(req.user._id, req.user.username, req.body.archived ? 'ANNOUNCEMENT_ARCHIVE' : 'ANNOUNCEMENT_RESTORE', `Post: ${post._id}`, req);
+  res.json({ message: req.body.archived ? 'Post archived.' : 'Post restored.' });
+}));
+
 export const getPublicAnnouncementById = asyncHandler(async (req, res) => {
-  const announcement = await Announcement.findOne({ _id: req.params.id, isActive: true });
+  const announcement = await Announcement.findOne({ _id: req.params.id, ...buildVisibleAnnouncementFilter() });
   if (!announcement) return res.status(404).json({ message: 'Announcement not found.' });
   res.json(announcement);
 });
@@ -66,6 +102,7 @@ router.get('/:id', getPublicAnnouncementById);
 // POST / — Admin: create announcement
 router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
   const data = normalizeAnnouncementData({ category: 'general', isPinned: false, isUrgent: false, ...req.body });
+  if (data.expiresAt === undefined) data.expiresAt = new Date(Date.now() + (data.isUrgent ? 1 : 7) * 86400000).toISOString();
   const validationError = validateAnnouncement(data);
   if (validationError) return res.status(400).json({ message: validationError });
   const recentDuplicate = await Announcement.findOne({

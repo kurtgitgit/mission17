@@ -6,6 +6,7 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import Layout from '../components/Layout';
 import { endpoints } from '../config/api';
 import '../styles/Analytics.css';
+import '../styles/AnalyticsGroups.css';
 
 const COLORS = ['#0038a8', '#16856b', '#b76e12', '#7955bb', '#ce4661', '#087e9a'];
 const shiftDay = (day, offset) => new Date(Date.parse(`${day}T12:00:00Z`) + offset * 86400000).toISOString().slice(0, 10);
@@ -152,14 +153,21 @@ export default function Analytics() {
             )}
             <details><summary>View daily counts as a table</summary><div className="analytics-table-scroll"><table className="analytics-daily"><caption className="analytics-sr-only">Daily submission counts</caption><thead><tr><th scope="col">Date</th><th scope="col">Documents</th><th scope="col">Blotters</th><th scope="col">Feedback</th></tr></thead><tbody>{trendRows(data, range).map(row => <tr key={row.date}><th scope="row">{row.date}</th><td>{row.documents}</td><td>{row.blotters}</td><td>{row.feedback}</td></tr>)}</tbody></table></div></details>
           </section>
-          <div className="analytics-grid">
-            <Breakdown title="Document status" rows={data.documents.status} total={data.documents.total} />
-            <Breakdown title="Blotter status" rows={data.blotters.status} total={data.blotters.total} />
-            <Breakdown title="Feedback status" rows={data.feedback.status} total={data.feedback.total} />
-            <Breakdown title="Requested documents" rows={data.documents.documentType} total={data.documents.total} />
-            <Breakdown title="Incident types" rows={data.blotters.incidentType} total={data.blotters.total} />
-            <Breakdown title="Feedback sentiment" rows={data.feedback.sentiment} total={data.feedback.total} note="Automated sentiment labels support staff review; they do not determine a complaint’s validity." />
-            <Breakdown title="Feedback categories" rows={data.feedback.category} total={data.feedback.total} />
+          <p className="analytics-period">Historical counts include archived records.</p>
+          <div className="analytics-service-groups">
+            <section className="analytics-service-group"><header><h2>Documents</h2><p>{data.documents.total} submissions in this period</p></header>
+              <Breakdown title="Status breakdown" rows={data.documents.status} total={data.documents.total}/>
+              <Breakdown title="Document types" rows={data.documents.documentType} total={data.documents.total}/>
+            </section>
+            <section className="analytics-service-group"><header><h2>Blotters</h2><p>{data.blotters.total} submissions in this period</p></header>
+              <Breakdown title="Status breakdown" rows={data.blotters.status} total={data.blotters.total}/>
+              <Breakdown title="Incident types" rows={data.blotters.incidentType} total={data.blotters.total}/>
+            </section>
+            <section className="analytics-service-group"><header><h2>Feedback</h2><p>{data.feedback.total} submissions in this period</p></header>
+              <Breakdown title="Status breakdown" rows={data.feedback.status} total={data.feedback.total}/>
+              <Breakdown title="Categories" rows={data.feedback.category} total={data.feedback.total}/>
+              <Breakdown title="Sentiment" rows={data.feedback.sentiment} total={data.feedback.total} note="Automated labels support staff review; they do not determine a concern’s validity."/>
+            </section>
           </div>
         </>}
       </div>

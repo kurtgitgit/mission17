@@ -19,7 +19,7 @@ http.interceptors.request.use(config => {
 
 // ─── BLOTTER REPORTS ─────────────────────────────────────────────────────────
 export const blotterApi = {
-  getAll:       ()           => http.get('/api/blotter-reports'),
+  getAll:       (params)     => http.get('/api/blotter-reports', { params }),
   getEvidence:  (id, signal) => http.get(`/api/blotter-reports/${id}/evidence`, { responseType: 'blob', signal }),
   updateStatus: (id, payload) => http.patch(`/api/blotter-reports/${id}/status`, payload),
 };

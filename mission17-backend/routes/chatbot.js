@@ -2,6 +2,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { BARANGAY_INFO, LOCAL_EMERGENCY_HOTLINES } from '../config/barangayInfo.js';
 import Announcement from '../models/Announcement.js';
+import { buildVisibleAnnouncementFilter } from '../utils/announcementVisibility.js';
 import Official from '../models/Official.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
 
@@ -331,7 +332,7 @@ export const requestLiveChatReply = (message) => getLiveChatReply(message, {
     .select('name position')
     .limit(3)
     .lean(),
-  findAnnouncements: () => Announcement.find({ isActive: true })
+  findAnnouncements: () => Announcement.find(buildVisibleAnnouncementFilter())
     .sort({ isUrgent: -1, isPinned: -1, createdAt: -1 })
     .select('title category isUrgent')
     .limit(3)

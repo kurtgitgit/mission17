@@ -24,6 +24,8 @@ mission17-mobile/firebase-service-account.json
 drive_downloads/
 
 # Local build products, release checks, and generated media
+/mission17-backend/revisions-*.log
+/mission17-mobile/.expo-revision-check/
 /output/
 /outputs/
 /tmp/

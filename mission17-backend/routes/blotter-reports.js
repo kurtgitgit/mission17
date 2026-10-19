@@ -2,6 +2,8 @@
 // Pure routing — all logic lives in blotter.controller.js
 
 import express from 'express';
+import BlotterReport from '../models/BlotterReport.js';
+import { archiveRecord } from '../utils/serviceArchive.js';
 import { verifyAdmin, verifyAuthenticatedUser } from '../utils/authMiddleware.js';
 import { submitReport, getMyReports, getEvidence, getAllReports, updateStatus, getPublicReport } from '../controllers/blotter.controller.js';
 
@@ -17,5 +19,6 @@ router.get('/',   verifyAdmin, getAllReports);
 // Staff may maintain hearing details; only the Barangay Captain may change the
 // case status. The controller enforces that distinction after loading the case.
 router.patch('/:id/status', verifyAdmin, updateStatus);
+router.patch('/:id/archive', verifyAdmin, archiveRecord(BlotterReport, ['Resolved', 'Dismissed']));
 
 export default router;

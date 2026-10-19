@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { archiveFields } from '../utils/archiveFields.js';
 
 const HearingHistoryEntrySchema = new mongoose.Schema({
   hearingStage: {
@@ -20,6 +21,7 @@ const HearingHistoryEntrySchema = new mongoose.Schema({
 }, { _id: true });
 
 const BlotterReportSchema = new mongoose.Schema({
+  ...archiveFields,
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   username: { type: String, required: true },
   fullName: { type: String, trim: true, minlength: 3, maxlength: 120 },

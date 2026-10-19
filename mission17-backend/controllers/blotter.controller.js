@@ -8,6 +8,8 @@ import { logAudit } from '../utils/authMiddleware.js';
 import { isResolutionLedgerConfigured, recordResolvedBlotterLedgerEntry } from '../utils/blockchain.js';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { archiveFilter } from '../utils/archiveQuery.js';
+import { hasMeaningfulText } from '../utils/serviceValidation.js';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
@@ -68,6 +70,12 @@ export const submitReport = asyncHandler(async (req, res) => {
   const cleanLocation = typeof location === 'string' ? location.trim() : '';
   const cleanReportedRespondentName = typeof reportedRespondentName === 'string' ? reportedRespondentName.trim() : '';
   const parsedIncidentDate = new Date(dateOfIncident);
+  if (!['Theft', 'Vandalism', 'Disturbance', 'Accident', 'Other'].includes(incidentType)) return res.status(400).json({ message: 'Please select a valid incident type.' });
+  if (!hasMeaningfulText(cleanName) || !hasMeaningfulText(cleanLocation) || !hasMeaningfulText(cleanDescription)) return res.status(400).json({ message: 'Name, location, and incident description must contain meaningful text.' });
+  if (typeof dateOfIncident !== 'string' || !/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(dateOfIncident)) return res.status(400).json({ message: 'Please provide a valid incident date.' });
+  const calendarDay = new Date(`${dateOfIncident.slice(0,10)}T00:00:00Z`);
+  if (!Number.isFinite(calendarDay.getTime()) || calendarDay.toISOString().slice(0,10)!==dateOfIncident.slice(0,10)) return res.status(400).json({ message: 'Please provide a real incident calendar date.' });
+  if (evidenceUrl && (typeof evidenceUrl !== 'string' || !/^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+=*$/i.test(evidenceUrl))) return res.status(400).json({ message: 'Attach a supported JPEG, PNG, or WebP image.' });
 
   if (!incidentType || !cleanDescription || !cleanLocation || !dateOfIncident) {
     return res.status(400).json({ message: 'Missing required fields: incidentType, description, location, dateOfIncident.' });
@@ -75,7 +83,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   if (cleanName.length < 3 || cleanName.length > 120) return res.status(400).json({ message: 'Please enter a valid complete name.' });
   if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact)) return res.status(400).json({ message: 'Enter a valid 11-digit Philippine mobile number.' });
   if (reportedRespondentName !== undefined && (typeof reportedRespondentName !== 'string' || cleanReportedRespondentName.length > 120)) return res.status(400).json({ message: 'Person involved must be text with no more than 120 characters.' });
-  if (cleanReportedRespondentName && (cleanReportedRespondentName.length < 2 || !/[A-Za-z]/.test(cleanReportedRespondentName) || /^(.)\1+$/.test(cleanReportedRespondentName.replace(/\s/g, '')))) {
+  if (cleanReportedRespondentName && (cleanReportedRespondentName.length < 2 || !hasMeaningfulText(cleanReportedRespondentName))) {
     return res.status(400).json({ message: 'Person involved must be a person’s name, or leave it blank if unknown.' });
   }
   if (cleanDescription.length < 10 || cleanDescription.length > 2000) return res.status(400).json({ message: 'Incident description must be between 10 and 2,000 characters.' });
@@ -99,10 +107,15 @@ export const submitReport = asyncHandler(async (req, res) => {
     const filename = `blotter_${Date.now()}_${userId}.webp`;
     const filepath = path.join(UPLOADS_DIR, filename);
     
-    await sharp(buffer)
-      .resize({ width: 1000, withoutEnlargement: true }) // Prevent massive 4k uploads
-      .webp({ quality: 80 })
-      .toFile(filepath);
+    try {
+      const image = sharp(buffer, { limitInputPixels: 25000000 });
+      const metadata = await image.metadata();
+      if (!['jpeg','png','webp'].includes(metadata.format)) return res.status(400).json({message:'Attach a valid JPEG, PNG, or WebP image.'});
+      await image.resize({ width: 1000, withoutEnlargement: true }).webp({ quality: 80 }).toFile(filepath);
+    } catch (error) {
+      if (/input|image|pixel|corrupt|unsupported|png|jpeg|webp|vips/i.test(error.message)) return res.status(400).json({ message: 'The evidence image cannot be read. Choose a valid JPEG, PNG, or WebP image.' });
+      throw error;
+    }
       
     finalEvidenceUrl = `/uploads/${filename}`;
   }
@@ -207,7 +220,8 @@ export const getEvidence = asyncHandler(async (req, res) => {
 
 // GET / — Admin: Get all reports (with optional status filter and pagination)
 export const getAllReports = asyncHandler(async (req, res) => {
-  const filter = req.query.status ? { status: req.query.status } : {};
+  const filter = { ...archiveFilter(req.query.archive), ...(req.query.status ? { status: req.query.status } : {}) };
+  if (req.query.open === 'true') filter.status = {$in:['Pending','In Progress']};
   
   // Anti-Crash Pagination
   const page = parseInt(req.query.page) || 1;
@@ -216,7 +230,7 @@ export const getAllReports = asyncHandler(async (req, res) => {
 
   const reports = await BlotterReport.find(filter)
     .populate('userId', 'firstName lastName middleName username completeAddress mobileNumber purok')
-    .sort({ createdAt: 1, _id: 1 })
+    .sort({ createdAt: -1, _id: -1 })
     .skip(skip)
     .limit(limit);
     
@@ -273,6 +287,7 @@ export const updateStatus = asyncHandler(async (req, res) => {
 
   const report = await BlotterReport.findById(req.params.id);
   if (!report) return res.status(404).json({ message: 'Report not found.' });
+  if (report.isArchived) return res.status(409).json({ message: 'Restore this case before changing its details.' });
 
   const isStatusTransition = Boolean(status && status !== report.status);
   if (isStatusTransition && req.user.role !== 'super_admin') {
@@ -488,7 +503,9 @@ export const updateStatus = asyncHandler(async (req, res) => {
     }
   }
 
-  await report.save();
+  report.$where = {isArchived:{$ne:true}};
+  try {await report.save();}
+  catch(error){if(error.name==='DocumentNotFoundError')return res.status(409).json({message:'The case was archived or changed. Refresh before saving.'});throw error;}
 
   // Notify the resident
   const savedHearingDateTime = report.hearingDate ? new Date(report.hearingDate).getTime() : null;

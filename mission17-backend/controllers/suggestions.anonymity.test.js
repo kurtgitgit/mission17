@@ -37,7 +37,7 @@ jest.unstable_mockModule('../models/Suggestion.js', () => ({
     find: jest.fn(() => suggestionQuery),
     findOne: jest.fn(),
     create: jest.fn(),
-    findByIdAndUpdate: jest.fn(),
+    findOneAndUpdate: jest.fn(),
     findByIdAndDelete: jest.fn(),
     countDocuments: jest.fn(),
   },
@@ -78,7 +78,7 @@ describe('staff-facing anonymous feedback serialization', () => {
   });
 
   it('omits the submitter identifier from the admin status-update response', async () => {
-    Suggestion.findByIdAndUpdate.mockResolvedValueOnce(anonymousSuggestion());
+    Suggestion.findOneAndUpdate.mockResolvedValueOnce(anonymousSuggestion());
     const req = { params: { id: anonymousSuggestion()._id }, body: { status: 'Under Review' } };
     const res = makeResponse();
     await updateStatus(req, res);
@@ -92,7 +92,7 @@ describe('staff-facing anonymous feedback serialization', () => {
     const linkedSuggestion = anonymousSuggestion();
     linkedSuggestion.isAnonymous = false;
     linkedSuggestion.username = 'SyntheticResident';
-    Suggestion.findByIdAndUpdate.mockResolvedValueOnce(linkedSuggestion);
+    Suggestion.findOneAndUpdate.mockResolvedValueOnce(linkedSuggestion);
     const req = { params: { id: linkedSuggestion._id }, body: { status: 'Under Review' } };
     const res = makeResponse();
     await updateStatus(req, res);

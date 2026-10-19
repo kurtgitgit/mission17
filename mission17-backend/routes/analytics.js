@@ -3,10 +3,26 @@ import DocumentRequest from '../models/DocumentRequest.js';
 import BlotterReport from '../models/BlotterReport.js';
 import Suggestion from '../models/Suggestion.js';
 import User from '../models/User.js';
+import Announcement from '../models/Announcement.js';
+import { buildVisibleAnnouncementFilter } from '../utils/announcementVisibility.js';
 import { verifyAdmin } from '../utils/authMiddleware.js';
 
 const router = express.Router();
 const TIMEZONE = 'Asia/Manila';
+
+// True workload totals are independent of list pagination and historical records.
+router.get('/operations', verifyAdmin, async (req,res) => {
+  try {
+    const visible=buildVisibleAnnouncementFilter();
+    const [documents,blotters,feedback,posts,alerts]=await Promise.all([
+      DocumentRequest.countDocuments({isArchived:{$ne:true},status:{$in:['Pending','Processing']}}),
+      BlotterReport.countDocuments({isArchived:{$ne:true},status:{$in:['Pending','In Progress']}}),
+      Suggestion.countDocuments({isArchived:{$ne:true},status:{$in:['New','Pending']}}),
+      Announcement.countDocuments(visible),Announcement.countDocuments({...visible,isUrgent:true}),
+    ]);
+    res.set('Cache-Control','private, no-store');res.json({documents,blotters,feedback,posts,alerts});
+  } catch(error){console.error('Operations totals unavailable:',error.message);res.status(500).json({message:'Operations totals are unavailable. Please refresh.'});}
+});
 
 const parseDay = (value) => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error('Use YYYY-MM-DD for dates.');

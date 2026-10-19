@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { ArchiveView, ArchiveAction, ReadableText } from '../components/ServiceRecordControls';
+import { newestFirst } from '../utils/serviceRecords';
+import { createLatestRequest } from '../utils/latestRequest';
 import { ShieldAlert, Search, Clock, CheckCircle, Activity, XCircle, MapPin, User, FileText, ChevronRight, ExternalLink, Printer, Scale, Calendar, ShieldCheck, AlertCircle, X } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import { blotterApi } from '../services/api.service';
@@ -387,6 +390,7 @@ const BlotterManagement = () => {
     catch { return false; }
   })();
   const [reports, setReports] = useState([]);
+  const [archiveView, setArchiveView] = useState('active');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [caseFilter, setCaseFilter] = useState('All');
@@ -412,11 +416,8 @@ const BlotterManagement = () => {
   const [evidenceLoading, setEvidenceLoading] = useState(false);
   const [evidenceError, setEvidenceError] = useState('');
   const updatingRef = useRef(false);
+  const requestsRef = useRef(createLatestRequest());
   const isCaseModalOpen = Boolean(selectedReport);
-
-  useEffect(() => {
-    fetchReports();
-  }, []);
 
   useEffect(() => {
     if (!isCaseModalOpen) return undefined;
@@ -467,16 +468,20 @@ const BlotterManagement = () => {
     };
   }, [selectedReport?._id, selectedReport?.evidenceUrl]);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
+    const request=requestsRef.current.begin();
     try {
-      const res = await blotterApi.getAll();
-      setReports(res.data);
+      const res = await blotterApi.getAll({ archive: archiveView });
+      if(requestsRef.current.isCurrent(request))setReports(res.data);
     } catch (err) {
       console.error('Error fetching blotter reports', err);
+      if(requestsRef.current.isCurrent(request)){setReports([]);showNotification('Blotter reports could not be loaded. Please refresh.','error');}
     } finally {
-      setLoading(false);
+      if(requestsRef.current.isCurrent(request))setLoading(false);
     }
-  };
+  }, [archiveView,showNotification]);
+
+  useEffect(() => { const gate=requestsRef.current;void fetchReports();return ()=>gate.invalidate(); }, [fetchReports]);
 
   const handleSelectReport = (report) => {
     const values = getCaseFormValues(report);
@@ -553,7 +558,7 @@ const BlotterManagement = () => {
   const canPrintHearingNotice = savedWorkflow.hearingStage === 'Conciliation (2nd Hearing)' && Boolean(selectedReport?.hearingDate);
   const canPrintSettlementForm = savedWorkflow.caseOutcome === 'Amicable Settlement';
   const canPrintCfaForm = savedWorkflow.caseOutcome === 'Issued Certificate to File Action (CFA)' && Boolean(selectedReport?.cfaFormBasis);
-  const isCaseFormSaveDisabled = updating || !hasCaseFormChanges || !hasCompleteHearingSchedule || !hasCompleteCaseOutcome || !hasPriorProcessNote;
+  const isCaseFormSaveDisabled = selectedReport?.isArchived || updating || !hasCaseFormChanges || !hasCompleteHearingSchedule || !hasCompleteCaseOutcome || !hasPriorProcessNote;
 
   const isCaseStatusDisabled = (status) => {
     if (!savedCaseForm || status === savedCaseForm.status) return false;
@@ -658,14 +663,7 @@ const BlotterManagement = () => {
     const matchesFilter = caseFilter === 'All' ||
       (caseFilter === 'Hearing Scheduled' ? hasHearing : r.status === caseFilter);
     return matchesSearch && matchesFilter;
-  }).sort((left, right) => {
-    const isActionable = report => !['Resolved', 'Dismissed'].includes(report.status);
-    const leftOpen = isActionable(left);
-    const rightOpen = isActionable(right);
-    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
-    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
-    return leftOpen ? createdDelta : -createdDelta;
-  });
+  }).sort(newestFirst);
 
   const isTerminalCase = (status) => ['Resolved', 'Dismissed'].includes(status);
 
@@ -729,6 +727,8 @@ const BlotterManagement = () => {
           {/* LEFT: CASE LIST (MASTER) */}
           <div className="no-print admin-workspace-panel blotter-queue-panel">
             <div className="blotter-queue-toolbar">
+              <ArchiveView value={archiveView} onChange={view => {requestsRef.current.invalidate();setReports([]);setArchiveView(view);setSelectedReport(null);setCaseFilter('All');}}/>
+              <p className="record-order-note">Newest submissions first</p>
               <div className="blotter-queue-title">
                 <strong>Case queue</strong>
                 <span>{filteredReports.length} {filteredReports.length === 1 ? 'report' : 'reports'}</span>
@@ -796,7 +796,7 @@ const BlotterManagement = () => {
                     )}
                     <div className="blotter-case-card-bottom">
                       <span>
-                        {formatIncidentDateTime(report.dateOfIncident || report.createdAt)}
+                        Submitted {formatIncidentDateTime(report.createdAt)}
                       </span>
                       <ChevronRight size={15} color={selectedReport?._id === report._id ? '#0038A8' : '#cbd5e1'} />
                     </div>
@@ -826,6 +826,7 @@ const BlotterManagement = () => {
                     <h2 id="blotter-modal-title">
                       {selectedReport.referenceNumber}
                     </h2>
+                    <ArchiveAction record={selectedReport} resource="blotter-reports" onChanged={async()=>{setSelectedReport(null);await fetchReports();}}/>
                     <span className="blotter-case-subtitle">
                       {selectedReport.incidentType} <span aria-hidden="true">·</span> Reported {formatIncidentDateTime(selectedReport.dateOfIncident || selectedReport.createdAt)}
                     </span>
@@ -999,9 +1000,7 @@ const BlotterManagement = () => {
                       </div>
                     )}
                     <h3 style={{ fontSize: '13px', color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 800 }}>Incident Narrative</h3>
-                    <p style={{ fontSize: '14.5px', color: '#334155', lineHeight: '1.6', margin: 0 }}>
-                      {selectedReport.description}
-                    </p>
+                    <ReadableText label="Resident’s incident narrative" text={selectedReport.description}/>
                   </div>
 
                   {/* EVIDENCE */}

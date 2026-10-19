@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
+import { archiveFields } from '../utils/archiveFields.js';
 
 const AnnouncementSchema = new mongoose.Schema({
+  ...archiveFields,
+  expiresAt: { type: Date, default: null, index: true },
   title: { type: String, required: true, trim: true, minlength: 3, maxlength: 150 },
   body: { type: String, required: true, trim: true, minlength: 10, maxlength: 5000 },
   category: {

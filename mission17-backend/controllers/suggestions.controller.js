@@ -7,13 +7,11 @@ import User from '../models/User.js';
 import { sendPushNotification } from '../utils/pushNotifier.js';
 import { analyzeSentiment } from '../utils/sentimentAnalyzer.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { archiveFilter } from '../utils/archiveQuery.js';
+import { hasMeaningfulText } from '../utils/serviceValidation.js';
 
 const ALLOWED_STATUSES = ['New', 'Under Review', 'Resolved', 'Dismissed'];
 const ALLOWED_CATEGORIES = ['General', 'Infrastructure', 'Public Safety', 'Cleanliness', 'Other Concern'];
-const hasMeaningfulText = (value) => {
-  const compact = typeof value === 'string' ? value.replace(/\s/g, '') : '';
-  return /[A-Za-z]/.test(value) && !/^(.)\1+$/.test(compact);
-};
 
 const serializeAdminSuggestion = (suggestion) => {
   const doc = typeof suggestion?.toObject === 'function' ? suggestion.toObject() : { ...suggestion };
@@ -27,6 +25,8 @@ const serializeAdminSuggestion = (suggestion) => {
 // POST / — Resident: Submit private feedback / concern to Barangay Head
 export const submitSuggestion = asyncHandler(async (req, res) => {
   const { title, category, description, isAnonymous } = req.body;
+  if (category !== undefined && !ALLOWED_CATEGORIES.includes(category)) return res.status(400).json({ message: 'Please select a valid feedback category.' });
+  if (isAnonymous !== undefined && typeof isAnonymous !== 'boolean') return res.status(400).json({ message: 'Anonymous selection must be true or false.' });
   const userId = req.user._id;
   const username = req.user.username;
 
@@ -70,13 +70,13 @@ export const submitSuggestion = asyncHandler(async (req, res) => {
 // GET / — Admin: Get all private feedback
 export const getAllSuggestions = asyncHandler(async (req, res) => {
   const { sentiment, status } = req.query;
-  const filter = {};
+  const filter = archiveFilter(req.query.archive);
   if (sentiment) filter.sentiment = sentiment;
   if (status)    filter.status    = status;
 
   const suggestions = await Suggestion.find(filter)
     .populate('userId', 'firstName lastName username email contactNo')
-    .sort({ createdAt: 1, _id: 1 });
+    .sort({ createdAt: -1, _id: -1 });
 
   // Hide sensitive personal identifiers if submitted as anonymous
   const sanitized = suggestions.map(serializeAdminSuggestion);
@@ -135,8 +135,8 @@ export const updateStatus = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Official reply must be text with no more than 2,000 characters.' });
   }
 
-  const suggestion = await Suggestion.findByIdAndUpdate(
-    req.params.id,
+  const suggestion = await Suggestion.findOneAndUpdate(
+    { _id: req.params.id, isArchived: { $ne: true } },
     {
       ...(status && { status }),
       ...(adminReply !== undefined && { adminReply })

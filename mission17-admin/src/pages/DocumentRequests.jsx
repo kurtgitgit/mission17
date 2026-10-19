@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { ArchiveView, ArchiveAction, ReadableText } from '../components/ServiceRecordControls';
+import { newestFirst, philippineToday } from '../utils/serviceRecords';
+import { createLatestRequest } from '../utils/latestRequest';
 import Layout from '../components/Layout';
 import { Search, RefreshCw, FileText, XCircle, AlertTriangle, CheckCircle2, Calendar, Smartphone, ShieldCheck, Eye, UserCheck } from 'lucide-react';
 import { endpoints } from '../config/api';
@@ -191,7 +194,7 @@ const RejectModal = ({ onConfirm, onCancel }) => {
 const ReadyModal = ({ onConfirm, onCancel }) => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const defaultDateStr = tomorrow.toISOString().split('T')[0];
+  const defaultDateStr = philippineToday(tomorrow);
 
   const [pickupDate, setPickupDate] = useState(defaultDateStr);
 
@@ -221,6 +224,8 @@ const ReadyModal = ({ onConfirm, onCancel }) => {
             <Calendar size={18} color="#64748b" />
             <input
               type="date"
+              min={philippineToday()}
+              required
               style={{ ...textareaStyle, height: 42, padding: '8px 12px' }}
               value={pickupDate}
               onChange={e => setPickupDate(e.target.value)}
@@ -236,7 +241,8 @@ const ReadyModal = ({ onConfirm, onCancel }) => {
           <button style={cancelBtnStyle} onClick={onCancel}>Cancel</button>
           <button
             style={{ ...rejectBtnStyle, backgroundColor: '#16a34a' }}
-            onClick={() => onConfirm(pickupDate)}
+            disabled={!pickupDate || pickupDate < philippineToday()}
+            onClick={() => { if (pickupDate && pickupDate >= philippineToday()) onConfirm(pickupDate); }}
           >
             Confirm & Send Phone Alert
           </button>
@@ -296,6 +302,7 @@ const rejectBtnStyle = {
 const DocumentRequests = () => {
   const { showNotification } = useNotification();
   const [requests, setRequests]       = useState([]);
+  const [archiveView, setArchiveView] = useState('active');
   const [loading, setLoading]         = useState(true);
   const [filterStatus, setFilterStatus] = useState('All');
   const [search, setSearch]           = useState('');
@@ -304,23 +311,26 @@ const DocumentRequests = () => {
   const [readyTarget, setReadyTarget]   = useState(null);  // id of request being set to ready
   const [kycTarget, setKycTarget]       = useState(null);  // resident object being inspected
   const processingRef = useRef(false);
+  const requestsRef = useRef(createLatestRequest());
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
   const fetchData = useCallback(async () => {
+    const request=requestsRef.current.begin();
     setLoading(true);
     try {
       const url = filterStatus !== 'All'
         ? `${baseUrl}/api/document-requests?status=${encodeURIComponent(filterStatus)}`
         : `${baseUrl}/api/document-requests`;
-      const res = await fetch(url, { headers: { 'auth-token': token } });
-      if (res.ok) setRequests(await res.json());
-    } catch { showNotification('Failed to load requests.', 'error'); }
-    finally   { setLoading(false); }
-  }, [baseUrl, filterStatus, showNotification, token]);
+      const res = await fetch(`${url}${url.includes('?') ? '&' : '?'}archive=${archiveView}`, { headers: { 'auth-token': token } });
+      if (!res.ok) throw new Error('Requests unavailable');
+      const data=await res.json();if(requestsRef.current.isCurrent(request))setRequests(data);
+    } catch { if(requestsRef.current.isCurrent(request)){setRequests([]);showNotification('Failed to load requests. Please refresh.', 'error');} }
+    finally   { if(requestsRef.current.isCurrent(request))setLoading(false); }
+  }, [baseUrl, filterStatus, showNotification, token, archiveView]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => { const gate=requestsRef.current;void fetchData();return ()=>gate.invalidate(); }, [fetchData]);
 
   const updateStatus = async (id, newStatus, rejectionReason = '', pickupDate = null) => {
     if (processingRef.current) return;
@@ -378,13 +388,7 @@ const DocumentRequests = () => {
     r.fullName?.toLowerCase().includes(search.toLowerCase()) ||
     r.referenceNumber?.toLowerCase().includes(search.toLowerCase()) ||
     r.documentType?.toLowerCase().includes(search.toLowerCase())
-  ).sort((left, right) => {
-    const leftOpen = !['Completed', 'Rejected'].includes(left.status || '');
-    const rightOpen = !['Completed', 'Rejected'].includes(right.status || '');
-    if (leftOpen !== rightOpen) return leftOpen ? -1 : 1;
-    const createdDelta = new Date(left.createdAt || 0).getTime() - new Date(right.createdAt || 0).getTime();
-    return leftOpen ? createdDelta : -createdDelta;
-  });
+  ).sort(newestFirst);
 
   return (
     <Layout title="Document Requests">
@@ -451,7 +455,8 @@ const DocumentRequests = () => {
           </div>
         </div>
 
-        <p className="pa-count">{filtered.length} request{filtered.length !== 1 ? 's' : ''} found</p>
+        <ArchiveView value={archiveView} onChange={view => {requestsRef.current.invalidate();setRequests([]);setArchiveView(view);setFilterStatus('All'); }}/>
+        <p className="pa-count">{filtered.length} request{filtered.length !== 1 ? 's' : ''} found · Newest submissions first</p>
 
         {/* ── LIST ── */}
         {loading ? (
@@ -469,7 +474,7 @@ const DocumentRequests = () => {
             {filtered.map(req => {
               const nextStatus = NEXT_STATUS[req.status];
               const badgeClass = STATUS_CLASS[req.status] || 'pa-badge pa-status-Pending';
-              const canAct = req.status !== 'Completed' && req.status !== 'Rejected';
+              const canAct = !req.isArchived && req.status !== 'Completed' && req.status !== 'Rejected';
               return (
                 <div key={req._id} className="pa-card pa-document-card">
                   <div className="pa-card-row">
@@ -505,12 +510,11 @@ const DocumentRequests = () => {
                         <span style={{ fontSize: 13, color: '#64748b' }}>
                           <strong>Location:</strong> {req.userId?.purok ? `Purok ${req.userId.purok}` : 'Address on file'}
                         </span>
-                        <span style={{ fontSize: 13, color: '#64748b' }}>
-                          <strong>Purpose:</strong> {req.purpose}
-                        </span>
                       </div>
 
                       {/* Resident KYC Verification Chip / Inspector */}
+                      <ReadableText label="Purpose of request" text={req.purpose}/>
+                      <ArchiveAction record={req} resource="document-requests" onChanged={fetchData}/>
                       {req.userId ? (
                         <div className="pa-document-kyc">
                           <button

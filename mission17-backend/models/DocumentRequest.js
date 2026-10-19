@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { archiveFields } from '../utils/archiveFields.js';
 
 const DocumentRequestSchema = new mongoose.Schema({
+  ...archiveFields,
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   username: { type: String, required: true },
   fullName: { type: String, required: true, trim: true, minlength: 3, maxlength: 120 },

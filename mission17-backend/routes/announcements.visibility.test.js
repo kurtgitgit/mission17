@@ -53,7 +53,7 @@ describe('public announcement visibility', () => {
 
     expect(res.json).toHaveBeenCalledWith(activeAnnouncement);
     expect(res.status).not.toHaveBeenCalled();
-    expect(Announcement.findOne).toHaveBeenCalledWith({ _id: activeAnnouncement._id, isActive: true });
+    expect(Announcement.findOne).toHaveBeenCalledWith(expect.objectContaining({ _id: activeAnnouncement._id, isActive: true, isArchived: { $ne: true }, $or: expect.any(Array) }));
   });
 
   it('does not return an inactive announcement by its previously public ID', async () => {
@@ -65,6 +65,6 @@ describe('public announcement visibility', () => {
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ message: 'Announcement not found.' });
-    expect(Announcement.findOne).toHaveBeenCalledWith({ _id: activeAnnouncement._id, isActive: true });
+    expect(Announcement.findOne).toHaveBeenCalledWith(expect.objectContaining({ _id: activeAnnouncement._id, isActive: true, isArchived: { $ne: true }, $or: expect.any(Array) }));
   });
 });
