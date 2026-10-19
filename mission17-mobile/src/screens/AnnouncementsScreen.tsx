@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   Platform, SafeAreaView, ActivityIndicator, StatusBar,
-  RefreshControl, Image, Dimensions
+  RefreshControl, Image, Dimensions, AppState
 } from 'react-native';
 import { Megaphone, Pin, Calendar, Building, Globe, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { endpoints } from '../config/api';
@@ -10,6 +10,8 @@ import { useTheme } from '../context/ThemeContext';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
+import { loadAnnouncementFeed } from '../utils/announcementFeed';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -133,6 +135,10 @@ const PostCard = React.memo(({ item }: { item: any }) => {
 
 
 const AnnouncementsScreen: React.FC = () => {
+  const route=useRoute<any>();
+  const linkedId=typeof route.params?.announcementId==='string'?route.params.announcementId:undefined;
+  const requestRef=useRef(0);
+  const [linkedMessage,setLinkedMessage]=useState('');
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -142,24 +148,24 @@ const AnnouncementsScreen: React.FC = () => {
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const fetchAnnouncements = useCallback(async () => {
+    const request=++requestRef.current;
     try {
-      setLoadError(null);
-      const res = await fetchWithTimeout(endpoints.announcements);
-      if (!res.ok) throw new Error(`Announcements request failed (${res.status})`);
-      const data = await res.json();
-      setAnnouncements(Array.isArray(data) ? data : []);
+      const result=await loadAnnouncementFeed(fetchWithTimeout,endpoints.announcements,linkedId);
+      if(request!==requestRef.current)return;
+      setLoadError(null);setAnnouncements(result.posts);setLinkedMessage(result.message);
     } catch (err) {
       console.error('Failed to fetch announcements:', err);
-      setLoadError(getFriendlyNetworkMessage(err, 'Official bulletins are unavailable right now. Please try again.'));
+      if(request===requestRef.current)setLoadError(getFriendlyNetworkMessage(err, 'Official bulletins are unavailable right now. Please try again.'));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if(request===requestRef.current){setLoading(false);setRefreshing(false);}
     }
-  }, []);
+  }, [linkedId]);
 
-  useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+  useFocusEffect(useCallback(() => {
+    void fetchAnnouncements();
+    const subscription = AppState.addEventListener('change', state => { if (state === 'active') void fetchAnnouncements(); });
+    return () => {subscription.remove();requestRef.current++;};
+  }, [fetchAnnouncements]));
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -210,6 +216,7 @@ const AnnouncementsScreen: React.FC = () => {
       </View>
 
       {/* FEED */}
+      {!!linkedMessage&&<Text selectable accessibilityRole="alert" style={{padding:16,color:'#795000',backgroundColor:'#fff5db',lineHeight:22}}>{linkedMessage}</Text>}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#0038A8" />

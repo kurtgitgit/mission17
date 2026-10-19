@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform, ActivityIndicator,
   RefreshControl, StatusBar, Modal
 } from 'react-native';
-import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck, X } from 'lucide-react-native';
+import { ArrowLeft, Bell, CheckCircle, Info, AlertTriangle, Trash2, CheckCheck, X, Square, CheckSquare } from 'lucide-react-native';
 import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
@@ -17,11 +17,17 @@ export default function NotificationsScreen({ navigation, route }: any) {
   const [clearing, setClearing] = useState(false);
   const [confirmClearVisible, setConfirmClearVisible] = useState(false);
   const [clearError, setClearError] = useState('');
+  const [selecting, setSelecting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteMode, setDeleteMode] = useState<'all'|'selected'>('selected');
+  const clearingRef = useRef(false);
+  const fetchSequence = useRef(0);
   
   const userId = route.params?.userId || GlobalState.userId;
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
   const fetchNotifications = useCallback(async () => {
+    const request=++fetchSequence.current;
     if (!userId) {
       setLoading(false);
       setRefreshing(false);
@@ -33,18 +39,20 @@ export default function NotificationsScreen({ navigation, route }: any) {
         endpoints.auth.getNotifications(userId),
         await getAuthHeaders(),
       );
+      if(request!==fetchSequence.current)return;
       setNotifications(data);
+      setSelectedIds(ids=>ids.filter(id=>data.some(n=>n._id===id)));
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
-      setLoadError(getFriendlyNetworkMessage(error, 'Your alerts are unavailable right now. Please try again.'));
+      if(request===fetchSequence.current)setLoadError(getFriendlyNetworkMessage(error, 'Your alerts are unavailable right now. Please try again.'));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if(request===fetchSequence.current){setLoading(false);setRefreshing(false);}
     }
   }, [userId]);
 
   useEffect(() => {
     fetchNotifications();
+    return ()=>{fetchSequence.current++;};
   }, [fetchNotifications]);
 
   const handleMarkAsRead = async (notifId: string) => {
@@ -58,7 +66,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
       if (!response.ok) throw new Error(`Notification update failed (${response.status})`);
     } catch (error) {
       console.error('Failed to mark read:', error);
-      setNotifications(previousNotifications);
+      setNotifications(current=>current.map(n=>n._id===notifId?{...n,read:previousNotifications.find(old=>old._id===notifId)?.read||false}:n));
     }
   };
 
@@ -74,21 +82,28 @@ export default function NotificationsScreen({ navigation, route }: any) {
       if (responses.some(response => !response.ok)) throw new Error('One or more notification updates failed.');
     } catch (e) {
       console.error('Failed to mark all read:', e);
-      setNotifications(previousNotifications);
+      setNotifications(current=>current.map(n=>({...n,read:previousNotifications.find(old=>old._id===n._id)?.read??n.read})));
     }
   };
 
   const clearAllNotifications = async () => {
-    if (!userId || clearing) return;
+    if (!userId || clearingRef.current || (deleteMode==='selected'&&!selectedIds.length)) return;
+    clearingRef.current=true;
     setClearing(true);
     try {
-      const response = await fetchWithTimeout(endpoints.auth.clearNotifications(userId), {
-        method: 'DELETE',
-        headers: await getAuthHeaders(),
+      const response = await fetchWithTimeout(deleteMode==='selected'?endpoints.auth.deleteSelectedNotifications:endpoints.auth.clearNotifications(userId), {
+        method: deleteMode==='selected'?'POST':'DELETE',
+        headers: {'Content-Type':'application/json',...(await getAuthHeaders())},
+        ...(deleteMode==='selected'?{body:JSON.stringify({notificationIds:selectedIds})}:{}),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.message || `Notification clearing failed (${response.status})`);
-      setNotifications([]);
+      fetchSequence.current++;setRefreshing(false);
+      if(deleteMode==='selected') {
+        const deleted=new Set<string>(payload.deletedIds||[]);
+        setNotifications(current=>current.filter(n=>!deleted.has(n._id)));
+      } else setNotifications([]);
+      setSelectedIds([]);setSelecting(false);
       setConfirmClearVisible(false);
       setClearError('');
     } catch (error) {
@@ -96,12 +111,14 @@ export default function NotificationsScreen({ navigation, route }: any) {
       setClearError(getFriendlyNetworkMessage(error, 'Please try again.'));
     } finally {
       setClearing(false);
+      clearingRef.current=false;
     }
   };
 
   const handleClearAll = () => {
     if (!notifications.length || clearing) return;
     setClearError('');
+    setDeleteMode('all');
     setConfirmClearVisible(true);
   };
 
@@ -131,14 +148,16 @@ export default function NotificationsScreen({ navigation, route }: any) {
 
     return (
       <TouchableOpacity 
-        style={[styles.card, !item.read && styles.unreadCard]}
-        onPress={() => { if (!item.read) handleMarkAsRead(item._id); }}
-        accessibilityRole="button"
+        style={[styles.card, !item.read && styles.unreadCard, selecting&&selectedIds.includes(item._id)&&{borderColor:'#0038a8',backgroundColor:'#e8f0ff'}]}
+        disabled={clearing}
+        onPress={() => { if(selecting)setSelectedIds(ids=>ids.includes(item._id)?ids.filter(id=>id!==item._id):[...ids,item._id]);else if (!item.read) handleMarkAsRead(item._id); }}
+        accessibilityRole={selecting?'checkbox':'button'}
+        accessibilityState={selecting?{checked:selectedIds.includes(item._id)}:{}}
         accessibilityLabel={`${item.read ? 'Read' : 'Unread'} notification: ${item.title}`}
       >
-        <View style={[styles.iconBox, { backgroundColor: bgColor, borderColor: borderColor }]}>
+        {selecting ? <View style={styles.iconBox}>{selectedIds.includes(item._id)?<CheckSquare size={23} color="#0038a8"/>:<Square size={23} color="#64748b"/>}</View> : <View style={[styles.iconBox, { backgroundColor: bgColor, borderColor: borderColor }]}>
           <Icon size={20} color={color} />
-        </View>
+        </View>}
         <View style={styles.content}>
           <View style={styles.row}>
             <Text numberOfLines={2} style={[styles.title, !item.read && styles.unreadTitle]}>{item.title}</Text>
@@ -167,7 +186,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
         </TouchableOpacity>
         <Text style={sharedStyles.headerTitle}>Barangay Alerts</Text>
         <View style={styles.headerRight}>
-          {unreadCount > 0 ? (
+          {unreadCount > 0 && !selecting ? (
             <TouchableOpacity 
               style={styles.headerBtn} 
               onPress={handleMarkAllRead}
@@ -179,15 +198,17 @@ export default function NotificationsScreen({ navigation, route }: any) {
           ) : null}
           <TouchableOpacity 
             style={styles.headerBtn} 
-            onPress={handleClearAll}
+            onPress={()=>{setSelecting(!selecting);setSelectedIds([]);}}
             disabled={notifications.length === 0 || clearing}
             accessibilityRole="button"
-            accessibilityLabel="Clear notifications list"
+            accessibilityLabel={selecting?'Cancel notification selection':'Select notifications'}
           >
-            <Trash2 size={19} color={notifications.length === 0 || clearing ? 'rgba(255,255,255,0.4)' : 'white'} />
+            <Text style={{color:'#fff',fontWeight:'700'}}>{selecting?'Cancel':'Select'}</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {selecting && <View style={{padding:14,flexDirection:'row',alignItems:'center',justifyContent:'space-between',backgroundColor:'#fff'}}><Text style={{color:'#334155'}}>{selectedIds.length} selected</Text><TouchableOpacity disabled={!selectedIds.length||clearing} accessibilityRole="button" accessibilityLabel="Delete selected notifications" onPress={()=>{setDeleteMode('selected');setClearError('');setConfirmClearVisible(true);}} style={{padding:10,backgroundColor:selectedIds.length?'#b32929':'#e2e8f0',borderRadius:7}}><Text style={{color:selectedIds.length?'#fff':'#53637a',fontWeight:'700'}}>Delete selected</Text></TouchableOpacity></View>}
 
       {loading ? (
         <View style={styles.centerLoading}>
@@ -202,6 +223,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
           keyExtractor={item => item._id || Math.random().toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          extraData={selectedIds}
+          ListFooterComponent={!selecting&&notifications.length?<TouchableOpacity onPress={handleClearAll} accessibilityRole="button" style={{padding:15,alignItems:'center'}}><Text style={{color:'#64748b',textDecorationLine:'underline'}}>Clear all notifications</Text></TouchableOpacity>:null}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchNotifications(); }} tintColor="#0038A8" />
           }
@@ -237,8 +260,8 @@ export default function NotificationsScreen({ navigation, route }: any) {
                 <X size={20} color="#64748b" />
               </TouchableOpacity>
             </View>
-            <Text style={styles.dialogTitle}>Clear all alerts?</Text>
-            <Text style={styles.dialogMessage}>This removes your notification history. Your document requests, blotter reports, and account will not be affected.</Text>
+            <Text style={styles.dialogTitle}>{deleteMode==='selected'?`Delete ${selectedIds.length} selected notifications?`:'Clear all alerts?'}</Text>
+            <Text style={styles.dialogMessage}>{deleteMode==='selected'?'Only the selected notifications will be removed. Unselected messages will be kept.':'This removes your notification history.'} Your document requests, blotter reports, and account will not be affected.</Text>
             {clearError ? <Text style={styles.dialogError}>{clearError}</Text> : null}
             <View style={styles.dialogActions}>
               <TouchableOpacity disabled={clearing} onPress={() => setConfirmClearVisible(false)} style={styles.dialogCancel} accessibilityRole="button">
@@ -246,7 +269,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
               </TouchableOpacity>
               <TouchableOpacity disabled={clearing} onPress={() => void clearAllNotifications()} style={[styles.dialogConfirm, clearing && styles.dialogDisabled]} accessibilityRole="button">
                 {clearing ? <ActivityIndicator size="small" color="#fff" /> : <Trash2 size={16} color="#fff" />}
-                <Text style={styles.dialogConfirmText}>{clearing ? 'Clearing…' : 'Clear alerts'}</Text>
+                <Text style={styles.dialogConfirmText}>{clearing ? 'Deleting…' : deleteMode==='selected'?'Delete selected':'Clear alerts'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -259,7 +282,7 @@ export default function NotificationsScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f1f5f9' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  headerBtn: { padding: 4 },
+  headerBtn: { padding: 8, minHeight:44, minWidth:44, alignItems:'center', justifyContent:'center' },
   
   list: { padding: 14, paddingBottom: 40 },
   card: { 

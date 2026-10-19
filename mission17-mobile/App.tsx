@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, Platform, AppState } from 'react-native'
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Home, Landmark, Megaphone, ShieldCheck, User } from 'lucide-react-native';
+import { Bot, Home, Landmark, Megaphone, ShieldCheck, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
@@ -45,10 +45,20 @@ import { fetchWithTimeout } from './src/utils/network';
 import { NotificationProvider } from './src/context/NotificationContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
 import { ChatProvider } from './src/context/ChatContext';
+import { getMainTabOrder } from './src/navigation/mainTabs';
 
 const Stack = createNativeStackNavigator();
 const Tab   = createBottomTabNavigator();
 const navigationRef = createNavigationContainerRef<any>();
+
+const MAIN_TAB_SCREENS = {
+  HomeTab: { component: HomeScreen, label: 'Home', icon: Home },
+  AnnouncementsTab: { component: AnnouncementsScreen, label: 'News', icon: Megaphone },
+  AssistantTab: { component: ChatBotScreen, label: 'Assistant', icon: Bot },
+  CaptainControlTab: { component: CaptainControlScreen, label: 'Control', icon: ShieldCheck },
+  LearnTab: { component: LearningScreen, label: 'About', icon: Landmark },
+  ProfileTab: { component: ProfileScreen, label: 'Profile', icon: User },
+};
 
 // ─── TAB BAR ────────────────────────────────────────────
 function MainTabs() {
@@ -63,9 +73,9 @@ function MainTabs() {
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textTertiary,
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 82 : 64,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 10,
-          paddingTop: 8,
+          height: Platform.OS === 'ios' ? 82 : 70,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          paddingTop: 6,
           backgroundColor: theme.surface,
           borderTopWidth: 1,
           borderTopColor: theme.border,
@@ -77,49 +87,45 @@ function MainTabs() {
         tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: -2 },
       }}
     >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }: any) => <Home size={22} color={color} />,
-        }}
-      />
-      <Tab.Screen
-        name="AnnouncementsTab"
-        component={AnnouncementsScreen}
-        options={{
-          tabBarLabel: 'News',
-          tabBarIcon: ({ color }: any) => <Megaphone size={22} color={color} />,
-        }}
-      />
-      {GlobalState.role === 'super_admin' ? (
-        <Tab.Screen
-          name="CaptainControlTab"
-          component={CaptainControlScreen}
-          options={{
-            tabBarLabel: 'Control',
-            tabBarIcon: ({ color }: any) => <ShieldCheck size={22} color={color} />,
-          }}
-        />
-      ) : (
-        <Tab.Screen
-          name="LearnTab"
-          component={LearningScreen}
-          options={{
-            tabBarLabel: 'About',
-            tabBarIcon: ({ color }: any) => <Landmark size={22} color={color} />,
-          }}
-        />
-      )}
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color }: any) => <User size={22} color={color} />,
-        }}
-      />
+      {getMainTabOrder(GlobalState.role).map((name) => {
+        const screen = MAIN_TAB_SCREENS[name];
+        const Icon = screen.icon;
+        const isAssistant = name === 'AssistantTab';
+
+        return (
+          <Tab.Screen
+            key={name}
+            name={name}
+            component={screen.component}
+            options={{
+              tabBarLabel: screen.label,
+              tabBarAccessibilityLabel: isAssistant ? 'Open Barangay Assistant' : screen.label,
+              tabBarIcon: ({ color }: any) => isAssistant ? (
+                <View style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: 27,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.primary,
+                  borderWidth: 3,
+                  borderColor: theme.surface,
+                  transform: [{ translateY: -11 }],
+                  shadowColor: '#001847',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 5,
+                  elevation: 6,
+                }}>
+                  <Bot size={25} color="#FFFFFF" />
+                </View>
+              ) : <Icon size={22} color={color} />,
+              tabBarIconStyle: isAssistant ? { marginTop: 2 } : undefined,
+              tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: isAssistant ? -1 : -2 },
+            }}
+          />
+        );
+      })}
     </TabNavigator>
   );
 }
@@ -269,7 +275,7 @@ export default function App() {
 
       const { screen: _screen, ...params } = data;
       if (targetScreen === 'Announcements') {
-        navigationRef.navigate('Home', { screen: 'AnnouncementsTab' });
+        navigationRef.navigate('Home', { screen: 'AnnouncementsTab', params });
         return;
       }
 

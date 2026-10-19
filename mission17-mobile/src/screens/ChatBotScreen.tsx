@@ -4,7 +4,7 @@ import {
   TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView
 } from 'react-native';
 import { ArrowLeft, Send, Bot, User, MessageCircleQuestion } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { endpoints } from '../config/api';
 import { colors, spacing, radius, shadow, sharedStyles } from '../config/theme';
 import { ChatMessage, useChat } from '../context/ChatContext';
@@ -39,6 +39,7 @@ const FAQ_SECTIONS = [
 
 const ChatBotScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { messages, setMessages } = useChat();
   const [input, setInput] = useState('');
   const [loading, setLoading]   = useState(false);
@@ -146,7 +147,12 @@ const ChatBotScreen = () => {
     <SafeAreaView style={styles.root}>
       {/* HEADER */}
       <View style={sharedStyles.header}>
-        <TouchableOpacity style={sharedStyles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity
+          style={sharedStyles.backBtn}
+          onPress={() => route.name === 'AssistantTab' ? navigation.navigate('HomeTab') : navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel={route.name === 'AssistantTab' ? 'Back to Home' : 'Go back'}
+        >
           <ArrowLeft size={24} color="white" />
         </TouchableOpacity>
         <View style={styles.headerInfo}>

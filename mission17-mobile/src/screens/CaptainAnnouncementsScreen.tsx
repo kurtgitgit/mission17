@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { ArrowLeft, Megaphone, Send, Siren } from 'lucide-react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { endpoints, getAuthHeaders, GlobalState } from '../config/api';
 import { fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
@@ -12,31 +12,57 @@ const CaptainAnnouncementsScreen = () => {
   const [body, setBody] = useState('');
   const [isUrgent, setIsUrgent] = useState(false);
   const [posting, setPosting] = useState(false);
+  const [duration, setDuration] = useState('7');
+  const [view, setView] = useState('active');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [listError, setListError] = useState('');
+  const [busyId, setBusyId] = useState('');
+  const submittingRef = useRef(false);
+  const archiveRef = useRef(false);
+  const listRequestRef = useRef(0);
+
+  const loadPosts = useCallback(async () => {
+    if (GlobalState.role !== 'super_admin') return;
+    const request=++listRequestRef.current;
+    try {
+      const response = await fetchWithTimeout(`${endpoints.announcements}/manage?view=${view}`, {headers:await getAuthHeaders()});
+      const data = await response.json();
+      if(!response.ok) throw new Error(data.message || 'Posts are unavailable.');
+      if(request===listRequestRef.current){setPosts(Array.isArray(data)?data:[]);setListError('');}
+    } catch(error) { if(request===listRequestRef.current){setPosts([]);setListError(getFriendlyNetworkMessage(error, 'Posts could not be loaded. Tap Refresh to retry.'));} }
+  }, [view]);
+  useFocusEffect(useCallback(()=>{void loadPosts();return ()=>{listRequestRef.current++;};},[loadPosts]));
 
   useEffect(() => {
     setIsUrgent(Boolean(route.params?.emergency));
+    setDuration(route.params?.emergency?'1':'7');
   }, [route.params?.emergency]);
 
   const post = async () => {
+    if(submittingRef.current) return;
     const cleanTitle = title.trim();
     const cleanBody = body.trim();
     if (cleanTitle.length < 3 || cleanBody.length < 10) {
       Alert.alert('Details required', 'Enter a title of at least 3 characters and a message of at least 10 characters before posting.');
       return;
     }
+    const days=Number(duration);
+    if(!/^\d+$/.test(duration)||!Number.isInteger(days)||days<1||days>365) { Alert.alert('Check expiration','Enter a visibility duration from 1 to 365 days.');return; }
+    submittingRef.current=true;
     setPosting(true);
     try {
       const headers = await getAuthHeaders();
       const response = await fetchWithTimeout(endpoints.announcements, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: cleanTitle, body: cleanBody, category: isUrgent ? 'urgent' : 'general', isUrgent, isPinned: isUrgent }),
+        body: JSON.stringify({ title: cleanTitle, body: cleanBody, category: isUrgent ? 'urgent' : 'general', isUrgent, isPinned: isUrgent, expiresAt:new Date(Date.now()+days*86400000).toISOString() }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.message || 'The post could not be saved.');
       setTitle('');
       setBody('');
       setIsUrgent(false);
+      setDuration('7');void loadPosts();
       Alert.alert(isUrgent ? 'Emergency alert posted' : 'News posted', isUrgent ? 'The alert is live and has been queued for resident notifications.' : 'The announcement is now visible in Barangay Bulletins.');
     } catch (error) {
       const message = error instanceof Error && error.message && !/network request failed|failed to fetch|network/i.test(error.message)
@@ -45,7 +71,21 @@ const CaptainAnnouncementsScreen = () => {
       Alert.alert('Post not sent', message);
     } finally {
       setPosting(false);
+      submittingRef.current=false;
     }
+  };
+
+  const changeArchive = async (item:any, restoring:boolean) => {
+    if(archiveRef.current)return;
+    const days=Number(duration);
+    if(restoring&&(!/^\d+$/.test(duration)||!Number.isInteger(days)||days<1||days>365)){Alert.alert('Check expiration','Enter 1 to 365 days before restoring.');return;}
+    archiveRef.current=true;setBusyId(item._id);
+    try {
+      const response=await fetchWithTimeout(`${endpoints.announcements}/${item._id}/archive`,{method:'PATCH',headers:{...(await getAuthHeaders()),'Content-Type':'application/json'},body:JSON.stringify({archived:!restoring,...(restoring?{expiresAt:new Date(Date.now()+days*86400000).toISOString()}:{})})});
+      const data=await response.json();if(!response.ok)throw new Error(data.message||'Post not updated.');
+      await loadPosts();
+    } catch(error){Alert.alert('Post not updated',error instanceof Error?error.message:'Please try again.');}
+    finally{archiveRef.current=false;setBusyId('');}
   };
 
   if (GlobalState.role !== 'super_admin') {
@@ -70,11 +110,20 @@ const CaptainAnnouncementsScreen = () => {
         <TextInput value={body} onChangeText={setBody} maxLength={1200} multiline textAlignVertical="top" placeholder="Write the official update, schedule, location, and next steps." placeholderTextColor="#64748b" selectionColor="#0038A8" style={[styles.input, styles.message]} />
         <View style={styles.toggleRow}>
           <View style={{ flex: 1 }}><Text style={styles.toggleTitle}>Mark as emergency alert</Text><Text style={styles.toggleSub}>Use only for urgent safety or public-service advisories.</Text></View>
-          <Switch value={isUrgent} onValueChange={setIsUrgent} trackColor={{ false: '#cbd5e1', true: '#fecaca' }} thumbColor={isUrgent ? '#dc2626' : '#f8fafc'} accessibilityLabel="Mark as emergency alert" />
+          <Switch value={isUrgent} onValueChange={value=>{setIsUrgent(value);setDuration(value?'1':'7');}} trackColor={{ false: '#cbd5e1', true: '#fecaca' }} thumbColor={isUrgent ? '#dc2626' : '#f8fafc'} accessibilityLabel="Mark as emergency alert" />
         </View>
+        <Text style={styles.label}>Visible for (days)</Text>
+        <TextInput accessibilityLabel="Post visibility in days" value={duration} onChangeText={setDuration} keyboardType="number-pad" maxLength={3} style={styles.input}/>
+        <Text selectable style={styles.noticeText}>{Number(duration)>=1&&Number(duration)<=365?`Expires ${new Date(Date.now()+Number(duration)*86400000).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} (Philippine time).`:'Enter 1 to 365 days.'} Expired posts leave residents’ feeds but remain available here.</Text>
         <TouchableOpacity disabled={posting} onPress={() => Alert.alert(isUrgent ? 'Post emergency alert?' : 'Post community news?', isUrgent ? 'This will be visible to residents and queued for notifications.' : 'This will be visible in Barangay Bulletins.', [{ text: 'Cancel', style: 'cancel' }, { text: isUrgent ? 'Post alert' : 'Post news', style: isUrgent ? 'destructive' : 'default', onPress: () => void post() }])} style={[styles.postButton, isUrgent && styles.urgentButton, posting && styles.disabled]} accessibilityRole="button" accessibilityLabel={isUrgent ? 'Post emergency alert' : 'Post community news'}>
           {posting ? <ActivityIndicator color="#fff" /> : <><Send size={18} color="#fff" /><Text style={styles.postText}>{isUrgent ? 'Post emergency alert' : 'Post community news'}</Text></>}
         </TouchableOpacity>
+        <Text style={[styles.label,{marginTop:30,fontSize:18}]}>Manage posts</Text>
+        <View style={{flexDirection:'row',gap:8,marginVertical:12}}>{['active','expired','archived'].map(tab=><TouchableOpacity key={tab} accessibilityRole="button" accessibilityState={{selected:view===tab}} onPress={()=>{if(view!==tab){listRequestRef.current++;setPosts([]);setView(tab);}}} style={{padding:12,borderRadius:8,backgroundColor:view===tab?'#0038a8':'#e2e8f0'}}><Text style={{color:view===tab?'#fff':'#334155'}}>{tab==='active'?'Current':tab==='expired'?'Expired':'Archived'}</Text></TouchableOpacity>)}</View>
+        <TouchableOpacity onPress={()=>void loadPosts()} accessibilityRole="button" style={{padding:12}}><Text style={{color:'#0038a8'}}>Refresh posts</Text></TouchableOpacity>
+        {!!listError&&<Text selectable accessibilityRole="alert" style={{color:'#b91c1c'}}>{listError}</Text>}
+        {!listError&&!posts.length&&<Text style={styles.noticeText}>No posts in this view.</Text>}
+        {posts.map(item=>{const restoring=!!item.isArchived||item.isActive===false||view==='expired';return <View key={item._id} style={[styles.notice,{backgroundColor:'#fff',marginTop:10}]}><Text selectable style={styles.noticeTitle}>{item.title}</Text><Text selectable style={styles.noticeText}>{item.expiresAt?`Expires ${new Date(item.expiresAt).toLocaleString('en-PH',{timeZone:'Asia/Manila'})} (PH)`:'No expiration (legacy post)'}</Text><TouchableOpacity disabled={!!busyId} accessibilityRole="button" onPress={()=>Alert.alert(restoring?'Restore post?':'Archive post?',restoring?`This post will return to residents’ feeds for ${duration} days.`:'This hides the post without deleting it.',[{text:'Cancel',style:'cancel'},{text:restoring?'Restore':'Archive',onPress:()=>void changeArchive(item,restoring)}])} style={{paddingVertical:14}}><Text style={{color:'#0038a8',fontWeight:'700'}}>{busyId===item._id?'Saving…':restoring?'Restore with new expiration':'Archive'}</Text></TouchableOpacity></View>;})}
       </ScrollView>
     </SafeAreaView>
   );

@@ -12,6 +12,7 @@ import { GlobalState, endpoints, getAuthHeaders } from '../config/api';
 import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
+import { validateDocumentRequest } from '../utils/requestValidation';
 import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
@@ -60,6 +61,7 @@ const ServicesScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [statusError, setStatusError] = useState<string | null>(null);
   const submittingRef = useRef(false);
+  const fieldRefs = useRef<Record<string,TextInput|null>>({});
 
   const userId = GlobalState.userId;
   const navigation = useNavigation<any>();
@@ -99,27 +101,14 @@ const ServicesScreen: React.FC = () => {
   };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!docType) newErrors.docType = 'Please choose a document type.';
-    if (docType === 'Other' && (customDocumentType.trim().length < 3 || !/[a-zA-Z]/.test(customDocumentType))) newErrors.customDocumentType = 'Please specify the document type you need.';
-    if (!fullName.trim() || fullName.trim().length < 3 || !/[a-zA-Z]/.test(fullName))
-      newErrors.fullName = 'Please enter your complete legal name.';
-    if (!address.trim() || address.trim().length < 5 || !/[a-zA-Z]/.test(address))
-      newErrors.address = 'Please specify your Purok / Street in Bagong Pag-asa.';
-    const cleanContact = contact.trim().replace(/\s/g, '');
-    if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact))
-      newErrors.contact = 'Enter a valid 11-digit mobile number (e.g. 0917 123 4567).';
-    const cleanPurpose = purpose.trim();
-    if (!cleanPurpose || cleanPurpose.length < 5 || !/[a-zA-Z]/.test(cleanPurpose) || /^(.)\1+$/.test(cleanPurpose.replace(/\s/g, '')))
-      newErrors.purpose = 'Please state why you need this document (at least 5 letters).';
-    return newErrors;
+    return validateDocumentRequest({docType,customDocumentType,fullName,address,contact,purpose});
   };
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {fieldRefs.current[Object.keys(newErrors)[0]]?.focus();return;}
 
     if (!userId) return Alert.alert('Error', 'You must be logged in to request documents.');
 
@@ -322,6 +311,7 @@ const ServicesScreen: React.FC = () => {
                   style={[styles.textInputField, styles.inlineTextField, errors.customDocumentType ? styles.inputBoxError : null]}
                   placeholder="e.g. Certificate of Cohabitation"
                   placeholderTextColor="#94a3b8"
+                  ref={el=>{fieldRefs.current.customDocumentType=el;}}
                   value={customDocumentType}
                   onChangeText={(value) => { setCustomDocumentType(value); setErrors((current) => ({ ...current, customDocumentType: '' })); }}
                   maxLength={80}
@@ -349,7 +339,9 @@ const ServicesScreen: React.FC = () => {
                   style={styles.textInputField} 
                   placeholder="e.g. Juan C. dela Cruz" 
                   placeholderTextColor="#94a3b8"
-                  value={fullName} 
+                  ref={el=>{fieldRefs.current.fullName=el;}}
+                  maxLength={120}
+                  value={fullName}
                   onChangeText={(t) => { setFullName(t); setErrors(e => ({...e, fullName: ''})); }} 
                   accessibilityLabel="Full Legal Name"
                 />
@@ -366,7 +358,9 @@ const ServicesScreen: React.FC = () => {
                   style={styles.textInputField} 
                   placeholder="e.g. Purok 2, Bagong Pag-asa, San Jacinto" 
                   placeholderTextColor="#94a3b8"
-                  value={address} 
+                  ref={el=>{fieldRefs.current.address=el;}}
+                  maxLength={250}
+                  value={address}
                   onChangeText={(t) => { setAddress(t); setErrors(e => ({...e, address: ''})); }} 
                   accessibilityLabel="Complete Resident Address"
                 />
@@ -383,7 +377,8 @@ const ServicesScreen: React.FC = () => {
                   style={styles.textInputField} 
                   placeholder="0917 123 4567" 
                   placeholderTextColor="#94a3b8"
-                  value={contact} 
+                  ref={el=>{fieldRefs.current.contact=el;}}
+                  value={contact}
                   onChangeText={(t) => { setContact(t); setErrors(e => ({...e, contact: ''})); }} 
                   keyboardType="phone-pad" 
                   maxLength={11} 
@@ -409,7 +404,8 @@ const ServicesScreen: React.FC = () => {
                 style={[styles.textAreaField, errors.purpose ? styles.inputBoxError : null]} 
                 placeholder="State specific purpose (e.g. Local Employment, Bank Requirement, School Transfer...)" 
                 placeholderTextColor="#94a3b8"
-                value={purpose} 
+                ref={el=>{fieldRefs.current.purpose=el;}}
+                value={purpose}
                 onChangeText={(t) => { setPurpose(t); setErrors(e => ({...e, purpose: ''})); }} 
                 multiline 
                 maxLength={500}

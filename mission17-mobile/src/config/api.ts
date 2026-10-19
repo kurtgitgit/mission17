@@ -177,6 +177,7 @@ export const endpoints = {
     getNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
     markNotificationRead: (id: string) => `${API_URL}/auth/notifications/${id}/read`,
     clearNotifications: (id: string) => `${API_URL}/auth/notifications/${id}`,
+    deleteSelectedNotifications: `${API_URL}/auth/notifications/delete-selected`,
   },
   // 🏛️ Barangay Portal Endpoints
   announcements: `${BACKEND_BASE_URL}/api/announcements`,

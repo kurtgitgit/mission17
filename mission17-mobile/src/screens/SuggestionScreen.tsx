@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { endpoints, GlobalState, getAuthHeaders } from '../config/api';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
+import { validateFeedbackRequest } from '../utils/requestValidation';
 import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const CATEGORIES = ['Infrastructure', 'Public Safety', 'Cleanliness', 'Other Concern'];
@@ -31,6 +32,7 @@ const SuggestionScreen = () => {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const descriptionInputRef = useRef<TextInput>(null);
+  const titleInputRef = useRef<TextInput>(null);
   const submittingRef = useRef(false);
 
   const fetchHistory = useCallback(async () => {
@@ -64,23 +66,14 @@ const SuggestionScreen = () => {
   };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-    const cleanTitle = title.trim();
-    if (!cleanTitle || cleanTitle.length < 5 || !/[a-zA-Z]/.test(cleanTitle))
-      newErrors.title = 'Please enter a clear topic title (at least 5 letters).';
-
-    const cleanDesc = description.trim();
-    if (!cleanDesc || cleanDesc.length < 10 || !/[a-zA-Z]/.test(cleanDesc))
-      newErrors.description = 'Please describe your idea or observation in detail (at least 10 letters).';
-
-    return newErrors;
+    return validateFeedbackRequest({title,description,category});
   };
 
   const handleSubmit = async () => {
     if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {(newErrors.title?titleInputRef:descriptionInputRef).current?.focus();return;}
 
     submittingRef.current = true;
     setSubmitError('');
@@ -269,6 +262,7 @@ const SuggestionScreen = () => {
                 style={[styles.inputBox, errors.title ? styles.inputBoxError : null]}
                 placeholder="e.g. Broken streetlamp on Purok 2"
                 placeholderTextColor="#94a3b8"
+                ref={titleInputRef}
                 value={title}
                 onChangeText={(t) => { setTitle(t); setErrors(e => ({ ...e, title: '' })); }}
                 maxLength={100}

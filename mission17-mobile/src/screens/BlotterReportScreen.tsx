@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { validateBlotterRequest } from '../utils/requestValidation';
 import {
   View, Text, StyleSheet, SafeAreaView, TextInput,
   TouchableOpacity, ScrollView, ActivityIndicator, Platform,
@@ -52,6 +53,8 @@ const BlotterReportScreen = () => {
   const [submitError, setSubmitError]     = useState('');
   const [copiedToast, setCopiedToast]     = useState(false);
   const submittingRef = useRef(false);
+  const fieldRefs = useRef<Record<string,TextInput|null>>({});
+  const formScroll = useRef<ScrollView>(null);
 
   // Load draft on mount (Inclusivity: recovery for interrupted users)
   useEffect(() => {
@@ -130,6 +133,7 @@ const BlotterReportScreen = () => {
   };
 
   const pickImage = async () => {
+    try {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
@@ -139,9 +143,12 @@ const BlotterReportScreen = () => {
     });
 
     if (!result.canceled && result.assets[0].base64) {
+      if (result.assets[0].base64.length > 8*1024*1024) {setErrors(current=>({...current,evidence:'Choose an image smaller than 6 MB.'}));return;}
+      setErrors(current=>({...current,evidence:''}));
       setEvidenceUri(result.assets[0].uri);
       setEvidenceBase64(`data:image/jpeg;base64,${result.assets[0].base64}`);
     }
+    } catch {setErrors(current=>({...current,evidence:'The image could not be opened. Please choose another image.'}));}
   };
 
   const removeImage = () => {
@@ -173,47 +180,7 @@ const BlotterReportScreen = () => {
 
   // ─── Validation ────────────────────────────────────────────────────────────
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-
-    const cleanFullName = fullName.trim();
-    if (!cleanFullName || cleanFullName.length < 3 || !/[a-zA-Z]/.test(cleanFullName))
-      newErrors.fullName = 'Please enter your complete legal name.';
-
-    const cleanContact = contactNumber.trim().replace(/\s/g, '');
-    if (!/^09\d{9}$/.test(cleanContact) || /^(.)\1+$/.test(cleanContact))
-      newErrors.contactNumber = 'Enter a valid 11-digit mobile number (e.g. 0917 123 4567).';
-
-    if (incidentType === 'Other') {
-      const cleanCustom = customIncidentType.trim();
-      if (!cleanCustom || cleanCustom.length < 3 || !/[a-zA-Z]/.test(cleanCustom)) {
-        newErrors.customIncidentType = 'Please specify the nature of the incident.';
-      }
-    }
-
-    const cleanLocation = location.trim();
-    if (!cleanLocation || cleanLocation.length < 5 || !/[a-zA-Z]/.test(cleanLocation) || /^(.)\1+$/.test(cleanLocation))
-      newErrors.location = 'Please enter the exact incident location inside Barangay Bagong Pag-asa.';
-
-    if (!incidentDateSelected) newErrors.incidentDate = 'Please select the date when the incident happened.';
-    if (!incidentTimeSelected) newErrors.incidentTime = 'Please select the time when the incident happened.';
-    if (incidentDateSelected && incidentTimeSelected && incidentDateTime.getTime() > Date.now() + 5 * 60_000) {
-      newErrors.incidentTime = 'Incident date and time cannot be in the future.';
-    }
-
-    const cleanDesc = description.trim();
-    if (!cleanDesc || cleanDesc.length < 10 || !/[a-zA-Z]/.test(cleanDesc) || /^(.)\1+$/.test(cleanDesc))
-      newErrors.description = 'Please describe what happened in detail (at least 10 characters).';
-
-    const cleanReportedRespondent = reportedRespondentName.trim();
-    if (cleanReportedRespondent && (
-      cleanReportedRespondent.length < 2
-      || !/[a-zA-Z]/.test(cleanReportedRespondent)
-      || /^(.)\1+$/.test(cleanReportedRespondent.replace(/\s/g, ''))
-    )) {
-      newErrors.reportedRespondentName = 'Enter a person’s name, or leave this blank if unknown.';
-    }
-
-    return newErrors;
+    return validateBlotterRequest({fullName,contactNumber,incidentType,customIncidentType,location,incidentPurok,incidentDateSelected,incidentTimeSelected,incidentDateTime,description,reportedRespondentName,evidenceBase64});
   };
 
   // ─── Submit ────────────────────────────────────────────────────────────────
@@ -221,7 +188,7 @@ const BlotterReportScreen = () => {
     if (submittingRef.current) return;
     const newErrors = validate();
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) {const key=Object.keys(newErrors)[0];if(fieldRefs.current[key])fieldRefs.current[key]?.focus();else formScroll.current?.scrollTo({y:0,animated:true});return;}
 
     const finalDescription = (incidentType === 'Other' && customIncidentType.trim())
       ? `[Specified Concern: ${customIncidentType.trim()}]\n\n${description.trim()}`
@@ -418,6 +385,7 @@ const BlotterReportScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <ScrollView
+        ref={formScroll}
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -498,6 +466,8 @@ const BlotterReportScreen = () => {
                 style={styles.textInputField}
                 placeholder="e.g. Juan C. dela Cruz"
                 placeholderTextColor={colors.textMuted}
+                ref={el=>{fieldRefs.current.fullName=el;}}
+                maxLength={120}
                 value={fullName}
                 onChangeText={(t) => { setFullName(t); setErrors(e => ({ ...e, fullName: '' })); }}
                 accessibilityLabel="Full Legal Name"
@@ -522,6 +492,7 @@ const BlotterReportScreen = () => {
                 style={styles.textInputField}
                 placeholder="0917 123 4567"
                 placeholderTextColor={colors.textMuted}
+                ref={el=>{fieldRefs.current.contactNumber=el;}}
                 value={contactNumber}
                 onChangeText={(t) => { setContactNumber(t); setErrors(e => ({ ...e, contactNumber: '' })); }}
                 keyboardType="phone-pad"
@@ -584,6 +555,8 @@ const BlotterReportScreen = () => {
                   style={styles.textInputField}
                   placeholder="e.g. Noise Complaint, Property Boundary Dispute"
                   placeholderTextColor={colors.textMuted}
+                  ref={el=>{fieldRefs.current.customIncidentType=el;}}
+                  maxLength={80}
                   value={customIncidentType}
                   onChangeText={(t) => { setCustomIncidentType(t); setErrors(e => ({ ...e, customIncidentType: '' })); }}
                   accessibilityLabel="Specify Custom Incident Type"
@@ -609,6 +582,7 @@ const BlotterReportScreen = () => {
                 style={styles.textInputField}
                 placeholder="Street, house, business, or nearby landmark"
                 placeholderTextColor={colors.textMuted}
+                ref={el=>{fieldRefs.current.location=el;}}
                 value={location}
                 maxLength={250}
                 onChangeText={(t) => { setLocation(t); setErrors(e => ({ ...e, location: '' })); }}
@@ -708,6 +682,7 @@ const BlotterReportScreen = () => {
                 style={styles.textInputField}
                 placeholder="Leave blank if unknown"
                 placeholderTextColor={colors.textMuted}
+                ref={el=>{fieldRefs.current.reportedRespondentName=el;}}
                 value={reportedRespondentName}
                 onChangeText={(value) => {
                   const digitsOnly = /\d/.test(value) && !/[a-zA-Z]/.test(value);
@@ -741,6 +716,7 @@ const BlotterReportScreen = () => {
               style={[styles.textAreaField, errors.description ? styles.inputBoxError : null]}
               placeholder="State what happened, who was involved, time, and circumstances..."
               placeholderTextColor={colors.textMuted}
+              ref={el=>{fieldRefs.current.description=el;}}
               value={description}
               onChangeText={(t) => { setDescription(t); setErrors(e => ({ ...e, description: '' })); }}
               multiline
@@ -759,6 +735,7 @@ const BlotterReportScreen = () => {
           {/* PHOTO EVIDENCE */}
           <View style={[styles.inputGroup, { marginTop: 12 }]}>
             <Text style={styles.fieldLabel}>Photo Evidence (Optional)</Text>
+            {errors.evidence ? <Text style={styles.errorText}>{errors.evidence}</Text> : null}
             {evidenceUri ? (
               <View style={styles.photoPreviewContainer}>
                 <Image source={{ uri: evidenceUri }} style={styles.photoPreview} resizeMode="cover" />
