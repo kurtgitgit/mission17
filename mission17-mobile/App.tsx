@@ -107,7 +107,7 @@ function MainTabs() {
                   borderRadius: 27,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: theme.primary,
+                  backgroundColor: '#D4AF37',
                   borderWidth: 3,
                   borderColor: theme.surface,
                   transform: [{ translateY: -11 }],
@@ -117,7 +117,7 @@ function MainTabs() {
                   shadowRadius: 5,
                   elevation: 6,
                 }}>
-                  <Bot size={25} color="#FFFFFF" />
+                  <Bot size={25} color="#001847" />
                 </View>
               ) : <Icon size={22} color={color} />,
               tabBarIconStyle: isAssistant ? { marginTop: 2 } : undefined,
