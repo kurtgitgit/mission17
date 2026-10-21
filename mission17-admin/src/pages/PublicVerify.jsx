@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, ShieldCheck, FileSearch, XCircle } from 'lucide-react';
+import { Search, ShieldCheck, FileSearch, XCircle, ArrowLeft } from 'lucide-react';
 import { endpoints } from '../config/api';
 import '../styles/PublicVerify.css';
 
@@ -40,6 +40,9 @@ const PublicVerify = () => {
   return (
     <main className="public-verify-page">
       <div className="public-verify-shell">
+        <a className="public-verify-back" href="https://mission17-app.vercel.app/">
+          <ArrowLeft size={18} aria-hidden="true" /> Back to official website
+        </a>
         <header className="public-verify-header">
           <div className="public-verify-icon" aria-hidden="true">
             <ShieldCheck size={42} strokeWidth={2.1} />

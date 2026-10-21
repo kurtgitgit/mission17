@@ -3,10 +3,44 @@
 
 import express from 'express';
 import Official from '../models/Official.js';
+import OfficialDirectoryRevision from '../models/OfficialDirectoryRevision.js';
 import { verifyAdmin, logAudit } from '../utils/authMiddleware.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import { compareOfficials, publicOfficial, canReorderOfficials } from '../utils/officialOrdering.js';
 
 const router = express.Router();
+
+const activeFilter = { isArchived: { $ne: true } };
+const directory = async (filter = activeFilter, session = null) => (await Official.find(filter).session(session).lean()).sort(compareOfficials);
+const conflict = message => Object.assign(new Error(message), { status: 409 });
+
+const mutateRoster = async operation => {
+  if (!await canReorderOfficials(Official.db.db)) throw Object.assign(new Error('Directory changes are unavailable because atomic saves cannot be confirmed. Please try again later.'), { status: 503 });
+  try {
+    await OfficialDirectoryRevision.updateOne({ _id: 'active' }, { $setOnInsert: { revision: 0 } }, { upsert: true });
+  } catch (error) { if (error.code !== 11000) throw error; }
+  const session = await Official.startSession();
+  try {
+    return await session.withTransaction(async () => {
+      // Acquired before reading the roster; retries see concurrent adds/archives.
+      await OfficialDirectoryRevision.updateOne({ _id: 'active' }, { $inc: { revision: 1 } }, { session });
+      return operation(session);
+    });
+  } finally { await session.endSession(); }
+};
+
+// All callers hold the shared roster guard, including legacy-weight compaction.
+const saveAtGroupEnd = async (data, current, session) => {
+  const siblings = await directory({ ...activeFilter, position: data.position, ...(current ? { _id: { $ne: current._id } } : {}) }, session);
+  if (siblings.length >= 99) throw conflict('This position group has reached its display-order limit.');
+  const lastOrder = Math.max(0, ...siblings.map(row => row.order ?? 99));
+  const save = async order => current
+    ? Official.findByIdAndUpdate(current._id, { ...data, order }, { new: true, runValidators: true, session })
+    : (await Official.create([{ ...data, order }], { session }))[0];
+  if (lastOrder < 99) return save(lastOrder + 1);
+  if (siblings.length) await Official.bulkWrite(siblings.map((row, index) => ({ updateOne: { filter: { _id: row._id }, update: { $set: { order: index + 1 } } } })), { session });
+  return save(siblings.length + 1);
+};
 
 const normalizeText = (value = '') => typeof value === 'string' ? value.trim().replace(/\s+/g, ' ').toLowerCase() : '';
 const normalizeContact = (value = '') => typeof value === 'string' ? value.replace(/\D/g, '') : '';
@@ -75,8 +109,45 @@ router.get('/', requireAdminForNonPublicOfficialList, asyncHandler(async (req, r
     filter = {};
   }
 
-  const officials = await Official.find(filter).sort({ order: 1, position: 1, createdAt: -1 });
-  res.json(officials);
+  const officials = await directory(filter);
+  res.set('Cache-Control', 'no-store');
+  res.json(status === 'archived' || status === 'all' ? officials : officials.map(publicOfficial));
+}));
+
+router.get('/reorder-capabilities', verifyAdmin, asyncHandler(async (_req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ available: await canReorderOfficials(Official.db.db) });
+}));
+
+router.patch('/reorder', verifyAdmin, asyncHandler(async (req, res) => {
+  const { orderedIds, expectedIds } = req.body;
+  const validIds = list => Array.isArray(list) && list.length > 0 && list.length <= 99
+    && list.every(id => typeof id === 'string' && /^[a-f\d]{24}$/i.test(id))
+    && new Set(list).size === list.length;
+  if (!validIds(orderedIds) || !validIds(expectedIds) || orderedIds.length !== expectedIds.length
+    || orderedIds.some(id => !expectedIds.includes(id))) {
+    return res.status(400).json({ message: 'Provide each active official exactly once in the current and new order.' });
+  }
+  let officials;
+  try {
+    await mutateRoster(async session => {
+      const current = await directory(activeFilter, session);
+      if (current.length !== expectedIds.length || current.some((row, index) => String(row._id) !== expectedIds[index])) {
+        throw conflict('The officials list changed. Reload the directory before arranging it again.');
+      }
+      const byId = new Map(current.map(row => [String(row._id), row]));
+      if (orderedIds.some((id, index) => byId.get(id).position !== current[index].position)) {
+        throw Object.assign(new Error('Move officials only within the same position group.'), { status: 400 });
+      }
+      await Official.bulkWrite(orderedIds.map((id, index) => ({ updateOne: { filter: { _id: id, ...activeFilter }, update: { $set: { order: index + 1 } } } })), { session });
+      officials = (await directory(activeFilter, session)).map(publicOfficial);
+    });
+  } catch (error) {
+    if (error.status) return res.status(error.status).json({ message: error.message });
+    throw error;
+  }
+  logAudit(req.user.id, req.user.username, 'OFFICIAL_REORDER', `Arranged ${officials.length} active officials`, req);
+  res.json({ message: 'Display order saved.', officials });
 }));
 
 // POST / — Admin: create official
@@ -84,26 +155,30 @@ router.post('/', verifyAdmin, asyncHandler(async (req, res) => {
   const validationError = validateOfficial(req.body);
   if (validationError) return res.status(400).json({ message: validationError });
   const data = officialData(req.body);
-  const existing = await Official.findOne({ identityKey: data.identityKey });
-  if (existing) return res.status(409).json({ message: 'An official with the same name, position, and term already exists.' });
-
-  const official = await Official.create(data);
+  const official = await mutateRoster(async session => {
+    const existing = await Official.findOne({ identityKey: data.identityKey }).session(session);
+    if (existing) throw conflict('An official with the same name, position, and term already exists.');
+    return saveAtGroupEnd(data, null, session);
+  });
   logAudit(req.user.id, req.user.username, 'OFFICIAL_CREATE', `Added: ${data.name} — ${data.position}`, req);
   res.status(201).json({ message: 'Official added successfully.', official });
 }));
 
 // PUT /:id — Admin: update official details
 router.put('/:id', verifyAdmin, asyncHandler(async (req, res) => {
-  const current = await Official.findById(req.params.id);
-  if (!current) return res.status(404).json({ message: 'Official not found.' });
-  const candidate = { ...current.toObject(), ...req.body };
-  const validationError = validateOfficial(candidate);
-  if (validationError) return res.status(400).json({ message: validationError });
-  const data = officialData(candidate);
-  const duplicate = await Official.findOne({ identityKey: data.identityKey, _id: { $ne: current._id } });
-  if (duplicate) return res.status(409).json({ message: 'An official with the same name, position, and term already exists.' });
-  const official = await Official.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true });
-  if (!official) return res.status(404).json({ message: 'Official not found.' });
+  const official = await mutateRoster(async session => {
+    const current = await Official.findById(req.params.id).session(session);
+    if (!current) throw Object.assign(new Error('Official not found.'), { status: 404 });
+    const candidate = { ...current.toObject(), ...req.body };
+    const validationError = validateOfficial(candidate);
+    if (validationError) throw Object.assign(new Error(validationError), { status: 400 });
+    const { order: _order, ...data } = officialData(candidate);
+    const duplicate = await Official.findOne({ identityKey: data.identityKey, _id: { $ne: current._id } }).session(session);
+    if (duplicate) throw conflict('An official with the same name, position, and term already exists.');
+    return !current.isArchived && current.position !== data.position
+      ? saveAtGroupEnd(data, current, session)
+      : Official.findByIdAndUpdate(req.params.id, data, { new: true, runValidators: true, session });
+  });
   logAudit(req.user.id, req.user.username, 'OFFICIAL_UPDATE', `Updated: ${official.name}`, req);
   res.json({ message: 'Official updated successfully.', official });
 }));
@@ -115,15 +190,15 @@ router.patch('/:id/archive', verifyAdmin, asyncHandler(async (req, res) => {
     return res.status(400).json({ message: 'Archive reason must be text with no more than 500 characters.' });
   }
   const cleanReason = reason?.trim() || 'Term completed / Archived by Admin';
-  const official = await Official.findByIdAndUpdate(
+  const official = await mutateRoster(session => Official.findByIdAndUpdate(
     req.params.id,
     { 
       isArchived: true, 
       archivedAt: new Date(),
       archiveReason: cleanReason
     },
-    { new: true }
-  );
+    { new: true, session }
+  ));
   if (!official) return res.status(404).json({ message: 'Official not found.' });
   logAudit(req.user.id, req.user.username, 'OFFICIAL_ARCHIVE', `Archived: ${official.name} (${cleanReason})`, req);
   res.json({ message: `Official "${official.name}" archived successfully.`, official });
@@ -131,16 +206,11 @@ router.patch('/:id/archive', verifyAdmin, asyncHandler(async (req, res) => {
 
 // PATCH /:id/restore — Admin: restore archived official
 router.patch('/:id/restore', verifyAdmin, asyncHandler(async (req, res) => {
-  const official = await Official.findByIdAndUpdate(
-    req.params.id,
-    { 
-      isArchived: false, 
-      archivedAt: null,
-      archiveReason: null
-    },
-    { new: true }
-  );
-  if (!official) return res.status(404).json({ message: 'Official not found.' });
+  const official = await mutateRoster(async session => {
+    const current = await Official.findById(req.params.id).session(session);
+    if (!current) throw Object.assign(new Error('Official not found.'), { status: 404 });
+    return current.isArchived ? saveAtGroupEnd({ ...current.toObject(), isArchived: false, archivedAt: null, archiveReason: null }, current, session) : current;
+  });
   logAudit(req.user.id, req.user.username, 'OFFICIAL_RESTORE', `Restored: ${official.name}`, req);
   res.json({ message: `Official "${official.name}" restored to active directory.`, official });
 }));

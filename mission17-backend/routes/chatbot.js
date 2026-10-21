@@ -7,6 +7,8 @@ import Official from '../models/Official.js';
 import { getLiveChatReply } from './chatbotLiveData.js';
 import { detectLanguage, stripLanguageDirective } from './chatbotLanguage.js';
 import { getWorkflowReply, getClassifiedWorkflowReply } from './chatbotKnowledge.js';
+import { isOfficialsQuestion, officialsUnavailableReply } from './chatbotOfficials.js';
+import { PUBLIC_OFFICIAL_FIELDS } from '../utils/officialOrdering.js';
 export { detectLanguage } from './chatbotLanguage.js';
 
 const router = express.Router();
@@ -27,7 +29,7 @@ const GREETING_PATTERN = /^\s*(hi|hello|hey|good\s+(morning|afternoon|evening)|k
 const GRATITUDE_PATTERN = /^\s*(?:thank\s+you(?:\s+(?:so\s+much|very\s+much))?|thanks?(?:\s+(?:a\s+lot|so\s+much))?|many\s+thanks|salamat|maraming\s+salamat|agyamanak(?:\s+unay)?)(?:\s+po)?[!.,?\s]*$/i;
 const ACKNOWLEDGMENT_PATTERN = /^\s*(?:o\.?k\.?|okay|alright|all\s+right|got\s+it|understood|i\s+understand|noted|sige|naiintindihan\s+ko|naunawaan\s+ko|wen)(?:\s+po)?[!.,?\s]*$/i;
 // The directory is the resident-facing source of approved roster details.
-// Do not disclose individual officials' personal contact details in chat.
+// Only published directory contacts may appear in live factual answers.
 const OFFICIAL_DIRECTORY_PATTERN = /\b(?:punong\s+barangay|barangay\s+captain|kapitan|opisyal|barangay\s+kagawad|kagawad|barangay\s+officials?|officials?\s+(?:of|information|contact)|official\s+(?:directory|details?|phone|number|email|contact)|council(?:\s+members?)?)\b/i;
 
 const normalizeMessage = (message) => message.trim().replace(/\s+/g, ' ');
@@ -141,12 +143,14 @@ const acknowledgmentReply = (language, isGratitude) => {
     : 'Of course! If you need help with another BrgyLink feature or barangay service, just let me know.';
 };
 
-export const getControlledFaq = (message) => {
+export const getControlledFaq = (message, { deferOfficials = false } = {}) => {
   const question = stripLanguageDirective(message);
   const text = question.toLowerCase();
   const language = detectLanguage(message);
   if (IMMEDIATE_EMERGENCY_PATTERN.test(message)) return emergencyReply(language, message);
   if (PRIVATE_RECORD_REQUEST_PATTERN.test(text)) return privateRecordReply(language);
+  if (isOfficialsQuestion(message) && /\b(?:password|otp|private|personal|home\s+address|tirahan|id\s+document)\b/i.test(text)
+    && !/\b(?:forgot|reset|change|nakalimutan|palitan)\b/i.test(text)) return privateRecordReply(language);
   if (EMERGENCY_TOPIC_PATTERN.test(text) && !NON_EMERGENCY_CONTEXT_PATTERN.test(text)) {
     return emergencyReply(language, message);
   }
@@ -157,6 +161,10 @@ export const getControlledFaq = (message) => {
   // Specific workflows precede broad contact/document/language keywords.
   const workflowReply = getWorkflowReply(question, language);
   if (workflowReply) return workflowReply;
+  if (isOfficialsQuestion(question) && ['english', 'tagalog'].includes(language)) {
+    if (/\b(?:where|saan|nasaan|how|paano)\b.{0,45}\b(?:find|view|directory|makikita|tingnan)\b/i.test(question)) return officialDirectoryReply(language);
+    if (deferOfficials) return null;
+  }
   if (/forgot\s+(?:my\s+)?password|(?:i-?)?reset.*password|nakalimutan.*password|password.*nakalimutan/i.test(text)) {
     if (language === 'tagalog') return "Sa sign-in screen ng BrgyLink, piliin ang 'Forgot Password', ilagay ang email na ginamit sa account, at buksan ang password-reset link na ipinadala sa email. Tingnan din ang Spam o Junk folder. Huwag ibahagi ang reset link o password mo.";
     return "On the BrgyLink sign-in screen, tap 'Forgot Password', enter the email used for your account, then open the password-reset link sent to that email. Check Spam or Junk too. Never share your reset link or password.";
@@ -333,9 +341,8 @@ export const requestChatbotAi = async (
 
 export const requestLiveChatReply = (message) => getLiveChatReply(message, {
   findOfficials: () => Official.find({ isArchived: { $ne: true } })
-    .sort({ order: 1, position: 1, createdAt: -1 })
-    .select('name position')
-    .limit(3)
+    .select(PUBLIC_OFFICIAL_FIELDS)
+    .maxTimeMS(5000)
     .lean(),
   findAnnouncements: () => Announcement.find(buildVisibleAnnouncementFilter())
     .sort({ isUrgent: -1, isPinned: -1, createdAt: -1 })
@@ -373,10 +380,10 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ reply: `Please keep messages under ${MAX_MESSAGE_LENGTH} characters.` });
   }
 
-  const controlledReply = getControlledFaq(normalizedMessage);
+  const controlledReply = getControlledFaq(normalizedMessage, { deferOfficials: true });
   if (controlledReply) return res.json({ reply: controlledReply, source: 'controlled-faq' });
 
-  if (!isInScope(normalizedMessage)) {
+  if (!isInScope(normalizedMessage) && !isOfficialsQuestion(normalizedMessage)) {
     return res.json({ reply: outOfScopeReply(normalizedMessage), source: 'safe-local-fallback' });
   }
 
@@ -385,7 +392,10 @@ router.post('/', async (req, res) => {
     if (liveReply) return res.json({ reply: liveReply, source: 'live-brgylink-data' });
   } catch (error) {
     console.error('Chatbot live-data lookup error:', error.message);
+    if (isOfficialsQuestion(normalizedMessage)) return res.json({ reply: officialsUnavailableReply(normalizedMessage), source: 'safe-local-fallback' });
   }
+
+  if (isOfficialsQuestion(normalizedMessage)) return res.json({ reply: officialsUnavailableReply(normalizedMessage), source: 'safe-local-fallback' });
 
   try {
     const aiReply = await requestChatbotAi(normalizedMessage);

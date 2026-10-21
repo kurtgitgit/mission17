@@ -542,7 +542,7 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
   });
 
   describe('Case 5: Latest announcements and barangay officials', () => {
-    it('routes an official roster request to the resident directory, even when records are available', async () => {
+    it('answers an official roster request from current published records', async () => {
       await Official.create([
         { name: 'Hon. Reynaldo Cruz', position: 'Punong Barangay', order: 1, isArchived: false },
         { name: 'Hon. Elena Ramos', position: 'Barangay Kagawad', order: 2, isArchived: false },
@@ -552,19 +552,18 @@ describe('POST /api/chatbot end-to-end integration tests', () => {
         .post('/api/chatbot')
         .send({ message: 'Who are the current barangay officials?' });
       expect(res.status).toBe(200);
-      expect(res.body.source).toBe('controlled-faq');
-      expect(res.body.reply).toContain('From BrgyLink Home');
-      expect(res.body.reply).toContain("'Officials'");
-      expect(res.body.reply).not.toContain('Hon. Reynaldo Cruz');
+      expect(res.body.source).toBe('live-brgylink-data');
+      expect(res.body.reply).toContain('Hon. Reynaldo Cruz');
+      expect(res.body.reply).toContain('Hon. Elena Ramos');
     });
 
-    it('routes an official roster request to the resident directory when no roster is available', async () => {
+    it('politely explains when no current roster is published', async () => {
       const res = await request(app)
         .post('/api/chatbot')
         .send({ message: 'Who are the current barangay officials?' });
       expect(res.status).toBe(200);
-      expect(res.body.source).toBe('controlled-faq');
-      expect(res.body.reply).toContain('From BrgyLink Home');
+      expect(res.body.source).toBe('live-brgylink-data');
+      expect(res.body.reply).toContain('no current active officials roster');
     });
 
     it('returns published active announcements when available in live data', async () => {

@@ -12,22 +12,28 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
+import useOfficials from './hooks/useOfficials';
 
 const PUBLIC_VERIFY_URL = 'https://mission17.vercel.app/public-verify';
 
-const OFFICIALS = [
-  { name: 'Rogie B. Quillope', position: 'Punong Barangay', contact: '09544153509', term: '2023–2026' },
-  { name: 'John Benedict B. Zarate', position: 'Barangay Kagawad', committee: 'Health & Sanitation', termNumber: '1st Term' },
-  { name: 'Armando M. Quillope Jr.', position: 'Barangay Kagawad', committee: 'Appropriation', termNumber: 'Last Term' },
-  { name: 'Juan C. Fontalba', position: 'Barangay Kagawad', committee: 'Infrastructure', termNumber: '1st Term' },
-  { name: 'Jose A. Malinao', position: 'Barangay Kagawad', committee: 'Environmental Protection', termNumber: '1st Term' },
-  { name: 'Joel F. Ramos', position: 'Barangay Kagawad', committee: 'Agricultural', termNumber: '2nd Term' },
-  { name: 'Juanito R. Ramos', position: 'Barangay Kagawad', committee: 'Peace and Order', termNumber: '2nd Term' },
-  { name: 'Kerubin C. Ramos', position: 'Barangay Kagawad', committee: 'Education', termNumber: '1st Term' },
-  { name: 'Bhea Monique San Miguel', position: 'Barangay Secretary', contact: '09916982914', email: 'b.pag.asasj@gmail.com' },
-  { name: 'Raymond Bautista', position: 'Chief Tanod', contact: '09336828737' },
-  { name: 'Zenaida Velasco', position: 'BHW President', contact: '09074401517' },
-];
+function OfficialCard({ official, captain = false }) {
+  const phone = typeof official.contact === 'string' && /^09\d{9}$/.test(official.contact) ? official.contact : null;
+  const email = typeof official.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(official.email) ? official.email : null;
+  return <article className={captain ? 'captain-card' : 'official-card'}>
+    <div className={`official-avatar${captain ? ' official-avatar-captain' : ''}`}><UsersRound aria-hidden="true" /></div>
+    <div className="official-information">
+      <p className="official-role">{official.position}</p>
+      <h3>{official.name}</h3>
+      {official.committee && <p className="official-detail">{/^committee\s+on\b/i.test(official.committee) ? official.committee : `Committee on ${official.committee}`}</p>}
+      {official.term && <p className="official-detail">Term: {official.term}</p>}
+      {official.termNumber && <p className="official-detail">{official.termNumber}{/\bterm\b/i.test(official.termNumber) ? '' : ' Term'}</p>}
+    </div>
+    <div className="official-contact-links">
+      {phone ? <a href={`tel:${phone}`} aria-label={`Call ${official.name} at ${phone}`}><Phone size={15} aria-hidden="true" /> {phone}</a> : <p className="official-detail">Contact number not available</p>}
+      {email && <a href={`mailto:${email}`}><Mail size={15} aria-hidden="true" /> {email}</a>}
+    </div>
+  </article>;
+}
 
 const SERVICES = [
   {
@@ -70,6 +76,7 @@ function FadeInSection({ children }) {
 }
 
 function App() {
+  const { officials, loading: officialsLoading, error: officialsError, refresh: refreshOfficials } = useOfficials();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -227,32 +234,18 @@ function App() {
             <div className="section-heading centered-heading">
               <p className="eyebrow">Barangay leadership</p>
               <h2>Barangay Officials &amp; Council</h2>
-              <p>Current council roster for the 2023–2026 term.</p>
+              <p>Current officials published by the barangay.</p>
+              <button className="officials-refresh" type="button" onClick={refreshOfficials} disabled={officialsLoading} aria-label="Refresh officials">{officialsLoading ? 'Loading officials…' : 'Refresh officials'}</button>
             </div>
-
-            <div className="captain-card">
-              <div className="official-avatar official-avatar-captain"><UsersRound aria-hidden="true" /></div>
-              <div>
-                <p className="official-role">Punong Barangay</p>
-                <h3>Rogie B. Quillope</h3>
-                <p>Term: 2023–2026</p>
-              </div>
-              <a href="tel:09544153509"><Phone size={17} aria-hidden="true" /> 0954 415 3509</a>
-            </div>
-
-            <div className="officials-grid">
-              {OFFICIALS.filter(({ position }) => position !== 'Punong Barangay').map((official) => (
-                <article className="official-card" key={official.name}>
-                  <div className="official-avatar"><UsersRound aria-hidden="true" /></div>
-                  <p className="official-role">{official.position}</p>
-                  <h3>{official.name}</h3>
-                  {official.committee && <p className="official-detail">Committee on {official.committee}</p>}
-                  {official.termNumber && <p className="official-detail">{official.termNumber} · Term 2023–2026</p>}
-                  {official.contact && <a href={`tel:${official.contact}`}><Phone size={15} aria-hidden="true" /> {official.contact}</a>}
-                  {official.email && <a href={`mailto:${official.email}`}><Mail size={15} aria-hidden="true" /> {official.email}</a>}
-                </article>
-              ))}
-            </div>
+            {officialsLoading ? <p className="officials-state" role="status">Loading the current officials directory…</p>
+              : officialsError ? <p className="officials-state" role="alert">{officialsError}</p>
+                : officials.length === 0 ? <p className="officials-state" role="status">No active officials have been published yet.</p>
+                  : <>
+                    {officials.filter(row => row.position === 'Punong Barangay').map(official => <OfficialCard key={official._id} official={official} captain />)}
+                    <div className="officials-grid">
+                      {officials.filter(row => row.position !== 'Punong Barangay').map(official => <OfficialCard key={official._id} official={official} />)}
+                    </div>
+                  </>}
           </FadeInSection>
         </section>
       </main>

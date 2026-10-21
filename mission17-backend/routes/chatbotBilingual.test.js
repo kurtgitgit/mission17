@@ -174,7 +174,8 @@ describe('source-grounded English and Tagalog workflows', () => {
     expect(getControlledFaq(message)).toMatch(/cannot submit|hindi ako makakapagsumite/i);
   });
 
-  it.each(workflows.flatMap(({ en, tl }) => [en[0], tl[0]]))('returns the curated answer through the actual endpoint handler: %s', async message => {
+  // Factual officials answers now require live data; chatbotOfficials.test.js covers that endpoint path.
+  it.each(workflows.filter(({ clues }) => !clues.includes("'Officials'")).flatMap(({ en, tl }) => [en[0], tl[0]]))('returns the curated answer through the actual endpoint handler: %s', async message => {
     const handler = chatbotRouter.stack.find(layer => layer.route)?.route.stack.at(-1).handle;
     const response = { json: jest.fn(), status: jest.fn().mockReturnThis() };
     await handler({ body: { message } }, response);

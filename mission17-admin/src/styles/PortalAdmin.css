@@ -519,6 +519,15 @@
 }
 
 /* ── Officials Grid ── */
+.pa-official-form { scroll-margin-top: 24px; }
+.pa-official-form .pa-form-title:focus-visible { outline: 2px solid #0038A8; outline-offset: 6px; }
+.pa-official-order-help { padding: 16px; margin-bottom: 16px; border: 1px solid #dbe5f3; border-radius: 10px; background: #f3f7fd; color: #334155; font-size: 13px; }
+.pa-official-order-help p { margin: 6px 0 0; line-height: 1.5; }
+.pa-official-order-help [role="alert"] { margin-top: 12px; }
+.pa-official-order-help [role="alert"] button { margin-top: 8px; }
+.pa-official-action.order { color: #0038A8; background: #edf3ff; }
+.pa-official-action:disabled { opacity: .45; cursor: not-allowed; }
+.pa-official-action:focus-visible { outline: 2px solid #0038A8; outline-offset: 3px; }
 .pa-grid-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));

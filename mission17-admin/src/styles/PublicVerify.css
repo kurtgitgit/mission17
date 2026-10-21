@@ -385,3 +385,6 @@ body:has(.public-verify-page) {
     transition: none;
   }
 }
+.public-verify-back { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 24px; padding: 8px 0; color: #0038A8; font-weight: 600; text-decoration: none; }
+.public-verify-back:hover { text-decoration: underline; }
+.public-verify-back:focus-visible { outline: 2px solid #0038A8; outline-offset: 5px; border-radius: 4px; }

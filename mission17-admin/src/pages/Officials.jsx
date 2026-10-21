@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../components/Layout';
-import { Plus, Trash2, Edit3, X, UserCheck, Archive, RotateCcw, ShieldAlert, Calendar, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit3, X, UserCheck, Archive, RotateCcw, ArrowUp, ArrowDown } from 'lucide-react';
 import { endpoints } from '../config/api';
 import { useNotification } from '../context/NotificationContext';
 import '../styles/PortalAdmin.css';
@@ -115,27 +115,73 @@ const Officials = () => {
   const [loading, setLoading]    = useState(true);
   const [showForm, setShowForm]  = useState(false);
   const [editItem, setEditItem]  = useState(null);
+  const [formOpenRequest, setFormOpenRequest] = useState(0);
   const [archiveTarget, setArchiveTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '', order: 99 });
+  const [form, setForm] = useState({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '' });
+  const [canReorder, setCanReorder] = useState(false);
+  const [reordering, setReordering] = useState(false);
+  const [orderError, setOrderError] = useState('');
+  const formRef = useRef(null);
+  const headingRef = useRef(null);
+  const orderLock = useRef(false);
+  const loadRequest = useRef(null);
 
   const token   = localStorage.getItem('token');
   const baseUrl = endpoints.auth.backendBaseUrl;
 
   const fetchData = useCallback(async () => {
+    const requestId = Symbol();
+    loadRequest.current = requestId;
     setLoading(true);
     try {
       const url = `${baseUrl}/api/officials?status=${tab === 'archived' ? 'archived' : 'active'}`;
       const res = await fetch(url, { headers: { 'auth-token': token } });
-      if (res.ok) setOfficials(await res.json());
-    } catch { showNotification('Failed to load officials.', 'error'); }
-    finally   { setLoading(false); }
+      if (!res.ok) throw new Error('Directory unavailable');
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error('Invalid directory');
+      if (requestId === loadRequest.current) { setOfficials(data); setOrderError(''); }
+    } catch { if (requestId === loadRequest.current) showNotification('Failed to load officials.', 'error'); }
+    finally   { if (requestId === loadRequest.current) setLoading(false); }
   }, [baseUrl, showNotification, tab, token]);
 
-  useEffect(() => { void fetchData(); }, [fetchData]);
+  useEffect(() => { void fetchData(); return () => { loadRequest.current = null; }; }, [fetchData]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch(`${baseUrl}/api/officials/reorder-capabilities`, { headers: { 'auth-token': token }, signal: controller.signal })
+      .then(async res => { if (res.ok) setCanReorder((await res.json()).available === true); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [baseUrl, token]);
+  useEffect(() => {
+    if (!showForm) return;
+    formRef.current?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    headingRef.current?.focus({ preventScroll: true });
+  }, [showForm, editItem?._id, formOpenRequest]);
+
+  const moveOfficial = async (index, direction) => {
+    const next = index + direction;
+    if (orderLock.current || !canReorder || !officials[next] || officials[next].position !== officials[index].position) return;
+    orderLock.current = true;
+    setReordering(true);
+    setOrderError('');
+    const arranged = [...officials];
+    [arranged[index], arranged[next]] = [arranged[next], arranged[index]];
+    try {
+      const res = await fetch(`${baseUrl}/api/officials/reorder`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'auth-token': token },
+        body: JSON.stringify({ expectedIds: officials.map(row => row._id), orderedIds: arranged.map(row => row._id) }),
+      });
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data.officials)) throw new Error(data.message || 'Unable to save display order. Please reload and try again.');
+      setOfficials(data.officials);
+      showNotification('Display order saved.', 'success');
+    } catch (error) { setOrderError(error.message || 'Unable to save display order. Please reload and try again.'); }
+    finally { orderLock.current = false; setReordering(false); }
+  };
 
   const resetForm = () => {
-    setForm({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '', order: 99 });
+    setForm({ name: '', position: 'Barangay Kagawad', contact: '', email: '', term: '', termNumber: '', committee: '' });
     setEditItem(null);
     setShowForm(false);
   };
@@ -238,8 +284,9 @@ const Officials = () => {
   };
 
   const startEdit = (item) => {
+    setFormOpenRequest(value => value + 1);
     setEditItem(item);
-    setForm({ name: item.name, position: item.position, contact: item.contact || '', email: item.email || '', term: item.term || '', termNumber: item.termNumber || '', committee: item.committee || '', order: item.order || 99 });
+    setForm({ name: item.name, position: item.position, contact: item.contact || '', email: item.email || '', term: item.term || '', termNumber: item.termNumber || '', committee: item.committee || '' });
     setShowForm(true);
   };
 
@@ -262,7 +309,7 @@ const Officials = () => {
             <h1>👥 Barangay Officials & Council</h1>
             <p>Manage active officials and archive historical profiles for future restore.</p>
           </div>
-          <button className="pa-btn-primary" onClick={() => { resetForm(); setShowForm(true); }}>
+          <button className="pa-btn-primary" onClick={() => { resetForm(); setFormOpenRequest(value => value + 1); setShowForm(true); }}>
             <Plus size={16} /> Add Official
           </button>
         </div>
@@ -283,7 +330,8 @@ const Officials = () => {
               alignItems: 'center',
               gap: 8
             }}
-            onClick={() => setTab('active')}
+            disabled={reordering}
+            onClick={() => { resetForm(); setTab('active'); }}
           >
             <UserCheck size={16} /> Active Officials Council
           </button>
@@ -302,7 +350,8 @@ const Officials = () => {
               alignItems: 'center',
               gap: 8
             }}
-            onClick={() => setTab('archived')}
+            disabled={reordering}
+            onClick={() => { resetForm(); setTab('archived'); }}
           >
             <Archive size={16} /> Archived Past Officials
           </button>
@@ -310,9 +359,9 @@ const Officials = () => {
 
         {/* ── FORM ── */}
         {showForm && (
-          <div className="pa-form-card">
+          <div className="pa-form-card pa-official-form" ref={formRef}>
             <div className="pa-form-header">
-              <h3 className="pa-form-title">{editItem ? '✏️ Edit Official' : '➕ Add Official'}</h3>
+              <h2 className="pa-form-title" tabIndex={-1} ref={headingRef}>{editItem ? 'Edit Official' : 'Add Official'}</h2>
               <button className="pa-btn-icon" onClick={resetForm}><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit}>
@@ -360,11 +409,6 @@ const Officials = () => {
                   <input className="pa-input" placeholder="Health, Peace & Order, etc." value={form.committee}
                     onChange={e => setForm({ ...form, committee: e.target.value })} maxLength="120" />
                 </div>
-                <div className="pa-form-group">
-                  <label className="pa-label">Sort Order (1 = Punong Brgy first)</label>
-                  <input className="pa-input" type="number" min="1" max="99" value={form.order}
-                    onChange={e => setForm({ ...form, order: +e.target.value })} />
-                </div>
               </div>
               <div className="pa-form-actions">
                 <button type="submit" className="pa-btn-primary" disabled={submitting}>
@@ -377,6 +421,13 @@ const Officials = () => {
         )}
 
         <p className="pa-count">{officials.length} {tab === 'archived' ? 'archived' : 'active'} official{officials.length !== 1 ? 's' : ''} listed</p>
+        {tab === 'active' && <div className="pa-official-order-help">
+          <strong>Display order</strong>
+          <p>Display order is grouped by position. Use Move up or Move down to arrange officials within the same position.</p>
+          {!canReorder && <p>Ordering controls are unavailable until atomic saves can be confirmed.</p>}
+          {reordering && <p role="status">Saving display order…</p>}
+          {orderError && <div role="alert"><p>{orderError}</p><button type="button" className="pa-btn-secondary" onClick={fetchData}>Reload directory</button></div>}
+        </div>}
 
         {/* ── GRID ── */}
         {loading ? (
@@ -393,7 +444,7 @@ const Officials = () => {
           </div>
         ) : (
           <div className="pa-grid-cards">
-            {officials.map(off => {
+            {officials.map((off, index) => {
               const ps = POS_STYLE[off.position] || POS_STYLE['Other'];
               return (
                 <div key={off._id} className={`pa-card pa-official-card${off.isArchived ? ' archived' : ''}`}>
@@ -433,6 +484,8 @@ const Officials = () => {
                       {!off.isArchived ? (
                         <>
                           <button type="button" className="pa-official-action edit" title="Edit Official" aria-label={`Edit ${off.name}`} onClick={() => startEdit(off)}><Edit3 size={15} /> Edit</button>
+                          <button type="button" className="pa-official-action order" aria-label={`Move ${off.name} up`} disabled={!canReorder || reordering || loading || Boolean(orderError) || officials[index - 1]?.position !== off.position} onClick={() => moveOfficial(index, -1)}><ArrowUp size={15} /> Move up</button>
+                          <button type="button" className="pa-official-action order" aria-label={`Move ${off.name} down`} disabled={!canReorder || reordering || loading || Boolean(orderError) || officials[index + 1]?.position !== off.position} onClick={() => moveOfficial(index, 1)}><ArrowDown size={15} /> Move down</button>
                           <button
                             type="button"
                             className="pa-official-action archive"
