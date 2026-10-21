@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, ShieldCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { useNotification } from '../context/NotificationContext';
 import { endpoints } from '../config/api';
 import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
@@ -297,14 +297,6 @@ const Login = () => {
               </button>
             </form>
           )}
-          <div className="public-verification-entry">
-            <Link to="/public-verify" className="public-verification-link" aria-describedby="public-verification-description">
-              <ShieldCheck size={18} aria-hidden="true" />
-              <span>Verify a blotter report</span>
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-            <p id="public-verification-description">Check a report’s authenticity and resolution status. No admin account needed.</p>
-          </div>
         </div>
       </div>
     </div>
