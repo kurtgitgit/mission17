@@ -16,6 +16,18 @@ const ICONS: Record<string, typeof Phone> = {
   'chief-tanod': Shield, 'bhw-president': HeartPulse, dilg: Building2,
 };
 
+const ICON_TINTS: Record<string, { color: string; backgroundColor: string }> = {
+  mdrrmo: { color: '#A64D05', backgroundColor: '#FFF1DC' },
+  rhu: { color: '#B42332', backgroundColor: '#FFEBEA' },
+  bfp: { color: '#A64D05', backgroundColor: '#FFF1DC' },
+  pnp: { color: '#174CA8', backgroundColor: '#EAF2FF' },
+  'barangay-hall': { color: '#174CA8', backgroundColor: '#EAF2FF' },
+  'punong-barangay': { color: '#17804B', backgroundColor: '#E8F7EE' },
+  'chief-tanod': { color: '#174CA8', backgroundColor: '#EAF2FF' },
+  'bhw-president': { color: '#A92752', backgroundColor: '#FFEDF2' },
+  dilg: { color: '#087C80', backgroundColor: '#E3F7F6' },
+};
+
 const call = (number: string, label: string) => {
   Alert.alert(`Call ${label}?`, `Would you like to connect to ${number}?`, [
     { text: 'Cancel', style: 'cancel' },
@@ -43,10 +55,11 @@ export default function EmergencyContactsScreen() {
             <View style={styles.card}>
               {EMERGENCY_CONTACTS.filter(contact => contact.category === section.category).map((contact, index) => {
                 const Icon = ICONS[contact.id] || Phone;
+                const tint = ICON_TINTS[contact.id] || ICON_TINTS['barangay-hall'];
                 return (
                   <View key={contact.id} style={[styles.contact, index > 0 && styles.divider]}>
                     <View style={styles.contactHeader}>
-                      <View style={styles.icon}><Icon size={21} color="#0038A8" /></View>
+                      <View style={[styles.icon, { backgroundColor: tint.backgroundColor }]}><Icon size={21} color={tint.color} /></View>
                       <View style={styles.contactInfo}>
                         <Text style={styles.contactName}>{contact.label}</Text>
                         {contact.contactPerson && <Text style={styles.contactPerson}>{contact.contactPerson}</Text>}

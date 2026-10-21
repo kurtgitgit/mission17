@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, SafeAreaView, ScrollView,
-  TouchableOpacity, Platform, RefreshControl, StatusBar,
-  AppState
+  View, Text, StyleSheet, ScrollView,
+  TouchableOpacity, RefreshControl, StatusBar,
+  AppState, useWindowDimensions
 } from 'react-native';
 import {
   Bell, CheckCircle, FileText,
   ChevronRight, Megaphone,
-  MessageSquare, Users, ShieldAlert
+  MessageSquare, Users, ShieldAlert, PhoneCall
 } from 'lucide-react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, GlobalState, getAuthHeadersIfAvailable } from '../config/api';
@@ -64,6 +65,8 @@ const getGreeting = () => {
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 const HomeScreen: React.FC = () => {
+  const insets = useSafeAreaInsets();
+  const compactServices = useWindowDimensions().width < 360;
   const navigation  = useNavigation<any>();
   const route       = useRoute<any>();
   const isFocused   = useIsFocused();
@@ -152,20 +155,13 @@ const HomeScreen: React.FC = () => {
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchAll(); }, [fetchAll]);
 
-  const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
-
   return (
-    <RootComponent style={styles.root}>
+    <SafeAreaView edges={['left', 'right']} style={styles.root}>
       <StatusBar barStyle="light-content" backgroundColor="#0038A8" />
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 110 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
-      >
         {/* ══════════ CITIZEN HEADER ══════════ */}
-        <LinearGradient colors={['#0038A8', '#001a5e']} style={styles.header}>
+        <LinearGradient colors={['#0038A8', '#001a5e']} style={[styles.header, { paddingTop: insets.top + 16 }]}>
           <View style={styles.headerTop}>
-            <View>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.brgyBadge}>REPUBLIC OF THE PHILIPPINES</Text>
               <Text style={styles.brgyCity}>Barangay Bagong Pag-asa, San Jacinto</Text>
             </View>
@@ -196,6 +192,12 @@ const HomeScreen: React.FC = () => {
           </View>
         </LinearGradient>
 
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#0038A8" />}
+      >
         {GlobalState.role === 'super_admin' && (
           <View style={styles.section}>
             <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -217,13 +219,6 @@ const HomeScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Quick services</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Services')}
-              accessibilityRole="button"
-              accessibilityLabel="See all services"
-            >
-              <Text style={styles.seeAll}>See all →</Text>
-            </TouchableOpacity>
           </View>
 
           <View style={styles.servicesGrid}>
@@ -232,14 +227,14 @@ const HomeScreen: React.FC = () => {
               return (
                 <TouchableOpacity
                   key={svc.id}
-                  style={styles.svcCard}
+                  style={[styles.svcCard, compactServices && styles.svcCardCompact]}
                   onPress={() => navigation.navigate(svc.screen)}
                   activeOpacity={0.75}
                   accessibilityRole="button"
                   accessibilityLabel={`${svc.label}: ${svc.subtitle}`}
                 >
-                  <View style={[styles.svcIconBox, { backgroundColor: svc.bgLight }]}>
-                    <IconComp size={22} color={svc.color} />
+                  <View style={[styles.svcIconBox, compactServices && styles.svcIconBoxCompact, { backgroundColor: svc.bgLight }]}>
+                    <IconComp size={compactServices ? 18 : 22} color={svc.color} />
                   </View>
                   <View style={styles.svcTextContent}>
                     <Text style={styles.svcLabel} numberOfLines={2}>{svc.label}</Text>
@@ -323,20 +318,23 @@ const HomeScreen: React.FC = () => {
               <Text style={styles.sectionTitle}>Emergency Hotlines</Text>
               <Text style={styles.sectionSub}>Official San Jacinto emergency contacts</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('EmergencyContacts')}
-              style={styles.hotlinesAction}
-              accessibilityRole="button"
-              accessibilityLabel="View all emergency contacts"
-            >
-              <Text style={styles.seeAll}>View all →</Text>
-            </TouchableOpacity>
           </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EmergencyContacts')}
+            style={styles.hotlinesCard}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel="Open emergency contacts"
+          >
+            <View style={styles.hotlinesIcon}><PhoneCall size={22} color="#B42332" /></View>
+            <Text style={styles.hotlinesCopy}>Quick access to barangay and local response contacts.</Text>
+            <ChevronRight size={20} color="#0038A8" />
+          </TouchableOpacity>
         </View>
 
       </ScrollView>
 
-    </RootComponent>
+    </SafeAreaView>
   );
 };
 
@@ -346,7 +344,6 @@ const getStyles = () => StyleSheet.create({
 
   // HEADER
   header: {
-    paddingTop: Platform.OS === 'android' ? 44 : 20,
     paddingHorizontal: 16,
     paddingBottom: 28,
   },
@@ -354,6 +351,7 @@ const getStyles = () => StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+    gap: 12,
     marginBottom: 16
   },
   brgyBadge: {
@@ -454,6 +452,8 @@ const getStyles = () => StyleSheet.create({
     justifyContent: 'center',
     flexShrink: 0,
   },
+  svcCardCompact: { padding: 8, gap: 5 },
+  svcIconBoxCompact: { width: 28, height: 28 },
   svcTextContent: { flex: 1, minWidth: 0 },
   svcLabel:  { fontSize: 12, fontWeight: '800', color: '#0F172A', lineHeight: 16 },
   svcSub:    { fontSize: 10.5, color: '#64748B', marginTop: 1, fontWeight: '500', lineHeight: 14 },
@@ -544,7 +544,13 @@ const getStyles = () => StyleSheet.create({
   evtLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evtLoc:    { fontSize: 11.5, color: '#64748B', flex: 1, fontWeight: '500' },
 
-  hotlinesAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, marginLeft: 12 },
+  hotlinesCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 84,
+    padding: 14, backgroundColor: '#FFF8F6', borderRadius: 14,
+    borderWidth: 1, borderColor: '#F2D6D2', borderLeftWidth: 4, borderLeftColor: '#C2413B',
+  },
+  hotlinesIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#FFEBE7', alignItems: 'center', justifyContent: 'center' },
+  hotlinesCopy: { flex: 1, fontSize: 13, lineHeight: 19, fontWeight: '700', color: '#526176' },
 
 });
 

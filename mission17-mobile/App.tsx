@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Bot, Home, Landmark, Megaphone, ShieldCheck, User } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ToastMessage, { BaseToast, ErrorToast } from 'react-native-toast-message';
 import * as Notifications from 'expo-notifications';
 import { signOut } from 'firebase/auth';
@@ -55,7 +56,7 @@ const navigationRef = createNavigationContainerRef<any>();
 const MAIN_TAB_SCREENS = {
   HomeTab: { component: HomeScreen, label: 'Home', icon: Home },
   AnnouncementsTab: { component: AnnouncementsScreen, label: 'News', icon: Megaphone },
-  AssistantTab: { component: ChatBotScreen, label: 'Assistant', icon: Bot },
+  AssistantTab: { component: ChatBotScreen, label: 'BrgyLink Help', icon: Bot },
   CaptainControlTab: { component: CaptainControlScreen, label: 'Control', icon: ShieldCheck },
   LearnTab: { component: LearningScreen, label: 'About', icon: Landmark },
   ProfileTab: { component: ProfileScreen, label: 'Profile', icon: User },
@@ -65,6 +66,8 @@ const MAIN_TAB_SCREENS = {
 function MainTabs() {
   const TabNavigator = Tab.Navigator as any;
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 8);
 
   return (
     <TabNavigator
@@ -73,9 +76,10 @@ function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textTertiary,
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 82 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: (Platform.OS === 'ios' ? 58 : 62) + bottomPadding,
+          paddingBottom: bottomPadding,
           paddingTop: 6,
           backgroundColor: theme.surface,
           borderTopWidth: 1,
@@ -100,29 +104,29 @@ function MainTabs() {
             component={screen.component}
             options={{
               tabBarLabel: screen.label,
-              tabBarAccessibilityLabel: isAssistant ? 'Open Barangay Assistant' : screen.label,
+              tabBarAccessibilityLabel: isAssistant ? 'Open BrgyLink Help' : screen.label,
               tabBarIcon: ({ color }: any) => isAssistant ? (
                 <View style={{
-                  width: 54,
-                  height: 54,
-                  borderRadius: 27,
+                  width: 64,
+                  height: 64,
+                  borderRadius: 32,
                   alignItems: 'center',
                   justifyContent: 'center',
                   backgroundColor: '#D4AF37',
                   borderWidth: 3,
                   borderColor: theme.surface,
-                  transform: [{ translateY: -11 }],
+                  transform: [{ translateY: -22 }],
                   shadowColor: '#001847',
                   shadowOffset: { width: 0, height: 3 },
                   shadowOpacity: 0.2,
                   shadowRadius: 5,
                   elevation: 6,
                 }}>
-                  <Bot size={25} color="#001847" />
+                  <Bot size={28} color="#001847" />
                 </View>
               ) : <Icon size={22} color={color} />,
               tabBarIconStyle: isAssistant ? { marginTop: 2 } : undefined,
-              tabBarLabelStyle: { fontSize: 11, fontWeight: '700', marginTop: isAssistant ? -1 : -2 },
+              tabBarLabelStyle: { fontSize: isAssistant ? 10 : 11, fontWeight: '700', marginTop: isAssistant ? 1 : -2, ...(isAssistant ? { color: '#17345E', width: 70, maxWidth: 70 } : {}) },
             }}
           />
         );
