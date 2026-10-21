@@ -13,6 +13,8 @@ import {
   X,
 } from 'lucide-react';
 
+const PUBLIC_VERIFY_URL = 'https://mission17.vercel.app/public-verify';
+
 const OFFICIALS = [
   { name: 'Rogie B. Quillope', position: 'Punong Barangay', contact: '09544153509', term: '2023–2026' },
   { name: 'John Benedict B. Zarate', position: 'Barangay Kagawad', committee: 'Health & Sanitation', termNumber: '1st Term' },
@@ -102,6 +104,7 @@ function App() {
           <a href="#services">Services</a>
           <a href="#officials">Officials</a>
           <a href="#contact">Contact</a>
+          <a href={PUBLIC_VERIFY_URL}>Verify report</a>
           <a href="/infographic-manual.html?v=white" target="_blank" rel="noopener noreferrer">User Manual</a>
         </div>
 
@@ -125,6 +128,7 @@ function App() {
             <a href="#services" onClick={closeMenu}>Services</a>
             <a href="#officials" onClick={closeMenu}>Officials</a>
             <a href="#contact" onClick={closeMenu}>Contact</a>
+            <a href={PUBLIC_VERIFY_URL} onClick={closeMenu}>Verify report</a>
             <a href="/infographic-manual.html?v=white" target="_blank" rel="noopener noreferrer" onClick={closeMenu}>User Manual</a>
             <a className="mobile-download" href="/BrgyLink.apk" download="BrgyLink.apk" onClick={closeMenu}>
               <Smartphone size={18} aria-hidden="true" /> Download BrgyLink
@@ -260,6 +264,7 @@ function App() {
             <div>
               <strong>BrgyLink</strong>
               <p>Official digital portal of Barangay Bagong Pag-asa.</p>
+              <a href={PUBLIC_VERIFY_URL}><ShieldCheck size={16} aria-hidden="true" /> Verify a blotter report</a>
             </div>
           </div>
           <div>

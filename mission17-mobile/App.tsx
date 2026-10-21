@@ -37,6 +37,7 @@ import CaptainFeedbackScreen from './src/screens/CaptainFeedbackScreen';
 import AnnouncementsScreen from './src/screens/AnnouncementsScreen';
 import ServicesScreen      from './src/screens/ServicesScreen';
 import OfficialsScreen     from './src/screens/OfficialsScreen';
+import EmergencyContactsScreen from './src/screens/EmergencyContactsScreen';
 
 // ─── UTILS ─────────────────────────────────────────────
 import { clearAuthData, getAuthData, saveAuthData, subscribeToAuthSessionExpiry } from './src/utils/storage';
@@ -328,6 +329,14 @@ export default function App() {
               {/* Barangay Screens (pushable from Home quick actions) */}
               <Stack.Screen name="Services"      component={ServicesScreen} />
               <Stack.Screen name="Officials"     component={OfficialsScreen} />
+              <Stack.Screen name="EmergencyContacts" component={EmergencyContactsScreen} options={{
+                headerShown: true,
+                title: 'Emergency Contacts',
+                headerTintColor: '#0038A8',
+                headerTitleStyle: { fontWeight: '700' },
+                headerStyle: { backgroundColor: '#FFFFFF' },
+                headerShadowVisible: false,
+              }} />
               <Stack.Screen name="ChatBot"       component={ChatBotScreen} />
               <Stack.Screen name="Chatbot"       component={ChatBotScreen} />
               <Stack.Screen name="BlotterReport" component={BlotterReportScreen} />

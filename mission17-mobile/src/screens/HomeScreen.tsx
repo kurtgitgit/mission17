@@ -2,20 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView,
   TouchableOpacity, Platform, RefreshControl, StatusBar,
-  Linking, Alert, AppState
+  AppState
 } from 'react-native';
 import {
   Bell, CheckCircle, FileText,
   ChevronRight, Megaphone,
-  UserCheck, Shield, MessageSquare, Users,
-  ShieldAlert, Flame, PhoneCall, HeartPulse, Building2
+  MessageSquare, Users, ShieldAlert
 } from 'lucide-react-native';
 import { useNavigation, useRoute, useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { endpoints, GlobalState, getAuthHeadersIfAvailable } from '../config/api';
 import { getAuthData } from '../utils/storage';
 import { fetchWithTimeout } from '../utils/network';
-import { BARANGAY_CONTACTS } from '../config/barangayInfo';
 
 const SERVICES = [
   {
@@ -53,40 +51,6 @@ const SERVICES = [
     screen: 'Officials',
     color: '#0038A8',
     bgLight: '#EFF6FF'
-  },
-];
-
-// ─── EMERGENCY HOTLINES (VECTOR ICONS) ───────────────────────────────────────
-const HOTLINES = [
-  {
-    id: BARANGAY_CONTACTS[0].id, label: `${BARANGAY_CONTACTS[0].label} - ${BARANGAY_CONTACTS[0].contactPerson}`, icon: Building2, color: '#0038A8',
-    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[0].displayNumber }],
-  },
-  {
-    id: BARANGAY_CONTACTS[1].id, label: `${BARANGAY_CONTACTS[1].label} - ${BARANGAY_CONTACTS[1].contactPerson}`, icon: UserCheck, color: '#15803d',
-    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[1].displayNumber }],
-  },
-  {
-    id: BARANGAY_CONTACTS[2].id, label: `${BARANGAY_CONTACTS[2].label} - ${BARANGAY_CONTACTS[2].contactPerson}`, icon: Shield, color: '#1e40af',
-    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[2].displayNumber }],
-  },
-  {
-    id: BARANGAY_CONTACTS[3].id, label: `${BARANGAY_CONTACTS[3].label} - ${BARANGAY_CONTACTS[3].contactPerson}`, icon: HeartPulse, color: '#be123c',
-    numbers: [{ label: 'Mobile', value: BARANGAY_CONTACTS[3].displayNumber }],
-  },
-  {
-    id: 'mdrrmo', label: 'MDRRMO San Jacinto', icon: PhoneCall, color: '#ea580c',
-    numbers: [{ label: 'Mobile', value: '0976-402-4120' }, { label: 'Landline', value: '540-0851' }],
-  },
-  {
-    id: 'rhu', label: 'RHU Ambulance', icon: HeartPulse, color: '#dc2626',
-    numbers: [{ label: 'Mobile', value: '0991-642-1048' }, { label: 'Landline', value: '653-3164' }],
-  },
-  { id: 'dilg', label: 'DILG', icon: Building2, color: '#2563eb', numbers: [{ label: 'Mobile', value: '0917-140-1895' }] },
-  { id: 'bfp', label: 'BFP San Jacinto', icon: Flame, color: '#dc2626', numbers: [{ label: 'Mobile', value: '0917-189-4611' }] },
-  {
-    id: 'pnp', label: 'PNP San Jacinto', icon: ShieldAlert, color: '#1e40af',
-    numbers: [{ label: 'Mobile 1', value: '0906-525-9725' }, { label: 'Mobile 2', value: '0998-598-5126' }, { label: 'Landline', value: '653-1762' }],
   },
 ];
 
@@ -139,7 +103,7 @@ const HomeScreen: React.FC = () => {
 
         const data = await annRes.json();
         const bulletinList = Array.isArray(data) ? data : (Array.isArray(data.data) ? data.data : []);
-        setAnnouncements(bulletinList.slice(0, 3));
+        setAnnouncements(bulletinList.slice(0, 2));
         setBulletinsUnavailable(false);
         bulletinRequestSucceeded = true;
       } catch (error) {
@@ -187,17 +151,6 @@ const HomeScreen: React.FC = () => {
   }, [isFocused, fetchAll]);
 
   const onRefresh = useCallback(() => { setRefreshing(true); fetchAll(); }, [fetchAll]);
-
-  const call = (number: string, label: string) => {
-    Alert.alert(
-      `Call ${label}?`,
-      `Would you like to connect to ${number}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Call Now', onPress: () => Linking.openURL(`tel:${number.replace(/[^0-9+]/g, '')}`).catch(() => Alert.alert('Error', 'Cannot open phone dialer on this device.')) }
-      ]
-    );
-  };
 
   const RootComponent = (Platform.OS === 'web' ? View : SafeAreaView) as React.ElementType;
 
@@ -366,42 +319,18 @@ const HomeScreen: React.FC = () => {
         {/* ══════════ EMERGENCY HOTLINES ══════════ */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.sectionTitle}>Emergency Hotlines</Text>
               <Text style={styles.sectionSub}>Official San Jacinto emergency contacts</Text>
             </View>
-          </View>
-
-          <View style={styles.hotlinesCard}>
-            {HOTLINES.map((h, i) => {
-              const IconComp = h.icon;
-              return (
-                <View
-                  key={h.id}
-                  style={[styles.hotlineRow, i < HOTLINES.length - 1 && styles.hotlineDivider]}
-                >
-                  <View style={[styles.hotlineIconCircle, { backgroundColor: '#F1F5F9' }]}>
-                    <IconComp size={18} color={h.color} />
-                  </View>
-                  <View style={styles.hotlineInfo}>
-                    <Text style={styles.hotlineLabel}>{h.label}</Text>
-                    {h.numbers.map((entry) => (
-                      <TouchableOpacity
-                        key={entry.value}
-                        onPress={() => call(entry.value, h.label)}
-                        activeOpacity={0.7}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Call ${h.label} ${entry.label} at ${entry.value}`}
-                        style={styles.hotlineNumberAction}
-                      >
-                        <Text style={styles.hotlineNumber}>{entry.label}: {entry.value}</Text>
-                        <Text style={styles.callBadgeText}>Call</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              );
-            })}
+            <TouchableOpacity
+              onPress={() => navigation.navigate('EmergencyContacts')}
+              style={styles.hotlinesAction}
+              accessibilityRole="button"
+              accessibilityLabel="View all emergency contacts"
+            >
+              <Text style={styles.seeAll}>View all →</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -615,42 +544,7 @@ const getStyles = () => StyleSheet.create({
   evtLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   evtLoc:    { fontSize: 11.5, color: '#64748B', flex: 1, fontWeight: '500' },
 
-  // HOTLINES
-  hotlinesCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    overflow: 'hidden',
-    shadowColor: '#0F172A',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E2E8F0'
-  },
-  hotlineRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 14
-  },
-  hotlineDivider: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
-  hotlineIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  hotlineInfo: { flex: 1, gap: 3 },
-  hotlineLabel: { fontSize: 13.5, fontWeight: '700', color: '#0F172A' },
-  hotlineNumberAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingVertical: 3 },
-  hotlineNumber: { fontSize: 12, color: '#475569', fontWeight: '600' },
-  callBadgeText: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: '#1D4ED8',
-  },
+  hotlinesAction: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 4, marginLeft: 12 },
 
 });
 
