@@ -7,6 +7,31 @@ const {outputText}=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleK
 const {validateDocumentRequest:doc,validateBlotterRequest:blotter,validateFeedbackRequest:feedback}=await import('data:text/javascript;base64,'+Buffer.from(outputText).toString('base64'));
 const document={docType:'Barangay Clearance',fullName:'José Dela Cruz',address:'Purok 2, Bagong Pag-asa',contact:'09123456789',purpose:'Para sa school enrollment.'};
 test('accepts real multilingual names and punctuation',()=>assert.deepEqual(doc(document),{}));
+test('accepts names with initials, accents, hyphens and apostrophes in both forms',()=>{
+ for(const fullName of ['Juan C. dela Cruz','Anne-Marie O’Neil','María José Núñez']){
+  assert.equal(doc({...document,fullName}).fullName,undefined,`document request should accept ${fullName}`);
+  assert.equal(blotter({fullName,contactNumber:'09123456789',incidentType:'Disturbance',location:'Purok 2',description:'Please assist with this incident.',incidentDateSelected:true,incidentTimeSelected:true,incidentDateTime:new Date('2020-01-01')}).fullName,undefined,`blotter should accept ${fullName}`);
+ }
+});
+test('rejects digit-bearing or unsupported-character names in document requests',()=>{
+ for(const fullName of ['Juan123','Maria2 Reyes','Ana@Reyes','---','.Juan','Juan.','Ana--Reyes'])assert.ok(doc({...document,fullName}).fullName,`${fullName} should be rejected`);
+});
+
+test('accepts common name suffixes in both request forms without allowing arbitrary trailing periods',()=>{
+ const report={contactNumber:'09123456789',incidentType:'Disturbance',location:'Purok 2',description:'Please assist with this incident.',incidentDateSelected:true,incidentTimeSelected:true,incidentDateTime:new Date('2020-01-01')};
+ for(const fullName of ['Juan Dela Cruz Jr.','José C. Reyes Sr.','Ana Santos jr.','Juan Reyes II','Juan Reyes III']){
+  assert.equal(doc({...document,fullName}).fullName,undefined,`document should accept ${fullName}`);
+  assert.equal(blotter({...report,fullName}).fullName,undefined,`blotter should accept ${fullName}`);
+ }
+ for(const fullName of ['Juan123 Jr.','Juan Dela Cruz.','Jr. Juan Reyes','Juan Reyes Jr..']){
+  assert.ok(doc({...document,fullName}).fullName,`document should reject ${fullName}`);
+  assert.ok(blotter({...report,fullName}).fullName,`blotter should reject ${fullName}`);
+ }
+});
+test('rejects digit-bearing or unsupported-character names in blotter reports',()=>{
+ const report={contactNumber:'09123456789',incidentType:'Disturbance',location:'Purok 2',description:'Please assist with this incident.',incidentDateSelected:true,incidentTimeSelected:true,incidentDateTime:new Date('2020-01-01')};
+ for(const fullName of ['Juan123','Maria2 Reyes','Ana@Reyes','---','.Juan','Juan.','Ana--Reyes'])assert.ok(blotter({...report,fullName}).fullName,`${fullName} should be rejected`);
+});
 test('blocks blank, overlong, repeated and malformed document inputs',()=>{
  for(const value of ['   ','111111','aaaaaa','A'.repeat(121)])assert.ok(doc({...document,fullName:value}).fullName);
  assert.ok(doc({...document,docType:'unlisted'}).docType);

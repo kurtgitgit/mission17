@@ -458,7 +458,7 @@ const BlotterReportScreen = () => {
           {/* FULL NAME */}
           <View style={styles.inputGroup}>
             <Text style={styles.fieldLabel}>
-              Full Legal Name <Text style={styles.requiredStar}>*</Text>
+              Full Name <Text style={styles.requiredStar}>*</Text>
             </Text>
             <View style={[styles.inputBox, errors.fullName ? styles.inputBoxError : null]}>
               <User size={18} color="#64748b" style={styles.inputIcon} />
@@ -470,7 +470,7 @@ const BlotterReportScreen = () => {
                 maxLength={120}
                 value={fullName}
                 onChangeText={(t) => { setFullName(t); setErrors(e => ({ ...e, fullName: '' })); }}
-                accessibilityLabel="Full Legal Name"
+                accessibilityLabel="Full Name"
               />
             </View>
             {errors.fullName ? (

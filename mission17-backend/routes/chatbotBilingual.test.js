@@ -27,7 +27,7 @@ const workflows = [
   { clues: ["'eFeedback'", 'Write Message', 'My Inbox & History'], en: ['How do I send feedback?', 'How do I complain about a broken streetlight?'], tl: ['Paano magsend ng e feedback?', 'Saan magsusumbong ng sirang ilaw sa kalsada?'] },
   { clues: ['Submit Anonymously', 'account'], en: ['Can I submit feedback anonymously?', 'Is anonymous feedback completely untraceable?'], tl: ['Pwede bang anonymous ang feedback?', 'Makikita ba pangalan ko sa anonymous feedback?'] },
   { clues: ['My Inbox & History', 'reply'], en: ['Where is the reply to my feedback?', 'How do I track a suggestion?'], tl: ['Nasaan ang sagot sa feedback ko?', 'Paano makita ang status ng suggestion ko?'] },
-  { clues: ['Select', 'Delete selected', 'requests'], en: ['How do I delete one notification?', 'Will deleting notifications delete my requests?'], tl: ['Paano burahin isang notification?', 'Paano magdelete ng napiling notifications?'] },
+  { clues: ['trash', 'Select all', 'Delete selected', 'requests'], en: ['How do I delete one notification?', 'Will deleting notifications delete my requests?'], tl: ['Paano burahin isang notification?', 'Paano magdelete ng napiling notifications?'] },
   { clues: ['Settings', 'permission'], en: ['Why am I not getting push notifications?', 'How do I enable notifications?'], tl: ['Walang dumarating na notifications sa phone ko', 'Paano i-on ang notifikasyon?'] },
   { clues: ['Create Account', 'email', 'ID', 'approval'], en: ['How do I register?', 'How do I create an account?'], tl: ['Paano gumawa ng account?', 'Paano mag sign up sa BrgyLink?'] },
   { clues: ['review', 'approval'], en: ['Why is my account pending?', 'Can you approve my registration?'], tl: ['Pending pa ang account ko', 'Pwede mo bang iapprove ang registration ko?'] },
@@ -37,6 +37,31 @@ const workflows = [
 ];
 
 describe('source-grounded English and Tagalog workflows', () => {
+  it.each([
+    'How much is a Barangay Clearance?',
+    'What is the Business Clearance fee?',
+    'Is the Certificate of Indigency free?',
+    'How much is Barangay ID?',
+    'Magkano ang barangay clearance?',
+    'Magkano ang business clearance?',
+    'Libre ba ang Certificate of Residency?',
+    'Can I pay for my document online?',
+  ])('answers document fees using the confirmed barangay schedule: %s', message => {
+    const reply = getControlledFaq(message);
+    expect(reply).toMatch(/Barangay Clearance[^₱]*₱20/);
+    expect(reply).toMatch(/Business Clearance[^₱]*₱300/);
+    expect(reply).toMatch(/all other documents.*free|lahat ng iba pang dokumento.*libre/i);
+    expect(reply).toMatch(/Barangay Hall/);
+    expect(reply).toMatch(/pick\s*up/i);
+    expect(reply).toMatch(/does not collect online payments|hindi tumatanggap ng online payment/i);
+  });
+  it.each(['How do I delete one notification?', 'Paano burahin isang notification?'])('explains the current notification deletion controls: %s', message => {
+    const reply = getControlledFaq(message);
+    expect(reply).toMatch(/trash/i);
+    expect(reply).toContain('Select all');
+    expect(reply).toContain('Deselect all');
+    expect(reply).not.toMatch(/Clear all notifications|tap Select,|piliin ang Select,/i);
+  });
   for (const { clues, en, tl } of workflows) {
     for (const [language, messages] of [['english', en], ['tagalog', tl]]) {
       it.each(messages)(`${language}: %s`, message => {
@@ -44,7 +69,7 @@ describe('source-grounded English and Tagalog workflows', () => {
         const reply = getControlledFaq(message);
         expect(typeof reply).toBe('string');
         for (const clue of clues) expect(reply.toLowerCase()).toContain(clue.toLowerCase());
-        expect(reply).not.toMatch(/Clearance & ID|Blotter Incident|Barangay Council|₱\s*\d|php\s*\d/i);
+        expect(reply).not.toMatch(/Clearance & ID|Blotter Incident|Barangay Council/i);
       });
     }
   }

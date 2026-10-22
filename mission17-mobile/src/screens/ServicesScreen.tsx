@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { sharedStyles } from '../config/theme';
 import ScreenErrorState from '../components/ScreenErrorState';
 import { validateDocumentRequest } from '../utils/requestValidation';
+import { getDocumentPaymentNotice } from '../utils/documentFees';
 import { fetchPrivateCollection, fetchWithTimeout, getFriendlyNetworkMessage } from '../utils/network';
 
 const DOCUMENT_TYPES = [
@@ -39,7 +40,7 @@ const STATUS_CONFIG: Record<string, { color: string; icon: any; bg: string; bord
   'Rejected':         { color: '#991b1b', icon: XCircle,      bg: '#fee2e2', border: '#fca5a5' },
 };
 
-const PICKUP_PAYMENT_NOTICE = 'Payment, if applicable, will be made at the Barangay Hall when you pick up your document.';
+const PICKUP_PAYMENT_NOTICE = 'Barangay Clearance: ₱20. Business Clearance: ₱300. All other documents are free. Payment is made at Barangay Hall when you pick up your document.';
 
 const ServicesScreen: React.FC = () => {
   const [tab, setTab] = useState<'request' | 'status'>('request');
@@ -181,7 +182,7 @@ const ServicesScreen: React.FC = () => {
               🗓️ Pickup Date: {new Date(item.pickupDate).toDateString()}
             </Text>
           )}
-          {item.status === 'Ready for Pickup' && <Text style={styles.statusMetaText}>{PICKUP_PAYMENT_NOTICE}</Text>}
+          <Text style={styles.statusMetaText}>{getDocumentPaymentNotice(item.documentType, item.customDocumentType)}</Text>
           {item.rejectionReason && (
             <Text style={[styles.statusMetaText, { color: '#dc2626', fontWeight: '700' }]}>
               ⚠️ Notice / Missing Requirements: {item.rejectionReason}
@@ -300,6 +301,7 @@ const ServicesScreen: React.FC = () => {
               <View style={{ flex: 1 }}>
                 <Text style={styles.pickerTitle}>{selectedDocObj.label}</Text>
                 <Text style={styles.pickerDesc}>{selectedDocObj.desc}</Text>
+                <Text style={styles.pickerDesc}>{getDocumentPaymentNotice(docType, customDocumentType)}</Text>
               </View>
               <ChevronDown size={20} color="#0038A8" />
             </TouchableOpacity>
@@ -332,7 +334,7 @@ const ServicesScreen: React.FC = () => {
 
             {/* FULL NAME */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Legal Name <Text style={styles.requiredStar}>*</Text></Text>
+              <Text style={styles.label}>Full Name <Text style={styles.requiredStar}>*</Text></Text>
               <View style={[styles.inputBox, errors.fullName ? styles.inputBoxError : null]}>
                 <User size={18} color="#64748b" style={styles.inputIcon} />
                 <TextInput 
@@ -343,7 +345,7 @@ const ServicesScreen: React.FC = () => {
                   maxLength={120}
                   value={fullName}
                   onChangeText={(t) => { setFullName(t); setErrors(e => ({...e, fullName: ''})); }} 
-                  accessibilityLabel="Full Legal Name"
+                  accessibilityLabel="Full Name"
                 />
               </View>
               {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
@@ -489,6 +491,7 @@ const ServicesScreen: React.FC = () => {
                       {item.label}
                     </Text>
                     <Text style={styles.modalOptionSub}>{item.desc}</Text>
+                    <Text style={styles.modalOptionSub}>{getDocumentPaymentNotice(item.id)}</Text>
                   </View>
                 </TouchableOpacity>
               ))}

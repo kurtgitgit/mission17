@@ -473,6 +473,8 @@ const DocumentRequests = () => {
           <div className="pa-list">
             {filtered.map(req => {
               const nextStatus = NEXT_STATUS[req.status];
+              const documentName = (req.documentType === 'Other' ? req.customDocumentType || '' : req.documentType).trim().toLowerCase();
+              const fee = documentName === 'barangay clearance' ? 20 : documentName === 'business clearance' ? 300 : 0;
               const badgeClass = STATUS_CLASS[req.status] || 'pa-badge pa-status-Pending';
               const canAct = !req.isArchived && req.status !== 'Completed' && req.status !== 'Rejected';
               return (
@@ -494,7 +496,7 @@ const DocumentRequests = () => {
                       <div className="pa-document-heading">
                         <p className="pa-card-title" style={{ margin: 0 }}>{req.documentType}</p>
                         <span style={{ fontSize: 11.5, fontWeight: 800, backgroundColor: '#f1f5f9', color: '#0f172a', padding: '2px 8px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-                          Fee and payment details: Confirm with Barangay Hall
+                          {fee ? `Fee: ₱${fee} · Payment at Barangay Hall upon pickup` : 'Free — no payment required'}
                         </span>
                       </div>
 

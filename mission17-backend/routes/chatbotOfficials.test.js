@@ -19,7 +19,7 @@ beforeEach(async()=>{
   process.env.AI_SERVICE_TOKEN = 'local-test-token-not-a-credential';
   await Official.deleteMany({});
   await Official.create([
-    {name:'Ana Reyes',position:'Punong Barangay',contact:'09111111111',term:'2026 - 2029',order:1},
+    {name:'Ana Reyes',position:'Punong Barangay',contact:'09111111111',email:'ana@example.com',term:'2026 - 2029',termNumber:'1st',committee:'Peace and Order',order:1},
     {name:'Juanito R. Ramos',position:'Barangay Kagawad',committee:'Peace and Order',contact:'09222222222',order:15},
     {name:'Maria Ramos',position:'Barangay Kagawad',committee:'Education',order:16},
     {name:'Bhea San Miguel',position:'Barangay Secretary',contact:'09333333333',email:'office@example.com',order:20},
@@ -37,8 +37,21 @@ afterEach(()=>{
 
 describe('current published officials through the chatbot endpoint',()=>{
   it.each([
+    ['Who is the barangay captain?','Here is the published information'],
+    ['Sino po ang kapitan?','Narito ang naka-publish na impormasyon'],
+  ])('returns the captain’s complete published directory details in the requested language: %s',async(message,intro)=>{
+    const result=await ask(message);
+    for(const detail of [intro,'Ana Reyes','Punong Barangay','Peace and Order','2026 - 2029','1st','09111111111','ana@example.com'])expect(result.reply).toContain(detail);
+    expect(result.reply).not.toContain('Hidden Former Captain');
+    expect(result.source).toBe('live-brgylink-data');
+    expect(upstream).not.toHaveBeenCalled();
+  });
+  it.each([
     ['Who is the barangay captain?','Ana Reyes','09111111111'],
     ['Sino po ang kapitan?','Ana Reyes','09111111111'],
+    ['Ano ang number ni kap?','Ana Reyes','09111111111'],
+    ['Sino si Kap?','Ana Reyes','09111111111'],
+    ['Who is Kap?','Ana Reyes','09111111111'],
     ['Who is the barangay secretary?','Bhea San Miguel','office@example.com'],
     ['Sino ang ingat-yaman ng barangay?','New Treasurer','09444444444'],
     ['Who is the SK chairperson?','Lia Santos','09555555555'],
@@ -69,7 +82,7 @@ describe('current published officials through the chatbot endpoint',()=>{
     expect(result.reply).not.toMatch(/09111111111|09222222222/);
     expect(upstream).not.toHaveBeenCalled();
   });
-  it.each(['Who is official Pedro Missing?','What is the number of barangay captain Unknown Person?','Who is the barangay vice captain?'])('does not substitute another official for an unknown query: %s',async message=>{
+  it.each(['Who is official Pedro Missing?','What is the number of barangay captain Unknown Person?','Who is the barangay vice captain?','Ano ang number ni kap Unknown Person?'])('does not substitute another official for an unknown query: %s',async message=>{
     const result=await ask(message);
     expect(result.reply).toMatch(/sorry|pasensya|could not|cannot|couldn.t|could not find/i);
     expect(result.reply).not.toMatch(/09111111111|09222222222|Ana Reyes/);

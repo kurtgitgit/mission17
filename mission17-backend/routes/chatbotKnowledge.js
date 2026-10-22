@@ -22,8 +22,8 @@ const answers = {
     "Sa 'Documents' > 'My Requests': Pending = naghihintay ng review; Processing = inaasikaso; Ready for Pickup = maaari nang kunin ayon sa instructions; Completed = minarkahang tapos ng staff; Rejected = hindi naaprubahan, kaya basahin ang reason at instructions. Hindi ko po nakikita rito ang personal mong status.",
   ],
   payment: [
-    'Payment, if applicable, is made at the Barangay Hall when you pick up your document. BrgyLink does not collect online payments. Please confirm the current fee and accepted payment methods directly with the barangay; I cannot promise a fee, exemption, or GCash acceptance.',
-    'Ang payment, kung mayroon, ay sa Barangay Hall kapag pickup ng dokumento. Hindi tumatanggap ng online payment ang BrgyLink. Pakikumpirma po sa barangay ang kasalukuyang bayad at paraan ng pagbabayad; hindi ako makakapangako ng halaga, exemption, o pagtanggap ng GCash.',
+    'Barangay Clearance costs ₱20 and Business Clearance costs ₱300. All other documents offered in BrgyLink are free. Payment for the two paid documents is made at Barangay Hall when you pick up your document. BrgyLink does not collect online payments. For accepted payment methods, please ask the barangay office.',
+    'Ang Barangay Clearance ay ₱20 at ang Business Clearance ay ₱300. Lahat ng iba pang dokumento na inaalok sa BrgyLink ay libre. Sa Barangay Hall magbayad para sa dalawang dokumentong may bayad kapag pickup ng dokumento. Hindi tumatanggap ng online payment ang BrgyLink. Para sa paraan ng pagbabayad na tinatanggap, magtanong po sa barangay office.',
   ],
   requirements: [
     "The request form asks for the document type, complete name, address, Philippine mobile contact number, and purpose. For 'Other Document', also specify its name. These are app fields, not a complete official checklist. Please confirm supporting documents and eligibility with the barangay office; requirements depend on the document and purpose.",
@@ -74,8 +74,8 @@ const answers = {
     "Buksan ang Home > 'eFeedback' > 'My Inbox & History'. Doon makikita ang status at reply ng barangay kung mayroon. Ang mga status ay New, Under Review, Resolved, at Dismissed. Hindi ko po nababasa ang private feedback, magagarantiya ang oras ng sagot, o masasagot iyon sa ngalan ng mga opisyal.",
   ],
   notificationDelete: [
-    'Open your notifications, tap Select, choose the notifications to remove, then tap Delete selected and confirm. Unselected notifications stay. Deleting notifications does not delete your document requests, blotter reports, or account; Clear all notifications is a separate option.',
-    'Buksan ang notifications, piliin ang Select, markahan ang gustong burahin, saka Delete selected at kumpirmahin. Mananatili ang hindi pinili. Hindi mabubura ang document requests, blotter reports, o account sa pagbura ng notifications; hiwalay na option ang Clear all notifications.',
+    'Open your notifications and tap the trash icon to choose which notifications to remove. Use Select all to select the current list, or Deselect all to clear your selection. Tap Delete selected and confirm. Unselected notifications stay. Deleting notifications does not delete your document requests, blotter reports, or account.',
+    'Buksan ang notifications at i-tap ang trash icon para piliin ang mga gustong burahin. Gamitin ang Select all para piliin ang kasalukuyang listahan, o Deselect all para alisin ang pagkakapili. I-tap ang Delete selected at kumpirmahin. Mananatili ang hindi pinili. Hindi mabubura ang document requests, blotter reports, o account sa pagbura ng notifications.',
   ],
   notifications: [
     'Please check the app notification list first. For push alerts, check the push-notification setting in Settings and the notification permission for BrgyLink in your phone settings, then check your internet connection. Delivery is not guaranteed; you can still check request histories and News for updates. I cannot send an alert from chat.',
@@ -200,7 +200,7 @@ export const getWorkflowReply = (message, language) => {
   }
   if (!key && hasDocument) {
     key = /\b(reject\w*|missing|kulang|denied)\b/i.test(message) ? 'documentRejected'
-      : /\b(fee|fees|cost|price|payment|pay|bayad|magkano|gcash|libre|free)\b/i.test(message) ? 'payment'
+      : /\b(fee|fees|cost|price|payment|pay|how\s+much|bayad|magkano|gcash|libre|free)\b/i.test(message) ? 'payment'
         : /\b(how\s+long|processing\s+time|ilang\s+araw|gaano\s+katagal|guarantee|tomorrow|bukas)\b/i.test(message) ? 'processing'
           : /\b(pick\s*-?\s*up|pickup|collect|collection|kukunin|makukuha|kailan|reschedule)\b/i.test(message) ? 'pickup'
             : /\b(requirements?|information.*need|kailangan|supporting|eligib\w*)\b/i.test(message) && !/\b(?:kailangan\s+ko)\b/i.test(message) ? 'requirements'

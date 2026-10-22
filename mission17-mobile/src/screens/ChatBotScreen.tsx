@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
 
   inputBar: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    padding: spacing.md, backgroundColor: colors.surface,
+    padding: spacing.md, paddingBottom: spacing.md + 40, backgroundColor: colors.surface,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
   textInput: {

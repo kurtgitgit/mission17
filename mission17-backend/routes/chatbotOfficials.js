@@ -3,7 +3,7 @@ import { compareOfficials } from '../utils/officialOrdering.js';
 
 const normalize = text => String(text ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const roles = [
-  ['Punong Barangay', /\b(?:punong barangay|barangay captain|captain|kapitan)\b/],
+  ['Punong Barangay', /\b(?:punong barangay|barangay captain|captain|kapitan|kap)\b/],
   ['Barangay Kagawad', /\b(?:kagawads?|council(?:lor|or|man|woman|members?)?s?)\b/],
   ['SK Chairperson', /\b(?:sk|sangguniang kabataan)\b/],
   ['Barangay Secretary', /\b(?:secretary|sekretarya|sekretaryo|kalihim)\b/],
@@ -12,7 +12,7 @@ const roles = [
   ['BHW President', /\b(?:bhw|barangay health worker)\b/],
 ];
 const stopWords = new Set(('who what which where how is are was the a an of our your their his her its in on at and or to for from me please po opo ang mga si sina ni nina kay ng nang sa sino ano anong alin aling nasa kasalukuyan barangay brgy bagong pag asa san jacinto pangasinan officials official opisyal opisyales council councilor councillor councilmembers members member punong captain kapitan kagawad kagawads sk sangguniang kabataan chair chairman chairperson secretary sekretarya sekretaryo kalihim treasurer tesorero tesorera ingat yaman chief tanod bhw president health worker committee komite namumuno namamahala handles handle heads head leads lead contact phone mobile telephone number numbers numero email address details detail information impormasyon pangalan name names list roster all current active currently new latest published tell about give show get find need can could may i we do does mga buong hon honorable mr ms mrs sir maam term tungkulin role position contactable').split(' '));
-const conversationalWords = new Set('you us they them know serving as with yung natin namin ninyo nyo sila siya iyon ito iyong ba kanyang elected paki pwedeng'.split(' '));
+const conversationalWords = new Set('you us they them know serving as with yung natin namin ninyo nyo sila siya iyon ito iyong ba kanyang elected paki pwedeng kap'.split(' '));
 const personWords = (question, committee = false) => normalize(question).split(' ').filter(word => word.length > 1
   && (!stopWords.has(word) || committee && ['health', 'worker'].includes(word)) && !conversationalWords.has(word));
 const ambiguousBarangay = question => /^(?:who is (?:the )?barangay|sino (?:po )?(?:ang )?barangay)(?: po)?$/.test(normalize(question));
